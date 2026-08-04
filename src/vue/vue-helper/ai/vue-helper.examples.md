@@ -1,4 +1,4 @@
-# Regira JsLib Vue Helper — Examples
+# Regira Vue Helper — Examples
 
 Verify signatures in [vue-helper.signatures.md](vue-helper.signatures.md).
 

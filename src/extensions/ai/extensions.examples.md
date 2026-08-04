@@ -1,4 +1,4 @@
-# Regira JsLib Extensions — Examples
+# Regira Extensions — Examples
 
 Verify signatures in [extensions.signatures.md](extensions.signatures.md). Nothing is patched on import — each extension is
 applied only when you call its `use()` enabler.

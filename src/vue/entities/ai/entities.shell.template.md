@@ -1,4 +1,4 @@
-# Regira JsLib — App Shell Template (scaffold)
+# Regira — App Shell Template (scaffold)
 
 The **one-time app shell** that hosts your entity slices: bootstrap (`main.ts`, `App.vue`), runtime config,
 router, the config-driven **dashboard + navbar**, layout chrome, the account/password-recovery UI (auth

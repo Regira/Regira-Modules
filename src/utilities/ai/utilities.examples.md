@@ -1,4 +1,4 @@
-# Regira JsLib Utilities — Examples
+# Regira Utilities — Examples
 
 Framework-agnostic helpers (no Vue). Verify signatures in [utilities.signatures.md](utilities.signatures.md).
 

@@ -1,4 +1,4 @@
-# Regira JsLib Online — API Signatures Reference
+# Regira Online — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/online`. Do not guess — look up here first.
 

@@ -1,4 +1,4 @@
-# Regira JsLib Events — AI Agent Instructions
+# Regira Events — AI Agent Instructions
 
 A tiny event mixin (`regira/events`): an `Event` value object and an `EventHandler` whose
 `injectInto(target)` adds a `trigger` / `on` / `once` / `off` API to any object. Regira managers use it

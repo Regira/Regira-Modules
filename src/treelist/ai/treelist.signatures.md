@@ -1,4 +1,4 @@
-# Regira JsLib TreeList — API Signatures Reference
+# Regira TreeList — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/treelist`. Do not guess — look up here first.
 

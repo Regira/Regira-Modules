@@ -5,8 +5,9 @@
 
 ## Install
 
-The library is consumed straight from GitHub (the build output `dist/` is committed, so no
-build step runs on install).
+The library is consumed straight from GitHub. `dist/` is not committed — npm runs the package's
+`prepare` script on install, which builds it (`vite build` + `vue-tsc`), so the install is a real
+build and takes noticeably longer than a registry install.
 
 ```json
 // package.json
@@ -17,7 +18,8 @@ build step runs on install).
 }
 ```
 
-> npm resolves this with `git`, so a `git` binary must be on `PATH`. Where non-registry installs are
+> npm resolves this with `git`, so a `git` binary must be on `PATH`, and the `prepare` build needs
+> the dev toolchain to install — expect the first install to take a while. Where non-registry installs are
 > blocked or SSH (port 22) is unavailable — CI, containers, locked-down networks — pin HTTPS instead:
 > `"regira": "git+https://github.com/Regira/Regira-Modules.git"`, or map it globally with
 > `git config --global url."https://github.com/".insteadOf git@github.com:`.

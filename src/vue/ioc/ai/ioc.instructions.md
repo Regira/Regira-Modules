@@ -1,4 +1,4 @@
-# Regira JsLib IoC — AI Agent Instructions
+# Regira IoC — AI Agent Instructions
 
 A tiny inversion-of-control container (`regira/vue/ioc`): register service factories with `add`,
 resolve them with `get`. Entity services are registered and resolved through it.

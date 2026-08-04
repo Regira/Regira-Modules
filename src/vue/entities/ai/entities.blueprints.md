@@ -1,4 +1,4 @@
-# Regira JsLib Entities — Domain Blueprints (SPA)
+# Regira Entities — Domain Blueprints (SPA)
 
 Front-end counterparts of the back-end domain blueprints (`get_package("Regira.Entities", section: "blueprints")`). Ready-to-copy feature slices proven in the Regira reference apps — copy into your app and adapt names; everything builds on the standard module surface (`EntityBase`, `EntityServiceBase`, `useOwnedCollection`, `useTree`, the auth store).
 

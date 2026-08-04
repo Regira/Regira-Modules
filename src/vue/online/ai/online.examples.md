@@ -1,4 +1,4 @@
-# Regira JsLib Online — Examples
+# Regira Online — Examples
 
 Verify signatures in [online.signatures.md](online.signatures.md).
 

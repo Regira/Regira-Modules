@@ -1,4 +1,4 @@
-# Regira JsLib UI — Customization Guide
+# Regira UI — Customization Guide
 
 The built-ins are **deliberately plain Bootstrap 5 — restyling is encouraged and expected.** This guide
 is the canonical path to a branded app: five layers, cheapest first. Climb only as high as the design

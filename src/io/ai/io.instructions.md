@@ -1,4 +1,4 @@
-# Regira JsLib IO — AI Agent Instructions
+# Regira IO — AI Agent Instructions
 
 Browser file and image helpers (`regira/io`): two classes, `FileHelper` and `ImageHelper`
 (which extends it). `FileHelper` normalises a `File`, `Blob`, URL, or base64 string into a `Blob` and

@@ -1,4 +1,4 @@
-# Regira JsLib Debug — AI Agent Instructions
+# Regira Debug — AI Agent Instructions
 
 The front-end debug helpers (`regira/vue/debug`): a small `<Debug>` display component for
 dumping any value on screen, plus a Vue plugin that adds the `$isDebug` / `$setDebug` global

@@ -1,4 +1,4 @@
-# Regira JsLib UI — AI Agent Instructions
+# Regira UI — AI Agent Instructions
 
 The front-end UI toolkit (`regira/vue/ui`): the Vue components, composables, and plugins the
 [entity views](../../entities/ai/entities.instructions.md) render with — paging, loading, feedback,

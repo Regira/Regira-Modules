@@ -78,7 +78,7 @@ comma-separated) and `get_example(pattern=…)` over whole-section reads. When y
 never a verbatim dump of every file (that alone can cost 100k+ tokens for little gain).
 
 **Checking one signature: use `get_type`.** `get_type("regira_modules.vue.ui", "useFeedback")` returns the
-declaration in a single call. Reach for the committed `dist/**/*.d.ts` when you want to _browse_ a module's
+declaration in a single call. Reach for the installed `dist/**/*.d.ts` (in `node_modules/regira`) when you want to _browse_ a module's
 surface — locating the right file first costs several shell round-trips, which is enough friction that
 guessing starts to look cheaper than verifying. It never is: `useFeedback`, `useOwnedCollection` and
 `useDetails` are the three most-misremembered shapes in this library.
@@ -98,7 +98,8 @@ truth is `get_package("regira_modules.vue.ui", section: "ui.signatures")`.
       `"regira": "git+https://github.com/Regira/Regira-Modules.git"` (or
       `git config --global url."https://github.com/".insteadOf git@github.com:`). Run the `npm install`
       first and surface any blocker before spending context on guides. **Expect it to be slow** — the first
-      install clones the repo and pulls the full Vite/TS toolchain, routinely past a 2-minute shell timeout;
+      install clones the repo, pulls the full Vite/TS toolchain, and runs the package's `prepare`
+      build (`vite build` + `vue-tsc`) to produce `dist/`, routinely past a 2-minute shell timeout;
       run it detached (or raise the timeout) and poll, rather than reading a timeout as failure. No NuGet, no
       license key, no service budget on the front-end.
 - [ ] Peers + toolchain installed from the **known-good dependency set** (`entities.setup` → Install) in
@@ -162,7 +163,7 @@ The CRUD client `regira_modules.vue.entities` wires onto sibling modules:
 These guides cover Regira's front-end modules only. General front-end concerns — dev server, proxy, CORS,
 bundling, the build — are yours to own. Style with **Bootstrap 5**. When a Regira import, signature, or
 option is unconfirmed, **stop and ask**; do not invent it — verify against `entities.namespaces` /
-`entities.signatures` and the committed `dist/**/*.d.ts`.
+`entities.signatures` and the installed `dist/**/*.d.ts`.
 
 ## Following conventions
 

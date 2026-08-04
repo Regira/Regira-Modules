@@ -1,4 +1,4 @@
-# Regira JsLib App — Examples
+# Regira App — Examples
 
 Verify signatures in [app.signatures.md](app.signatures.md).
 

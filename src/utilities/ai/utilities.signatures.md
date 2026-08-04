@@ -1,4 +1,4 @@
-# Regira JsLib Utilities — API Signatures Reference
+# Regira Utilities — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/utilities`. Do not guess — look up here first.
 

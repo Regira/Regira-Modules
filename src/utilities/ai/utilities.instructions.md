@@ -1,4 +1,4 @@
-# Regira JsLib Utilities — AI Agent Instructions
+# Regira Utilities — AI Agent Instructions
 
 A framework-agnostic helper library (`regira/utilities`): twelve namespaced barrels covering
 arrays (LINQ-like), strings, files/blobs, dates, colors, the DOM, HTTP/URLs, images, numbers, plain

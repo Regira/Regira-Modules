@@ -1,4 +1,4 @@
-# Regira JsLib HTTP — Examples
+# Regira HTTP — Examples
 
 Verify signatures in [http.signatures.md](http.signatures.md).
 

@@ -1,4 +1,4 @@
-# Regira JsLib UI — Examples
+# Regira UI — Examples
 
 Verify props/signatures in [ui.signatures.md](ui.signatures.md).
 

@@ -1,4 +1,4 @@
-# Regira JsLib HTTP — AI Agent Instructions
+# Regira HTTP — AI Agent Instructions
 
 The front-end HTTP layer (`regira/vue/http`): one shared axios instance plus file and
 query-string helpers. The [entities client](../../entities/ai/entities.instructions.md) and the auth

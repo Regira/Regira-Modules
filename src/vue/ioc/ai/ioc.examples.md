@@ -1,4 +1,4 @@
-# Regira JsLib IoC — Examples
+# Regira IoC — Examples
 
 Verify signatures in [ioc.signatures.md](ioc.signatures.md).
 

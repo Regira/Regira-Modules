@@ -1,4 +1,4 @@
-# Regira JsLib Vue Helper — API Signatures Reference
+# Regira Vue Helper — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/vue-helper` (from `dist/vue/vue-helper.d.ts`).
 Do not guess — look up here first.

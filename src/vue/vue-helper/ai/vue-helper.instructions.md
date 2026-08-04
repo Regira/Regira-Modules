@@ -1,4 +1,4 @@
-# Regira JsLib Vue Helper — AI Agent Instructions
+# Regira Vue Helper — AI Agent Instructions
 
 Three small Vue composition helpers (`regira/vue/vue-helper`) that the rest of the library is
 built on — `useOwnedCollection`, `useListInput`, and `Autocomplete` use them internally.

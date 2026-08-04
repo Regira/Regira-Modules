@@ -1,4 +1,4 @@
-# Regira JsLib Formatters — API Signatures Reference
+# Regira Formatters — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/formatters`. Do not guess — look up here first.
 

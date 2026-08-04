@@ -1,4 +1,4 @@
-# Regira JsLib App — AI Agent Instructions
+# Regira App — AI Agent Instructions
 
 The front-end app-lifecycle layer (`regira/vue/app`): a Pinia store tracking the app's
 `AppStatus` (`Init` → `Loading` → `Mounting` → `Ready`) and culture, a Vue plugin that exposes them as

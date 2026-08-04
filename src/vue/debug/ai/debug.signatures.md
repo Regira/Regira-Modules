@@ -1,4 +1,4 @@
-# Regira JsLib Debug — API Signatures Reference
+# Regira Debug — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/debug`. Do not guess — look up here first.
 

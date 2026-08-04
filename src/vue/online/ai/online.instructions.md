@@ -1,4 +1,4 @@
-# Regira JsLib Online — AI Agent Instructions
+# Regira Online — AI Agent Instructions
 
 The front-end online/offline layer (`regira/vue/online`): a tiny `useOnlineChecker` composable
 plus a Vue plugin that keeps a single reactive `isOnline` ref in sync with the browser and exposes it

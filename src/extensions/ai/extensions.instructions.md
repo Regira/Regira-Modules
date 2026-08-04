@@ -1,4 +1,4 @@
-# Regira JsLib Extensions — AI Agent Instructions
+# Regira Extensions — AI Agent Instructions
 
 Opt-in prototype extensions for `Array`, `Date`, and `Promise` (`regira/extensions`). Nothing is
 patched on import — each extension is applied **explicitly** by calling a `use()` method, so the app

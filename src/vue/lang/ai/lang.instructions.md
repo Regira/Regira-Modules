@@ -1,4 +1,4 @@
-# Regira JsLib Lang (i18n) — AI Agent Instructions
+# Regira Lang (i18n) — AI Agent Instructions
 
 The front-end internationalization layer (`regira/vue/lang`): keyed translation message
 dictionaries, `{param}` interpolation via `formatText`, the `useLang` composable that holds the active

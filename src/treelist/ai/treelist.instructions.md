@@ -1,4 +1,4 @@
-# Regira JsLib TreeList — AI Agent Instructions
+# Regira TreeList — AI Agent Instructions
 
 A generic, framework-agnostic hierarchical data structure (`regira/treelist`): a `TreeList<T>`
 holding `TreeNode<T>` items, with helpers to navigate ancestors, offspring and roots. It is plain

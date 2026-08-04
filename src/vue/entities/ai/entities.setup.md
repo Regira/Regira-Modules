@@ -1,4 +1,4 @@
-# Regira JsLib — Project setup & app shell
+# Regira — Project setup & app shell
 
 How to stand up a new `regira` Vue 3 app (Vite + Pinia + vue-router) — install, project
 structure, the **entity slice anatomy**, runtime config, the canonical `main.ts` / `App.vue`, the
@@ -26,15 +26,17 @@ plus a `Category` lookup — so it lines up with the basic example.
 
 ## Install
 
-Install from GitHub, not a registry — the repo ships a built `dist/` with an `exports` map, so nothing
-compiles on install and the **plain package specifier resolves with no alias or tsconfig path**:
+Install from GitHub, not a registry — npm runs the package's `prepare` script on install, which
+builds `dist/`, and the `exports` map then makes the **plain package specifier resolve with no alias
+or tsconfig path**:
 
 ```jsonc
 // package.json
 "dependencies": { "regira": "github:Regira/Regira-Modules" }
 ```
 
-> Resolving this needs a **`git` binary on `PATH`**. Where non-registry installs are blocked or SSH
+> Resolving this needs a **`git` binary on `PATH`**, and the install runs the package's `prepare`
+> build — expect it to take noticeably longer than a registry install. Where non-registry installs are blocked or SSH
 > (port 22) is closed — CI, containers, locked-down networks — pin HTTPS:
 > `"regira": "git+https://github.com/Regira/Regira-Modules.git"`, or map it once with
 > `git config --global url."https://github.com/".insteadOf git@github.com:`.

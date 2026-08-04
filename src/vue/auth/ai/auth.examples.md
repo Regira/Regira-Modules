@@ -1,4 +1,4 @@
-# Regira JsLib Auth — Examples
+# Regira Auth — Examples
 
 Verify signatures in [auth.signatures.md](auth.signatures.md).
 

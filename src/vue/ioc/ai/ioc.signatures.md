@@ -1,4 +1,4 @@
-# Regira JsLib IoC — API Signatures Reference
+# Regira IoC — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/ioc`. Do not guess — look up here first.
 

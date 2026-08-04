@@ -1,4 +1,4 @@
-# Regira JsLib Formatters — AI Agent Instructions
+# Regira Formatters — AI Agent Instructions
 
 A flat set of locale-aware display helpers (`regira/vue/formatters`): dates, times, numbers,
 currency, percentage, plus a few string utilities (bank account, structured reference, initials,

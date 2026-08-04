@@ -1,4 +1,4 @@
-# Regira JsLib Directives — API Signatures Reference
+# Regira Directives — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/directives`. Do not guess — look up here first.
 

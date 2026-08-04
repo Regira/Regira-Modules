@@ -1,4 +1,4 @@
-# Regira JsLib Entities — Attachments Slice Template (scaffold)
+# Regira Entities — Attachments Slice Template (scaffold)
 
 The **shared** `entity-attachments` slice: a file/picture editor that stages **offline** (add via drop or
 browse, rename, remove, drag-to-reorder) and commits everything on the **parent entity's save**. Scaffold it

@@ -1,4 +1,4 @@
-# Regira JsLib Formatters — Examples
+# Regira Formatters — Examples
 
 Verify signatures in [formatters.signatures.md](formatters.signatures.md).
 

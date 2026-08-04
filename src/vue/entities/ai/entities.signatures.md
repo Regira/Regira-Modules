@@ -1,4 +1,4 @@
-# Regira JsLib Entities — API Signatures Reference
+# Regira Entities — API Signatures Reference
 
 Verbatim TypeScript signatures for the front-end CRUD client (`regira/vue/entities`).
 

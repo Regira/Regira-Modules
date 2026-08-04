@@ -1,4 +1,4 @@
-# Regira JsLib Entities — Feature Patterns
+# Regira Entities — Feature Patterns
 
 Recipes for individual features. Each is one focused snippet + notes. Verify signatures in
 [entities.signatures.md](entities.signatures.md); see a full slice in [entities.examples.md](entities.examples.md).

@@ -1,4 +1,4 @@
-# Regira JsLib Debug — Examples
+# Regira Debug — Examples
 
 Verify signatures in [debug.signatures.md](debug.signatures.md).
 

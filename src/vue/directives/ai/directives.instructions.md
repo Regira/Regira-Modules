@@ -1,4 +1,4 @@
-# Regira JsLib Directives — AI Agent Instructions
+# Regira Directives — AI Agent Instructions
 
 Three small Vue custom directives (`regira/vue/directives`): `focus` (autofocus on mount),
 `clickOutside` (call a handler when a click lands outside the element), and `grow` (auto-grow a

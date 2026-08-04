@@ -1,4 +1,4 @@
-# Regira JsLib UI — API Signatures Reference
+# Regira UI — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/ui`. Do not guess — look up here first. For any
 component prop not listed, use the MCP source map (`get_type` on `regira_modules.vue.ui`).

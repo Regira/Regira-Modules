@@ -1,4 +1,4 @@
-# Regira JsLib Entities — Advanced Worked Example (`Vehicle`)
+# Regira Entities — Advanced Worked Example (`Vehicle`)
 
 ONE complete **complex** slice — `Vehicle`, a production-shaped example you can copy verbatim. This is
 the advanced counterpart of the basic

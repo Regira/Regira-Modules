@@ -1,4 +1,4 @@
-# Regira JsLib App — API Signatures Reference
+# Regira App — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/app`. Do not guess — look up here first.
 

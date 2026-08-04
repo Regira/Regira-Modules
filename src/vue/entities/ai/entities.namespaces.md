@@ -1,4 +1,4 @@
-# Regira JsLib Entities — Import Reference
+# Regira Entities — Import Reference
 
 Where every type comes from. JavaScript has import specifiers, not namespaces.
 

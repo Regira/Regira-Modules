@@ -1,4 +1,4 @@
-# Regira JsLib Auth — AI Agent Instructions
+# Regira Auth — AI Agent Instructions
 
 Front-end authentication (`regira/vue/auth`): JWT bearer auth layered onto the shared
 [axios instance](../../http/ai/http.instructions.md), with pluggable token storage, a Pinia auth store,

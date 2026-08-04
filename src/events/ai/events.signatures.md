@@ -1,4 +1,4 @@
-# Regira JsLib Events — API Signatures Reference
+# Regira Events — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/events`. Do not guess — look up here first.
 

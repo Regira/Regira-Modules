@@ -1,4 +1,4 @@
-# Regira JsLib Entities — AI Agent Instructions
+# Regira Entities — AI Agent Instructions
 
 > The browser-side CRUD client for the **Regira.Entities** API — a Vue 3 + Pinia + vue-router library
 > (`regira/vue/entities`). Describe an entity once (model, service, config, views) and get a

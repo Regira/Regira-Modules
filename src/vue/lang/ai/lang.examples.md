@@ -1,4 +1,4 @@
-# Regira JsLib Lang — Examples
+# Regira Lang — Examples
 
 Verify signatures in [lang.signatures.md](lang.signatures.md).
 

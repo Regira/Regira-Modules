@@ -1,4 +1,4 @@
-# Regira JsLib IO — Examples
+# Regira IO — Examples
 
 Verify signatures in [io.signatures.md](io.signatures.md). Both helpers are browser-only — instantiate them
 per use.

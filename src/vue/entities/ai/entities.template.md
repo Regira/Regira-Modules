@@ -1,4 +1,4 @@
-# Regira JsLib Entities — New Entity Slice Template (scaffold)
+# Regira Entities — New Entity Slice Template (scaffold)
 
 A **blank fill-in-the-blanks scaffold** for one entity slice. Copy the folder set, then fill the `(c)`
 placeholders below (the files marked `// TODO`). The placeholder entity is **`Foo`** (resource `"/foos"`,

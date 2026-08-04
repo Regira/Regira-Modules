@@ -1,4 +1,4 @@
-# Regira JsLib TreeList — Examples
+# Regira TreeList — Examples
 
 Verify signatures in [treelist.signatures.md](treelist.signatures.md).
 

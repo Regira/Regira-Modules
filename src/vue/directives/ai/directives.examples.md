@@ -1,4 +1,4 @@
-# Regira JsLib Directives — Examples
+# Regira Directives — Examples
 
 Verify signatures in [directives.signatures.md](directives.signatures.md).
 

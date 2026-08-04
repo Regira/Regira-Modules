@@ -1,4 +1,4 @@
-# Regira JsLib Events — Examples
+# Regira Events — Examples
 
 Verify signatures in [events.signatures.md](events.signatures.md).
 

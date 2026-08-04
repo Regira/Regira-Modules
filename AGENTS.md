@@ -1,8 +1,7 @@
 # AGENTS.md
 
 Universal instructions for AI agents in **regira** (Regira front-end library: TypeScript +
-Vue 3). Single source of truth for all agents (Claude, Copilot, Codex, …); `CLAUDE.md` and
-`.github/copilot-instructions.md` just point here.
+Vue 3). Single source of truth for all agents (Claude, Copilot, Codex, …); `CLAUDE.md` just points here.
 
 ## 1. Keep documentation in sync (first priority)
 

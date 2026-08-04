@@ -1,4 +1,4 @@
-# Regira JsLib Auth — API Signatures Reference
+# Regira Auth — API Signatures Reference
 
 Verbatim TypeScript signatures for `regira/vue/auth`. Do not guess — look up here first.
 
