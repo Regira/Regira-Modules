@@ -1,0 +1,38 @@
+// Structural rules the library's (and the scaffolded templates') markup needs to lay out correctly.
+// Deliberately not visual design: every rule here is one an app would otherwise have to re-invent verbatim.
+// Everything visual stays in the app's theme.scss, which loads after this file and wins.
+
+// Overview lists must not drag the page sideways. Two Bootstrap mechanics fight the list:
+// 1. `.row` carries negative gutter margins that bleed past any parent without matching padding;
+// 2. a flex child defaults to `min-width: auto`, so it refuses to shrink below its content and a long
+//    title widens the row instead of letting `text-truncate` clip it.
+// NOTE: no `overflow-x: auto` here, on purpose. `overflow-x: auto` with a `visible` overflow-y computes to
+// `auto` on BOTH axes, turning the list into a scroll container that clips absolutely-positioned descendants
+// (the autocomplete panel of an inline-edit row) and breaks `position: sticky` inside it. Opt in per list
+// with `.entity-list--scroll-x` where a row genuinely cannot fit (an unbreakable token, a very narrow phone).
+.entity-list {
+    > .row {
+        margin-inline: 0;
+    }
+
+    // text-truncate only clips once the cell is allowed to be narrower than its text
+    [class*="col"] {
+        min-width: 0;
+    }
+}
+.entity-list--scroll-x {
+    overflow-x: auto;
+}
+
+// NullableLabel's "no label set" fallback, and the app-wide convention for inherited/placeholder text.
+// Without a rule the fallback is indistinguishable from a real label, so every app writes exactly this.
+.italic-muted {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+// NullableCheckBox's own label sits directly beside its box and is clickable.
+.rg-nullable-checkbox-label {
+    margin-left: 0.35rem;
+    cursor: pointer;
+}

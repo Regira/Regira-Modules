@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "composite": true,
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+        "types": ["vite/client"],
+
+        "jsx": "preserve",
+        "jsxImportSource": "vue",
+
+        "strict": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "noFallthroughCasesInSwitch": true,
+
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "useDefineForClassFields": true,
+        "noEmit": true,
+
+        "paths": { "@/*": ["./src/*"] }
+    },
+    "include": ["env.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+}

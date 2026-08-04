@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "composite": true,
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": ["ESNext"],
+        "types": ["node"],
+
+        "strict": true,
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true,
+        "skipLibCheck": true,
+        "noEmit": true
+    },
+    "include": ["vite.config.ts"]
+}

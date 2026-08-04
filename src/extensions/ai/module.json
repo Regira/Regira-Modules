@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.extensions",
+    "import": "regira/extensions",
+    "description": "Opt-in prototype extensions for Array, Date, and Promise (enabled explicitly via use()/injectInto).",
+    "tags": ["frontend", "typescript", "extensions", "regira_modules"]
+}

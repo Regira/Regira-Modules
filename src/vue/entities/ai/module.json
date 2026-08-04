@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.vue.entities",
+    "import": "regira/vue/entities",
+    "description": "Front-end Vue 3 + Pinia CRUD client for the Regira.Entities API — the entity-slice engine (EntityBase, EntityServiceBase/JSONService, IConfig, pooled stores) and the overview/details/form/filter composables. The CRUD core of the regira front-end stack (app, ioc, http, auth, ui, lang).",
+    "tags": ["frontend", "vue", "typescript", "crud", "entities", "regira_modules"]
+}

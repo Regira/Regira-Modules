@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.vue.http",
+    "import": "regira/vue/http",
+    "description": "Front-end HTTP layer: the shared axios instance (initAxios/useAxios) with file download/upload helpers, plus createQueryString. The HTTP foundation the entities client is injected with.",
+    "tags": ["frontend", "vue", "typescript", "http", "axios", "regira_modules"]
+}

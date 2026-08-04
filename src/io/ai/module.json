@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.io",
+    "import": "regira/io",
+    "description": "FileHelper and ImageHelper classes: browse, blob/base64/url conversion, multipart upload, and image resize/rotate/convert/flip.",
+    "tags": ["frontend", "typescript", "io", "files", "regira_modules"]
+}

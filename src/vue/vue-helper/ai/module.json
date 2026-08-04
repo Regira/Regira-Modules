@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.vue.vue-helper",
+    "import": "regira/vue/vue-helper",
+    "description": "Small Vue composition helpers: createFromComputedPool (reactive pooled-entity resolver), useEventListener (self-cleaning DOM listeners), and useVModelField (v-model bridge for composables receiving props/emit, where native defineModel can't be used).",
+    "tags": ["frontend", "vue", "typescript", "composables", "regira_modules"]
+}

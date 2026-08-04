@@ -1,0 +1,15 @@
+.autocomplete-items {
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: var(--rg-dropdown-z, 99999);
+    visibility: hidden;
+    max-height: var(--rg-dropdown-max-height, 13rem);
+    overflow-y: auto;
+    // the panel sizes to its content (width: max-content), which does not account for the scrollbar the
+    // max-height introduces — reserve the gutter so a long result is not clipped by it
+    scrollbar-gutter: stable;
+
+    .autocomplete-item {
+        cursor: pointer;
+    }
+}

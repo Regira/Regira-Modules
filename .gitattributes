@@ -1,0 +1,36 @@
+# Line-ending policy: LF everywhere (repo and working tree), on every platform.
+# This is the single source of truth — it overrides each contributor's core.autocrlf,
+# so Windows checkouts no longer show phantom CRLF-only "modified" files.
+* text=auto eol=lf
+
+# Explicit for the text types this repo actually contains (all normalized to LF).
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.vue   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.html  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary assets — never normalize (guards future additions; none tracked today).
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.svg   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.otf   binary
+*.zip   binary

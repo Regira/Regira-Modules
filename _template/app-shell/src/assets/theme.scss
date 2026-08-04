@@ -1,0 +1,48 @@
+// App theme — loaded after bootstrap.min.css + regira/style.css, so everything here wins.
+:root {
+    // library tokens (see ui.customize.md for the full list)
+    // --rg-accent: #0d6efd;
+    // --rg-accent-bg: rgba(13, 110, 253, 0.1);   // modal-header tint
+    // --rg-deleted-bg: rgba(220, 53, 69, 0.25);  // pending-delete rows/chips
+    // global bootstrap knobs
+    // --bs-border-radius: 0.5rem;
+    // --bs-link-color-rgb: 13, 110, 253;
+}
+
+// Accent swap — precompiled Bootstrap reads component-level vars:
+// .btn-primary {
+//     --bs-btn-bg: var(--rg-accent);
+//     --bs-btn-border-color: var(--rg-accent);
+// }
+// .pagination {
+//     --bs-pagination-active-bg: var(--rg-accent);
+//     --bs-pagination-active-border-color: var(--rg-accent);
+// }
+
+// The page's own vertical rhythm — without it the first slice control (the inline filter's .input-group)
+// sits flush against the header. .form-toolbar's `position: sticky; top: 0` below assumes this gap exists.
+.page > main {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+// App-level conventions the entity slices use:
+.striped > *:nth-child(even) {
+    background-color: var(--bs-secondary-bg, #e9ecef);
+}
+
+// `.entity-list` containment (zeroed .row gutter margins + min-width:0 on the cells, so text-truncate can
+// clip and the row never drags the page sideways) ships in regira/style.css — do NOT redeclare it.
+// It sets no `overflow`, by design. Opt a single list into sideways scrolling with .entity-list--scroll-x.
+
+// The app-owned wrapper around FormButtonsRow. Deliberately NOT `.form-buttons` — that class is the
+// library component's own root, and a rule on it would apply to both the wrapper and the component
+// inside it (doubled padding, a second border, a nested sticky context).
+// Raising `top` to clear a fixed navbar also applies inside modals, where there is no navbar —
+// reset it with `.modal & { top: 0 }` if you do.
+.form-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bs-body-bg, #fff);
+}

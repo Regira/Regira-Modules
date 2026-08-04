@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.vue.ioc",
+    "import": "regira/vue/ioc",
+    "description": "Front-end inversion-of-control container: a tiny factory-based ServiceProvider (register with add, resolve with get) plus a Vue plugin exposing it as $services. How entity services are wired and resolved. Also hosts cross-plugin globalOptions/configureGlobals — the registerComponentsGlobally flag that opts plugins back into app-wide component registration.",
+    "tags": ["frontend", "vue", "typescript", "ioc", "di", "regira_modules"]
+}

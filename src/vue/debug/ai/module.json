@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.vue.debug",
+    "import": "regira/vue/debug",
+    "description": "Debug helpers: a Debug display component and $isDebug/$setDebug globals.",
+    "tags": ["frontend", "vue", "typescript", "debug", "regira_modules"]
+}

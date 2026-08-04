@@ -1,0 +1,14 @@
+{
+    "clientApp": "my-app",
+    "loginUrl": "https://accounts.example.com/auth/",
+    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "includeCredentials": false,
+    "isDebug": false,
+    "title": { "en": "My App" },
+    "navigation": {
+        "groups": [{ "id": "Main", "title": "main", "icon": "bi bi-grid" }],
+        "dashboard": [["Main", []]],
+        "navbar": [],
+        "search": ""
+    }
+}

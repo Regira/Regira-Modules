@@ -1,0 +1,13 @@
+{
+  "name": "regira-modules-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "node sync-modules.mjs && vitepress dev .",
+    "docs:build": "node sync-modules.mjs && vitepress build .",
+    "docs:preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}

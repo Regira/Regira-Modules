@@ -1,0 +1,28 @@
+// Design tokens consumed by the library css — override them in the app's theme.scss.
+// Fallbacks keep everything working when Bootstrap (or the token) is absent.
+:root {
+    --rg-accent: var(--bs-primary, #0d6efd);
+    --rg-accent-bg: rgba(0, 0, 255, 0.1);
+    --rg-deleted-bg: rgba(220, 53, 69, 0.25);
+    --rg-backdrop: rgba(0, 0, 0, 0.5);
+    --rg-modal-z: 9998;
+    --rg-dropdown-z: 99999;
+    --rg-dropdown-max-height: 13rem;
+    --rg-dragging-opacity: 0.6;
+}
+
+// accent tint (modal headers e.a.) — app-controlled via --rg-accent-bg
+.rg-accent-bg {
+    background-color: var(--rg-accent-bg, rgba(0, 0, 255, 0.1));
+}
+
+// pending-delete state (chips, rows) — undoable until save
+.is-deleted {
+    background-color: var(--rg-deleted-bg, rgba(220, 53, 69, 0.25));
+    text-decoration: line-through;
+}
+
+// drag-in-progress state
+.is-dragging {
+    opacity: var(--rg-dragging-opacity, 0.6);
+}

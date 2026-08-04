@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules",
+    "import": "regira",
+    "description": "Regira front-end library (Vue 3 + TypeScript): the consumer bootstrap and routing entry for building a Vue 3 SPA against a Regira.Entities API. Routes to the per-module guides (vue.entities, vue.ioc, vue.http, vue.app, vue.ui, vue.auth, vue.lang, io, …).",
+    "tags": ["frontend", "vue", "typescript", "bootstrap", "regira_modules"]
+}

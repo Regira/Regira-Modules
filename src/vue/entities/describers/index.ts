@@ -1,0 +1,1 @@
+export { useEntityDescribers } from "./functions"
