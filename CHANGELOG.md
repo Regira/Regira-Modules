@@ -11,3 +11,4 @@ heading.
 - Docs site: `docs/sync-modules.mjs` now rewrites source-tree-relative links to published `/reference/<id>/` paths (or GitHub URLs for unpublished targets), fixing 30+ broken links on the generated reference pages.
 - Version set to 6.0.0 for the initial public npm release of the `regira` package (the name is currently unclaimed on the registry, so the first publish claims it).
 - Added the npm publish workflow (`.github/workflows/publish-npm.yml`) with guards verifying the tag matches `package.json`, the version is not already on npm, and the changelog has the release heading.
+- Install docs switched from the `github:Regira/Regira-Modules` specifier to the npm registry (a plain `npm install regira`, always resolving the latest published version) in the README, getting-started guide and the shipped `ai/` guides; the `git`-on-`PATH` and SSH caveats now apply only to the unreleased-commit fallback.

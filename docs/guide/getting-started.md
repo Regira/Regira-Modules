@@ -5,26 +5,20 @@
 
 ## Install
 
-The library is consumed straight from GitHub. `dist/` is not committed — npm runs the package's
-`prepare` script on install, which builds it (`scripts/build.mjs`: `vite build` + `vue-tsc`
-declarations, then copying the consumer-imported SCSS files and regenerating the `_template`
-scaffold/UI templates), so the install is a real build and takes noticeably longer than a registry
-install.
+The library is published to the npm registry as [`regira`](https://www.npmjs.com/package/regira) —
+the published package ships a prebuilt `dist/`. The `prepare` build (`scripts/build.mjs`: `vite build`,
+`vue-tsc` declarations, SCSS copies, `_template` regeneration) runs at publish time, not on install:
 
-```json
-// package.json
-{
-    "dependencies": {
-        "regira": "github:Regira/Regira-Modules"
-    }
-}
+```bash
+npm install regira
 ```
 
-> npm resolves this with `git`, so a `git` binary must be on `PATH`, and the `prepare` build needs
-> the dev toolchain to install — expect the first install to take a while. Where non-registry installs are
-> blocked or SSH (port 22) is unavailable — CI, containers, locked-down networks — pin HTTPS instead:
-> `"regira": "git+https://github.com/Regira/Regira-Modules.git"`, or map it globally with
-> `git config --global url."https://github.com/".insteadOf git@github.com:`.
+`npm install` resolves the **latest published version** and writes the caret range to `package.json` —
+don't pin a specific version by hand.
+
+> To pin an unreleased commit you can still install from the repo with
+> `"regira": "github:Regira/Regira-Modules"` — that path needs a `git` binary on `PATH` and runs the
+> full `prepare` build on install, so expect it to be much slower than the registry install.
 
 Bare subpath imports resolve via the package `exports` map:
 

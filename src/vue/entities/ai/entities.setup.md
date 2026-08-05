@@ -31,15 +31,13 @@ builds `dist/`, and the `exports` map then makes the **plain package specifier r
 or tsconfig path**:
 
 ```jsonc
-// package.json
-"dependencies": { "regira": "github:Regira/Regira-Modules" }
+// package.json — npm install regira resolves the latest published version and writes the caret range
+"dependencies": { "regira": "^…" /* latest — never pin a specific version by hand */ }
 ```
 
-> Resolving this needs a **`git` binary on `PATH`**, and the install runs the package's `prepare`
-> build — expect it to take noticeably longer than a registry install. Where non-registry installs are blocked or SSH
-> (port 22) is closed — CI, containers, locked-down networks — pin HTTPS:
-> `"regira": "git+https://github.com/Regira/Regira-Modules.git"`, or map it once with
-> `git config --global url."https://github.com/".insteadOf git@github.com:`.
+> Installs from the npm registry with a prebuilt `dist/` — no `git` binary, no on-install build. (Only
+> when pinning an unreleased commit use `"regira": "github:Regira/Regira-Modules"`, which needs `git`
+> on `PATH` and runs the full `prepare` build on install.)
 
 ```ts
 import { EntityBase, EntityServiceBase } from "regira/vue/entities"
@@ -61,7 +59,7 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 ```jsonc
 // package.json — known-good set (runtime peers + the build toolchain they require)
 "dependencies": {
-  "regira": "github:Regira/Regira-Modules",
+  "regira": "*", // always the latest published version — npm install pins the caret range
   "vue": "^3.5", "vue-router": "^5", "pinia": "^3",
   "axios": "^1", "date-fns": "^4",
   "bootstrap": "^5.3", "bootstrap-icons": "^1.13"

@@ -91,16 +91,14 @@ truth is `get_package("regira_modules.vue.ui", section: "ui.signatures")`.
 
 ## Pre-flight checklist
 
-- [ ] **Probe the install before reading further.** `regira` installs from GitHub
-      (`"regira": "github:Regira/Regira-Modules"`), so npm needs a **`git` binary on `PATH`** plus
-      network access — sandboxed/CI environments may block non-registry installs, and the shorthand can
-      resolve over SSH where port 22 is closed. Pin HTTPS when either bites:
-      `"regira": "git+https://github.com/Regira/Regira-Modules.git"` (or
-      `git config --global url."https://github.com/".insteadOf git@github.com:`). Run the `npm install`
-      first and surface any blocker before spending context on guides. **Expect it to be slow** — the first
-      install clones the repo, pulls the full Vite/TS toolchain, and runs the package's `prepare`
-      build (`vite build` + `vue-tsc`) to produce `dist/`, routinely past a 2-minute shell timeout;
-      run it detached (or raise the timeout) and poll, rather than reading a timeout as failure. No NuGet, no
+- [ ] **Probe the install before reading further.** `regira` installs from the npm registry
+      (a plain `npm install regira` — always the latest published version) with a prebuilt
+      `dist/` — a normal, fast registry install; no `git`
+      binary, no on-install build. Run the `npm install` first and surface any blocker before spending
+      context on guides. (Only when pinning an unreleased commit use
+      `"regira": "github:Regira/Regira-Modules"` — that path needs `git` on `PATH`, can resolve over
+      SSH, and runs the package's full `prepare` build on install, routinely past a 2-minute shell
+      timeout; run it detached and poll rather than reading a timeout as failure.) No NuGet, no
       license key, no service budget on the front-end.
 - [ ] Peers + toolchain installed from the **known-good dependency set** (`entities.setup` → Install) in
       one `npm install` — the majors move as a set (`vue-router 5` → `vite 8` → `typescript 6` /

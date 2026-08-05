@@ -68,7 +68,9 @@ jobs:
         run: npx vitest run
 
       # `prepare` rebuilds dist/ before packing, so the published tarball is always freshly built.
+      # `--access public` is required alongside `--provenance`: npm refuses to attest a package that
+      # does not exist on the registry yet unless the access level is stated explicitly.
       - name: Publish
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
