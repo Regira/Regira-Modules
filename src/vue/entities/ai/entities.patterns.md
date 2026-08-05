@@ -951,9 +951,10 @@ export class CountryService extends JSONService<Country> {
 
 `createStore(service, Entity.name)` wraps a service in a `PoolService` so all views share one reactive
 cache of entities (`Ref<T>`), deduplicated by id. Views should always use the **store's** `service`,
-not the raw IoC service. Register `defaultPoolCache` once at startup
-(`sp.add(PoolCache.name, () => defaultPoolCache)`); mark types that should never expire via
-`cache.persistentTypes`.
+not the raw IoC service. No cache registration is required — `usePooling` (and thus `createStore`)
+defaults to the module-level `defaultPoolCache` singleton; the app shell registers that same singleton
+in IoC by convention (`sp.add(PoolCache.name, () => defaultPoolCache)`) so other code can resolve it.
+Mark types that should never expire via `cache.persistentTypes`.
 
 The payoff is **live shared state**, not just fewer fetches: every consumer holds the _same_ `Ref<T>`, and a
 save through the pooled `service` writes the result back into that ref in place (`cache.set`). So editing an

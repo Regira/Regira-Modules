@@ -33,7 +33,8 @@ export class EntityService extends EntityServiceBase<Product> {
 ```
 
 The constructor takes the shared `axios` instance and the entity's `IConfig`; both are supplied by the
-IoC registration in `setup.ts`. Useful protected members:
+IoC registration in `setup.ts`. Useful members (`toEntity` / `newEntity` are public — part of
+`IEntityService`; `prepareItem` / `processItem` / `createInstance` are protected):
 
 - **`toEntity(item)`** _(abstract)_ — converts a plain server object into a model instance.
 - **`prepareItem(item)`** — runs before save; strips **top-level** properties whose key starts with `_`

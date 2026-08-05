@@ -369,7 +369,7 @@ question of which endpoint exists:
 | Composable                           | Calls              | Expects            | Use when                                       |
 | ------------------------------------ | ------------------ | ------------------ | ---------------------------------------------- |
 | `useSearchView` + `useRouteOverview` | `service.search()` | `{ items, count }` | counted paging + filters (the usual list UI)   |
-| `useListView`                        | `service.list()`   | `{ items }`        | a plain list is enough — no total count needed |
+| `useListView`                        | `service.list()`   | `Array<T>`         | a plain list is enough — no total count needed |
 
 Both expose the same overview surface (`items`, `pagingInfo`, `itemsCount`, `isLoading`, `applySave`,
 `handleSave`, `handleRemove`); only the fetch + handler names differ (`searchHandler` /

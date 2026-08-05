@@ -24,19 +24,16 @@ files into savable attachments and round-trip them with the host (`createEntity`
 
 ## The attachment service
 
-A host that owns files uses the **"with attachments" service variant**: it is constructed with an
-`AxiosWithFilesInstance` (not a plain `AxiosInstance` — the file-aware axios from
-[`vue/http`](../../http/README.md)), overrides `insert` / `update` to round-trip files alongside the
-record, and adds bespoke file endpoints. The shape:
+A host that owns files uses the **"with attachments" service variant**: it overrides `insert` / `update`
+to round-trip files alongside the record. `setup.ts` needs nothing — the helpers upload through
+`useAxios()`, so the service keeps its plain `AxiosInstance` constructor and the default registration
+stands. The shape:
 
 ```ts
 export class EntityService extends EntityServiceBase<Entity> {
-    constructor(axios: AxiosWithFilesInstance, config: IConfig) {
+    constructor(axios: AxiosInstance, config: IConfig) {
         super(axios, config)
     }
-
-    getAttachments(so?): Promise<Array<EntityAttachment>> // GET {api}/attachments
-    addAttachment(itemId, file: Blob): Promise<EntityAttachment> // POST {api}/{id}/files
 
     override insert(item) {
         // the follow-up update callback sends the attachments in display order — the server assigns SortOrder from array position
@@ -53,7 +50,13 @@ export class EntityService extends EntityServiceBase<Entity> {
 }
 ```
 
-`prepareItem` filters out soft-deleted attachments (and other owned children) before save — see
+It is only when you add file endpoints of your own — e.g. the advanced example's optional
+`getAttachments(so?)` (`GET {api}/attachments`) and `addAttachment(itemId, file)` (`POST {api}/{id}/files`),
+which call `this.axios.upload` / `getFile` — that the constructor takes an `AxiosWithFilesInstance` (the
+file-aware axios from [`vue/http`](../../http/README.md)) and `setup.ts` has to resolve one.
+
+The base `prepareItem` only strips **top-level** `_`-prefixed keys — it does not filter soft-deleted
+children, so override it to drop `_deleted` attachments (and other owned rows) before save — see
 [services.md](services.md#entityservicebaset) for `prepareItem` / `processItem`.
 
 ## Upload / download UI — file fields
@@ -76,8 +79,8 @@ Resolve the instance with `useAxios()` and build the URL from `config.api` (e.g.
 
 ## When you need it
 
-Only complex entities that own files. The simple/standard slices have none of the above — no file fields,
-the plain `AxiosInstance`, and the default `insert`/`update`. Reach
+Only complex entities that own files. The simple/standard slices have none of the above — no file fields
+and the default `insert`/`update`. Reach
 for the attachments variant only when the entity actually carries files, and keep everything else identical
 to those slices.
 

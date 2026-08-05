@@ -122,8 +122,14 @@ it before writing a new component.
   the [entities](../../entities/ai/entities.signatures.md) module.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an
   overview/form composable), not a string.
+- **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
+  internally, so the app must install the plugin from `regira/vue/directives`
+  (`import { clickOutside } from "regira/vue/directives"; app.use(clickOutside)`); without it Vue warns
+  "Failed to resolve directive: click-outside" and the dropdown never closes.
 - **Sub-path exports.** `FeedbackError`/`FeedbackIn` (from `/feedback`) and the modal `style.scss`
-  (from `/modal`) are sub-path-only — everything else is on the main barrel.
+  (from `/modal`) are sub-path-only — everything else is on the main barrel, except part of the screen
+  module: `SCREEN_SIZES`, `IScreen`, `IScreenSize` and `getWindowSize` are on neither the barrel nor a
+  sub-path, so they cannot be imported from the published package (only `useScreen` / `screenPlugin` are).
 
 ## See also
 

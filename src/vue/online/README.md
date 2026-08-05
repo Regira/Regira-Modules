@@ -13,3 +13,8 @@ app-wide as `$isOnline`. Use it to gate calls to the [HTTP layer](../http/README
 | `useOnlineChecker()`               | Composable returning `{ isOnline }`, a `Ref<boolean>` seeded from `navigator.onLine`.                                           |
 | `IsOnline`                         | The `{ isOnline: Ref<boolean> }` return type of `useOnlineChecker`, exported from the barrel.                                   |
 | `$isOnline`                        | `Ref<boolean>` on `ComponentCustomProperties` — available in templates and the Options API after the plugin is installed.       |
+
+> Note: each `useOnlineChecker()` call returns a **fresh, one-time snapshot** ref — the
+> `online`/`offline` listeners are wired only to the plugin's own instance, so a ref you create
+> yourself never updates. For the live value, read `$isOnline` or `inject("isOnline")` provided by
+> the plugin.

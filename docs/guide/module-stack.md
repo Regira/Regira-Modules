@@ -28,7 +28,7 @@ client. The core modules are framework-agnostic and usable on their own.
 | [Utilities](/reference/utilities/) | `regira/utilities` | Array / string / file / promise helpers. |
 | [Extensions](/reference/extensions/) | `regira/extensions` | Prototype-style extensions (e.g. date-extensions). |
 | [TreeList](/reference/treelist/) | `regira/treelist` | Tree data structure & traversal. |
-| [Events](/reference/events/) | `regira/events` | Lightweight event bus. |
+| [Events](/reference/events/) | `regira/events` | Lightweight event mixin (`EventHandler.injectInto` adds `on`/`once`/`off`/`trigger` to any object). |
 | [IO](/reference/io/) | `regira/io` | File / image helpers. |
 
 > Each reference page is generated from that module's own `README.md` and `docs/` in the

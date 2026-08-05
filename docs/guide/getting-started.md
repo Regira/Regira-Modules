@@ -6,8 +6,10 @@
 ## Install
 
 The library is consumed straight from GitHub. `dist/` is not committed — npm runs the package's
-`prepare` script on install, which builds it (`vite build` + `vue-tsc`), so the install is a real
-build and takes noticeably longer than a registry install.
+`prepare` script on install, which builds it (`scripts/build.mjs`: `vite build` + `vue-tsc`
+declarations, then copying the consumer-imported SCSS files and regenerating the `_template`
+scaffold/UI templates), so the install is a real build and takes noticeably longer than a registry
+install.
 
 ```json
 // package.json

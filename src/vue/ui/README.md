@@ -13,7 +13,7 @@ form inputs, and responsive layout.
 | feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `FeedbackStatus`, `feedbackPlugin`           |
 | modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                   |
 | tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                              |
-| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`                                   |
+| icons        | `Icon`, `BsIcon`, `FaIcon`, `IconButton`                                                                                                                              | `iconPlugin`, `loadIcons`                                   |
 | screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                 |
 | autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`                                           |
 | buttons      | `ConfirmButton`                                                                                                                                                       | —                                                           |
@@ -23,9 +23,19 @@ form inputs, and responsive layout.
 ## Plugins & imports
 
 Components are **imported locally** from `regira/vue/ui` (or a sub-path) by default — no
-component is registered globally. The whole kit works **à la carte**: any component or composable drops
-into any Vue 3 app on its own, with no entity scaffold, no plugin stack, and no other module required —
-lean and headless builds included. Import the library styles once in `main.ts`:
+component is registered globally. The whole kit works **à la carte**: nearly every component or
+composable drops into any Vue 3 app on its own, with no entity scaffold, no plugin stack, and no other
+module required — lean and headless builds included. The one exception is `Autocomplete`: its template
+uses `v-click-outside`, so the click-outside directive plugin from `regira/vue/directives` must be
+installed or the directive fails to resolve and the dropdown never closes:
+
+```ts
+import { clickOutside } from "regira/vue/directives"
+
+app.use(clickOutside) // required by Autocomplete
+```
+
+Import the library styles once in `main.ts`:
 
 ```ts
 import "regira/style.css" // --rg-* tokens, modal backdrop, autocomplete dropdown, the list layout rules
@@ -90,8 +100,11 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 
 ## Notes
 
-- The barrel `regira/vue/ui` re-exports everything; `feedback`, `icons`, and `modal` also have
-  dedicated sub-paths for extra exports (e.g. `FeedbackError`/`FeedbackIn`, the modal `style.scss`).
+- The barrel `regira/vue/ui` re-exports everything **except** part of the screen module: only
+  `useScreen` and `screenPlugin` are re-exported — `SCREEN_SIZES`, `IScreen`, `IScreenSize`, and
+  `getWindowSize` are not, and there is no `regira/vue/ui/screen` sub-path, so they cannot be
+  imported from the published package. `feedback`, `icons`, and `modal` do have dedicated sub-paths
+  for extra exports (e.g. `FeedbackError`/`FeedbackIn`, the modal `style.scss`).
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module.

@@ -64,7 +64,9 @@ class PagingInfo implements IPagingInfo {
 interface ISortByInfo {
     sortBy: string | Array<string>
 }
-class SortByInfo implements ISortByInfo {}
+class SortByInfo implements ISortByInfo {
+    /* sortBy: string | Array<string> = "" */
+}
 ```
 
 Paging is applied automatically by the service: `pageSize` defaults to `config.defaultPageSize`, and

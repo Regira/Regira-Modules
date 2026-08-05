@@ -160,8 +160,10 @@ components and composables exist for all of it — use them instead of hand-roll
 ## `$auth` global
 
 When enabled the plugin sets `app.config.globalProperties.$auth` (`IGlobalAuth`: `enabled`, `clientApp`,
-`tokenManager`, `service`, `authData`, `isAuthenticated`, `isRequired`); `useAuth()` returns the same
-object outside components. Prefer the store in components.
+`tokenManager`, `service`, `authData`, `isAuthenticated`, `isRequired`). Outside components,
+`useGlobalAuth()` returns that same `$auth` object; `useAuth()` returns the narrower `IAuth`
+(`enabled`, `clientApp`, `tokenManager`, `service` — no `authData`/`isAuthenticated`/`isRequired`).
+Prefer the store in components.
 
 ## Gotchas
 

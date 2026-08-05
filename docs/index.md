@@ -21,7 +21,7 @@ features:
     details: A Vue 3 CRUD client mirroring the Regira back-end Entities API — services, Pinia stores, and overview/details/form composables.
     link: /reference/vue-entities/
   - title: Vue platform
-    details: http, ioc, auth, ui, app, lang, formatters, directives, online and debug — the plugins that wire a Regira SPA together.
+    details: http, ioc, auth, ui, app, lang, formatters, directives, online, debug and vue-helper — the plugins and helpers that wire a Regira SPA together.
     link: /guide/module-stack
   - title: Core building blocks
     details: Framework-agnostic utilities, extensions, treelist, events and IO helpers, usable with or without Vue.

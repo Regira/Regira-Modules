@@ -26,5 +26,6 @@ app.use(plugin, { defaultLang, messages })   →  drives the singleton useLang()
    └─ useLang().translate / setLangCode       (read/switch language anywhere)
 ```
 
-`defaultLang` sets both the active and fallback language; `translate` retries the fallback and the
-2-letter language prefix (`en-US` → `en`) automatically.
+`defaultLang` sets both the active and fallback language. The fallback-language retry lives on
+`useLang().translate` (and `$t`); the bare exported `translate` only falls back to the 2-letter
+language prefix (`en-US` → `en`).

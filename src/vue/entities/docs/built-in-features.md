@@ -8,7 +8,9 @@ Ready-to-use pieces beyond the basic CRUD slice.
 so all views see one reactive, de-duplicated set of entities (`Ref<T>` keyed by id). Views use the
 **store's** pooled `service`, never the raw IoC service. A save through the pooled `service` updates the
 shared `Ref<T>` in place, so an edit anywhere (e.g. a `FormModalButton`) re-renders every view that pooled
-that entity — live, with no refetch. Register the cache once at startup:
+that entity — live, with no refetch. No cache registration is required — `usePooling` (and thus
+`createStore`) defaults to the module-level `defaultPoolCache` singleton; the app shell registers that
+same singleton in IoC by convention, so other code can resolve it:
 
 ```ts
 app.use(servicesPlugin, { configure: (sp) => sp.add("axios", () => axios).add(PoolCache.name, () => defaultPoolCache) })
@@ -19,8 +21,8 @@ via `cache.persistentTypes`. `PoolCache` accepts `{ interval, expires, maxItems 
 
 Views read the cache through two store accessors. **`fromPool(entityOrRelation)`** (single or array) runs the
 input through `toEntity` and returns the shared, deduplicated instance for its `$id` — rehydrating a plain
-nested relation into a real model so `$id`/`$title` work, and pooling it on first sight (unsaved inputs pass
-through untouched). Alias a sibling store's `fromPool` to display a relation's label —
+nested relation into a real model so `$id`/`$title` work, and pooling it on first sight (a single unsaved
+input passes through untouched; items inside an array are pooled regardless). Alias a sibling store's `fromPool` to display a relation's label —
 `const { fromPool: getUnitType } = useUnitTypeStore()`, then bind `getUnitType(item.unitType)?.$title` in a
 template — passing the relation **object**, not its id. **`fromCache(id?)`** is read-only: an id returns that `Ref<T>` (or
 `undefined`), no argument returns all cached refs of the type; it never fetches.

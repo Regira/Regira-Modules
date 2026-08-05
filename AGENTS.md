@@ -15,6 +15,7 @@ Edits are **bidirectional**: change one layer, update its counterparts in the sa
 | `src/<m>/docs/*.md` | the module's `ai/*.md` and `README.md` |
 | Root `README.md` index | the module set on disk (and vice-versa) |
 | A public signature/behavior in `src/**` | every doc layer that documents it — `…signatures.md` must match the built `dist/**/*.d.ts` (`npm run build`) |
+| Any user-visible change | `CHANGELOG.md` (bullet under *Unreleased*) + the `package.json` version (§7) |
 
 If a counterpart edit is out of scope, say so explicitly rather than leaving layers inconsistent.
 
@@ -46,8 +47,9 @@ been authored cleanly, with no record of prior errors or revisions.
 - Match local style; import across modules via their `exports` subpath, not deep relative paths;
   run `npm run format` before finishing.
 - **Dormant — don't use:** `src/entities/*` (commented-out; use `regira/vue/entities`),
-  `src/identity/*` (legacy), and `src/firebase/*` (legacy, undocumented — still exported from the root
-  barrel and the `./firebase` subpath, but not part of the documented module set).
+  `src/identity/*` (legacy), and `src/firebase/*` (legacy — still exported from the root
+  barrel and the `./firebase` subpath). All three are indexed in the root `README.md` with a
+  dormant marker, but remain don't-use.
 
 ## 5. Adding/renaming/removing a module
 
@@ -65,4 +67,20 @@ developer docs never cross-reference).
 built `.d.ts` from `dist/`. Since `dist/` is not committed, **the knowledge build must be preceded by
 `npm run build`** — without it the `.d.ts` scan silently yields nothing. Stale `ai/*.md`/`module.json`
 degrades what every agent sees — hence §1.
+
+## 7. Versioning & releases
+
+The whole library ships as one npm package; its `version` lives in `package.json` (SemVer).
+Published npm versions are **immutable** — never reuse or overwrite one.
+
+- **Any user-visible change** — module code, `_template/**`, the shipped `ai/*.md` guides — must
+  leave `version` **higher than the last published release**: patch for fixes and doc-only changes,
+  minor for backward-compatible features, major for breaking changes. If the version was already
+  bumped since the last publish, several edits may share that bump.
+- **Record every user-visible change in [CHANGELOG.md](CHANGELOG.md) in the same change**: one
+  bullet under `## Unreleased`. On release, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
+  heading.
+- Publishing runs via `.github/workflows/publish-npm.yml` (version tag or manual dispatch). It
+  refuses to publish when the tag and `package.json` disagree, the version already exists on npm,
+  or the changelog lacks the release heading.
 

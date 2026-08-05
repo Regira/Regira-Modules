@@ -32,7 +32,8 @@ until the next fetch.
 
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
-`useListView` when a plain list is enough (`service.list()` → `{ items }`).
+`useListView` when a plain list is enough (`service.list()` → `Array<T>`, already unwrapped — never
+destructure `{ items }` from it).
 
 > **Guard the lazy refs.** `items` / `itemsCount` are `undefined` until the first fetch, so bind
 > `v-for="x in items ?? []"` and `:count="itemsCount ?? 0"`.
@@ -61,9 +62,13 @@ hard-removes on delete, so it does not fit collections that need the marked-dele
 
 ## Filter — `useFilter`
 
-`useFilter({ searchObject, emit })` takes the search object as a `Ref` (the filter component supplies
-it via `defineModel<SearchObject>`) and
-returns `handleUpdate`, `handleFilter`, `handleReset`, `handleToggle`, and `filterIsActive`. Emit
+`useFilter({ searchObject, emit, Constructor })` takes the search object as a `Ref` (the filter component
+supplies it via `defineModel<SearchObject>`) and
+returns `handleUpdate`, `handleFilter`, `handleReset`, `handleToggle`, and `filterIsActive`. Pass the
+slice's search-object class as `Constructor` — the scaffold's filter components call
+`useFilter({ searchObject, emit, Constructor: SearchObject })` — because `filterIsActive` compares the
+model's non-null keys against a `new Constructor()`'s own keys; without it the fallback
+`DefaultSearchObject` has no own runtime keys, so `filterIsActive` is always `false`. Emit
 `filter` to trigger a search; the overview calls `updateOverviewRoute(true)` in response.
 
 ## Selector

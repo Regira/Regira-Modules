@@ -16,11 +16,13 @@ No Vue dependency; used throughout the app and by the [entities client](../vue/e
 | `colorUtility`     | Hex ⇄ rgb conversions, `invertHex`, `grayscale`.                                                              |
 | `imageUtility`     | `HTMLImageElement`/canvas/blob conversions, `resize`, `rotate`, `convertType`, `white2transparent`.           |
 | `numberUtility`    | `getRandom`, `naturalCompare`.                                                                                |
-| `objectUtility`    | `isPlainObject`, `flattenObject`, `mixin`, `filterObject` (+ `deepCopy`/`removeEmpty`).                       |
+| `objectUtility`    | `isPlainObject`, `flattenObject`, `crawlObject`, `mixin`, `filterObject`.                                     |
 | `promiseUtility`   | `delay`, `enqueue`, `debounceToPromise`.                                                                      |
 | `htmlUtility`      | `redirect`, `setMetaTag`, `setCanonicalTag`.                                                                  |
-| `clipboardUtility` | `copyTextToClipboard` (clipboard API with `execCommand` fallback).                                            |
+| `clipboardUtility` | The copy function itself — `clipboardUtility(text)` (clipboard API with `execCommand` fallback).              |
 
 `array-utility`, `file-utility`, `string-utility`, and `promise-utility` also have granular subpaths
-(e.g. `regira/utilities/array-utility`) whose named exports include a few functions the barrel
-object omits — see the reference.
+(e.g. `regira/utilities/array-utility`); the array/file/string subpaths' named exports include a few
+functions the barrel object omits (e.g. `browse`/`dropHandler`, `newPassword`) — see the reference.
+`object-utility` has no subpath, so its source-only named exports `deepCopy` and `removeEmpty` are
+internal: they are not reachable from the published package.

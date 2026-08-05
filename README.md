@@ -35,6 +35,9 @@ present. Building a Vue 3 SPA against a Regira.Entities API? Start with the
 | TreeList | [src/treelist](src/treelist/README.md) |
 | Events | [src/events](src/events/README.md) |
 | IO (file/image helpers) | [src/io](src/io/README.md) |
+| Entities (dormant — legacy entity client; the `regira/entities` subpath exists, but its barrel currently exports nothing) | [src/entities](src/entities) |
+| Firebase (dormant — Realtime Database REST `EntityService` + `AuthenticationService`) | [src/firebase](src/firebase) |
+| Identity (dormant — `IdentityManager`: login/refresh state with auto-refresh, broadcasting via Events) | [src/identity](src/identity) |
 
 > Consuming the library (git install) is covered under **Git import** below.
 
@@ -51,16 +54,26 @@ npm audit fix
 
 ## Publish
 
-*Increase (major/minor/patch) version*
-```bash
-npm version patch --no-git-tag-version
-npm version minor --no-git-tag-version
-npm version major --no-git-tag-version
-```
+Publishing to the npm registry runs through [`.github/workflows/publish-npm.yml`](.github/workflows/publish-npm.yml). Release flow:
 
-```bash
-npm run build
-```
+1. Bump the version (or verify it already exceeds the last published release):
+   ```bash
+   npm version patch --no-git-tag-version
+   ```
+   (`minor`/`major` for feature/breaking releases — see `AGENTS.md` §7.)
+2. In `CHANGELOG.md`, turn the **Unreleased** block into a `## <version> — <date>` heading.
+3. Commit, then tag and push:
+   ```bash
+   git tag v<version> && git push origin main v<version>   # <version> = the version in package.json
+   ```
+   The workflow verifies the tag matches `package.json`, the version is not already on npm, and the
+   changelog has the release heading; it then type-checks, tests, builds (via `prepare`), and
+   publishes with provenance. It can also be run manually from the Actions tab.
+
+The workflow needs the `NPM_TOKEN` repository secret. For the first publish this must be an
+all-packages (or org-scoped) npm access token — a granular token cannot be scoped to a package that
+does not exist on the registry yet. After the first publish it can be swapped for a granular token
+narrowed to read/write on the `regira` package.
 
 ## Git import
 

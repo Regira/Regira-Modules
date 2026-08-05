@@ -10,7 +10,7 @@ services are registered and resolved through it. It also holds the library's cro
 | ------------------ | ------------------------------------------------------------------------------------ |
 | `ServiceProvider`  | Container: `add(key, factory)` to register, `get<T>(key)` to resolve.                |
 | `get<T>(key)`      | Resolve from the shared default provider (used outside components).                  |
-| `plugin`           | Vue plugin: exposes the provider as `$services` and runs a `configure(sp)` callback. |
+| `plugin`           | Vue plugin: exposes the provider as `$services` and `provide("services", …)`, initializes the `$configs` container (for entity `IConfig` registrations), and runs a `configure(sp)` callback. |
 | `IServiceProvider` | The container interface.                                                             |
 | default export     | The shared `ServiceProvider` singleton.                                              |
 | `globalOptions`    | Shared, mutable options object read by plugins at install time.                      |
@@ -44,6 +44,8 @@ separately by the entities pooling layer, not here.
 ## How it fits
 
 ```
+// servicesPlugin is this module's `plugin` export:
+// import { plugin as servicesPlugin } from "regira/vue/ioc"
 app.use(servicesPlugin, { configure: sp =>
     sp.add("axios", () => axios)              // the shared HTTP instance (regira/vue/http)
       .add(PoolCache.name, () => defaultPoolCache) })
