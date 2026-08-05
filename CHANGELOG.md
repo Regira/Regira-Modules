@@ -5,6 +5,12 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/entities` setup guide: the _Install_ section now describes the npm-registry install (prebuilt
+  `dist/`, no on-install build), with the `github:Regira/Regira-Modules` specifier kept only as the
+  unreleased-commit fallback — matching the README and getting-started guide.
+
 ## 6.0.0 — 2026-08-05
 
 - Package published as **`@regira/modules`**. Every import specifier carries the scope:

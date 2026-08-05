@@ -26,9 +26,8 @@ plus a `Category` lookup — so it lines up with the basic example.
 
 ## Install
 
-Install from GitHub, not a registry — npm runs the package's `prepare` script on install, which
-builds `dist/`, and the `exports` map then makes the **plain package specifier resolve with no alias
-or tsconfig path**:
+Install from the npm registry — the published package ships a prebuilt `dist/`, and the `exports`
+map makes the **plain package specifier resolve with no alias or tsconfig path**:
 
 ```jsonc
 // package.json — npm install @regira/modules resolves the latest published version and writes the caret range
