@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RouteLocationRaw, LocationQueryRaw } from "vue-router"
-import { Icon } from "regira/vue/ui"
-import type { INavItem } from "regira/vue/entities"
+import { Icon } from "@regira/modules/vue/ui"
+import type { INavItem } from "@regira/modules/vue/entities"
 import { useNavigation } from "./functions"
 const { dashboardTree } = useNavigation()
 const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.initialQuery ?? {}) as LocationQueryRaw })

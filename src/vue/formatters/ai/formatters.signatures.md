@@ -1,6 +1,6 @@
 # Regira Formatters — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/formatters`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/formatters`. Do not guess — look up here first.
 
 ```ts
 import {
@@ -19,7 +19,7 @@ import {
     formatTextPreserveNewLines,
     formatStructuredReference,
     shortenString,
-} from "regira/vue/formatters"
+} from "@regira/modules/vue/formatters"
 ```
 
 ## Dates & times

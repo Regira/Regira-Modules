@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.lang",
-    "import": "regira/vue/lang",
+    "import": "@regira/modules/vue/lang",
     "description": "Internationalization: translation message dictionaries plus formatText interpolation; the useLang composable and $t/$tm globals.",
     "tags": ["frontend", "vue", "typescript", "i18n", "localization", "regira_modules"]
 }

@@ -58,11 +58,11 @@ only if you are building a registry-driven UI.
 
 The entities layer depends on two sibling modules:
 
-- **`regira/vue/ioc`** — `ServiceProvider` / `get` (factory-based container; `get` re-runs the
+- **`@regira/modules/vue/ioc`** — `ServiceProvider` / `get` (factory-based container; `get` re-runs the
   factory each call). Entity services are registered/resolved by `Entity.name`.
-- **`regira/vue/http`** — `initAxios({ api, includeCredentials })` creates the shared instance
+- **`@regira/modules/vue/http`** — `initAxios({ api, includeCredentials })` creates the shared instance
   (set `baseURL`, credentials, file helpers); `useAxios()` returns it; `createQueryString(obj)` builds
-  the query string (arrays → repeated keys). The `regira/vue/auth` plugin layers the bearer
+  the query string (arrays → repeated keys). The `@regira/modules/vue/auth` plugin layers the bearer
   token onto the same instance.
 
 ## Overview

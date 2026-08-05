@@ -37,14 +37,14 @@ cover the per-entity set (config, model, plain service, search object, form, lis
 >   its worked recipe lives in [entities.patterns.md — Hierarchical (tree) entities](entities.patterns.md#hierarchical-tree-entities)
 >   (which links the `treelist` module). It is **not** fabricated into the Vehicle slice here.
 >
-> Library code imports from `regira/...`; app code uses app-local aliases (`@/entities/...`,
-> `@/components/...`, `../...`) — resolve those against your own app. Resolve any `regira` import
+> Library code imports from `@regira/modules/...`; app code uses app-local aliases (`@/entities/...`,
+> `@/components/...`, `../...`) — resolve those against your own app. Resolve any `@regira/modules` import
 > you don't recognise from [entities.namespaces.md](entities.namespaces.md); never guess one.
 
 ## 1. Config — `config/config.ts`
 
 ```ts
-import type { IConfig } from "regira/vue/entities"
+import type { IConfig } from "@regira/modules/vue/entities"
 import Entity from "../data/Entity"
 
 const api = "/vehicles"
@@ -80,7 +80,7 @@ export default config
 ## 2. Model — `data/Entity.ts`
 
 ```ts
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 import type { Entity as Brand } from "../../brands"
 import type { Entity as VehicleType } from "../../vehicle-types"
 import type { EntityLabel } from "@/entities/entity-labels"
@@ -130,7 +130,7 @@ payload-free (just the two foreign-key ids); for a join that carries its own sca
 
 ```ts
 import type InterventionType from "@/entities/intervention-types/data/Entity"
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 export class VehicleInterventionType extends EntityBase {
     id: number = 0
@@ -162,16 +162,16 @@ The "with attachments" variant of the boilerplate service: it overrides `insert`
 `AxiosWithFilesInstance` (not a plain `AxiosInstance`) — see `setup.ts` (§13).
 
 > **API check (CONTRACT §6).** `AxiosWithFilesInstance` and `createQueryString` are verified
-> `regira/vue/http` exports — see [entities.signatures.md §10](entities.signatures.md#10-wiring-ioc--http)
+> `@regira/modules/vue/http` exports — see [entities.signatures.md §10](entities.signatures.md#10-wiring-ioc--http)
 > (`AxiosWithFilesInstance` adds `getFile`/`upload`; `createQueryString(o): URLSearchParams`). The
 > `insertWithAttachments` / `updateWithAttachments` / `createEntity` helpers live in **your own
 > `entity-attachments` slice** — build it once from the copy-paste recipe in
 > [entities.patterns.md → Attachments (files)](entities.patterns.md#attachments-files--offline-add--rename--remove-confirm-on-save)
-> (offline add/rename/remove + drop zone), not the `regira` reference.
+> (offline add/rename/remove + drop zone), not the `@regira/modules` reference.
 
 ```ts
-import { type AxiosWithFilesInstance, createQueryString } from "regira/vue/http"
-import { EntityServiceBase, type ListResult, type IConfig } from "regira/vue/entities"
+import { type AxiosWithFilesInstance, createQueryString } from "@regira/modules/vue/http"
+import { EntityServiceBase, type ListResult, type IConfig } from "@regira/modules/vue/entities"
 import {
     Entity as EntityAttachment,
     insertWithAttachments,
@@ -393,10 +393,10 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
 <script setup lang="ts">
 import { computed } from "vue"
 import type { RouteRecordRaw } from "vue-router"
-import { Feedback, TabContainer, Tab } from "regira/vue/ui"
-import { useForm, type FormEmits, formDefaults, InputSelectorInline } from "regira/vue/entities"
-import { useLang } from "regira/vue/lang"
-import { FormButtonsRow } from "regira/vue/ui"
+import { Feedback, TabContainer, Tab } from "@regira/modules/vue/ui"
+import { useForm, type FormEmits, formDefaults, InputSelectorInline } from "@regira/modules/vue/entities"
+import { useLang } from "@regira/modules/vue/lang"
+import { FormButtonsRow } from "@regira/modules/vue/ui"
 import config from "../config/config"
 import { Overview as Labels } from "../../entity-labels"
 import { Overview as EntityAttachments } from "../../entity-attachments"
@@ -552,9 +552,9 @@ resolves the `interventions` service from the IoC container, loads on mount (and
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { get } from "regira/vue/ioc"
-import { createFromComputedPool } from "regira/vue/vue-helper"
-import { formatDate } from "regira/vue/formatters"
+import { get } from "@regira/modules/vue/ioc"
+import { createFromComputedPool } from "@regira/modules/vue/vue-helper"
+import { formatDate } from "@regira/modules/vue/formatters"
 import type Vehicle from "../data/Entity"
 import { Entity, type EntityService, FormModalButton as InterventionButton } from "../../interventions"
 import { FormModalButton as OperatorButton, useEntityStore as useOperatorStore } from "../../intervention-operators"
@@ -655,8 +655,8 @@ onMounted(load)
 
 <script setup lang="ts">
 import { ref, computed } from "vue"
-import { useFilter, type FilterEmits } from "regira/vue/entities"
-import { useAuthStore } from "regira/vue/auth"
+import { useFilter, type FilterEmits } from "@regira/modules/vue/entities"
+import { useAuthStore } from "@regira/modules/vue/auth"
 import { Entity as Brand, InputSelector as BrandSelector } from "../../brands"
 import { Entity as VehicleType, InputSelector as VehicleTypeSelector } from "../../vehicle-types"
 import SearchObject from "./SearchObject"
@@ -683,7 +683,7 @@ const showOperatorFilter = computed(() => hasPermission("ReadAllActivities"))
 ## 8. Search object — `filter/SearchObject.ts`
 
 ```ts
-import { SearchObjectBase } from "regira/vue/entities"
+import { SearchObjectBase } from "@regira/modules/vue/entities"
 
 export class EntitySearchObject extends SearchObjectBase {
     code?: string
@@ -731,7 +731,7 @@ export default EntitySearchObject
 
 <script setup lang="ts">
 import { computed } from "vue"
-import type { OverviewEmits, SaveResult } from "regira/vue/entities"
+import type { OverviewEmits, SaveResult } from "@regira/modules/vue/entities"
 import useEntityStore from "../data/store"
 import type Entity from "../data/Entity"
 import ListItem from "./ListItem.vue"
@@ -790,8 +790,8 @@ const items = computed<Array<Entity>>({
 </template>
 
 <script setup lang="ts">
-import { createFromComputedPool } from "regira/vue/vue-helper"
-import type { SaveResult } from "regira/vue/entities"
+import { createFromComputedPool } from "@regira/modules/vue/vue-helper"
+import type { SaveResult } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import { FormModalButton as BrandButton, useEntityStore as useBrandStore } from "../../brands"
@@ -849,8 +849,8 @@ const getVehicleType = createFromComputedPool(useVehicleTypeStore()) as any
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { createFromComputedPool } from "regira/vue/vue-helper"
-import type { OverviewEmits } from "regira/vue/entities"
+import { createFromComputedPool } from "@regira/modules/vue/vue-helper"
+import type { OverviewEmits } from "@regira/modules/vue/entities"
 import { FormModalButton as BrandButton, useEntityStore as useBrandStore } from "../../brands"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -914,10 +914,10 @@ and the route key is taken from `Entity.name`.
 ```ts
 import type { App } from "vue"
 import type { RouteRecordRaw } from "vue-router"
-import type { AxiosWithFilesInstance } from "regira/vue/http/axios"
-import type { IServiceProvider } from "regira/vue/ioc"
-import type { IIconProvider } from "regira/vue/ui/icons"
-import { DetailsSummary } from "regira/vue/entities"
+import type { AxiosWithFilesInstance } from "@regira/modules/vue/http/axios"
+import type { IServiceProvider } from "@regira/modules/vue/ioc"
+import type { IIconProvider } from "@regira/modules/vue/ui/icons"
+import { DetailsSummary } from "@regira/modules/vue/entities"
 import config from "./config/config"
 import { Entity } from "./data/Entity"
 import { EntityService } from "./data/EntityService"

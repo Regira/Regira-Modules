@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.formatters",
-    "import": "regira/vue/formatters",
+    "import": "@regira/modules/vue/formatters",
     "description": "Locale-aware formatting helpers: dates, times, numbers, currency, percentage, bank account, structured reference, initials, and string shortening.",
     "tags": ["frontend", "vue", "typescript", "formatting", "regira_modules"]
 }

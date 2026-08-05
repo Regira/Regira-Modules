@@ -1,10 +1,10 @@
 # Regira Events — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/events`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/events`. Do not guess — look up here first.
 
 ```ts
-import { Event, EventHandler } from "regira/events"
-// default barrel: import events from "regira/events"  // { Event, EventHandler }
+import { Event, EventHandler } from "@regira/modules/events"
+// default barrel: import events from "@regira/modules/events"  // { Event, EventHandler }
 ```
 
 ## Event

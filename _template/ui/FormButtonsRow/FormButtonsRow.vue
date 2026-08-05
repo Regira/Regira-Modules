@@ -28,12 +28,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { Icon } from "regira/vue/ui"
-import { IconButton } from "regira/vue/ui"
-import { ConfirmButton } from "regira/vue/ui"
-import { ModalType } from "regira/vue/ui"
-import { FeedbackStatus } from "regira/vue/ui"
-import type { FormButtonsRowProps, FormButtonsRowEmits, FormButtonsRowSlots } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import { IconButton } from "@regira/modules/vue/ui"
+import { ConfirmButton } from "@regira/modules/vue/ui"
+import { ModalType } from "@regira/modules/vue/ui"
+import { FeedbackStatus } from "@regira/modules/vue/ui"
+import type { FormButtonsRowProps, FormButtonsRowEmits, FormButtonsRowSlots } from "@regira/modules/vue/ui"
 
 const props = defineProps<FormButtonsRowProps>()
 const emit = defineEmits<FormButtonsRowEmits>()

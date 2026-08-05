@@ -2,7 +2,7 @@
 // Generates _template/ui/** — ejectable copies of the UI-kit reference skins — from the REAL
 // component source in src/ (unlike entity-slice/app-shell, which are generated from the ai docs).
 //
-// Each ejected file gets its relative imports rewritten to public `regira/...` specifiers,
+// Each ejected file gets its relative imports rewritten to public `@regira/modules/...` specifiers,
 // so the copy stays wired to library behavior (composables, contract types) across upgrades.
 // A relative import without a public mapping FAILS the build: an ejectable skin may only depend
 // on public API — this doubles as architecture enforcement for the headless split.
@@ -37,7 +37,7 @@ const MANIFEST = [
         name: "Paging",
         dir: "vue/ui/paging",
         files: ["Paging.vue", "PagingButton.vue", "PagingAnchor.vue"],
-        note: "import your copy instead of regira/vue/ui Paging (behavior stays in the exported usePaging)",
+        note: "import your copy instead of @regira/modules/vue/ui Paging (behavior stays in the exported usePaging)",
     },
     {
         name: "Autocomplete",
@@ -98,7 +98,7 @@ const MANIFEST = [
         name: "InputSelectorInline",
         dir: "vue/entities/form",
         files: ["InputSelectorInline.vue"],
-        note: "import your copy instead of regira/vue/entities InputSelectorInline",
+        note: "import your copy instead of @regira/modules/vue/entities InputSelectorInline",
     },
     {
         name: "Anchor",
@@ -182,7 +182,7 @@ const MANIFEST = [
         name: "DetailsSummary",
         dir: "vue/entities/details",
         files: ["DetailsSummary.vue"],
-        note: "import your copy instead of regira/vue/entities DetailsSummary (e.g. in the EntityDescriptor fiche/details route)",
+        note: "import your copy instead of @regira/modules/vue/entities DetailsSummary (e.g. in the EntityDescriptor fiche/details route)",
     },
     {
         name: "GMapButton",
@@ -209,45 +209,45 @@ const MANIFEST = [
 // spec: the public subpath; named: the barrel export replacing a .vue default import;
 // defaultAs: the barrel export replacing a ts module's default import
 const MODULE_MAP = {
-    "vue/ui/icons/Icon.vue": { spec: "regira/vue/ui", named: "Icon" },
-    "vue/ui/icons/IconButton.vue": { spec: "regira/vue/ui", named: "IconButton" },
-    "vue/ui/icons/BsIcon.vue": { spec: "regira/vue/ui", named: "BsIcon" },
-    "vue/ui/icons/FaIcon.vue": { spec: "regira/vue/ui", named: "FaIcon" },
-    "vue/ui/buttons/ConfirmButton.vue": { spec: "regira/vue/ui", named: "ConfirmButton" },
-    "vue/ui/feedback/Pending.vue": { spec: "regira/vue/ui", named: "Pending" },
-    "vue/ui/feedback/Success.vue": { spec: "regira/vue/ui", named: "Success" },
-    "vue/ui/feedback/ErrorSummary.vue": { spec: "regira/vue/ui", named: "ErrorSummary" },
-    "vue/ui/modal": { spec: "regira/vue/ui" },
-    "vue/ui/modal/modal": { spec: "regira/vue/ui" },
-    "vue/ui/paging/paging": { spec: "regira/vue/ui", defaultAs: "usePaging" },
-    "vue/ui/autocomplete/autocomplete": { spec: "regira/vue/ui" },
-    "vue/ui/feedback": { spec: "regira/vue/ui" },
-    "vue/ui/feedback/feedback": { spec: "regira/vue/ui" },
-    "vue/ui/tabs/tabs": { spec: "regira/vue/ui" },
-    "vue/ui/tabs/Tab": { spec: "regira/vue/ui" },
-    "vue/ui/buttons/confirm": { spec: "regira/vue/ui" },
-    "vue/ui/input/formButtonsRow": { spec: "regira/vue/ui" },
-    "vue/ui/input/fileDropZone": { spec: "regira/vue/ui" },
-    "vue/vue-helper": { spec: "regira/vue/vue-helper" },
-    "vue/entities/abstractions/PagingInfo": { spec: "regira/vue/entities" },
-    "vue/entities/form/inputSelectorInline": { spec: "regira/vue/entities" },
-    "vue/auth/useLoginForm": { spec: "regira/vue/auth" },
-    "vue/auth/useChangePasswordForm": { spec: "regira/vue/auth" },
-    "vue/auth/useResetPasswordForm": { spec: "regira/vue/auth" },
-    "vue/auth/useForgotPasswordForm": { spec: "regira/vue/auth" },
-    "vue/auth/LoginForm.vue": { spec: "regira/vue/auth", named: "LoginForm" },
-    "vue/ui/input/inputs": { spec: "regira/vue/ui" },
-    "vue/ui/input/FormLabel.vue": { spec: "regira/vue/ui", named: "FormLabel" },
-    "vue/ui/icons/icons": { spec: "regira/vue/ui" },
-    "vue/ui/loading/loading": { spec: "regira/vue/ui" },
-    "vue/ui/gis/gmaps/GMap.vue": { spec: "regira/vue/ui", named: "GMap" },
-    "vue/ui/gis/gmaps/gmaps": { spec: "regira/vue/ui" },
-    "vue/debug/debug": { spec: "regira/vue/debug" },
-    "vue/lang/useLang": { spec: "regira/vue/lang" },
-    "vue/lang/langSelector": { spec: "regira/vue/lang" },
-    "vue/entities/details/detailsSummary": { spec: "regira/vue/entities" },
-    "vue/formatters": { spec: "regira/vue/formatters" },
-    "utilities/string-utility": { spec: "regira/utilities" },
+    "vue/ui/icons/Icon.vue": { spec: "@regira/modules/vue/ui", named: "Icon" },
+    "vue/ui/icons/IconButton.vue": { spec: "@regira/modules/vue/ui", named: "IconButton" },
+    "vue/ui/icons/BsIcon.vue": { spec: "@regira/modules/vue/ui", named: "BsIcon" },
+    "vue/ui/icons/FaIcon.vue": { spec: "@regira/modules/vue/ui", named: "FaIcon" },
+    "vue/ui/buttons/ConfirmButton.vue": { spec: "@regira/modules/vue/ui", named: "ConfirmButton" },
+    "vue/ui/feedback/Pending.vue": { spec: "@regira/modules/vue/ui", named: "Pending" },
+    "vue/ui/feedback/Success.vue": { spec: "@regira/modules/vue/ui", named: "Success" },
+    "vue/ui/feedback/ErrorSummary.vue": { spec: "@regira/modules/vue/ui", named: "ErrorSummary" },
+    "vue/ui/modal": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/modal/modal": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/paging/paging": { spec: "@regira/modules/vue/ui", defaultAs: "usePaging" },
+    "vue/ui/autocomplete/autocomplete": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/feedback": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/feedback/feedback": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/tabs/tabs": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/tabs/Tab": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/buttons/confirm": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/input/formButtonsRow": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/input/fileDropZone": { spec: "@regira/modules/vue/ui" },
+    "vue/vue-helper": { spec: "@regira/modules/vue/vue-helper" },
+    "vue/entities/abstractions/PagingInfo": { spec: "@regira/modules/vue/entities" },
+    "vue/entities/form/inputSelectorInline": { spec: "@regira/modules/vue/entities" },
+    "vue/auth/useLoginForm": { spec: "@regira/modules/vue/auth" },
+    "vue/auth/useChangePasswordForm": { spec: "@regira/modules/vue/auth" },
+    "vue/auth/useResetPasswordForm": { spec: "@regira/modules/vue/auth" },
+    "vue/auth/useForgotPasswordForm": { spec: "@regira/modules/vue/auth" },
+    "vue/auth/LoginForm.vue": { spec: "@regira/modules/vue/auth", named: "LoginForm" },
+    "vue/ui/input/inputs": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/input/FormLabel.vue": { spec: "@regira/modules/vue/ui", named: "FormLabel" },
+    "vue/ui/icons/icons": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/loading/loading": { spec: "@regira/modules/vue/ui" },
+    "vue/ui/gis/gmaps/GMap.vue": { spec: "@regira/modules/vue/ui", named: "GMap" },
+    "vue/ui/gis/gmaps/gmaps": { spec: "@regira/modules/vue/ui" },
+    "vue/debug/debug": { spec: "@regira/modules/vue/debug" },
+    "vue/lang/useLang": { spec: "@regira/modules/vue/lang" },
+    "vue/lang/langSelector": { spec: "@regira/modules/vue/lang" },
+    "vue/entities/details/detailsSummary": { spec: "@regira/modules/vue/entities" },
+    "vue/formatters": { spec: "@regira/modules/vue/formatters" },
+    "utilities/string-utility": { spec: "@regira/modules/utilities" },
 }
 
 // -------------------------------------------------- public-export resolution
@@ -292,11 +292,11 @@ function collectExports(absFile, seen = new Set()) {
     if (/export\s+default\b/.test(content)) names.add("default")
     return names
 }
-// spec (e.g. regira/vue/ui) → its barrel's transitive export set
+// spec (e.g. @regira/modules/vue/ui) → its barrel's transitive export set
 const PUBLIC_EXPORTS = {}
 for (const { spec } of Object.values(MODULE_MAP)) {
     if (spec in PUBLIC_EXPORTS) continue
-    const barrel = resolveModuleFile(resolve(srcRoot, spec.replace(/^regira\//, "")))
+    const barrel = resolveModuleFile(resolve(srcRoot, spec.replace(/^@regira\/modules\//, "")))
     PUBLIC_EXPORTS[spec] = collectExports(barrel)
 }
 

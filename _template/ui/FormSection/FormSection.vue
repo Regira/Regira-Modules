@@ -38,8 +38,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, getCurrentInstance } from "vue"
-import { Icon } from "regira/vue/ui"
-import type { FormSectionProps, FormSectionEmits, FormSectionSlots } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import type { FormSectionProps, FormSectionEmits, FormSectionSlots } from "@regira/modules/vue/ui"
 
 const emit = defineEmits<FormSectionEmits>()
 const props = defineProps<FormSectionProps>()

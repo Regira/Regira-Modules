@@ -32,7 +32,7 @@ collides the day the library adds that name. App-owned classes and tokens take a
 | 1   | **CSS restyle**         | one component's look, CSS only     | stable `rg-*` / `is-*` class hooks                                                                                         |
 | 2   | **Recompose**           | a part of a component              | named/scoped slots (typed via `XxxSlots`)                                                                                  |
 | 3   | **Replace the skin**    | the entire markup                  | new SFC against `XxxProps`/`XxxEmits`/`XxxSlots` + `useXxx`; modal/loading swap app-wide via `modalPlugin`/`loadingPlugin` |
-| 4   | **Eject the reference** | start from the shipped markup      | `node node_modules/regira/_template/scaffold.mjs --ui <Component>`                                                |
+| 4   | **Eject the reference** | start from the shipped markup      | `node node_modules/@regira/modules/_template/scaffold.mjs --ui <Component>`                                                |
 
 ## L0 — Theme tokens
 
@@ -40,11 +40,11 @@ Import order in `main.ts` matters — the app theme comes **after** Bootstrap an
 
 ```ts
 import "bootstrap/dist/css/bootstrap.min.css"
-import "regira/style.css"
+import "@regira/modules/style.css"
 import "@/assets/theme.scss" // the app's theme — always give the app one, even if it starts small
 ```
 
-Library tokens (shipped in `regira/style.css`, all overridable):
+Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 
 | Token                      | Default                      | Used by                                                                                                         |
 | -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -111,7 +111,7 @@ them in `theme.scss` — no `::v-deep`, no `!important` needed.
   `<Paging class="my-pager" …>`. `Autocomplete` additionally takes `resultClass` / `itemsClass` /
   `itemClass` for its detached dropdown parts.
 
-**Structural classes** are the other half of the shipped surface: rules in `regira/style.css`
+**Structural classes** are the other half of the shipped surface: rules in `@regira/modules/style.css`
 your markup **opts into**, rather than hooks you restyle. Put them on your own elements; keep them out
 of `theme.scss`.
 
@@ -151,10 +151,10 @@ A replacement SFC is three lines of wiring plus free markup — behavior arrives
 
 ```vue
 <script setup lang="ts">
-import { usePaging, pagingDefaults, type PagingProps, type PagingEmits, type PagingSlots } from "regira/vue/ui"
+import { usePaging, pagingDefaults, type PagingProps, type PagingEmits, type PagingSlots } from "@regira/modules/vue/ui"
 import { toRefs } from "vue"
-import { useVModelField } from "regira/vue/vue-helper"
-import type { IPagingInfo } from "regira/vue/entities"
+import { useVModelField } from "@regira/modules/vue/vue-helper"
+import type { IPagingInfo } from "@regira/modules/vue/entities"
 
 const emit = defineEmits<PagingEmits>()
 const props = withDefaults(defineProps<PagingProps>(), { ...pagingDefaults })
@@ -189,8 +189,8 @@ components keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle 
 ## L4 — Eject the reference skin
 
 ```
-node node_modules/regira/_template/scaffold.mjs --ui list
-node node_modules/regira/_template/scaffold.mjs --ui DefaultModal   [--dir src/components/ui]
+node node_modules/@regira/modules/_template/scaffold.mjs --ui list
+node node_modules/@regira/modules/_template/scaffold.mjs --ui DefaultModal   [--dir src/components/ui]
 ```
 
 Every imported built-in is ejectable — `--ui list` is the authority. The full set: `DefaultModal`,
@@ -201,7 +201,7 @@ Every imported built-in is ejectable — `--ui list` is the authority. The full 
 container/button), `Debug`, `LangSelector`, `DetailsSummary`, `GMapButton`, `LoginModal`,
 `ForgotPasswordModal`.
 
-The copy lands in your app with its imports rewritten to public `regira/...` specifiers, so
+The copy lands in your app with its imports rewritten to public `@regira/modules/...` specifiers, so
 behavior (composables, contract types) keeps flowing from the library across upgrades — only the markup
 is yours. Edit it freely, then wire it per the printed note (modal: `modalPlugin { Modal }`; others:
 import your copy instead of the library one).

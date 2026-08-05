@@ -1,6 +1,6 @@
 # Regira Vue Helper — AI Agent Instructions
 
-Three small Vue composition helpers (`regira/vue/vue-helper`) that the rest of the library is
+Three small Vue composition helpers (`@regira/modules/vue/vue-helper`) that the rest of the library is
 built on — `useOwnedCollection`, `useListInput`, and `Autocomplete` use them internally.
 
 > **Never guess** a signature — verify in [vue-helper.signatures.md](vue-helper.signatures.md).
@@ -8,9 +8,9 @@ built on — `useOwnedCollection`, `useListInput`, and `Autocomplete` use them i
 ## Import
 
 ```ts
-import { useVModelField, createFromComputedPool, useEventListener } from "regira/vue/vue-helper"
+import { useVModelField, createFromComputedPool, useEventListener } from "@regira/modules/vue/vue-helper"
 // also re-exported from the vue barrel:
-import { useVModelField } from "regira/vue"
+import { useVModelField } from "@regira/modules/vue"
 ```
 
 ## `useVModelField` — v-model for composables (components use `defineModel`)

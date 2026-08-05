@@ -1,6 +1,6 @@
 # Regira UI — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/ui`. Do not guess — look up here first. For any
+Verbatim TypeScript signatures for `@regira/modules/vue/ui`. Do not guess — look up here first. For any
 component prop not listed, use the MCP source map (`get_type` on `regira_modules.vue.ui`).
 
 **Where each export lives** — headings group by _category_, so searching for a component name finds nothing.
@@ -33,7 +33,7 @@ exported `useXxx` composable where one exists. A replacement skin declares
 ## Plugins
 
 ```ts
-import { feedbackPlugin, iconPlugin, loadingPlugin, pagingPlugin, modalPlugin, screenPlugin } from "regira/vue/ui"
+import { feedbackPlugin, iconPlugin, loadingPlugin, pagingPlugin, modalPlugin, screenPlugin } from "@regira/modules/vue/ui"
 
 feedbackPlugin.install(app, { autoHideDelay?: number })
 iconPlugin.install(app, { icons?: Record<string, string>; clearFirst?: boolean; source?: "bs" | "fa"; Icon?: IconComponent; IconButton?: IconButtonComponent })
@@ -45,7 +45,7 @@ screenPlugin.install(app, { sizes?: Record<string, number> }) // sizes overrides
 ```
 
 Components are imported locally by default. When `registerComponentsGlobally` is on (set via
-`configureGlobals` from `regira/vue/ioc` before install), these plugins also register their
+`configureGlobals` from `@regira/modules/vue/ioc` before install), these plugins also register their
 components app-wide: `iconPlugin` → `Icon`/`IconButton`, `loadingPlugin` →
 `Loading`/`LoadingButton`/`LoadingContainer`, `pagingPlugin` → `Paging`, `modalPlugin` → `MyModal`.
 The `Xxx?` component options swap what gets registered (each is compile-checked against the matching
@@ -57,8 +57,8 @@ library `Icon`, whose glyphs you re-map via `icons`/`source` and restyle via the
 ## Feedback
 
 ```ts
-import { useFeedback, FeedbackStatus, Feedback, type FeedbackOut, type FeedbackProps, type FeedbackSlots } from "regira/vue/ui"
-import { type FeedbackError, type FeedbackIn } from "regira/vue/ui/feedback"
+import { useFeedback, FeedbackStatus, Feedback, type FeedbackOut, type FeedbackProps, type FeedbackSlots } from "@regira/modules/vue/ui"
+import { type FeedbackError, type FeedbackIn } from "@regira/modules/vue/ui/feedback"
 
 export enum FeedbackStatus {
     none = "",
@@ -94,7 +94,7 @@ export type FeedbackSlots = { "close-button"?(): any; pending?(): any; success?(
 ## Paging
 
 ```ts
-import { Paging, ButtonType, usePaging, pagingDefaults, type PagingProps, type PagingEmits, type PagingSlots, type PagingComponent } from "regira/vue/ui"
+import { Paging, ButtonType, usePaging, pagingDefaults, type PagingProps, type PagingEmits, type PagingSlots, type PagingComponent } from "@regira/modules/vue/ui"
 export enum ButtonType {
     anchor = "Anchor",
     button = "Button",
@@ -125,7 +125,7 @@ export function usePaging(input: { pagingInfo: Ref<IPagingInfo>; count: Ref<numb
 ```
 
 ```ts
-import { ResultSummary, type ResultSummaryProps, type ResultSummarySlots } from "regira/vue/ui"
+import { ResultSummary, type ResultSummaryProps, type ResultSummarySlots } from "@regira/modules/vue/ui"
 export type ResultSummaryProps = { visibleCount?: number; totalCount?: number } // renders "visible / total"
 export type ResultSummarySlots = { default?(props: { visibleCount?: number; totalCount?: number }): any }
 ```
@@ -133,8 +133,8 @@ export type ResultSummarySlots = { default?(props: { visibleCount?: number; tota
 ## Loading
 
 ```ts
-import { Loading, LoadingButton, LoadingContainer, injectLoading } from "regira/vue/ui"
-import { type LoadingComponent, type LoadingContainerProps, type LoadingContainerSlots, type LoadingButtonProps, type LoadingButtonSlots } from "regira/vue/ui"
+import { Loading, LoadingButton, LoadingContainer, injectLoading } from "@regira/modules/vue/ui"
+import { type LoadingComponent, type LoadingContainerProps, type LoadingContainerSlots, type LoadingButtonProps, type LoadingButtonSlots } from "@regira/modules/vue/ui"
 // Loading: no props — renders the img provided by loadingPlugin ({ img }); without one it falls back to a
 // built-in Bootstrap spinner labelled by the injectable `loadingLabel` (default "Loading…")
 export type LoadingContainerProps = { isLoading: boolean }
@@ -151,8 +151,8 @@ export function injectLoading(): LoadingComponent
 ## Modal
 
 ```ts
-import { DefaultModal, ModalType, injectModal, modalDefaults } from "regira/vue/ui"
-import { type ModalProps, type ModalEmits, type ModalSlots, type ModalComponent } from "regira/vue/ui"
+import { DefaultModal, ModalType, injectModal, modalDefaults } from "@regira/modules/vue/ui"
+import { type ModalProps, type ModalEmits, type ModalSlots, type ModalComponent } from "@regira/modules/vue/ui"
 export enum ModalType {
     normal = "Normal",
     success = "Success",
@@ -190,7 +190,7 @@ export function injectModal(): ModalComponent
 ## Tabs
 
 ```ts
-import { TabContainer, TabNavigation, Tab, type ITab, type TabContainerProps, type TabsEmits, type TabNavigationProps } from "regira/vue/ui"
+import { TabContainer, TabNavigation, Tab, type ITab, type TabContainerProps, type TabsEmits, type TabNavigationProps } from "@regira/modules/vue/ui"
 export interface ITab {
     key: string
     icon?: string
@@ -219,8 +219,8 @@ export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
 ## Icons
 
 ```ts
-import { Icon, BsIcon, FaIcon, IconButton, loadIcons, iconPlugin, iconDefaults, iconButtonDefaults } from "regira/vue/ui"
-import { type IIconProvider, type IconProps, type IconSize, type IconButtonProps, type IconButtonSlots } from "regira/vue/ui"
+import { Icon, BsIcon, FaIcon, IconButton, loadIcons, iconPlugin, iconDefaults, iconButtonDefaults } from "@regira/modules/vue/ui"
+import { type IIconProvider, type IconProps, type IconSize, type IconButtonProps, type IconButtonSlots } from "@regira/modules/vue/ui"
 export type IconSize = "sm" | "md" | "lg" | "xl"
 export type IconProps = { name: string; size?: IconSize }
 export const iconDefaults: { size: IconSize } // "md"
@@ -236,7 +236,7 @@ export function load(icons: Record<string, string> | Array<Array<string>>): void
 ## Screen
 
 ```ts
-import { useScreen, screenPlugin } from "regira/vue/ui" // SCREEN_SIZES / IScreen are not re-exported from the barrel
+import { useScreen, screenPlugin } from "@regira/modules/vue/ui" // SCREEN_SIZES / IScreen are not re-exported from the barrel
 export const SCREEN_SIZES: Record<string, number>
 export interface IScreen {
     get size(): number[]
@@ -258,8 +258,8 @@ export function useScreen(): { size: Ref<number[]>; screen: IScreen }
 ## Autocomplete
 
 ```ts
-import { useAutocomplete, autocompleteDefaults, Autocomplete } from "regira/vue/ui"
-import { type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots, type AutocompleteOut } from "regira/vue/ui"
+import { useAutocomplete, autocompleteDefaults, Autocomplete } from "@regira/modules/vue/ui"
+import { type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots, type AutocompleteOut } from "@regira/modules/vue/ui"
 // AutocompleteProps<T>: { idValue?, modelValue?, data?, maxResults?, debounceTime?, enableDblClick?, autoSelect?, allowFreeInput?,
 //                         resultClass?, itemsClass?, itemClass?,
 //                         search?(term?): Promise<Array<T>>, idSelector?(item?): TKey|undefined,
@@ -287,7 +287,7 @@ import {
     FormSection,
     NullableLabel,
     CopyToClipboardButton,
-} from "regira/vue/ui"
+} from "@regira/modules/vue/ui"
 // ConfirmButton contract (ConfirmButtonProps/Emits/Slots + confirmButtonDefaults):
 //   props: { icon?: string; buttonLabel?: string; modalTitle?: string; modalType?: ModalType }
 //   emits: confirm | cancel | open | close ; slots: button-content, modal, default (confirm-modal body)

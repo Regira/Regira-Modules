@@ -1,7 +1,7 @@
 # Regira Entities (front-end)
 
 The browser-side CRUD client for the **Regira.Entities** API — a Vue 3 + Pinia + vue-router library
-published as `regira/vue/entities`. You describe an entity once (model, service, config, views)
+published as `@regira/modules/vue/entities`. You describe an entity once (model, service, config, views)
 and get a list/search overview, a details page, a create/edit form, and a filter, all wired through a
 shared HTTP client and a reactive entity cache.
 
@@ -52,7 +52,7 @@ full table is in [services.md](docs/services.md#http-contract).
 
 ## The module stack
 
-`vue/entities` is one module in a `regira` set. A running front-end app assembles these siblings;
+`vue/entities` is one module in a `@regira/modules` set. A running front-end app assembles these siblings;
 the table below is the human-facing mirror of the spine's `## Modules` table (grounded in the reference
 apps — PIM-Manager and both Fleet apps confirm the same stack and plugin order). "Required" means an
 entities app will not run without it.
@@ -73,7 +73,7 @@ entities app will not run without it.
 | **date-extensions** | [`extensions/date-extensions`](../../extensions/README.md) | `dateSerializer.use()` once at startup (`dateSerializer` = the default deep import; the `extensions` barrel exports it as `dateExtensions`) — serialize `Date`s to JSON without a timezone shift (`main.ts` calls it before plugins). | optional  |
 | **utilities**       | [`utilities`](../../utilities/README.md)                   | File / array / query helpers (`file-utility`, `array-utility`, …).                                                                                                                                                                    | optional  |
 
-> `regira/treelist` is **not** part of the common stack — it's a direct dependency only for
+> `@regira/modules/treelist` is **not** part of the common stack — it's a direct dependency only for
 > explicit client-side hierarchies built with `useTree`.
 
 Also required at runtime but not Regira modules: **Pinia** (stores) and **vue-router** (routes).

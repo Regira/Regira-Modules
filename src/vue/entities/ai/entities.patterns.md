@@ -16,7 +16,7 @@ count, idempotent. Visibility afterwards is driven by one search-object field, `
 | `ArchivedFilter.included` | `?archived=included` | live and archived rows together                                                               |
 
 ```ts
-import { SearchObjectBase, ArchivedFilter } from "regira/vue/entities"
+import { SearchObjectBase, ArchivedFilter } from "@regira/modules/vue/entities"
 
 class EntitySearchObject extends SearchObjectBase {
     archived?: ArchivedFilter
@@ -159,7 +159,7 @@ the **border** box: `<div class="col-auto" style="width: 3rem">` offers a 24px c
 library's `ConfirmButton` / `IconButton` renders a 42px `.btn`. Neither shrinks, so the row overflows the
 page. Budget **≥ 4.5rem** for any cell holding one `.btn` — or drop the `width` and let `col-auto` do it.
 
-The library's own `.entity-list` rule (in `regira/style.css`) backs this up — it zeroes the `.row`
+The library's own `.entity-list` rule (in `@regira/modules/style.css`) backs this up — it zeroes the `.row`
 gutter margins and sets `min-width: 0` on the cells so `text-truncate` can actually clip. Do not redeclare
 it in `theme.scss`. It deliberately sets **no** `overflow-x`: with `overflow-y` left at `visible` an
 `overflow-x: auto` computes to `auto` on both axes, turning the list into a scroll container that clips
@@ -208,7 +208,7 @@ const { items, pagingInfo, itemsCount, isLoading, searchHandler } = useSearchVie
   your own URL and keep the fetch/paging/loading/feedback plumbing — see §Overview: `useListView` vs
   `useSearchView` in the instructions.
 - **Reuse the kit directly** — `Paging`, `ResultSummary`, `LoadingContainer`, `Feedback` and `ConfirmButton`
-  are `regira/vue/ui` exports and work anywhere; only `#modals` has to exist in `index.html`. The
+  are `@regira/modules/vue/ui` exports and work anywhere; only `#modals` has to exist in `index.html`. The
   slice's own generated components (`selecting/InputSelector.vue`, `details/FormModalButton.vue`) are app
   source and carry no slice assumptions either — import them from their folder and they work in your view.
 - Leave the slice registered in `src/entities/index.ts` either way: that is what keeps the entity in the
@@ -247,7 +247,7 @@ only the `IEntityService` surface — your custom method is _not_ on it. Resolve
 (it is registered under `Entity.name`):
 
 ```ts
-import { get } from "regira/vue/ioc"
+import { get } from "@regira/modules/vue/ioc"
 
 const svc = get<EntityService>(Entity.name)!
 const family = await svc.getFamily([1, 2, 3])
@@ -269,7 +269,7 @@ checkout that calls `service.save()` / `remove()` directly — gets none of the 
 own so the user sees the result; a bare `await service.save()` reads as a no-op (and swallows the error path):
 
 ```ts
-import { useFeedback } from "regira/vue/ui" // useFeedback, Feedback, FeedbackStatus all live here
+import { useFeedback } from "@regira/modules/vue/ui" // useFeedback, Feedback, FeedbackStatus all live here
 const feedback = useFeedback()
 
 async function toggleActive(row: Row) {
@@ -303,7 +303,7 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 > **⚠️ Delete semantics differ.** The multi-`Selector` **hard-removes** on its delete icon — the row leaves
 > the array immediately, so it cannot deliver the marked-deleted UX (visible, undoable until save). For any
 > join/owned collection edited in a form, marked-delete is the **default**: use `InputSelectorInline`
-> (`regira/vue/entities`), not `Selector`.
+> (`@regira/modules/vue/entities`), not `Selector`.
 
 > **Adding to a collection? Exclude what's already in it.** Pass the current ids as a filter default so
 > picked rows disappear from the picker — omitting this is the classic "duplicate add" UX bug:
@@ -436,14 +436,14 @@ Four numbered steps, one per layer:
 1. **Model** — the join rows live on the parent: `articleCategories?: Array<ArticleCategory>` where the
    row type carries `categoryId`, the nested `category?`, and `_deleted?: boolean`. New rows need no id —
    `Related()` inserts rows that arrive without one.
-2. **Render** — `InputSelectorInline` (`regira/vue/entities`) renders each row as a chip with a
+2. **Render** — `InputSelectorInline` (`@regira/modules/vue/entities`) renders each row as a chip with a
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
    this session via `add` are removed outright — tracked by identity, so the join-row shape needs no `id`)
    and hands the `#selector` slot an `add` function plus the `exclude` id list:
 
     ```vue
     <script setup lang="ts">
-    import { InputSelectorInline } from "regira/vue/entities"
+    import { InputSelectorInline } from "@regira/modules/vue/entities"
     import {
         InputSelector as CategorySelector,
         FormModalButton as CategoryButton,
@@ -507,7 +507,7 @@ then replace the placeholder scalar fields:
 
 ```vue
 <script setup lang="ts">
-import { useOwnedCollection } from "regira/vue/entities"
+import { useOwnedCollection } from "@regira/modules/vue/entities"
 import OrderLine from "./Entity" // the child row model — a plain EntityBase with scalar fields + `_deleted?: boolean`
 
 const props = defineProps<{ modelValue?: Array<OrderLine> }>()
@@ -623,8 +623,8 @@ library); only the two functions shown are load-bearing:
 
 ```vue
 <script setup lang="ts">
-import { useOwnedCollection } from "regira/vue/entities"
-import { useAxios } from "regira/vue/http"
+import { useOwnedCollection } from "@regira/modules/vue/entities"
+import { useAxios } from "@regira/modules/vue/http"
 import OrderLine from "./Entity"
 
 const props = defineProps<{ modelValue?: Array<OrderLine> }>()
@@ -682,8 +682,8 @@ marked-delete discipline of an owned collection, extended to the upload/rename r
 shared **`entity-attachments` slice** — scaffold it once, then bind it in a tab on every file-owning entity:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs <Entity> --attachments   # the slice + its wiring
-node node_modules/regira/_template/scaffold.mjs --attachments            # → src/entities/entity-attachments/
+node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --attachments   # the slice + its wiring
+node node_modules/@regira/modules/_template/scaffold.mjs --attachments            # → src/entities/entity-attachments/
 ```
 
 The generated slice (full source: [entities.attachments.template.md](entities.attachments.template.md))
@@ -692,10 +692,10 @@ builds on four **shipped** primitives — never hand-roll them (verify in
 
 | Primitive                               | From                                     | Role                                                                                         |
 | --------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `FileDropZone`                          | `regira/vue/ui`                 | drag-drop zone — emits `drop-files: Array<Blob>`, scoped slot `{ isDropping }`               |
-| `useAxios().upload(url, [blob], data?)` | `regira/vue/http`               | multipart upload on the **shared, baseURL-aware** axios; field name defaults to **`"file"`** |
-| `useAxios().getFile(url)`               | `regira/vue/http`               | authenticated download → `Blob`                                                              |
-| `formatFileSize`, `fileToBlob`          | `regira/utilities/file-utility` | size label; re-wrap a blob under a new name                                                  |
+| `FileDropZone`                          | `@regira/modules/vue/ui`                 | drag-drop zone — emits `drop-files: Array<Blob>`, scoped slot `{ isDropping }`               |
+| `useAxios().upload(url, [blob], data?)` | `@regira/modules/vue/http`               | multipart upload on the **shared, baseURL-aware** axios; field name defaults to **`"file"`** |
+| `useAxios().getFile(url)`               | `@regira/modules/vue/http`               | authenticated download → `Blob`                                                              |
+| `formatFileSize`, `fileToBlob`          | `@regira/modules/utilities/file-utility` | size label; re-wrap a blob under a new name                                                  |
 
 > **Use `useAxios().upload`, not `FileHelper.send`.** `FileHelper.send` uses a **bare axios** — no
 > `baseURL`, no auth interceptor — and its field name defaults to **`"files"`**. The attachment endpoint
@@ -763,8 +763,8 @@ saving) with that **server-side** map; render the summary with `<Feedback>` and 
 <!-- details/Form.vue -->
 <script setup lang="ts">
 import { ref } from "vue"
-import { useForm, formDefaults, type FormEmits } from "regira/vue/entities"
-import { Feedback, FeedbackStatus } from "regira/vue/ui"
+import { useForm, formDefaults, type FormEmits } from "@regira/modules/vue/entities"
+import { Feedback, FeedbackStatus } from "@regira/modules/vue/ui"
 import type Article from "../data/Entity"
 import useEntityStore from "../data/store"
 
@@ -820,7 +820,7 @@ const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.erro
 > For the per-field map to populate, the API must answer a `400` with body `{ errors: { Field: "message" } }`
 > — Regira's `EntityControllerBase` produces exactly that from an `EntityInputException`'s `InputErrors`. On
 > `404`/`500`, `feedback.error` is a plain string, so lean on the `<Feedback>` summary (`feedback.message`)
-> instead. `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `regira/vue/ui`;
+> instead. `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `@regira/modules/vue/ui`;
 > gating the button on `FeedbackStatus.pending` prevents double-submits.
 
 ## Tabbed forms
@@ -847,8 +847,8 @@ without it a refresh silently drops back to the first tab; with it the active ta
 
 ```ts
 import { computed } from "vue"
-import { useLang } from "regira/vue/lang"
-import { Tab, useScreen } from "regira/vue/ui"
+import { useLang } from "@regira/modules/vue/lang"
+import { Tab, useScreen } from "@regira/modules/vue/ui"
 
 const { translate } = useLang()
 const { screen } = useScreen()
@@ -878,7 +878,7 @@ cheapest first:
 <!-- how_to: key=re-theme-the-app aliases=theme,theming,restyle,css,colors,accent,brand,branding,tokens,scss,bootstrap -->
 
 - **L0 — theme tokens** — the app's `src/assets/theme.scss` (imported in `main.ts` **after** bootstrap
-  and `regira/style.css`) overrides the `--rg-*` tokens (`--rg-accent-bg`, `--rg-deleted-bg`,
+  and `@regira/modules/style.css`) overrides the `--rg-*` tokens (`--rg-accent-bg`, `--rg-deleted-bg`,
   backdrop, z-indexes) and Bootstrap's **component-level** vars. Precompiled Bootstrap 5.3 bakes its
   colors into per-component vars, so re-theme like `.btn-primary { --bs-btn-bg: var(--rg-accent); }` —
   overriding `:root { --bs-primary }` alone recolors almost nothing.
@@ -901,9 +901,9 @@ cheapest first:
   `loadingPlugin { Loading }` does the same for the loading indicator. Under `registerComponentsGlobally`,
   pass the skin to the owning plugin (`pagingPlugin { Paging? }`, `iconPlugin { Icon?, IconButton? }`,
   `debugPlugin { Debug? }`, …) so the global name resolves to it.
-- **L4 — eject the reference** — `node node_modules/regira/_template/scaffold.mjs --ui <Component>`
+- **L4 — eject the reference** — `node node_modules/@regira/modules/_template/scaffold.mjs --ui <Component>`
   (`--ui list` shows what's available — every imported built-in) copies the shipped skin into `src/components/ui/` with imports
-  rewritten to public `regira/...` API; restyle the copy freely and keep the checklist in
+  rewritten to public `@regira/modules/...` API; restyle the copy freely and keep the checklist in
   [ui.customize.md](../../ui/ai/ui.customize.md) (contract, `rg-*` hooks, **responsive unless the user
   asks otherwise**).
 
@@ -911,7 +911,7 @@ cheapest first:
 
 `useTree` builds a client-side `TreeList` from a **flat** array. `init(values, data, findParents)`:
 `data` = all rows, `values` = the subset to highlight, and `findParents` (`IFindParents<T>` from
-`regira/treelist`) returns each row's parent reference(s):
+`@regira/modules/treelist`) returns each row's parent reference(s):
 
 ```ts
 const { tree, nodes, ancestors, offspring, family, init } = useTree<Category>()
@@ -1018,7 +1018,7 @@ binding when the app enables the auth plugin later:
 ```ts
 // overview/Overview.vue — re-search on login / token refresh.
 // `searchHandler` is already in the useSearchView destructure (useRouteOverview needs it) — nothing to re-add there.
-import { useAuthStore } from "regira/vue/auth"
+import { useAuthStore } from "@regira/modules/vue/auth"
 
 const authStore = useAuthStore()
 authStore.$onAction(({ name, after }) => ["login", "refresh"].includes(name) && after(() => authStore.isAuthenticated && searchHandler(false)))
@@ -1027,7 +1027,7 @@ authStore.$onAction(({ name, after }) => ["login", "refresh"].includes(name) && 
 ```ts
 // details/Details.vue — load on login, only when nothing was loaded yet.
 // Add `load` back to the existing useDetails destructure: const { item, …, load, feedback } = useDetails(service)
-import { useAuthStore } from "regira/vue/auth"
+import { useAuthStore } from "@regira/modules/vue/auth"
 
 const authStore = useAuthStore()
 authStore.$onAction(({ name, after }) => name == "login" && after(() => item.value == null && authStore.isAuthenticated && load()))
@@ -1100,7 +1100,7 @@ export type CategoryDto = components["schemas"]["CategoryDto"]
 
 ```ts
 // data/Article.ts — the class the entities layer needs, typed from the DTO
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 import type { CategoryDto } from "@/api/types"
 
 export class Article extends EntityBase {

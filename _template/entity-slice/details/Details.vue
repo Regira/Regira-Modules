@@ -18,10 +18,10 @@
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { useAuthStore } from "regira/vue/auth"
-import { LoadingContainer, Feedback } from "regira/vue/ui"
-import { useDetails } from "regira/vue/entities/details"
-import { FormStates } from "regira/vue/entities/form"
+import { useAuthStore } from "@regira/modules/vue/auth"
+import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
+import { useDetails } from "@regira/modules/vue/entities/details"
+import { FormStates } from "@regira/modules/vue/entities/form"
 import config from "../config/config"
 import useEntityStore from "../data/store"
 

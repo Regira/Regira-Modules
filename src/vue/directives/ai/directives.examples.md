@@ -8,7 +8,7 @@ The barrel exports are **plugins** (objects with `install`), so register them wi
 `app.directive`. Each one wires up its template directive (`v-focus`, `v-grow`, `v-click-outside`):
 
 ```ts
-import { focus, grow, clickOutside } from "regira/vue/directives"
+import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 
 // global directives
 app.use(focus)

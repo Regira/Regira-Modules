@@ -1,9 +1,9 @@
 # Regira IO — AI Agent Instructions
 
-Browser file and image helpers (`regira/io`): two classes, `FileHelper` and `ImageHelper`
+Browser file and image helpers (`@regira/modules/io`): two classes, `FileHelper` and `ImageHelper`
 (which extends it). `FileHelper` normalises a `File`, `Blob`, URL, or base64 string into a `Blob` and
 covers browse/download/upload/JSON; `ImageHelper` adds canvas-based image transforms (resize, rotate,
-flip, convert). They wrap the lower-level `regira/utilities` file/image utilities and are
+flip, convert). They wrap the lower-level `@regira/modules/utilities` file/image utilities and are
 DOM-dependent — they only run in the browser.
 
 > **Never guess** a signature — verify in [io.signatures.md](io.signatures.md).
@@ -11,11 +11,11 @@ DOM-dependent — they only run in the browser.
 ## Import
 
 ```ts
-import { FileHelper, ImageHelper } from "regira/io"
+import { FileHelper, ImageHelper } from "@regira/modules/io"
 ```
 
 Both are named exports; the package root also default-exports `{ FileHelper, ImageHelper }`. There are
-no granular subpaths — everything is re-exported from `regira/io` above. Instantiate per use:
+no granular subpaths — everything is re-exported from `@regira/modules/io` above. Instantiate per use:
 `const files = new FileHelper()`, `const images = new ImageHelper()`.
 
 ## FileHelper
@@ -59,9 +59,9 @@ resolve to a new `HTMLImageElement`:
 
 - **`createUrl` returns a data URL, not an object URL.** Both `createUrl` and `getBase64Url` delegate to
   `blobToBase64` and are effectively identical — neither calls `URL.createObjectURL`. For a revocable
-  object URL use `createUrl`/`revokeUrl` from `regira/utilities/file-utility` instead.
+  object URL use `createUrl`/`revokeUrl` from `@regira/modules/utilities/file-utility` instead.
 - **`send` uses a bare axios call, not the shared instance.** Unlike `upload` in
-  [`regira/vue/http`](../../vue/http/ai/http.instructions.md), `FileHelper.send` imports `axios`
+  [`@regira/modules/vue/http`](../../vue/http/ai/http.instructions.md), `FileHelper.send` imports `axios`
   directly, so it gets **no `baseURL`, credentials, or auth interceptor** — pass an absolute URL, or
   prefer the http module's `upload` when those are needed.
 - **Default upload field name.** `send` only forwards `filesParameterName` when you set it; the

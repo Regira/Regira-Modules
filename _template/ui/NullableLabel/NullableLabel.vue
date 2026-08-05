@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import type { NullableLabelProps, NullableLabelSlots } from "regira/vue/ui"
+import type { NullableLabelProps, NullableLabelSlots } from "@regira/modules/vue/ui"
 
 defineProps<NullableLabelProps>()
 defineSlots<NullableLabelSlots>()

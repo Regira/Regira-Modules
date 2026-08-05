@@ -1,9 +1,9 @@
 # Regira TreeList — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/treelist`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/treelist`. Do not guess — look up here first.
 
 ```ts
-import { TreeList, TreeNode, type IFindParents } from "regira/treelist"
+import { TreeList, TreeNode, type IFindParents } from "@regira/modules/treelist"
 // TreeList is also the default export
 ```
 

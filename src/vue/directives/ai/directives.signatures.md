@@ -1,9 +1,9 @@
 # Regira Directives — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/directives`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/directives`. Do not guess — look up here first.
 
 ```ts
-import { focus, clickOutside, grow } from "regira/vue/directives"
+import { focus, clickOutside, grow } from "@regira/modules/vue/directives"
 ```
 
 ## Barrel (index.d.ts)

@@ -10,7 +10,7 @@ plugin reads `useAppStore` (from `main.ts`):
 ```ts
 import { createApp } from "vue"
 import { createPinia } from "pinia"
-import { AppStatus, plugin as appPlugin, whenAppReady } from "regira/vue/app"
+import { AppStatus, plugin as appPlugin, whenAppReady } from "@regira/modules/vue/app"
 
 const app = createApp(App)
 app.use(createPinia())
@@ -45,7 +45,7 @@ await whenAppReady()
 
 ```ts
 import { onMounted } from "vue"
-import { whenAppReady } from "regira/vue/app"
+import { whenAppReady } from "@regira/modules/vue/app"
 
 onMounted(async () => {
     await whenAppReady()
@@ -59,7 +59,7 @@ onMounted(async () => {
 sidebar component):
 
 ```ts
-import { onAppReady } from "regira/vue/app"
+import { onAppReady } from "@regira/modules/vue/app"
 
 onAppReady(async () => {
     await load()
@@ -73,7 +73,7 @@ Use `useAppStore()` for `isReady` / `culture`, or the `$appStatus` global in tem
 ```vue
 <script setup lang="ts">
 import { watchEffect } from "vue"
-import { AppStatus, useAppStore } from "regira/vue/app"
+import { AppStatus, useAppStore } from "@regira/modules/vue/app"
 
 const appStore = useAppStore()
 watchEffect(() => {

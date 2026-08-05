@@ -1,8 +1,8 @@
 # Regira IO (front-end)
 
-`regira/io` — browser file and image helpers. `FileHelper` normalises a `File`, `Blob`, URL, or
+`@regira/modules/io` — browser file and image helpers. `FileHelper` normalises a `File`, `Blob`, URL, or
 base64 string into a `Blob` and covers browse / download / upload / JSON; `ImageHelper` extends it with
-canvas-based image transforms. Both wrap the lower-level [`regira/utilities`](../utilities)
+canvas-based image transforms. Both wrap the lower-level [`@regira/modules/utilities`](../utilities)
 file/image utilities and are DOM-dependent (browser only).
 
 ## What it provides

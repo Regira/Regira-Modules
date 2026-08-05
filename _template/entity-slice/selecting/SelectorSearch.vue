@@ -109,9 +109,9 @@
 
 <script setup lang="ts">
 import { onMounted, type Ref } from "vue"
-import { useSearchView } from "regira/vue/entities"
-import { Icon, IconButton, Paging, LoadingContainer, Feedback, ButtonType, ResultSummary } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
+import { useSearchView } from "@regira/modules/vue/entities"
+import { Icon, IconButton, Paging, LoadingContainer, Feedback, ButtonType, ResultSummary } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"

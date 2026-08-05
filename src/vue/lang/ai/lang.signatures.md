@@ -1,6 +1,6 @@
 # Regira Lang — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/lang`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/lang`. Do not guess — look up here first.
 
 ```ts
 import {
@@ -12,7 +12,7 @@ import {
     type ITranslationMessages,
     type ITranslationMessage,
     type IFormatInput,
-} from "regira/vue/lang"
+} from "@regira/modules/vue/lang"
 ```
 
 ## Translation messages (`translate`)
@@ -77,7 +77,7 @@ $tm: (message: ITranslationMessage, formatArgs?: IFormatInput) => string
 ## `LangSelector` component
 
 ```ts
-import { LangSelector, type LangSelectorProps, type LangSelectorEmits } from "regira/vue/lang"
+import { LangSelector, type LangSelectorProps, type LangSelectorEmits } from "@regira/modules/vue/lang"
 export type LangSelectorProps = { langs: Array<string> } // e.g. ["en", "fr", "nl"]
 export type LangSelectorEmits = { (e: "select", langCode: string): void }
 // inline list of language codes (active one bold); calls useLang().setLangCode on click.

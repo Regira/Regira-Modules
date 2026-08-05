@@ -1,6 +1,6 @@
 # Regira Debug (front-end)
 
-`regira/vue/debug` — a `<Debug>` display component for dumping values on screen, plus a Vue
+`@regira/modules/vue/debug` — a `<Debug>` display component for dumping values on screen, plus a Vue
 plugin that adds `$isDebug` / `$setDebug` globals to control when that output shows.
 
 ## What it provides
@@ -21,6 +21,6 @@ app.use(plugin, { isDebug })
 ```
 
 `Debug` is imported locally where used (it bundles its own `Icon`). With
-`configureGlobals({ registerComponentsGlobally: true })` (from `regira/vue/ioc`) set before
+`configureGlobals({ registerComponentsGlobally: true })` (from `@regira/modules/vue/ioc`) set before
 `app.use(plugin)`, the plugin also registers `Debug` app-wide. Requires vue-router — the `$isDebug`
 getter reads the current route.

@@ -1,6 +1,6 @@
 # Regira Auth — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/auth`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/auth`. Do not guess — look up here first.
 
 ```ts
 import {
@@ -25,7 +25,7 @@ import {
     type ITokenManager,
     type IAuthStore,
     type IDefineAuthStore,
-} from "regira/vue/auth"
+} from "@regira/modules/vue/auth"
 ```
 
 ## Auth data
@@ -44,7 +44,7 @@ export interface IAuthData {
     hasClaim(claimType: string, claimValue?: string): boolean
     hasPermission(value: string): boolean
 }
-// NOTE: the `AuthData` *class* is internal — it is NOT re-exported from "regira/vue/auth"
+// NOTE: the `AuthData` *class* is internal — it is NOT re-exported from "@regira/modules/vue/auth"
 // (no deep-import subpath either). Only the `IAuthData` type is reachable; code against the type.
 export class AuthData implements IAuthData {
     constructor(token?: string, options?: { isAuthenticated: boolean })
@@ -134,7 +134,7 @@ export class LocalStorageTokenManager implements ITokenManager {
 
 ```ts
 // NOTE: both interceptors are internal — they are installed automatically by the auth `plugin`
-// and are NOT re-exported from "regira/vue/auth". Shown for reference only.
+// and are NOT re-exported from "@regira/modules/vue/auth". Shown for reference only.
 export function addBearerHeader(axios: AxiosInstance, tokenManager: ITokenManager): AxiosInstance
 export function autoLogoutOnFailedRequest(
     axios: AxiosInstance,

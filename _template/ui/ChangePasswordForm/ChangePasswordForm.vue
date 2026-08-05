@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { useChangePasswordForm, type ChangePasswordFormEmits, type ChangePasswordFormProps } from "regira/vue/auth"
+import { useChangePasswordForm, type ChangePasswordFormEmits, type ChangePasswordFormProps } from "@regira/modules/vue/auth"
 
 const emit = defineEmits<ChangePasswordFormEmits>()
 // no store lookup here — the configured auth store is app state (plugin option), not this module's

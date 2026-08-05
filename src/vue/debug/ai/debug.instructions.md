@@ -1,6 +1,6 @@
 # Regira Debug — AI Agent Instructions
 
-The front-end debug helpers (`regira/vue/debug`): a small `<Debug>` display component for
+The front-end debug helpers (`@regira/modules/vue/debug`): a small `<Debug>` display component for
 dumping any value on screen, plus a Vue plugin that adds the `$isDebug` / `$setDebug` global
 properties controlling when that output is visible.
 
@@ -9,12 +9,12 @@ properties controlling when that output is visible.
 ## Import
 
 ```ts
-import plugin, { Debug } from "regira/vue/debug"
+import plugin, { Debug } from "@regira/modules/vue/debug"
 ```
 
 The default export is the plugin (also exported as `plugin`); `Debug` is the component — import it
 locally where used. Setting `configureGlobals({ registerComponentsGlobally: true })` (from
-`regira/vue/ioc`) before `app.use(plugin)` makes the plugin register `Debug` app-wide instead.
+`@regira/modules/vue/ioc`) before `app.use(plugin)` makes the plugin register `Debug` app-wide instead.
 A replacement skin (declare `DebugProps`, honor `$isDebug`) swaps in via the plugin's `Debug` option:
 `app.use(plugin, { isDebug, Debug: MyDebug })` — or eject the reference markup with
 `scaffold.mjs --ui Debug`.

@@ -8,7 +8,7 @@
 //   - src/vue/entities/ai/entities.examples.md  → the longer boilerplate (UnitType slice, Part 1)
 //
 // Transforms applied to every file:
-//   - `@/regira/…`  →  `regira/…`   (safety net: the docs use the published npm
+//   - `@/regira/…`  →  `@regira/modules/…`   (safety net: the docs use the published npm
 //     specifier, so this normally matches nothing — it only catches a stray vendoring alias)
 // Plus, for the two entity-named files only, the placeholder tokens used by _template/scaffold.mjs:
 //   - Foo → __Entity__   foos → __entities__   foo → __entity__
@@ -45,7 +45,7 @@ const tpl = extractBlocks(readFileSync(resolve(aiDir, "entities.template.md"), "
 const examplesPart1 = readFileSync(resolve(aiDir, "entities.examples.md"), "utf8").split(/^# Part 2/m)[0]
 const ex = extractBlocks(examplesPart1)
 
-const unalias = (s) => s.replace(/@\/regira\//g, "regira/")
+const unalias = (s) => s.replace(/@\/regira\//g, "@regira/modules/")
 const tokenize = (s) =>
     s
         .replace(/\bFoo\b/g, "__Entity__")

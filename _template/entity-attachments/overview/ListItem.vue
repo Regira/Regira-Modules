@@ -18,8 +18,8 @@
 </template>
 
 <script setup lang="ts">
-import { formatFileSize } from "regira/utilities/file-utility"
-import { Icon } from "regira/vue/ui"
+import { formatFileSize } from "@regira/modules/utilities/file-utility"
+import { Icon } from "@regira/modules/vue/ui"
 import type Entity from "../data/Entity"
 import { download } from "../data/functions"
 

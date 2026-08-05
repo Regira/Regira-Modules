@@ -1,9 +1,9 @@
 # Regira App — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/app`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/app`. Do not guess — look up here first.
 
 ```ts
-import { plugin, useAppStore, AppStatus, useCulture, onAppReady, whenAppReady } from "regira/vue/app"
+import { plugin, useAppStore, AppStatus, useCulture, onAppReady, whenAppReady } from "@regira/modules/vue/app"
 ```
 
 ## Plugin

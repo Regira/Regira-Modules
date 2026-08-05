@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { ChangePasswordForm, getAccountName } from "regira/vue/auth"
-import { FormSection } from "regira/vue/ui"
+import { ChangePasswordForm, getAccountName } from "@regira/modules/vue/auth"
+import { FormSection } from "@regira/modules/vue/ui"
 
 // resolved from $auth — the store the auth plugin was configured with, NOT necessarily the module's
 // default useAuthStore(); not every JWT carries a displayName claim, hence the $t fallback below

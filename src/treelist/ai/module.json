@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.treelist",
-    "import": "regira/treelist",
+    "import": "@regira/modules/treelist",
     "description": "Generic hierarchical data structure: TreeList<T>/TreeNode<T> with ancestors/offspring/roots navigation, used by the entities tree and navigation.",
     "tags": ["frontend", "typescript", "tree", "regira_modules"]
 }

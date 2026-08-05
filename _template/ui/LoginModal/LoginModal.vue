@@ -12,9 +12,9 @@
 </template>
 
 <script setup lang="ts">
-import { type LoginFormEmits, type LoginModalProps, type LoginModalSlots } from "regira/vue/auth"
-import { injectModal } from "regira/vue/ui"
-import { LoginForm } from "regira/vue/auth"
+import { type LoginFormEmits, type LoginModalProps, type LoginModalSlots } from "@regira/modules/vue/auth"
+import { injectModal } from "@regira/modules/vue/ui"
+import { LoginForm } from "@regira/modules/vue/auth"
 
 defineEmits<LoginFormEmits>()
 withDefaults(defineProps<LoginModalProps>(), {

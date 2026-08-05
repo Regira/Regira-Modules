@@ -1,6 +1,6 @@
 # Regira IoC — AI Agent Instructions
 
-A tiny inversion-of-control container (`regira/vue/ioc`): register service factories with `add`,
+A tiny inversion-of-control container (`@regira/modules/vue/ioc`): register service factories with `add`,
 resolve them with `get`. Entity services are registered and resolved through it.
 
 > **Never guess** a signature — verify in [ioc.signatures.md](ioc.signatures.md).
@@ -8,7 +8,7 @@ resolve them with `get`. Entity services are registered and resolved through it.
 ## Import
 
 ```ts
-import { ServiceProvider, get, plugin as servicesPlugin, type IServiceProvider } from "regira/vue/ioc"
+import { ServiceProvider, get, plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
 ```
 
 ## Container
@@ -57,7 +57,7 @@ Keys are arbitrary (`"axios"`, `PoolCache.name`, `Entity.name`); use the same ke
 merges a partial into it. Plugins read it at install time, so set it **before** `app.use(...)`:
 
 ```ts
-import { configureGlobals } from "regira/vue/ioc"
+import { configureGlobals } from "@regira/modules/vue/ioc"
 
 configureGlobals({ registerComponentsGlobally: true })
 ```

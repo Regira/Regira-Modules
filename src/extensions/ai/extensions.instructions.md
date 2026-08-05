@@ -1,9 +1,9 @@
 # Regira Extensions — AI Agent Instructions
 
-Opt-in prototype extensions for `Array`, `Date`, and `Promise` (`regira/extensions`). Nothing is
+Opt-in prototype extensions for `Array`, `Date`, and `Promise` (`@regira/modules/extensions`). Nothing is
 patched on import — each extension is applied **explicitly** by calling a `use()` method, so the app
 controls when (and whether) globals are touched. The array and promise helpers are thin wrappers over
-[`regira/utilities`](../../utilities/array-utility) (`array-utility`, `promise-utility`,
+[`@regira/modules/utilities`](../../utilities/array-utility) (`array-utility`, `promise-utility`,
 `datetime-utility`).
 
 > **Never guess** a signature — verify in [extensions.signatures.md](extensions.signatures.md).
@@ -12,10 +12,10 @@ controls when (and whether) globals are touched. The array and promise helpers a
 
 ```ts
 // barrel: per-prototype objects + a default with the three enabler functions
-import extensions, { arrayExtensions, dateExtensions, promiseExtensions } from "regira/extensions"
+import extensions, { arrayExtensions, dateExtensions, promiseExtensions } from "@regira/modules/extensions"
 
 // granular subpath (only date-extensions is exported individually)
-import dateExtensions from "regira/extensions/date-extensions"
+import dateExtensions from "@regira/modules/extensions/date-extensions"
 ```
 
 The default export bundles `useArrayExtensions(overwrite?)`, `useDateExtensions()`, and
@@ -26,7 +26,7 @@ The default export bundles `useArrayExtensions(overwrite?)`, `useDateExtensions(
 Call the enablers once, early (before code relies on the new prototype members):
 
 ```ts
-import extensions from "regira/extensions"
+import extensions from "@regira/modules/extensions"
 extensions.useArrayExtensions() // Array.prototype
 extensions.useDateExtensions() // Date.prototype.toJSON
 extensions.usePromiseExtensions() // Promise.debounce / Promise.enqueue

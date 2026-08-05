@@ -1,4 +1,4 @@
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 export class __Entity__ extends EntityBase {
     id: number = 0 // Guid/string-keyed API entity → `id: string = ""`; the rest of the entity slice is key-generic (owned child rows stay int)

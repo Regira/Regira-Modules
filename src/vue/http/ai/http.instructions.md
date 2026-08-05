@@ -1,6 +1,6 @@
 # Regira HTTP — AI Agent Instructions
 
-The front-end HTTP layer (`regira/vue/http`): one shared axios instance plus file and
+The front-end HTTP layer (`@regira/modules/vue/http`): one shared axios instance plus file and
 query-string helpers. The [entities client](../../entities/ai/entities.instructions.md) and the auth
 plugin are both built on this single instance.
 
@@ -10,7 +10,7 @@ plugin are both built on this single instance.
 ## Import
 
 ```ts
-import { initAxios, useAxios, getFile, upload, createQueryString, type AxiosWithFilesInstance } from "regira/vue/http"
+import { initAxios, useAxios, getFile, upload, createQueryString, type AxiosWithFilesInstance } from "@regira/modules/vue/http"
 ```
 
 ## The shared instance

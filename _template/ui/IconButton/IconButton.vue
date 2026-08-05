@@ -6,8 +6,8 @@
 </template>
 
 <script setup lang="ts">
-import { Icon } from "regira/vue/ui"
-import { iconButtonDefaults, type IconButtonProps, type IconButtonSlots } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import { iconButtonDefaults, type IconButtonProps, type IconButtonSlots } from "@regira/modules/vue/ui"
 
 withDefaults(defineProps<IconButtonProps>(), { ...iconButtonDefaults })
 defineSlots<IconButtonSlots>()

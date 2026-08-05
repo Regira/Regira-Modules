@@ -4,9 +4,9 @@
 
 <script setup lang="ts">
 import { computed, inject } from "vue"
-import { BsIcon } from "regira/vue/ui"
-import { FaIcon } from "regira/vue/ui"
-import { iconDefaults, type IconsConfig, type IconProps } from "regira/vue/ui"
+import { BsIcon } from "@regira/modules/vue/ui"
+import { FaIcon } from "@regira/modules/vue/ui"
+import { iconDefaults, type IconsConfig, type IconProps } from "@regira/modules/vue/ui"
 
 withDefaults(defineProps<IconProps>(), { ...iconDefaults })
 

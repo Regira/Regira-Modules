@@ -1,9 +1,9 @@
 # Regira Debug — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/debug`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/debug`. Do not guess — look up here first.
 
 ```ts
-import plugin, { Debug } from "regira/vue/debug"
+import plugin, { Debug } from "@regira/modules/vue/debug"
 ```
 
 ## Module exports

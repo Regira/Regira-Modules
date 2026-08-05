@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Scaffold a Regira app — one entity slice, the one-time app shell, or an ejected UI skin.
 //
-//   node node_modules/regira/_template/scaffold.mjs <Entity> [options]   # an entity slice
-//   node node_modules/regira/_template/scaffold.mjs --shell [options]    # the app shell (once per app)
-//   node node_modules/regira/_template/scaffold.mjs --ui <Component>     # eject a UI-kit reference skin
-//   node node_modules/regira/_template/scaffold.mjs --ui list            # list the ejectable components
-//   node node_modules/regira/_template/scaffold.mjs <Entity> --attachments  # a slice whose entity owns files
-//   node node_modules/regira/_template/scaffold.mjs --attachments        # the shared offline file/attachments slice only
+//   node node_modules/@regira/modules/_template/scaffold.mjs <Entity> [options]   # an entity slice
+//   node node_modules/@regira/modules/_template/scaffold.mjs --shell [options]    # the app shell (once per app)
+//   node node_modules/@regira/modules/_template/scaffold.mjs --ui <Component>     # eject a UI-kit reference skin
+//   node node_modules/@regira/modules/_template/scaffold.mjs --ui list            # list the ejectable components
+//   node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --attachments  # a slice whose entity owns files
+//   node node_modules/@regira/modules/_template/scaffold.mjs --attachments        # the shared offline file/attachments slice only
 //
 //   <Entity>            PascalCase class name, e.g. Product
 //   --plural <name>     slice folder + client route prefix (default: kebab-cased plural — Category →
@@ -36,7 +36,7 @@
 //                       --owns Row --as orderRows  /  --rel Employee --as assignedToEmployee
 //   --shell             scaffold the app shell (toolchain, main.ts, App.vue, config, router, dashboard/navbar, layout, views) into the app root
 //   --ui <Component>    copy a UI-kit component's reference skin into the app for free restyling; the copy
-//                       imports only public regira/... API, so behavior keeps flowing from the library
+//                       imports only public @regira/modules/... API, so behavior keeps flowing from the library
 //   --attachments       this entity owns files: scaffold the shared entity-attachments slice (offline
 //                       add/rename/remove + drop zone, committed on the parent's save) and wire it into the
 //                       slice — the attachments field, the insert/update overrides, and the prepareItem
@@ -432,7 +432,7 @@ function applyRelations(relPath, text) {
         case "overview/List.vue":
             return insertAfter(text, `<div class="col">{{ $t("name") }}</div>`, relationBlocks.headers)
         case "data/Entity.ts":
-            text = insertAfter(text, `import { EntityBase } from "regira/vue/entities"`, relationBlocks.modelImports)
+            text = insertAfter(text, `import { EntityBase } from "@regira/modules/vue/entities"`, relationBlocks.modelImports)
             return insertAfter(text, `title = ""`, relationBlocks.fields)
         case "filter/SearchObject.ts":
             return insertAfterOrFail(text, `title?: string`, relationBlocks.searchFields, "filter/SearchObject.ts")
@@ -443,8 +443,8 @@ function applyRelations(relPath, text) {
             at(`const searchObject = defineModel<SearchObject>({ required: true })`, relationBlocks.filterRefs)
             // framework import first, as everywhere else in the templates — hence a prefix, not an insertAfter
             text = text.replace(
-                `import { IconButton } from "regira/vue/ui"`,
-                `import { ref } from "vue"\nimport { IconButton } from "regira/vue/ui"`
+                `import { IconButton } from "@regira/modules/vue/ui"`,
+                `import { ref } from "vue"\nimport { IconButton } from "@regira/modules/vue/ui"`
             )
             return withFilterReset(text)
         }
@@ -520,7 +520,7 @@ function applyAttachments(relPath, text) {
         case "data/Entity.ts":
             text = insertAfter(
                 text,
-                `import { EntityBase } from "regira/vue/entities"`,
+                `import { EntityBase } from "@regira/modules/vue/entities"`,
                 `import type { Entity as EntityAttachment } from "../../entity-attachments"`
             )
             return insertAfter(text, `title = ""`, `    attachments?: Array<EntityAttachment>`)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router"
-import { useForgotPasswordForm, type ForgotPasswordFormProps, type ForgotPasswordFormEmits } from "regira/vue/auth"
-import { useLang } from "regira/vue/lang"
+import { useForgotPasswordForm, type ForgotPasswordFormProps, type ForgotPasswordFormEmits } from "@regira/modules/vue/auth"
+import { useLang } from "@regira/modules/vue/lang"
 import { useConfig } from "@/app-config"
 
 const emit = defineEmits<ForgotPasswordFormEmits>()

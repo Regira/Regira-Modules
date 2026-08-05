@@ -17,8 +17,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { IconButton } from "regira/vue/ui"
-import type { OverviewEmits } from "regira/vue/entities"
+import { IconButton } from "@regira/modules/vue/ui"
+import type { OverviewEmits } from "@regira/modules/vue/entities"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"
 

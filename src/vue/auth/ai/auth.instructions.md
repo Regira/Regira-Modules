@@ -1,6 +1,6 @@
 # Regira Auth — AI Agent Instructions
 
-Front-end authentication (`regira/vue/auth`): JWT bearer auth layered onto the shared
+Front-end authentication (`@regira/modules/vue/auth`): JWT bearer auth layered onto the shared
 [axios instance](../../http/ai/http.instructions.md), with pluggable token storage, a Pinia auth store,
 a permission-aware route guard, and login UI. Install it **after** the IoC/http and router are set up.
 
@@ -27,7 +27,7 @@ import {
     useForgotPasswordForm,
     useChangePasswordForm,
     useResetPasswordForm,
-} from "regira/vue/auth"
+} from "@regira/modules/vue/auth"
 ```
 
 ## Setup — the auth plugin
@@ -100,7 +100,7 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
 - **`autoLogoutOnFailedRequest(axios, store)`** — response interceptor; on a **401** for a non-`auth/`
   URL it sets `authRequired` and re-validates the token (triggering the login popup). 403 is not handled.
 
-Both are installed automatically by the plugin and are **not exported** from `regira/vue/auth`
+Both are installed automatically by the plugin and are **not exported** from `@regira/modules/vue/auth`
 (internal); they are listed here only to document the request/response behavior.
 
 ## Route guard

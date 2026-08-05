@@ -1,11 +1,11 @@
 # Regira Directives (front-end)
 
-`regira/vue/directives` — three small Vue custom directives, each shipped as a Vue plugin.
+`@regira/modules/vue/directives` — three small Vue custom directives, each shipped as a Vue plugin.
 The barrel exports the **plugins** (each file's `default`), not the directive objects themselves, so
 registration goes through `app.use`:
 
 ```ts
-import { focus, clickOutside, grow } from "regira/vue/directives"
+import { focus, clickOutside, grow } from "@regira/modules/vue/directives"
 
 app.use(focus) // registers v-focus
 app.use(clickOutside) // registers v-click-outside

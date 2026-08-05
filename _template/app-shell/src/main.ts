@@ -1,22 +1,22 @@
 import { createApp } from "vue"
 import { createPinia } from "pinia"
 import type { RouteRecordRaw } from "vue-router"
-import { initAxios } from "regira/vue/http"
-import { plugin as servicesPlugin, type IServiceProvider } from "regira/vue/ioc"
-import { plugin as appPlugin, AppStatus, whenAppReady } from "regira/vue/app"
-import { plugin as langPlugin } from "regira/vue/lang"
-import { useLang } from "regira/vue/lang" // used for document.title + (auth) setLangCode
-import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "regira/vue/ui"
-import { focus, grow, clickOutside } from "regira/vue/directives"
+import { initAxios } from "@regira/modules/vue/http"
+import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
+import { plugin as appPlugin, AppStatus, whenAppReady } from "@regira/modules/vue/app"
+import { plugin as langPlugin } from "@regira/modules/vue/lang"
+import { useLang } from "@regira/modules/vue/lang" // used for document.title + (auth) setLangCode
+import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "@regira/modules/vue/ui"
+import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
-import "regira/style.css"
+import "@regira/modules/style.css"
 import "@/assets/theme.scss" // the app theme — MUST come after bootstrap + regira styles so its overrides win
-import { plugin as authPlugin, LocalStorageTokenManager } from "regira/vue/auth" // @auth:only
+import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth" // @auth:only
 import { plugin as userPlugin } from "@/infrastructure/user-plugin" // @auth:only
-import { preloaderPlugin, defaultPoolCache, PoolCache } from "regira/vue/entities"
-import { plugin as debugPlugin } from "regira/vue/debug"
-import dateExtensions from "regira/extensions/date-extensions"
+import { preloaderPlugin, defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
+import { plugin as debugPlugin } from "@regira/modules/vue/debug"
+import dateExtensions from "@regira/modules/extensions/date-extensions"
 import entityPlugins from "@/entities"
 import { routerFactory } from "@/router"
 import appConfig, { createConfig } from "@/app-config"

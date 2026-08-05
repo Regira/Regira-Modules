@@ -1,6 +1,6 @@
 # Regira Lang (i18n) — AI Agent Instructions
 
-The front-end internationalization layer (`regira/vue/lang`): keyed translation message
+The front-end internationalization layer (`@regira/modules/vue/lang`): keyed translation message
 dictionaries, `{param}` interpolation via `formatText`, the `useLang` composable that holds the active
 language as reactive state, and a Vue `plugin` that wires `$t` / `$tm` global properties. Entity labels
 and any user-facing strings flow through `$t`/`useLang().translate`.
@@ -21,10 +21,10 @@ import {
     type ITranslationMessages,
     type ITranslationMessage,
     type IFormatInput,
-} from "regira/vue/lang"
+} from "@regira/modules/vue/lang"
 ```
 
-The package exposes a single subpath, `regira/vue/lang` (no granular sub-exports).
+The package exposes a single subpath, `@regira/modules/vue/lang` (no granular sub-exports).
 
 ## Setup (the plugin)
 

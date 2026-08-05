@@ -1,11 +1,11 @@
 # Regira Vue Helper — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/vue-helper` (from `dist/vue/vue-helper.d.ts`).
+Verbatim TypeScript signatures for `@regira/modules/vue/vue-helper` (from `dist/vue/vue-helper.d.ts`).
 Do not guess — look up here first.
 
 ```ts
-import { useVModelField, createFromComputedPool, useEventListener } from "regira/vue/vue-helper"
-// the same three functions are re-exported from the "regira/vue" barrel
+import { useVModelField, createFromComputedPool, useEventListener } from "@regira/modules/vue/vue-helper"
+// the same three functions are re-exported from the "@regira/modules/vue" barrel
 ```
 
 ## Functions

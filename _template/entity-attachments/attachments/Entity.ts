@@ -1,4 +1,4 @@
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 // The file itself; `_file` is the raw Blob, staged in memory until the parent is saved.
 export class Attachment extends EntityBase {

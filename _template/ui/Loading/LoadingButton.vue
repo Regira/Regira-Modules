@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { injectLoading, type LoadingButtonProps, type LoadingButtonSlots } from "regira/vue/ui"
+import { injectLoading, type LoadingButtonProps, type LoadingButtonSlots } from "@regira/modules/vue/ui"
 
 defineProps<LoadingButtonProps>()
 defineSlots<LoadingButtonSlots>()

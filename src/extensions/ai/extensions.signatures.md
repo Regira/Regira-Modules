@@ -1,10 +1,10 @@
 # Regira Extensions — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/extensions`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/extensions`. Do not guess — look up here first.
 
 ```ts
-import extensions, { arrayExtensions, dateExtensions, promiseExtensions } from "regira/extensions"
-import dateExtensions from "regira/extensions/date-extensions" // granular subpath
+import extensions, { arrayExtensions, dateExtensions, promiseExtensions } from "@regira/modules/extensions"
+import dateExtensions from "@regira/modules/extensions/date-extensions" // granular subpath
 ```
 
 ## Barrel (index.d.ts)

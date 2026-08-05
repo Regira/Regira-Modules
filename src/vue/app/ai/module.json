@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.app",
-    "import": "regira/vue/app",
+    "import": "@regira/modules/vue/app",
     "description": "App lifecycle and culture: an app-status store (Init/Loading/Mounting/Ready), culture state, and app-ready hooks, exposed as $appStatus/$culture/$isReady globals.",
     "tags": ["frontend", "vue", "typescript", "app", "regira_modules"]
 }

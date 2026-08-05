@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { useAuthStore, getAccountName } from "regira/vue/auth" // @auth:only
+import { useAuthStore, getAccountName } from "@regira/modules/vue/auth" // @auth:only
 import { useConfig } from "@/app-config"
 import { NavBar, NavSearch } from "@/components/entity-navigation"
 

@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.auth",
-    "import": "regira/vue/auth",
+    "import": "@regira/modules/vue/auth",
     "description": "Front-end authentication: JWT bearer auth layered on the shared axios (login/refresh/validate/password), pluggable token storage, a Pinia auth store, a permission route guard, and login/forgot-password UI.",
     "tags": ["frontend", "vue", "typescript", "auth", "authentication", "jwt", "regira_modules"]
 }

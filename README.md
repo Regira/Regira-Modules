@@ -1,6 +1,6 @@
 # Regira Modules
 
-`regira` — the Regira front-end library: TypeScript and Vue 3 building blocks (entities/CRUD,
+`@regira/modules` — the Regira front-end library: TypeScript and Vue 3 building blocks (entities/CRUD,
 http, ioc, auth, ui, formatters, …) that pair with the Regira back-end packages.
 
 ## Documentation
@@ -35,7 +35,7 @@ present. Building a Vue 3 SPA against a Regira.Entities API? Start with the
 | TreeList                                                                                                                  | [src/treelist](src/treelist/README.md)     |
 | Events                                                                                                                    | [src/events](src/events/README.md)         |
 | IO (file/image helpers)                                                                                                   | [src/io](src/io/README.md)                 |
-| Entities (dormant — legacy entity client; the `regira/entities` subpath exists, but its barrel currently exports nothing) | [src/entities](src/entities)               |
+| Entities (dormant — legacy entity client; the `@regira/modules/entities` subpath exists, but its barrel currently exports nothing) | [src/entities](src/entities)               |
 | Firebase (dormant — Realtime Database REST `EntityService` + `AuthenticationService`)                                     | [src/firebase](src/firebase)               |
 | Identity (dormant — `IdentityManager`: login/refresh state with auto-refresh, broadcasting via Events)                    | [src/identity](src/identity)               |
 
@@ -73,15 +73,15 @@ Publishing to the npm registry runs through [`.github/workflows/publish-npm.yml`
 The workflow needs the `NPM_TOKEN` repository secret. For the first publish this must be an
 all-packages (or org-scoped) npm access token — a granular token cannot be scoped to a package that
 does not exist on the registry yet. After the first publish it can be swapped for a granular token
-narrowed to read/write on the `regira` package.
+narrowed to read/write on the `@regira/modules` package.
 
 ## Install
 
-Published to the npm registry as [`regira`](https://www.npmjs.com/package/regira)
+Published to the npm registry as [`@regira/modules`](https://www.npmjs.com/package/@regira/modules)
 (source: https://github.com/Regira/Regira-Modules):
 
 ```bash
-npm install regira
+npm install @regira/modules
 ```
 
 `npm install` resolves the **latest published version** and writes the caret range to `package.json` —
@@ -91,8 +91,8 @@ don't pin a specific version by hand.
 Vite alias or tsconfig path required:
 
 ```ts
-import { EntityBase } from "regira/vue/entities"
-import { useAxios } from "regira/vue/http"
+import { EntityBase } from "@regira/modules/vue/entities"
+import { useAxios } from "@regira/modules/vue/http"
 ```
 
 <details><summary>Legacy <code>@/regira</code> alias (opt-in)</summary>
@@ -106,7 +106,7 @@ _vite.config.ts_
 resolve: {
     alias: [
         // order is important!
-        { find: "@/regira", replacement: fileURLToPath(new URL("./node_modules/regira/dist", import.meta.url)) },
+        { find: "@/regira", replacement: fileURLToPath(new URL("./node_modules/@regira/modules/dist", import.meta.url)) },
         { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
     ]
 }
@@ -117,7 +117,7 @@ _tsconfig.app.json_
 ```json
   "compilerOptions": {
     "paths": {
-      "@/regira/*": ["./node_modules/regira/dist/*"],
+      "@/regira/*": ["./node_modules/@regira/modules/dist/*"],
       "@/*": ["./src/*"]
     },
   }
@@ -128,8 +128,12 @@ _tsconfig.app.json_
 ## Symlinks (legacy)
 
 ```bash
-mklink /J "regira" "C:\Projects\Regira\Regira-Modules\src"
+mkdir "node_modules\@regira"
+mklink /J "node_modules\@regira\modules" "C:\Projects\Regira\Regira-Modules\src"
 ```
+
+> The junction has to sit at the scoped path — a directory name cannot contain `/`, so the `@regira`
+> folder must exist before the link is created.
 
 _vite.config.ts_
 

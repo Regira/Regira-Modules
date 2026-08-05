@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ResultSummaryProps, ResultSummarySlots } from "regira/vue/ui"
+import type { ResultSummaryProps, ResultSummarySlots } from "@regira/modules/vue/ui"
 
 defineProps<ResultSummaryProps>()
 defineSlots<ResultSummarySlots>()

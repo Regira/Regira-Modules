@@ -11,10 +11,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue"
-import { Icon } from "regira/vue/ui"
-import { injectModal } from "regira/vue/ui"
-import { GMap } from "regira/vue/ui"
-import type { GMapButtonProps, GMapButtonSlots } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import { injectModal } from "@regira/modules/vue/ui"
+import { GMap } from "@regira/modules/vue/ui"
+import type { GMapButtonProps, GMapButtonSlots } from "@regira/modules/vue/ui"
 
 const props = defineProps<GMapButtonProps>()
 defineSlots<GMapButtonSlots>()

@@ -1,4 +1,4 @@
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 import Attachment from "../attachments/Entity"
 
 // The owned join row on the parent (`parent.attachments`).

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue"
 import type { RouteLocationRaw, LocationQueryRaw } from "vue-router"
-import { Icon } from "regira/vue/ui"
-import { isNavItem, type INavItem } from "regira/vue/entities"
+import { Icon } from "@regira/modules/vue/ui"
+import { isNavItem, type INavItem } from "@regira/modules/vue/entities"
 import { useNavigation } from "./functions"
 const { navbarTree } = useNavigation()
 const openId = ref<string>()

@@ -1,6 +1,6 @@
 # Regira Directives — AI Agent Instructions
 
-Three small Vue custom directives (`regira/vue/directives`): `focus` (autofocus on mount),
+Three small Vue custom directives (`@regira/modules/vue/directives`): `focus` (autofocus on mount),
 `clickOutside` (call a handler when a click lands outside the element), and `grow` (auto-grow a
 `<textarea>` as lines are added). Each is a plain Vue directive object **and** ships a Vue plugin
 (`install`) as its default export, so you can register one or all of them.
@@ -10,10 +10,10 @@ Three small Vue custom directives (`regira/vue/directives`): `focus` (autofocus 
 ## Import
 
 ```ts
-import { focus, clickOutside, grow } from "regira/vue/directives"
+import { focus, clickOutside, grow } from "@regira/modules/vue/directives"
 ```
 
-Only the barrel `regira/vue/directives` is exported — there are no granular subpaths.
+Only the barrel `@regira/modules/vue/directives` is exported — there are no granular subpaths.
 The `default` export of each underlying file is a plugin (an object with `install`), and the barrel
 re-exports those **plugins** under the names `focus`, `clickOutside`, `grow` (it re-exports each
 file's `default`, not the file's named directive-object export).
@@ -25,7 +25,7 @@ plugin's `install` calls `app.directive(...)` with a fixed directive name (`clic
 `grow`), used in templates as `v-click-outside`, `v-focus`, `v-grow`:
 
 ```ts
-import { focus, clickOutside, grow } from "regira/vue/directives"
+import { focus, clickOutside, grow } from "@regira/modules/vue/directives"
 
 app.use(focus)
 app.use(clickOutside)

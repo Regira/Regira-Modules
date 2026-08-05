@@ -14,7 +14,7 @@
             "PagingButton.vue",
             "PagingAnchor.vue"
         ],
-        "note": "import your copy instead of regira/vue/ui Paging (behavior stays in the exported usePaging)"
+        "note": "import your copy instead of @regira/modules/vue/ui Paging (behavior stays in the exported usePaging)"
     },
     {
         "name": "Autocomplete",
@@ -86,7 +86,7 @@
         "files": [
             "InputSelectorInline.vue"
         ],
-        "note": "import your copy instead of regira/vue/entities InputSelectorInline"
+        "note": "import your copy instead of @regira/modules/vue/entities InputSelectorInline"
     },
     {
         "name": "Anchor",
@@ -186,7 +186,7 @@
         "files": [
             "DetailsSummary.vue"
         ],
-        "note": "import your copy instead of regira/vue/entities DetailsSummary (e.g. in the EntityDescriptor fiche/details route)"
+        "note": "import your copy instead of @regira/modules/vue/entities DetailsSummary (e.g. in the EntityDescriptor fiche/details route)"
     },
     {
         "name": "GMapButton",

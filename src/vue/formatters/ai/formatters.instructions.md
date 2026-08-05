@@ -1,6 +1,6 @@
 # Regira Formatters — AI Agent Instructions
 
-A flat set of locale-aware display helpers (`regira/vue/formatters`): dates, times, numbers,
+A flat set of locale-aware display helpers (`@regira/modules/vue/formatters`): dates, times, numbers,
 currency, percentage, plus a few string utilities (bank account, structured reference, initials,
 shortening). They format **values for display** — use them in Vue templates/computed props when rendering
 [entity](../../entities/ai/entities.instructions.md) fields; they never parse or fetch.
@@ -12,10 +12,10 @@ shortening). They format **values for display** — use them in Vue templates/co
 All helpers are named exports of the single specifier:
 
 ```ts
-import { formatDate, formatNumber, formatCurrency, formatPercentage } from "regira/vue/formatters"
+import { formatDate, formatNumber, formatCurrency, formatPercentage } from "@regira/modules/vue/formatters"
 ```
 
-There are no granular subpaths — everything lives under `regira/vue/formatters`.
+There are no granular subpaths — everything lives under `@regira/modules/vue/formatters`.
 
 ## Dates & times
 

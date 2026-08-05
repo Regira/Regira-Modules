@@ -8,7 +8,7 @@ Add it to `app` once in `main.ts`. The plugin seeds one reactive `isOnline` ref 
 `navigator.onLine` and keeps it live via the window `online`/`offline` events:
 
 ```ts
-import { plugin as isOnlinePlugin } from "regira/vue/online"
+import { plugin as isOnlinePlugin } from "@regira/modules/vue/online"
 
 app.use(isOnlinePlugin)
 ```
@@ -60,7 +60,7 @@ Use the composable when you just need a one-off seed of the current value (it re
 `navigator.onLine` but does not stay in sync — see the gotchas in the instructions):
 
 ```ts
-import { useOnlineChecker } from "regira/vue/online"
+import { useOnlineChecker } from "@regira/modules/vue/online"
 
 const { isOnline } = useOnlineChecker()
 if (!isOnline.value) {

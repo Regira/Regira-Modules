@@ -14,7 +14,7 @@ is the app's current culture, passed as the `culture` argument:
 </template>
 
 <script setup lang="ts">
-import { formatCurrency, formatDate } from "regira/vue/formatters"
+import { formatCurrency, formatDate } from "@regira/modules/vue/formatters"
 </script>
 ```
 
@@ -31,7 +31,7 @@ on hover:
 </template>
 
 <script setup lang="ts">
-import { formatDate, formatShortDate } from "regira/vue/formatters"
+import { formatDate, formatShortDate } from "@regira/modules/vue/formatters"
 </script>
 ```
 
@@ -40,7 +40,7 @@ import { formatDate, formatShortDate } from "regira/vue/formatters"
 `formatDateTime` takes a custom mask. With `"yyyyMMdd"` it yields a per-day version stamp for static asset URLs:
 
 ```ts
-import { formatDateTime } from "regira/vue/formatters"
+import { formatDateTime } from "@regira/modules/vue/formatters"
 
 const v = formatDateTime(new Date(), "yyyyMMdd")
 const config = await fetch(`${appConfig.baseUrl}/config.json?v=${v}`).then((r) => r.json())
@@ -51,7 +51,7 @@ const config = await fetch(`${appConfig.baseUrl}/config.json?v=${v}`).then((r) =
 `getInitials` takes the first letter of each word, uppercased — handy for avatar placeholders:
 
 ```ts
-import { getInitials } from "regira/vue/formatters"
+import { getInitials } from "@regira/modules/vue/formatters"
 
 getInitials("Ada Lovelace") // => "AL"
 ```

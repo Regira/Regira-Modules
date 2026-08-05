@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.directives",
-    "import": "regira/vue/directives",
+    "import": "@regira/modules/vue/directives",
     "description": "Vue directives: v-focus (autofocus), v-click-outside, and v-grow (auto-growing textarea).",
     "tags": ["frontend", "vue", "typescript", "directives", "regira_modules"]
 }

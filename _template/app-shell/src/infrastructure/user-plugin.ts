@@ -1,6 +1,6 @@
 import { type App, watch } from "vue"
-import { useAuthStore } from "regira/vue/auth"
-import { useLang } from "regira/vue/lang"
+import { useAuthStore } from "@regira/modules/vue/auth"
+import { useLang } from "@regira/modules/vue/lang"
 import Permissions from "@/infrastructure/permissions"
 
 // $isAdmin from the auth store + persists the chosen language (auth-only — omitted on --no-auth)

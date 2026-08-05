@@ -56,8 +56,8 @@ re-implement the behaviour in your own:
 
 ```bash
 # from your app root, with regira installed + the toolchain from entities.setup.md → Install:
-node node_modules/regira/_template/scaffold.mjs --shell            # auth-on app shell
-node node_modules/regira/_template/scaffold.mjs --shell --no-auth  # no-auth app shell
+node node_modules/@regira/modules/_template/scaffold.mjs --shell            # auth-on app shell
+node node_modules/@regira/modules/_template/scaffold.mjs --shell --no-auth  # no-auth app shell
 ```
 
 `--shell` writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`, `env.d.ts`) + `src/**` +
@@ -73,7 +73,7 @@ already exists** (pass `--force` to overwrite — e.g. to replace the `npm creat
 > build strips the inverse `@noauth:*` markers. Both variants build green. See
 > [entities.setup.md → Running without authentication](entities.setup.md#running-without-authentication).
 
-Every library import uses the **plain npm specifier** (`regira/…`); app-local imports use the `@ → src`
+Every library import uses the **plain npm specifier** (`@regira/modules/…`); app-local imports use the `@ → src`
 alias. Verify any API in [entities.signatures.md](entities.signatures.md) / [entities.namespaces.md](entities.namespaces.md).
 
 ---
@@ -207,22 +207,22 @@ declare const __APP_VERSION__: string
 import { createApp } from "vue"
 import { createPinia } from "pinia"
 import type { RouteRecordRaw } from "vue-router"
-import { initAxios } from "regira/vue/http"
-import { plugin as servicesPlugin, type IServiceProvider } from "regira/vue/ioc"
-import { plugin as appPlugin, AppStatus, whenAppReady } from "regira/vue/app"
-import { plugin as langPlugin } from "regira/vue/lang"
-import { useLang } from "regira/vue/lang" // used for document.title + (auth) setLangCode
-import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "regira/vue/ui"
-import { focus, grow, clickOutside } from "regira/vue/directives"
+import { initAxios } from "@regira/modules/vue/http"
+import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
+import { plugin as appPlugin, AppStatus, whenAppReady } from "@regira/modules/vue/app"
+import { plugin as langPlugin } from "@regira/modules/vue/lang"
+import { useLang } from "@regira/modules/vue/lang" // used for document.title + (auth) setLangCode
+import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "@regira/modules/vue/ui"
+import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
-import "regira/style.css"
+import "@regira/modules/style.css"
 import "@/assets/theme.scss" // the app theme — MUST come after bootstrap + regira styles so its overrides win
-import { plugin as authPlugin, LocalStorageTokenManager } from "regira/vue/auth" // @auth:only
+import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth" // @auth:only
 import { plugin as userPlugin } from "@/infrastructure/user-plugin" // @auth:only
-import { preloaderPlugin, defaultPoolCache, PoolCache } from "regira/vue/entities"
-import { plugin as debugPlugin } from "regira/vue/debug"
-import dateExtensions from "regira/extensions/date-extensions"
+import { preloaderPlugin, defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
+import { plugin as debugPlugin } from "@regira/modules/vue/debug"
+import dateExtensions from "@regira/modules/extensions/date-extensions"
 import entityPlugins from "@/entities"
 import { routerFactory } from "@/router"
 import appConfig, { createConfig } from "@/app-config"
@@ -294,7 +294,7 @@ almost nothing) plus the library's `--rg-*` tokens and `rg-*`/`is-*` class hooks
 customize guide for the full ladder.
 
 ```scss
-// App theme — loaded after bootstrap.min.css + regira/style.css, so everything here wins.
+// App theme — loaded after bootstrap.min.css + @regira/modules/style.css, so everything here wins.
 :root {
     // library tokens (see ui.customize.md for the full list)
     // --rg-accent: #0d6efd;
@@ -328,7 +328,7 @@ customize guide for the full ladder.
 }
 
 // `.entity-list` containment (zeroed .row gutter margins + min-width:0 on the cells, so text-truncate can
-// clip and the row never drags the page sideways) ships in regira/style.css — do NOT redeclare it.
+// clip and the row never drags the page sideways) ships in @regira/modules/style.css — do NOT redeclare it.
 // It sets no `overflow`, by design. Opt a single list into sideways scrolling with .entity-list--scroll-x.
 
 // The app-owned wrapper around FormButtonsRow. Deliberately NOT `.form-buttons` — that class is the
@@ -354,10 +354,10 @@ overflow into ~12px. Overflow comes from a row that cannot shrink; fix it in the
 ```vue
 <script setup lang="ts">
 import { computed, ref, watch } from "vue" // @auth:only
-import { Feedback, LoadingContainer } from "regira/vue/ui"
-import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "regira/vue/auth" // @auth:only
+import { Feedback, LoadingContainer } from "@regira/modules/vue/ui"
+import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "@regira/modules/vue/auth" // @auth:only
 import ForgotPasswordForm from "@/components/users/ForgotPasswordForm.vue" // @auth:only
-import { AppStatus } from "regira/vue/app"
+import { AppStatus } from "@regira/modules/vue/app"
 import TheHeader from "@/components/layout/TheHeader.vue"
 import TheFooter from "@/components/layout/TheFooter.vue"
 import Main from "@/components/layout/Main.vue"
@@ -584,7 +584,7 @@ export default {
 
 ```ts
 import { computed, getCurrentInstance } from "vue"
-import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "regira/vue/entities"
+import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
 import { useConfig } from "@/app-config"
 
 // reads config.json → navigation + the collected $configs, builds the dashboard/navbar trees
@@ -619,8 +619,8 @@ export { default as NavSearch } from "./NavSearch.vue"
 ```vue
 <script setup lang="ts">
 import type { RouteLocationRaw, LocationQueryRaw } from "vue-router"
-import { Icon } from "regira/vue/ui"
-import type { INavItem } from "regira/vue/entities"
+import { Icon } from "@regira/modules/vue/ui"
+import type { INavItem } from "@regira/modules/vue/entities"
 import { useNavigation } from "./functions"
 const { dashboardTree } = useNavigation()
 const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.initialQuery ?? {}) as LocationQueryRaw })
@@ -663,8 +663,8 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
 <script setup lang="ts">
 import { ref } from "vue"
 import type { RouteLocationRaw, LocationQueryRaw } from "vue-router"
-import { Icon } from "regira/vue/ui"
-import { isNavItem, type INavItem } from "regira/vue/entities"
+import { Icon } from "@regira/modules/vue/ui"
+import { isNavItem, type INavItem } from "@regira/modules/vue/entities"
 import { useNavigation } from "./functions"
 const { navbarTree } = useNavigation()
 const openId = ref<string>()
@@ -707,7 +707,7 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
 <script setup lang="ts">
 import { ref } from "vue"
 import { useRouter } from "vue-router"
-import { IconButton } from "regira/vue/ui"
+import { IconButton } from "@regira/modules/vue/ui"
 import { useNavigation } from "./functions"
 const router = useRouter()
 const q = ref("")
@@ -751,7 +751,7 @@ import { RouterView } from "vue-router"
 ```vue
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { useAuthStore, getAccountName } from "regira/vue/auth" // @auth:only
+import { useAuthStore, getAccountName } from "@regira/modules/vue/auth" // @auth:only
 import { useConfig } from "@/app-config"
 import { NavBar, NavSearch } from "@/components/entity-navigation"
 
@@ -815,8 +815,8 @@ reset half is `views/ResetPasswordView.vue` on the `/reset-password` route.
 ```vue
 <script setup lang="ts">
 import { useRouter } from "vue-router"
-import { useForgotPasswordForm, type ForgotPasswordFormProps, type ForgotPasswordFormEmits } from "regira/vue/auth"
-import { useLang } from "regira/vue/lang"
+import { useForgotPasswordForm, type ForgotPasswordFormProps, type ForgotPasswordFormEmits } from "@regira/modules/vue/auth"
+import { useLang } from "@regira/modules/vue/lang"
 import { useConfig } from "@/app-config"
 
 const emit = defineEmits<ForgotPasswordFormEmits>()
@@ -879,8 +879,8 @@ displayName link. Hosts `ChangePasswordForm` from the auth module.
 ```vue
 <script setup lang="ts">
 import { computed } from "vue"
-import { ChangePasswordForm, getAccountName } from "regira/vue/auth"
-import { FormSection } from "regira/vue/ui"
+import { ChangePasswordForm, getAccountName } from "@regira/modules/vue/auth"
+import { FormSection } from "@regira/modules/vue/ui"
 
 // resolved from $auth — the store the auth plugin was configured with, NOT necessarily the module's
 // default useAuthStore(); not every JWT carries a displayName claim, hence the $t fallback below
@@ -910,8 +910,8 @@ Anonymous by design — the visitor cannot sign in yet.
 <script setup lang="ts">
 import { computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ResetPasswordForm } from "regira/vue/auth"
-import { FormSection } from "regira/vue/ui"
+import { ResetPasswordForm } from "@regira/modules/vue/auth"
+import { FormSection } from "@regira/modules/vue/ui"
 
 const route = useRoute()
 const router = useRouter()
@@ -1013,8 +1013,8 @@ export default Permissions
 
 ```ts
 import { type App, watch } from "vue"
-import { useAuthStore } from "regira/vue/auth"
-import { useLang } from "regira/vue/lang"
+import { useAuthStore } from "@regira/modules/vue/auth"
+import { useLang } from "@regira/modules/vue/lang"
 import Permissions from "@/infrastructure/permissions"
 
 // $isAdmin from the auth store + persists the chosen language (auth-only — omitted on --no-auth)

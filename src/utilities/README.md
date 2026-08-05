@@ -1,6 +1,6 @@
 # Regira Utilities (front-end)
 
-`regira/utilities` — a framework-agnostic helper library exposed as twelve namespaced barrels
+`@regira/modules/utilities` — a framework-agnostic helper library exposed as twelve namespaced barrels
 (arrays, strings, files, dates, colors, DOM, HTTP/URLs, images, numbers, objects, promises, clipboard).
 No Vue dependency; used throughout the app and by the [entities client](../vue/entities/README.md).
 
@@ -22,7 +22,7 @@ No Vue dependency; used throughout the app and by the [entities client](../vue/e
 | `clipboardUtility` | The copy function itself — `clipboardUtility(text)` (clipboard API with `execCommand` fallback).              |
 
 `array-utility`, `file-utility`, `string-utility`, and `promise-utility` also have granular subpaths
-(e.g. `regira/utilities/array-utility`); the array/file/string subpaths' named exports include a few
+(e.g. `@regira/modules/utilities/array-utility`); the array/file/string subpaths' named exports include a few
 functions the barrel object omits (e.g. `browse`/`dropHandler`, `newPassword`) — see the reference.
 `object-utility` has no subpath, so its source-only named exports `deepCopy` and `removeEmpty` are
 internal: they are not reachable from the published package.

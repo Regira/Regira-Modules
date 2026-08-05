@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import type { FileDropZoneEmits, FileDropZoneSlots } from "regira/vue/ui"
+import type { FileDropZoneEmits, FileDropZoneSlots } from "@regira/modules/vue/ui"
 
 const emit = defineEmits<FileDropZoneEmits>()
 defineSlots<FileDropZoneSlots>()

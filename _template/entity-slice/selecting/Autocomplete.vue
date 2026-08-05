@@ -18,9 +18,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue"
-import { Autocomplete } from "regira/vue/ui"
-import { get } from "regira/vue/ioc"
-import type { IEntityService } from "regira/vue/entities"
+import { Autocomplete } from "@regira/modules/vue/ui"
+import { get } from "@regira/modules/vue/ioc"
+import type { IEntityService } from "@regira/modules/vue/entities"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
 

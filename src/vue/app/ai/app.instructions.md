@@ -1,6 +1,6 @@
 # Regira App — AI Agent Instructions
 
-The front-end app-lifecycle layer (`regira/vue/app`): a Pinia store tracking the app's
+The front-end app-lifecycle layer (`@regira/modules/vue/app`): a Pinia store tracking the app's
 `AppStatus` (`Init` → `Loading` → `Mounting` → `Ready`) and culture, a Vue plugin that exposes them as
 `$appStatus` / `$culture` / `$isReady` globals, and `onAppReady` / `whenAppReady` hooks for deferring
 work until the app is ready. The [entities client](../../entities/ai/entities.instructions.md) and
@@ -12,10 +12,10 @@ work until the app is ready. The [entities client](../../entities/ai/entities.in
 ## Import
 
 ```ts
-import { plugin, useAppStore, AppStatus, useCulture, onAppReady, whenAppReady } from "regira/vue/app"
+import { plugin, useAppStore, AppStatus, useCulture, onAppReady, whenAppReady } from "@regira/modules/vue/app"
 ```
 
-There is a single barrel export (`regira/vue/app`); there are no granular subpaths.
+There is a single barrel export (`@regira/modules/vue/app`); there are no granular subpaths.
 
 ## The plugin
 
@@ -25,7 +25,7 @@ defines the global properties on `app.config.globalProperties`:
 ```ts
 import { createApp } from "vue"
 import { createPinia } from "pinia"
-import { plugin } from "regira/vue/app"
+import { plugin } from "@regira/modules/vue/app"
 
 const app = createApp(Root)
 app.use(createPinia())

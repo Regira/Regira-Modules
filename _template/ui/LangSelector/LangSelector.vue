@@ -14,8 +14,8 @@
 </template>
 
 <script setup lang="ts">
-import { useLang } from "regira/vue/lang"
-import type { LangSelectorProps, LangSelectorEmits } from "regira/vue/lang"
+import { useLang } from "@regira/modules/vue/lang"
+import type { LangSelectorProps, LangSelectorEmits } from "@regira/modules/vue/lang"
 
 defineProps<LangSelectorProps>()
 const emit = defineEmits<LangSelectorEmits>()

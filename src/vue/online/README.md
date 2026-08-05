@@ -1,6 +1,6 @@
 # Regira Online (front-end)
 
-`regira/vue/online` — online/offline detection for the app: the `useOnlineChecker` composable
+`@regira/modules/vue/online` — online/offline detection for the app: the `useOnlineChecker` composable
 plus a Vue plugin that keeps one reactive `isOnline` ref in sync with the browser and exposes it
 app-wide as `$isOnline`. Use it to gate calls to the [HTTP layer](../http/README.md) and
 [entities client](../entities/README.md) when the network is down.

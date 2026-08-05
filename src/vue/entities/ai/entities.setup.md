@@ -1,6 +1,6 @@
 # Regira — Project setup & app shell
 
-How to stand up a new `regira` Vue 3 app (Vite + Pinia + vue-router) — install, project
+How to stand up a new `@regira/modules` Vue 3 app (Vite + Pinia + vue-router) — install, project
 structure, the **entity slice anatomy**, runtime config, the canonical `main.ts` / `App.vue`, the
 required-vs-optional plugin matrix, running without auth, and the app shell (components, infrastructure,
 styling) that surrounds your entity slices. This is the single app-scaffolding file — reference-grade,
@@ -31,16 +31,16 @@ builds `dist/`, and the `exports` map then makes the **plain package specifier r
 or tsconfig path**:
 
 ```jsonc
-// package.json — npm install regira resolves the latest published version and writes the caret range
-"dependencies": { "regira": "^…" /* latest — never pin a specific version by hand */ }
+// package.json — npm install @regira/modules resolves the latest published version and writes the caret range
+"dependencies": { "@regira/modules": "^…" /* latest — never pin a specific version by hand */ }
 ```
 
 > Installs from the npm registry with a prebuilt `dist/` — no `git` binary, no on-install build. (Only
-> when pinning an unreleased commit use `"regira": "github:Regira/Regira-Modules"`, which needs `git`
+> when pinning an unreleased commit use `"@regira/modules": "github:Regira/Regira-Modules"`, which needs `git`
 > on `PATH` and runs the full `prepare` build on install.)
 
 ```ts
-import { EntityBase, EntityServiceBase } from "regira/vue/entities"
+import { EntityBase, EntityServiceBase } from "@regira/modules/vue/entities"
 ```
 
 Peer deps: `vue`, `vue-router`, `pinia`, `axios`, `date-fns`.
@@ -59,7 +59,7 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 ```jsonc
 // package.json — known-good set (runtime peers + the build toolchain they require)
 "dependencies": {
-  "regira": "*", // always the latest published version — npm install pins the caret range
+  "@regira/modules": "*", // always the latest published version — npm install pins the caret range
   "vue": "^3.5", "vue-router": "^5", "pinia": "^3",
   "axios": "^1", "date-fns": "^4",
   "bootstrap": "^5.3", "bootstrap-icons": "^1.13"
@@ -71,14 +71,14 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 }
 ```
 
-> **The toolchain moves as a set — don't mix majors.** `regira` declares `vue-router@^5`; adding
+> **The toolchain moves as a set — don't mix majors.** `@regira/modules` declares `vue-router@^5`; adding
 > `vue-router@4` (a common older default) fails `npm install` with `ERESOLVE`, and each individual fix just
 > pulls in the next major (`vue-router 5` → `vite 8` → `typescript 6` / `vue-tsc 3`). The block above is
 > that cascade already resolved. Optional extras that pair with it: `vitest 4`, `prettier 3`.
 
 ### Import specifiers
 
-> Library code imports from `regira/...` (`regira/vue/http`, …); `@/...` is your own
+> Library code imports from `@regira/modules/...` (`@regira/modules/vue/http`, …); `@/...` is your own
 > app alias for `src/`. Full specifier list: [entities.namespaces.md](entities.namespaces.md).
 
 > **Optional — only if you vendor `dist/` yourself.** Vendoring lets you alias the package, so imports
@@ -87,13 +87,13 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 >
 > ```ts
 > // vite.config.ts → resolve.alias
-> { find: "@/regira", replacement: fileURLToPath(new URL("./node_modules/regira/dist", import.meta.url)) },
+> { find: "@/regira", replacement: fileURLToPath(new URL("./node_modules/@regira/modules/dist", import.meta.url)) },
 > { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
 > ```
 >
 > ```jsonc
 > // tsconfig.app.json → compilerOptions.paths
-> "@/regira/*": ["./node_modules/regira/dist/*"],
+> "@/regira/*": ["./node_modules/@regira/modules/dist/*"],
 > "@/*": ["./src/*"]
 > ```
 
@@ -197,7 +197,7 @@ Create each service once over the shared axios:
 
 ```ts
 // src/services.ts
-import { initAxios } from "regira/vue/http"
+import { initAxios } from "@regira/modules/vue/http"
 import ProductService from "@/entities/products/data/EntityService"
 import productConfig from "@/entities/products/config/config"
 
@@ -208,7 +208,7 @@ export const products = new ProductService(axios, productConfig)
 ```vue
 <!-- src/views/Products.vue -->
 <script setup lang="ts">
-import { EntityOverview } from "regira/vue/entities"
+import { EntityOverview } from "@regira/modules/vue/entities"
 import { products } from "@/services"
 </script>
 
@@ -244,8 +244,8 @@ keep importing the kit à la carte: see
 Also opt-in only. For a bespoke UI that just needs typed access to the API — no plugins, no shell:
 
 ```ts
-import { initAxios } from "regira/vue/http"
-import { EntityBase, EntityServiceBase, type IConfig } from "regira/vue/entities"
+import { initAxios } from "@regira/modules/vue/http"
+import { EntityBase, EntityServiceBase, type IConfig } from "@regira/modules/vue/entities"
 
 class Product extends EntityBase {
     id = 0
@@ -289,9 +289,9 @@ hand-rolling a pager, spinner, feedback banner, or currency string:
 <!-- src/views/Products.vue — a bespoke view that still reuses the kit -->
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { Paging, ResultSummary, LoadingContainer, Feedback, useFeedback } from "regira/vue/ui"
-import { PagingInfo } from "regira/vue/entities"
-import { formatCurrency } from "regira/vue/formatters"
+import { Paging, ResultSummary, LoadingContainer, Feedback, useFeedback } from "@regira/modules/vue/ui"
+import { PagingInfo } from "@regira/modules/vue/entities"
+import { formatCurrency } from "@regira/modules/vue/formatters"
 import { products, Product } from "@/services" // the headless data layer above
 
 const items = ref<Product[]>([])
@@ -328,9 +328,9 @@ onMounted(search)
 ```
 
 Same rule for the rest of the kit: pick-one modals (`DefaultModal` from `vue/ui/modal` +
-`regira/style.css`), server-searchable pickers (`Autocomplete`), tabs (`TabContainer` +
+`@regira/modules/style.css`), server-searchable pickers (`Autocomplete`), tabs (`TabContainer` +
 `Tab.create`), confirm buttons (`ConfirmButton`), dates/numbers (`vue/formatters`), and hierarchies
-(`TreeList` from `regira/treelist`) all work standalone. Hand-rolling one of these on a lean or
+(`TreeList` from `@regira/modules/treelist`) all work standalone. Hand-rolling one of these on a lean or
 headless build is a deviation to declare, not a shortcut.
 
 ## Project structure
@@ -678,20 +678,20 @@ Fetch config first, create the shared axios, then install plugins in this order.
 import { createApp } from "vue"
 import { createPinia } from "pinia"
 import type { RouteRecordRaw } from "vue-router"
-import { initAxios } from "regira/vue/http"
-import { plugin as servicesPlugin, type IServiceProvider } from "regira/vue/ioc"
-import { plugin as appPlugin, AppStatus, whenAppReady } from "regira/vue/app"
-import { plugin as langPlugin, useLang } from "regira/vue/lang"
-import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "regira/vue/ui"
-import { focus, grow, clickOutside } from "regira/vue/directives"
+import { initAxios } from "@regira/modules/vue/http"
+import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
+import { plugin as appPlugin, AppStatus, whenAppReady } from "@regira/modules/vue/app"
+import { plugin as langPlugin, useLang } from "@regira/modules/vue/lang"
+import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "@regira/modules/vue/ui"
+import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
-import "regira/style.css" // library component styles (modal backdrop, autocomplete dropdown) + --rg-* theme tokens
+import "@regira/modules/style.css" // library component styles (modal backdrop, autocomplete dropdown) + --rg-* theme tokens
 import "@/assets/theme.scss" // the app theme — after bootstrap + regira styles so its overrides win
-import { plugin as authPlugin, LocalStorageTokenManager } from "regira/vue/auth"
-import { preloaderPlugin, defaultPoolCache, PoolCache } from "regira/vue/entities"
-import { plugin as debugPlugin } from "regira/vue/debug"
-import dateExtensions from "regira/extensions/date-extensions"
+import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth"
+import { preloaderPlugin, defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
+import { plugin as debugPlugin } from "@regira/modules/vue/debug"
+import dateExtensions from "@regira/modules/extensions/date-extensions"
 import entityPlugins from "@/entities"
 import { routerFactory } from "@/router"
 import App from "@/App.vue"
@@ -770,9 +770,9 @@ fetch("/config.json")
 
 The full app shell adds two things on top of that canonical file, right after the UI plugins (and the
 last one after `authPlugin`). Components (`FormSection`, `DescriptionInput`, `Icon`, …) are **not**
-registered globally by default — every view imports what it uses from `regira/vue/ui`. (To opt
+registered globally by default — every view imports what it uses from `@regira/modules/vue/ui`. (To opt
 into app-wide registration for the plugin components, call
-`configureGlobals({ registerComponentsGlobally: true })` from `regira/vue/ioc` before the
+`configureGlobals({ registerComponentsGlobally: true })` from `@regira/modules/vue/ioc` before the
 `app.use(...)` calls.)
 
 ```ts
@@ -794,10 +794,10 @@ app.use(userPlugin)
 <script setup lang="ts">
 import { computed, ref, watch } from "vue"
 import { RouterView } from "vue-router"
-import { Feedback, LoadingContainer } from "regira/vue/ui"
-import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "regira/vue/auth"
+import { Feedback, LoadingContainer } from "@regira/modules/vue/ui"
+import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "@regira/modules/vue/auth"
 import ForgotPasswordForm from "@/components/users/ForgotPasswordForm.vue"
-import { AppStatus } from "regira/vue/app"
+import { AppStatus } from "@regira/modules/vue/app"
 
 const authStore = useAuthStore()
 const showLogin = computed(() => authStore.isRequired && !authStore.isAuthenticated)
@@ -841,10 +841,10 @@ The full template wraps the same gates in Header / Main / Footer chrome and tele
 ```vue
 <script setup lang="ts">
 import { computed, ref, watch } from "vue"
-import { Feedback, LoadingContainer } from "regira/vue/ui"
-import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "regira/vue/auth"
+import { Feedback, LoadingContainer } from "@regira/modules/vue/ui"
+import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "@regira/modules/vue/auth"
 import ForgotPasswordForm from "@/components/users/ForgotPasswordForm.vue"
-import { AppStatus } from "regira/vue/app"
+import { AppStatus } from "@regira/modules/vue/app"
 import TheHeader from "@/components/layout/TheHeader.vue"
 import TheFooter from "@/components/layout/TheFooter.vue"
 import Main from "@/components/layout/Main.vue"
@@ -950,7 +950,7 @@ still matters where dependencies exist (see [Bootstrap — main.ts](#bootstrap--
 > renders blank. (`source: "fa"` → Font Awesome the same way.)
 
 > **No global component registration.** Library components and the scaffolded views import everything they
-> use (`Icon`, `IconButton`, `DefaultModal`, form inputs, …) locally from `regira/vue/ui`. `iconPlugin`
+> use (`Icon`, `IconButton`, `DefaultModal`, form inputs, …) locally from `@regira/modules/vue/ui`. `iconPlugin`
 > only selects the glyph source (`bs`/`fa`) and seeds friendly icon keys; `Icon` falls back to Bootstrap
 > glyphs when it is not installed.
 
@@ -990,8 +990,8 @@ disabled), make these four changes:
     ```vue
     <script setup lang="ts">
     import { RouterView } from "vue-router"
-    import { Feedback, LoadingContainer } from "regira/vue/ui"
-    import { AppStatus } from "regira/vue/app"
+    import { Feedback, LoadingContainer } from "@regira/modules/vue/ui"
+    import { AppStatus } from "@regira/modules/vue/app"
     </script>
 
     <template>
@@ -1004,7 +1004,7 @@ disabled), make these four changes:
 
 4. **Entity slices — scaffold with `--no-auth`.** The boilerplate `overview/Overview.vue` and
    `details/Details.vue` carry `authStore.$onAction` reload-on-login hooks.
-   `node node_modules/regira/_template/scaffold.mjs <Entity> --no-auth` strips them (imports
+   `node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --no-auth` strips them (imports
    included, plus `load` from `Details.vue`'s `useDetails` destructure — used only by that hook); for an
    already-scaffolded slice, delete the marked lines in those two files and drop `load` from that
    destructure. If the app enables auth later, re-add the hooks (and `load`) per
@@ -1034,8 +1034,8 @@ enabled). **Scaffold the load-bearing baseline** — the toolchain (`index.html`
 `TheFooter` / `Main`), error views, and infrastructure — in one command, then customize:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs --shell            # auth-on
-node node_modules/regira/_template/scaffold.mjs --shell --no-auth  # no-auth
+node node_modules/@regira/modules/_template/scaffold.mjs --shell            # auth-on
+node node_modules/@regira/modules/_template/scaffold.mjs --shell --no-auth  # no-auth
 ```
 
 Full source for every generated file is in [entities.shell.template.md](entities.shell.template.md); the
@@ -1104,7 +1104,7 @@ the library importers:
 ```ts
 // src/components/entity-navigation/functions.ts
 import { computed, getCurrentInstance } from "vue"
-import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "regira/vue/entities"
+import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
 import { useConfig } from "@/app-config"
 
 export function useNavigation() {
@@ -1153,8 +1153,8 @@ export default Permissions
 ```ts
 // src/infrastructure/user-plugin.ts
 import { type App, watch } from "vue"
-import { useAuthStore } from "regira/vue/auth"
-import { useLang } from "regira/vue/lang"
+import { useAuthStore } from "@regira/modules/vue/auth"
+import { useLang } from "@regira/modules/vue/lang"
 import Permissions from "@/infrastructure/permissions"
 
 export const plugin = {
@@ -1223,7 +1223,7 @@ add two more: `AccountView` (the signed-in user's account page, hosting `ChangeP
 
 ### Styling — Bootstrap 5
 
-The `regira/vue/ui` components use **Bootstrap 5** class names and emit `bi bi-*` icon classes.
+The `@regira/modules/vue/ui` components use **Bootstrap 5** class names and emit `bi bi-*` icon classes.
 Both packages are in the known-good dependency set ([Install](#install)), and the scaffolded `main.ts`
 imports their stylesheets — keep them above your own SCSS:
 
@@ -1235,7 +1235,7 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 
 You don't need Bootstrap's JavaScript (the UI components bring their own behaviour). **Theming belongs
 in the app's `src/assets/theme.scss`** (scaffolded by the shell), imported after Bootstrap and
-`regira/style.css` — never in forked library css.
+`@regira/modules/style.css` — never in forked library css.
 
 **Restyling is encouraged** — the library defaults are deliberately plain; the ui module's
 customize guide (`ui.customize`) is the canonical 5-layer ladder (tokens → css hooks → slots →

@@ -3,7 +3,7 @@
      Removal marks `_deleted` (undoable until save); the parent's EntityService.prepareItem drops flagged
      rows so `Related()` deletes them by omission. New rows mint negative temp ids and insert with save(). -->
 <script setup lang="ts">
-import { useOwnedCollection } from "regira/vue/entities"
+import { useOwnedCollection } from "@regira/modules/vue/entities"
 import __Child__ from "./Entity"
 
 const props = defineProps<{ modelValue?: Array<__Child__>; readonly?: boolean }>()

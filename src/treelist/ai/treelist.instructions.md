@@ -1,6 +1,6 @@
 # Regira TreeList — AI Agent Instructions
 
-A generic, framework-agnostic hierarchical data structure (`regira/treelist`): a `TreeList<T>`
+A generic, framework-agnostic hierarchical data structure (`@regira/modules/treelist`): a `TreeList<T>`
 holding `TreeNode<T>` items, with helpers to navigate ancestors, offspring and roots. It is plain
 TypeScript (no Vue, no axios). The [entities tree](../../vue/entities/ai/entities.instructions.md)
 composable and `buildNavigationTree` are both built on it.
@@ -10,7 +10,7 @@ composable and `buildNavigationTree` are both built on it.
 ## Import
 
 ```ts
-import { TreeList, TreeNode, type IFindParents } from "regira/treelist"
+import { TreeList, TreeNode, type IFindParents } from "@regira/modules/treelist"
 ```
 
 `TreeList` is also the default export. There are no granular subpaths — everything is re-exported from

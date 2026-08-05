@@ -8,7 +8,7 @@ Install after vue-router (the `$isDebug` getter reads the current route). Pass `
 loaded config:
 
 ```ts
-import { plugin as debugPlugin } from "regira/vue/debug"
+import { plugin as debugPlugin } from "@regira/modules/vue/debug"
 
 app.use(debugPlugin, { isDebug: config.isDebug }) // isDebug defaults to false
 ```
@@ -22,7 +22,7 @@ renders nothing unless `$isDebug` is true):
 
 ```vue
 <script setup lang="ts">
-import { Debug } from "regira/vue/debug"
+import { Debug } from "@regira/modules/vue/debug"
 </script>
 <template>
     <section>
@@ -65,7 +65,7 @@ Use the `$isDebug` getter to show extra markup, and `$setDebug(false)` to switch
 
 ```vue
 <script setup lang="ts">
-import { IconButton } from "regira/vue/ui"
+import { IconButton } from "@regira/modules/vue/ui"
 </script>
 <template>
     <div v-if="$isDebug" class="debug">

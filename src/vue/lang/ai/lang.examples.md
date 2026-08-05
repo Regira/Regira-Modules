@@ -8,7 +8,7 @@ Call once on `app`. `messages` is a dictionary or an async loader; `defaultLang`
 initial and the fallback language:
 
 ```ts
-import { plugin as langPlugin, useLang } from "regira/vue/lang"
+import { plugin as langPlugin, useLang } from "@regira/modules/vue/lang"
 
 // messages can be a loaded dictionary…
 const translations = await fetch(`${baseUrl}/data/translations.json`).then((r) => r.json())
@@ -36,7 +36,7 @@ entity field):
 `useLang()` returns the shared singleton state — switch language anywhere:
 
 ```ts
-import { useLang } from "regira/vue/lang"
+import { useLang } from "@regira/modules/vue/lang"
 
 const { langCode, translate, translateMessage, setLangCode } = useLang()
 setLangCode("nl") // ignores empty values
@@ -51,7 +51,7 @@ A language selector binds straight to `langCode` / `setLangCode`:
     <li :class="{ 'fw-bold': langCode == 'nl' }" @click="setLangCode('nl')">NL</li>
 </template>
 <script setup lang="ts">
-import { useLang } from "regira/vue/lang"
+import { useLang } from "@regira/modules/vue/lang"
 const { langCode, setLangCode } = useLang()
 </script>
 ```

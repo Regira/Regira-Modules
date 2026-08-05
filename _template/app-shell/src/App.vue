@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue" // @auth:only
-import { Feedback, LoadingContainer } from "regira/vue/ui"
-import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "regira/vue/auth" // @auth:only
+import { Feedback, LoadingContainer } from "@regira/modules/vue/ui"
+import { LoginModal, LoginForm, ForgotPasswordModal, useAuthStore } from "@regira/modules/vue/auth" // @auth:only
 import ForgotPasswordForm from "@/components/users/ForgotPasswordForm.vue" // @auth:only
-import { AppStatus } from "regira/vue/app"
+import { AppStatus } from "@regira/modules/vue/app"
 import TheHeader from "@/components/layout/TheHeader.vue"
 import TheFooter from "@/components/layout/TheFooter.vue"
 import Main from "@/components/layout/Main.vue"

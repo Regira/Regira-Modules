@@ -31,9 +31,9 @@
 
 <script setup lang="ts">
 import { RouterLink } from "vue-router"
-import { ModalType, ConfirmButton, Icon } from "regira/vue/ui"
-import { formatDate } from "regira/vue/formatters"
-import type { SaveResult } from "regira/vue/entities"
+import { ModalType, ConfirmButton, Icon } from "@regira/modules/vue/ui"
+import { formatDate } from "@regira/modules/vue/formatters"
+import type { SaveResult } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import FormModalButton from "../details/FormModalButton.vue"

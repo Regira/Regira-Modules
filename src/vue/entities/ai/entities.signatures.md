@@ -1,9 +1,9 @@
 # Regira Entities — API Signatures Reference
 
-Verbatim TypeScript signatures for the front-end CRUD client (`regira/vue/entities`).
+Verbatim TypeScript signatures for the front-end CRUD client (`@regira/modules/vue/entities`).
 
 > **AI rule:** Do not guess a signature, generic parameter, or option name — look it up here first.
-> Every block shows the `import` specifier above it. The barrel `regira/vue/entities`
+> Every block shows the `import` specifier above it. The barrel `@regira/modules/vue/entities`
 > re-exports everything below; the deeper specifiers (`/abstractions`, `/details`, `/form`) are
 > also published for granular imports. Full specifier list:
 > [entities.namespaces.md](entities.namespaces.md).
@@ -27,7 +27,7 @@ Verbatim TypeScript signatures for the front-end CRUD client (`regira/vue/entiti
 ## 1. Entity contracts
 
 ```ts
-import { type IEntity, isNewEntity } from "regira/vue/entities"
+import { type IEntity, isNewEntity } from "@regira/modules/vue/entities"
 export interface IEntity {
     get $id(): number | string // uniform identifier
     get $title(): string | undefined // uniform label used for display
@@ -37,7 +37,7 @@ export function isNewEntity(id: number | string | null | undefined): boolean
 ```
 
 ```ts
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 export abstract class EntityBase implements IEntity {
     constructor()
     abstract get $id(): string | number
@@ -51,7 +51,7 @@ export abstract class EntityBase implements IEntity {
 ## 2. Service contracts
 
 ```ts
-import type { IEntityService } from "regira/vue/entities"
+import type { IEntityService } from "@regira/modules/vue/entities"
 export interface IEntityService<T extends IEntity = IEntity> {
     details(id: number | string, so?: ISearchObject): Promise<T | undefined> // `{ archived: ArchivedFilter.included }` resolves an archived row
     list(so?: object): Promise<Array<T>>
@@ -64,7 +64,7 @@ export interface IEntityService<T extends IEntity = IEntity> {
 }
 ```
 
-Result envelope types (`import type { ... } from "regira/vue/entities"`):
+Result envelope types (`import type { ... } from "@regira/modules/vue/entities"`):
 
 ```ts
 export type DetailsResult<T> = { item: T; duration?: number }
@@ -79,7 +79,7 @@ export type DeleteResult<T> = { item: T; affected?: number; duration?: number }
 > `save()`/`insert()`/`update()` repackage it into `SaveResult`. Bind overview/form results to `saved`.
 
 ```ts
-import { EntityServiceBase } from "regira/vue/entities"
+import { EntityServiceBase } from "@regira/modules/vue/entities"
 export abstract class EntityServiceBase<T extends IEntity> implements IEntityService<T>, HasDefaultPageSize {
     protected axios: AxiosInstance
     protected config: IConfig
@@ -118,7 +118,7 @@ override toEntity(item: object): Entity {
 ```
 
 ```ts
-import { JSONService } from "regira/vue/entities"
+import { JSONService } from "@regira/modules/vue/entities"
 // In-memory variant: fetches the full list once, then runs all CRUD client-side over a shared cache keyed by `key`.
 export abstract class JSONService<T extends IEntity> extends EntityServiceBase<T> {
     protected key: string
@@ -141,7 +141,7 @@ export abstract class JSONService<T extends IEntity> extends EntityServiceBase<T
 ## 3. Search, paging, sort
 
 ```ts
-import { SearchObjectBase, DefaultSearchObject, ArchivedFilter } from "regira/vue/entities"
+import { SearchObjectBase, DefaultSearchObject, ArchivedFilter } from "@regira/modules/vue/entities"
 export interface ISearchObject extends Record<string, any> {
     q?: string // free-text search
     archived?: ArchivedFilter // omitted when unset → the server hides archived rows
@@ -178,7 +178,7 @@ export class DefaultSearchObject extends SearchObjectBase {}
 > `pagingInfo` ref, **not** for `search()` — there is no nested `{ paging: … }` shape.
 
 ```ts
-import { PagingInfo, DEFAULT_PAGESIZE } from "regira/vue/entities"
+import { PagingInfo, DEFAULT_PAGESIZE } from "@regira/modules/vue/entities"
 export const DEFAULT_PAGESIZE = 10
 export interface IPagingInfo {
     pageSize?: number
@@ -192,7 +192,7 @@ export class PagingInfo implements IPagingInfo {
 ```
 
 ```ts
-import { SortByInfo } from "regira/vue/entities"
+import { SortByInfo } from "@regira/modules/vue/entities"
 export interface ISortByInfo {
     sortBy: string | Array<string>
 }
@@ -206,8 +206,8 @@ export class SortByInfo implements ISortByInfo {
 ## 4. Config & descriptor
 
 ```ts
-import type { IConfig } from "regira/vue/entities"
-import { NavTypes } from "regira/vue/entities"
+import type { IConfig } from "@regira/modules/vue/entities"
+import { NavTypes } from "@regira/modules/vue/entities"
 export interface IConfig extends Record<string, any> {
     name?: string
     key: string // drives route names: `${key}Overview`, `${key}Details`, `${key}Fiche`, `${key}Form`
@@ -241,7 +241,7 @@ link's route query. It is therefore **lost on refresh and on a deep link** — a
 request (`sortBy`, `includes`, a mandatory filter) belongs in `baseQueryParams`.
 
 ```ts
-import { EntityDescriptor } from "regira/vue/entities"
+import { EntityDescriptor } from "@regira/modules/vue/entities"
 type IEntityControls = { Overview?: any; Details?: any; Form?: any; Fiche?: any }
 export interface IEntityDescriptor<T extends IEntity = IEntity> extends IEntityControls {
     Entity: { name: string; new (): T }
@@ -268,7 +268,7 @@ export class EntityDescriptor<T extends IEntity = IEntity> {
 ## 5. Overview composables
 
 ```ts
-import { useSearchView, useListView, useOverviewCore, useRouteOverview } from "regira/vue/entities"
+import { useSearchView, useListView, useOverviewCore, useRouteOverview } from "@regira/modules/vue/entities"
 export const DEFAULT_DEBOUNCE = 250 // internal — NOT re-exported from the barrel
 
 export type OverviewCoreIn<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
@@ -366,7 +366,7 @@ export interface OverviewEmits<T> {
 ## 6. Details, form, filter composables
 
 ```ts
-import { useDetails } from "regira/vue/entities"
+import { useDetails } from "@regira/modules/vue/entities"
 export function useDetails<T extends IEntity>(entityService: IEntityService<T>, feedback?: FeedbackOut): DetailsOut<T>
 export type DetailsOut<T> = {
     item: Ref<T | undefined> // undefined until the onMounted load resolves — guard with v-if="item"
@@ -386,7 +386,7 @@ export type DetailsOut<T> = {
 > in the form with its Restore button instead of 404-ing. Row security is unaffected.
 
 ```ts
-import { useForm, formDefaults, FormStates } from "regira/vue/entities"
+import { useForm, formDefaults, FormStates } from "@regira/modules/vue/entities"
 export interface FormProps<T> {
     modelValue: T
     readonly?: boolean
@@ -424,7 +424,7 @@ export interface FormOut<T> {
 > pass the item to the form's `handleRemove` — it's a common type error.
 
 ```ts
-import { useModal, formModalDefaults } from "regira/vue/entities"
+import { useModal, formModalDefaults } from "@regira/modules/vue/entities"
 export interface FormModalProps<T> extends FormProps<T> {
     title?: string
     fullWidth?: boolean
@@ -459,7 +459,7 @@ declare function useModalForm<T extends IEntity>({
 ```
 
 ```ts
-import { useFilter } from "regira/vue/entities"
+import { useFilter } from "@regira/modules/vue/entities"
 export interface FilterIn<SO> {
     searchObject: Ref<SO>
     emit: FilterEmits<SO>
@@ -490,10 +490,10 @@ previous search while the control displays the new value. Do **not** substitute 
 object — that refetches on every keystroke.
 
 **Feedback** — the overview / details / form composables each return `feedback: FeedbackOut`
-(from `regira/vue/ui`). Its surface (use these method names — they are not auto-completed elsewhere):
+(from `@regira/modules/vue/ui`). Its surface (use these method names — they are not auto-completed elsewhere):
 
 ```ts
-import type { FeedbackOut } from "regira/vue/ui"
+import type { FeedbackOut } from "@regira/modules/vue/ui"
 export interface FeedbackOut {
     status: Ref<FeedbackStatus> // "" | "Pending" | "Success" | "Failed"
     message: Ref<string>
@@ -506,7 +506,7 @@ export interface FeedbackOut {
 }
 ```
 
-Owned child collections (`import { ... } from "regira/vue/entities"`):
+Owned child collections (`import { ... } from "@regira/modules/vue/entities"`):
 
 ⚠️ The `T extends IEntity & { id: number }` constraint means an **owned child model must still extend
 `EntityBase`** (`$id` / `$title`) even though it has no service, no config and no store of its own.
@@ -560,7 +560,7 @@ UX the `useOwned*` composables and the multi-`Selector` can't deliver (recipe:
 [entities.patterns.md → owned-m2m](entities.patterns.md#the-owned-m2m-recipe--inputselectorinline)):
 
 ```ts
-import { InputSelectorInline } from "regira/vue/entities"
+import { InputSelectorInline } from "@regira/modules/vue/entities"
 
 // InputSelectorInline — inline chip editor for an owned/join collection edited inside the parent form.
 //   Generic over the row type: <T extends { _deleted?: boolean; id?: number | string | null }>.
@@ -604,7 +604,7 @@ import { InputSelector } from "../../<slice>"
 ## 7. Pooling (entity cache)
 
 ```ts
-import { createStore, usePooling, defaultPoolCache, PoolCache, PoolService } from "regira/vue/entities"
+import { createStore, usePooling, defaultPoolCache, PoolCache, PoolService } from "@regira/modules/vue/entities"
 export function createStore<T extends IEntity>(service: IEntityService<T>, type: string): IPoolHandler<T>
 export function usePooling<T extends IEntity>(service: IEntityService<T>, type: string, cache?: IPoolCache, persistent?: boolean): IPoolHandler<T>
 export const defaultPoolCache: PoolCache
@@ -652,7 +652,7 @@ import {
     importDashboard,
     importNavbar,
     isNavItem,
-} from "regira/vue/entities"
+} from "@regira/modules/vue/entities"
 export interface INavCore {
     id: string
     parentId?: string
@@ -694,7 +694,7 @@ export function isNavItem(item: INavCore): item is NavItem
 ## 9. Tree, preloading, utilities
 
 ```ts
-import { useTree, useDragDrop } from "regira/vue/entities"
+import { useTree, useDragDrop } from "@regira/modules/vue/entities"
 export function useTree<T extends { $id: number | string }>(
     options?: TreeIn<T>
 ): {
@@ -709,13 +709,13 @@ export function useDragDrop<T = any>({ emit }: { emit: any }): DragDropEngine
 ```
 
 ```ts
-import { usePreloader, preloaderPlugin } from "regira/vue/entities"
+import { usePreloader, preloaderPlugin } from "@regira/modules/vue/entities"
 export function usePreloader(): { preload: typeof preload; ready: typeof ready }
 export const plugin: { install(_: App): void; preload: typeof preload; ready: typeof ready } // exported as preloaderPlugin
 ```
 
 ```ts
-import { cleanQueryParams, parseQueryParams } from "regira/vue/entities"
+import { cleanQueryParams, parseQueryParams } from "@regira/modules/vue/entities"
 export function cleanQueryParams(queryParams: Record<string, unknown>, _defaultPageSize?: number): Record<string, unknown>
 export function parseQueryParams(queryParams: Record<string, unknown>): { searchObject: Record<string, unknown>; pagingInfo: IPagingInfo } // → { searchObject, pagingInfo }
 ```
@@ -728,7 +728,7 @@ The entities layer never creates its own HTTP client; it is injected. These are 
 and HTTP entry points used at app startup (live in sibling modules).
 
 ```ts
-import { ServiceProvider, get, type IServiceProvider } from "regira/vue/ioc"
+import { ServiceProvider, get, type IServiceProvider } from "@regira/modules/vue/ioc"
 export interface IServiceProvider {
     get<T = any>(key: any): T | undefined
     add<T = any>(key: any, factory: (sp: IServiceProvider) => T): IServiceProvider
@@ -740,8 +740,8 @@ export function get<T>(key: any): T | undefined // resolves from the default Ser
 ```
 
 ```ts
-import { initAxios, useAxios, type AxiosWithFilesInstance } from "regira/vue/http"
-import { createQueryString } from "regira/vue/http"
+import { initAxios, useAxios, type AxiosWithFilesInstance } from "@regira/modules/vue/http"
+import { createQueryString } from "@regira/modules/vue/http"
 export interface AxiosWithFilesInstance extends AxiosInstance {
     getFile(url: string, method?: string, filename?: string, type?: string): Promise<Blob>
     upload(url: string, files: Array<Blob>, options?: UploadOptions): Promise<AxiosResponse>
@@ -761,7 +761,7 @@ Generic, service-driven components for the lean tier (see
 they run without plugins, stores, or routes.
 
 ```ts
-import { EntityOverview, EntityForm, useLeanOverview, useLeanForm, leanOverviewDefaults } from "regira/vue/entities"
+import { EntityOverview, EntityForm, useLeanOverview, useLeanForm, leanOverviewDefaults } from "@regira/modules/vue/entities"
 
 // EntityOverview — list + built-in server paging + delete
 //   props:   LeanOverviewProps<T> = { service: IEntityService<T>; query?: Record<string, unknown>; pageSize?: number }   // pageSize default 10

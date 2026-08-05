@@ -33,14 +33,14 @@ plugins required); dates/currency come from `vue/formatters`, hierarchies from `
 
 **Full scaffold** = the complete plugin stack, the per-entity slice
 (`config`/`data`/`filter`/`overview`/`details`/`selecting`/`setup`), the app shell (dashboard + navbar),
-the preloader, and the `app-config.ts` runtime config. Use the **full** features of `regira`, not a
+the preloader, and the `app-config.ts` runtime config. Use the **full** features of `@regira/modules`, not a
 hand-rolled subset — the scaffold type-checks green out of the box and ships the server-searchable relation
 pickers, pooling, and preloader a hand-rolled tier would only have to rebuild. Scaffold each entity by
 copying the shipped slice template rather than re-writing ~23 files:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs --shell    # → app shell once: main.ts, App.vue, router, dashboard/navbar, layout, views (--no-auth variant)
-node node_modules/regira/_template/scaffold.mjs Product     # → src/entities/products/  (--no-auth for a no-auth app)
+node node_modules/@regira/modules/_template/scaffold.mjs --shell    # → app shell once: main.ts, App.vue, router, dashboard/navbar, layout, views (--no-auth variant)
+node node_modules/@regira/modules/_template/scaffold.mjs Product     # → src/entities/products/  (--no-auth for a no-auth app)
 ```
 
 The app shell — the config-driven **dashboard + navbar** (`entity-navigation/` + `layout/`) — is
@@ -78,7 +78,7 @@ comma-separated) and `get_example(pattern=…)` over whole-section reads. When y
 never a verbatim dump of every file (that alone can cost 100k+ tokens for little gain).
 
 **Checking one signature: use `get_type`.** `get_type("regira_modules.vue.ui", "useFeedback")` returns the
-declaration in a single call. Reach for the installed `dist/**/*.d.ts` (in `node_modules/regira`) when you want to _browse_ a module's
+declaration in a single call. Reach for the installed `dist/**/*.d.ts` (in `node_modules/@regira/modules`) when you want to _browse_ a module's
 surface — locating the right file first costs several shell round-trips, which is enough friction that
 guessing starts to look cheaper than verifying. It never is: `useFeedback`, `useOwnedCollection` and
 `useDetails` are the three most-misremembered shapes in this library.
@@ -91,12 +91,12 @@ truth is `get_package("regira_modules.vue.ui", section: "ui.signatures")`.
 
 ## Pre-flight checklist
 
-- [ ] **Probe the install before reading further.** `regira` installs from the npm registry
-      (a plain `npm install regira` — always the latest published version) with a prebuilt
+- [ ] **Probe the install before reading further.** `@regira/modules` installs from the npm registry
+      (a plain `npm install @regira/modules` — always the latest published version) with a prebuilt
       `dist/` — a normal, fast registry install; no `git`
       binary, no on-install build. Run the `npm install` first and surface any blocker before spending
       context on guides. (Only when pinning an unreleased commit use
-      `"regira": "github:Regira/Regira-Modules"` — that path needs `git` on `PATH`, can resolve over
+      `"@regira/modules": "github:Regira/Regira-Modules"` — that path needs `git` on `PATH`, can resolve over
       SSH, and runs the package's full `prepare` build on install, routinely past a 2-minute shell
       timeout; run it detached and poll rather than reading a timeout as failure.) No NuGet, no
       license key, no service budget on the front-end.
@@ -226,10 +226,10 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    `entities.instructions` and `entities.setup` (via MCP `get_package`). Troubleshooting/lookup tables are
    symptom-driven — fetch a heading when you hit the symptom, not up front. For one exact signature call
    `get_type`; for a set of them read `entities.signatures` / `ui.signatures` by heading rather than whole.
-5. Scaffold the app shell — `node node_modules/regira/_template/scaffold.mjs --shell` (`--no-auth`
+5. Scaffold the app shell — `node node_modules/@regira/modules/_template/scaffold.mjs --shell` (`--no-auth`
    for a no-auth app) writes `main.ts`, `App.vue`, router, dashboard/navbar, layout, views, `config.json` +
    `app-config.ts` (full source: `entities.shell.template`); then set up the toolchain per `entities.setup` → Install.
-6. Scaffold each entity slice with `node node_modules/regira/_template/scaffold.mjs <Entity>`
+6. Scaffold each entity slice with `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`
    (add `--no-auth` for a no-auth app), then customize the `(c)` files; consult `entities.namespaces` / `entities.signatures` for exact
    imports/signatures and `entities.patterns` for recipes. Re-running the scaffold over an existing slice
    needs `--overwrite-slice` (`--force` deliberately excludes slices). For entities that own files/pictures,

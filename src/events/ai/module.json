@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.events",
-    "import": "regira/events",
+    "import": "@regira/modules/events",
     "description": "A lightweight Event/EventHandler mixin (injectInto) that adds a trigger/on event API to any object.",
     "tags": ["frontend", "typescript", "events", "regira_modules"]
 }

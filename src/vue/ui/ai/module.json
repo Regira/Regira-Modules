@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.ui",
-    "import": "regira/vue/ui",
+    "import": "@regira/modules/vue/ui",
     "description": "Front-end UI toolkit: the Vue components and plugins the entity views render with — paging, loading, feedback, modal, tabs, icons, autocomplete, form inputs, and a reactive screen helper.",
     "tags": ["frontend", "vue", "typescript", "ui", "components", "regira_modules"]
 }

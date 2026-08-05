@@ -21,7 +21,7 @@ export default {
 
 <script setup lang="ts">
 import { ref, computed, watchEffect, useAttrs } from "vue"
-import type { NullableCheckBoxProps, NullableCheckBoxEmits } from "regira/vue/ui"
+import type { NullableCheckBoxProps, NullableCheckBoxEmits } from "@regira/modules/vue/ui"
 
 type ValueType = boolean | undefined
 

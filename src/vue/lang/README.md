@@ -1,6 +1,6 @@
 # Regira Lang (i18n) (front-end)
 
-`regira/vue/lang` — keyed translation dictionaries, `{param}` interpolation, the `useLang`
+`@regira/modules/vue/lang` — keyed translation dictionaries, `{param}` interpolation, the `useLang`
 composable that holds the active language as reactive state, and a Vue plugin that wires `$t` / `$tm`
 global properties. Entity labels and any user-facing strings are translated through this layer.
 

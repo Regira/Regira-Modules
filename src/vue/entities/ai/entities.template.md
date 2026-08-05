@@ -33,11 +33,11 @@ existing slice, pass `--owns <Child>` alone — only the sub-slice is generated.
 > fill-ins, and these **slice behaviours that live in the components, not their CSS** — restyle the markup, but
 > keep the behaviour or reuse the component:
 >
-> - **Form action buttons** — reuse the library `FormButtonsRow` (`regira/vue/ui`): it ships the icons,
+> - **Form action buttons** — reuse the library `FormButtonsRow` (`@regira/modules/vue/ui`): it ships the icons,
 >   the solid `btn-primary` / `btn-secondary` / `btn-danger` variants, and a **confirmed** delete
 >   (`ConfirmButton`). Re-emitting plain `<button>`s loses all three.
 > - **Removing a persisted owned/related row marks `_deleted`** — the row stays (tinted) until save. The
->   library `InputSelectorInline` (`regira/vue/entities`) is the default chip editor for these rows
+>   library `InputSelectorInline` (`@regira/modules/vue/entities`) is the default chip editor for these rows
 >   (it toggles the mark for persisted rows, removes rows added this session outright, and hands the picker an
 >   `exclude` list); `useListItemInput` toggles the mark in custom row editors. A per-collection
 >   `prepareItem` override then filters the marked rows out on write (the base `prepareItem` strips only
@@ -62,18 +62,18 @@ only the per-entity slice.
 > [examples](entities.examples.md) / [advanced.example](entities.advanced.example.md) → **template (this
 > file — scaffold a new entity)** → [patterns](entities.patterns.md) (recipes).
 >
-> **Never guess** a `regira` import — verify it in [entities.namespaces.md](entities.namespaces.md).
+> **Never guess** a `@regira/modules` import — verify it in [entities.namespaces.md](entities.namespaces.md).
 
 ## How to use
 
 The full slice ships as a **copy-on-disk template** in the package — scaffold it, don't hand-write the files:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs Product             # → src/entities/products/
-node node_modules/regira/_template/scaffold.mjs Product --no-auth   # no-auth app: also strips the auth-store hooks
+node node_modules/@regira/modules/_template/scaffold.mjs Product             # → src/entities/products/
+node node_modules/@regira/modules/_template/scaffold.mjs Product --no-auth   # no-auth app: also strips the auth-store hooks
 ```
 
-(or copy `node_modules/regira/_template/entity-slice` and replace the `__Entity__` / `__entities__`
+(or copy `node_modules/@regira/modules/_template/entity-slice` and replace the `__Entity__` / `__entities__`
 / `__entity__` tokens.) Then:
 
 1. Customize the **`(c)`** files (§ below) — the only ones tailored to your entity; leave the rest as-is.
@@ -140,7 +140,7 @@ src/entities/foos/               # one entity slice — copy this folder set for
 ## `data/Entity.ts` (c)
 
 ```ts
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 export class Foo extends EntityBase {
     id: number = 0 // Guid/string-keyed API entity → `id: string = ""`; the rest of the entity slice is key-generic (owned child rows stay int)
@@ -175,7 +175,7 @@ export default Foo
 ## `config/config.ts` (c)
 
 ```ts
-import type { IConfig } from "regira/vue/entities"
+import type { IConfig } from "@regira/modules/vue/entities"
 import Entity from "../data/Entity"
 
 // Relative to the axios baseURL, and must equal the server's [Route(...)] exactly — repeating the base here
@@ -213,7 +213,7 @@ export default config
 > import it as the module default).
 
 ```ts
-import { SearchObjectBase, ArchivedFilter } from "regira/vue/entities"
+import { SearchObjectBase, ArchivedFilter } from "@regira/modules/vue/entities"
 
 export class EntitySearchObject extends SearchObjectBase {
     // `q` (free-text) is inherited from SearchObjectBase. Add your filters:
@@ -271,8 +271,8 @@ substitute: it refetches on every keystroke.
 </template>
 
 <script setup lang="ts">
-import { IconButton } from "regira/vue/ui"
-import { useFilter, type FilterEmits } from "regira/vue/entities"
+import { IconButton } from "@regira/modules/vue/ui"
+import { useFilter, type FilterEmits } from "@regira/modules/vue/entities"
 import SearchObject from "./SearchObject"
 
 interface Emits extends /* @vue-ignore */ FilterEmits<SearchObject> {}
@@ -355,8 +355,8 @@ the row pushes the page sideways. A cell holding one `.btn` needs **≥ 4.5rem**
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { Icon } from "regira/vue/ui"
-import type { OverviewEmits } from "regira/vue/entities"
+import { Icon } from "@regira/modules/vue/ui"
+import type { OverviewEmits } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -410,9 +410,9 @@ const items = computed<Array<Entity>>({
 
 <script setup lang="ts">
 import { RouterLink } from "vue-router"
-import { ModalType, ConfirmButton, Icon } from "regira/vue/ui"
-import { formatDate } from "regira/vue/formatters"
-import type { SaveResult } from "regira/vue/entities"
+import { ModalType, ConfirmButton, Icon } from "@regira/modules/vue/ui"
+import { formatDate } from "@regira/modules/vue/formatters"
+import type { SaveResult } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import FormModalButton from "../details/FormModalButton.vue"
@@ -479,7 +479,7 @@ const item = defineModel<Entity>({ required: true })
                 <FormLabel :label="$t('name')" />
             </div>
             <!-- single relation (FK) → the related entity's InputSelector, e.g. <BarInputSelector v-model="item.bar" v-model:idValue="item.barId" /> -->
-            <!-- many-to-many / owned rows → InputSelectorInline (regira/vue/entities): chips that mark
+            <!-- many-to-many / owned rows → InputSelectorInline (@regira/modules/vue/entities): chips that mark
                  _deleted (undoable until save) with the related entity's FormModalButton inside, adds via its
                  InputSelector + exclude; filter _deleted rows in EntityService.prepareItem. The multi-Selector
                  hard-removes — don't use it here. See entities.patterns.md → owned-m2m recipe. -->
@@ -496,9 +496,9 @@ const item = defineModel<Entity>({ required: true })
 
 <script setup lang="ts">
 import { RouterLink, type RouteRecordRaw } from "vue-router"
-import { Feedback, FormButtonsRow, FormSection, FormLabel, Icon } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
-import { useForm, type FormEmits, formDefaults } from "regira/vue/entities"
+import { Feedback, FormButtonsRow, FormSection, FormLabel, Icon } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
+import { useForm, type FormEmits, formDefaults } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -538,8 +538,8 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { IconButton } from "regira/vue/ui"
-import type { OverviewEmits } from "regira/vue/entities"
+import { IconButton } from "@regira/modules/vue/ui"
+import type { OverviewEmits } from "@regira/modules/vue/entities"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"
 
@@ -565,7 +565,7 @@ function handleSelect(item?: Entity) {
 
 ```ts
 import type { AxiosInstance } from "axios"
-import { EntityServiceBase, type IConfig } from "regira/vue/entities"
+import { EntityServiceBase, type IConfig } from "@regira/modules/vue/entities"
 import Entity from "./Entity"
 
 export class EntityService extends EntityServiceBase<Entity> {
@@ -598,8 +598,8 @@ export default EntityService
 
 ```ts
 import { defineStore } from "pinia"
-import { get } from "regira/vue/ioc"
-import { createStore, type IEntityService } from "regira/vue/entities"
+import { get } from "@regira/modules/vue/ioc"
+import { createStore, type IEntityService } from "@regira/modules/vue/entities"
 import Entity from "./Entity"
 
 export const useEntityStore = defineStore(Entity.name, () => {
@@ -608,7 +608,7 @@ export const useEntityStore = defineStore(Entity.name, () => {
 })
 // The store's `service` is the generic IEntityService surface, NOT your EntityService subclass — a custom
 // endpoint you added there is not on it (casting the pooled handler is a TS2352). Reach the real one:
-//   import { get } from "regira/vue/ioc"
+//   import { get } from "@regira/modules/vue/ioc"
 //   const service = get<EntityService>(Entity.name)!
 // Use the pooled store for ordinary CRUD so views share the reactive cache; use the raw service for the rest.
 
@@ -638,9 +638,9 @@ export default useEntityStore
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { LoadingContainer, Feedback } from "regira/vue/ui"
-import { useDetails } from "regira/vue/entities/details"
-import { FormStates } from "regira/vue/entities/form"
+import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
+import { useDetails } from "@regira/modules/vue/entities/details"
+import { FormStates } from "@regira/modules/vue/entities/form"
 import config from "../config/config"
 import useEntityStore from "../data/store"
 
@@ -689,9 +689,9 @@ export { default as plugin } from "./setup"
 import type { AxiosInstance } from "axios"
 import type { App } from "vue"
 import type { RouteRecordRaw } from "vue-router"
-import type { IServiceProvider } from "regira/vue/ioc"
-import type { IIconProvider } from "regira/vue/ui/icons"
-import { DetailsSummary } from "regira/vue/entities"
+import type { IServiceProvider } from "@regira/modules/vue/ioc"
+import type { IIconProvider } from "@regira/modules/vue/ui/icons"
+import { DetailsSummary } from "@regira/modules/vue/entities"
 import config from "./config/config"
 import { Entity } from "./data/Entity"
 import Overview from "./overview/Overview.vue"

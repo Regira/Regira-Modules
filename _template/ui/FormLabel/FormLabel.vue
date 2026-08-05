@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { formLabelDefaults, type FormLabelProps } from "regira/vue/ui"
+import { formLabelDefaults, type FormLabelProps } from "@regira/modules/vue/ui"
 
 withDefaults(defineProps<FormLabelProps>(), { ...formLabelDefaults })
 </script>

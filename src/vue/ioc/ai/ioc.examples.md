@@ -8,8 +8,8 @@ In `main.ts`, register the shared singletons in `configure` — typically the `a
 pool cache. `add` is chainable, so the callback returns the provider:
 
 ```ts
-import { plugin as servicesPlugin, type IServiceProvider } from "regira/vue/ioc"
-import { defaultPoolCache, PoolCache } from "regira/vue/entities"
+import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
+import { defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
 
 const axios = initAxios({ api, includeCredentials })
 
@@ -24,8 +24,8 @@ Each entity `setup.ts` registers its service keyed by `Entity.name`, resolving i
 from the same provider:
 
 ```ts
-import type { IServiceProvider } from "regira/vue/ioc"
-import type { AxiosWithFilesInstance } from "regira/vue/http/axios"
+import type { IServiceProvider } from "@regira/modules/vue/ioc"
+import type { AxiosWithFilesInstance } from "@regira/modules/vue/http/axios"
 
 export function addServices(sp: IServiceProvider) {
     sp.add(Entity.name, (sp) => new EntityService(sp.get<AxiosWithFilesInstance>("axios")!, config))
@@ -38,8 +38,8 @@ Outside components, use the standalone `get` against the default singleton. The 
 `Entity.name` used to register:
 
 ```ts
-import { get } from "regira/vue/ioc"
-import { createStore, type IEntityService } from "regira/vue/entities"
+import { get } from "@regira/modules/vue/ioc"
+import { createStore, type IEntityService } from "@regira/modules/vue/entities"
 
 export const useEntityStore = defineStore(Entity.name, () => {
     const service = get<IEntityService<Entity>>(Entity.name)!
@@ -52,8 +52,8 @@ export const useEntityStore = defineStore(Entity.name, () => {
 The same `get` works inside `<script setup>`:
 
 ```ts
-import { get } from "regira/vue/ioc"
-import type { IEntityService } from "regira/vue/entities"
+import { get } from "@regira/modules/vue/ioc"
+import type { IEntityService } from "@regira/modules/vue/entities"
 
 const entityService = get<IEntityService<Entity>>(Entity.name)!
 const search = (q: string) => entityService.list({ q, pageSize: 10 })
@@ -68,7 +68,7 @@ Plugins import their components locally by default. To restore app-wide registra
 before installing the plugins — then the tags resolve without local imports:
 
 ```ts
-import { configureGlobals } from "regira/vue/ioc"
+import { configureGlobals } from "@regira/modules/vue/ioc"
 
 configureGlobals({ registerComponentsGlobally: true })
 

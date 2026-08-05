@@ -44,7 +44,7 @@
                 <FormLabel :label="$t('name')" />
             </div>
             <!-- single relation (FK) → the related entity's InputSelector, e.g. <BarInputSelector v-model="item.bar" v-model:idValue="item.barId" /> -->
-            <!-- many-to-many / owned rows → InputSelectorInline (regira/vue/entities): chips that mark
+            <!-- many-to-many / owned rows → InputSelectorInline (@regira/modules/vue/entities): chips that mark
                  _deleted (undoable until save) with the related entity's FormModalButton inside, adds via its
                  InputSelector + exclude; filter _deleted rows in EntityService.prepareItem. The multi-Selector
                  hard-removes — don't use it here. See entities.patterns.md → owned-m2m recipe. -->
@@ -61,9 +61,9 @@
 
 <script setup lang="ts">
 import { RouterLink, type RouteRecordRaw } from "vue-router"
-import { Feedback, FormButtonsRow, FormSection, FormLabel, Icon } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
-import { useForm, type FormEmits, formDefaults } from "regira/vue/entities"
+import { Feedback, FormButtonsRow, FormSection, FormLabel, Icon } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
+import { useForm, type FormEmits, formDefaults } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"

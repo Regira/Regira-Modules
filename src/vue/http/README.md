@@ -1,6 +1,6 @@
 # Regira HTTP (front-end)
 
-`regira/vue/http` — the app's single axios instance plus file and query-string helpers. The
+`@regira/modules/vue/http` — the app's single axios instance plus file and query-string helpers. The
 [entities client](../entities/README.md) and the auth plugin are both built on this instance.
 
 ## What it provides
@@ -18,9 +18,9 @@
 
 ```
 initAxios({ api, includeCredentials })  →  one AxiosWithFilesInstance
-   ├─ registered in IoC as "axios"      (regira/vue/ioc)
-   ├─ bearer interceptor added by       (regira/vue/auth)
-   └─ injected into every EntityService (regira/vue/entities)
+   ├─ registered in IoC as "axios"      (@regira/modules/vue/ioc)
+   ├─ bearer interceptor added by       (@regira/modules/vue/auth)
+   └─ injected into every EntityService (@regira/modules/vue/entities)
 ```
 
 Create exactly one instance and reuse it so credentials and auth apply uniformly. Entity `IConfig.*Url`

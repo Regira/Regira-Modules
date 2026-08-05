@@ -1,6 +1,6 @@
 # Regira IoC — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/ioc`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/ioc`. Do not guess — look up here first.
 
 ```ts
 import {
@@ -11,7 +11,7 @@ import {
     configureGlobals,
     type IServiceProvider,
     type GlobalOptions,
-} from "regira/vue/ioc"
+} from "@regira/modules/vue/ioc"
 // default export = the shared ServiceProvider singleton
 ```
 

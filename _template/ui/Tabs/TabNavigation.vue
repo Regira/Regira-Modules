@@ -17,9 +17,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { Icon } from "regira/vue/ui"
-import type { ITab } from "regira/vue/ui"
-import type { TabsEmits, TabNavigationProps } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import type { ITab } from "@regira/modules/vue/ui"
+import type { TabsEmits, TabNavigationProps } from "@regira/modules/vue/ui"
 
 defineEmits<TabsEmits>()
 defineProps<TabNavigationProps>()

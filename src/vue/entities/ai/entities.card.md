@@ -141,7 +141,7 @@
       any other key you add reaches the query string too (arrays as repeated keys). `new PagingInfo(pageSize?,
 page?)` is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
     - `Tab.create("form", { title: translate("form"), icon })` — with `const { translate } = useLang()` from
-      **`regira/vue/lang`** (there is no `useTranslate`/`useLangTranslate`; every import specifier is in
+      **`@regira/modules/vue/lang`** (there is no `useTranslate`/`useLangTranslate`; every import specifier is in
       `entities.namespaces`). The first argument is the **key** (it lands in
       the route hash, so keep it stable); it also seeds the title, which `values.title` then overrides. Tab
       titles render untranslated unless you pass one.

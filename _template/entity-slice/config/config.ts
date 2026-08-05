@@ -1,4 +1,4 @@
-import type { IConfig } from "regira/vue/entities"
+import type { IConfig } from "@regira/modules/vue/entities"
 import Entity from "../data/Entity"
 
 // Relative to the axios baseURL, and must equal the server's [Route(...)] exactly — repeating the base here

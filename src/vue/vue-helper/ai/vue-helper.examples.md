@@ -32,7 +32,7 @@ host component's v-model with `useVModelField` instead. This mirrors the library
 
 ```ts
 // composables/useDraftList.ts
-import { useVModelField } from "regira/vue/vue-helper"
+import { useVModelField } from "@regira/modules/vue/vue-helper"
 
 export function useDraftList<T extends { id: number }>({ props, emit }: { props: Readonly<Record<string, any>>; emit: any }) {
     const items = useVModelField<Array<T>>(props, emit) // reads props.modelValue; assignments emit update:modelValue
@@ -65,7 +65,7 @@ reactively (re-renders when the pool fills):
 
 ```vue
 <script setup lang="ts">
-import { createFromComputedPool } from "regira/vue/vue-helper"
+import { createFromComputedPool } from "@regira/modules/vue/vue-helper"
 import useBrandStore from "@/entities/brands/data/store"
 
 const getBrand = createFromComputedPool(useBrandStore())
@@ -81,7 +81,7 @@ const getBrand = createFromComputedPool(useBrandStore())
 Registered on mount, removed on unmount — call during `setup()`:
 
 ```ts
-import { useEventListener } from "regira/vue/vue-helper"
+import { useEventListener } from "@regira/modules/vue/vue-helper"
 
 useEventListener(window, "resize", updateLayout)
 // space-separated events + capture flag (catch presses on all descendants):

@@ -1,6 +1,6 @@
 # Regira Utilities — AI Agent Instructions
 
-A framework-agnostic helper library (`regira/utilities`): twelve namespaced barrels covering
+A framework-agnostic helper library (`@regira/modules/utilities`): twelve namespaced barrels covering
 arrays (LINQ-like), strings, files/blobs, dates, colors, the DOM, HTTP/URLs, images, numbers, plain
 objects, promises, and the clipboard. No Vue dependency — pure browser/TS helpers used across the app and
 by the [entities client](../../vue/entities/ai/entities.instructions.md).
@@ -25,20 +25,20 @@ import {
     promiseUtility,
     stringUtility,
     clipboardUtility,
-} from "regira/utilities"
+} from "@regira/modules/utilities"
 ```
 
 Four sub-files also have granular subpaths (where you get the **full** named-export set, including
 functions the barrel omits — see Gotchas):
 
 ```ts
-import { except, query, naturalSort } from "regira/utilities/array-utility"
-import { browse, dropHandler, saveAs } from "regira/utilities/file-utility"
-import { newPassword, slugify, isEmail } from "regira/utilities/string-utility"
-import { debounceToPromise, enqueue, delay } from "regira/utilities/promise-utility"
+import { except, query, naturalSort } from "@regira/modules/utilities/array-utility"
+import { browse, dropHandler, saveAs } from "@regira/modules/utilities/file-utility"
+import { newPassword, slugify, isEmail } from "@regira/modules/utilities/string-utility"
+import { debounceToPromise, enqueue, delay } from "@regira/modules/utilities/promise-utility"
 ```
 
-Each barrel is also its file's default export, so `import arrayUtility from "regira/utilities/array-utility"` works too.
+Each barrel is also its file's default export, so `import arrayUtility from "@regira/modules/utilities/array-utility"` works too.
 
 ## Arrays (`arrayUtility`)
 
@@ -76,7 +76,7 @@ also exports `daysDiff`.
 `toQueryString(obj, includeNulls?)` (nested objects → `key[child]`, arrays → repeated keys; nulls dropped
 unless `includeNulls`; a `Date` → ISO-8601 with the local offset, an **invalid** `Date` → key omitted), `getQueryStringParams`, `isLocalHost`, `getHttpsUrl`/`forceHttps`. The source file
 also exports `isHttps`, `tryCreateValidURL`, and `toAbsoluteUrl`. For the app's actual request layer use
-[`regira/vue/http`](../../vue/http/ai/http.instructions.md) instead.
+[`@regira/modules/vue/http`](../../vue/http/ai/http.instructions.md) instead.
 
 ## Other namespaces
 

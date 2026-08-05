@@ -1,4 +1,4 @@
-import { SearchObjectBase, ArchivedFilter } from "regira/vue/entities"
+import { SearchObjectBase, ArchivedFilter } from "@regira/modules/vue/entities"
 
 export class EntitySearchObject extends SearchObjectBase {
     // `q` (free-text) is inherited from SearchObjectBase. Add your filters:

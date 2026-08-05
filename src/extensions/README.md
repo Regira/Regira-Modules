@@ -1,8 +1,8 @@
 # Regira Extensions (front-end)
 
-`regira/extensions` — opt-in prototype extensions for `Array`, `Date`, and `Promise`. Nothing is
+`@regira/modules/extensions` — opt-in prototype extensions for `Array`, `Date`, and `Promise`. Nothing is
 patched on import; each is enabled explicitly via a `use()` method, so the app decides when (and whether)
-to touch globals. The array and promise helpers wrap [`regira/utilities`](../utilities).
+to touch globals. The array and promise helpers wrap [`@regira/modules/utilities`](../utilities).
 
 ## What it provides
 

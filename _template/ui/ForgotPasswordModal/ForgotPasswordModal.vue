@@ -5,8 +5,8 @@
 </template>
 
 <script setup lang="ts">
-import { injectModal } from "regira/vue/ui"
-import type { ForgotPasswordModalProps, ForgotPasswordModalSlots } from "regira/vue/auth"
+import { injectModal } from "@regira/modules/vue/ui"
+import type { ForgotPasswordModalProps, ForgotPasswordModalSlots } from "@regira/modules/vue/auth"
 
 withDefaults(defineProps<ForgotPasswordModalProps>(), { isVisible: true })
 defineSlots<ForgotPasswordModalSlots>()

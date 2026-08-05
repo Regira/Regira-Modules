@@ -9,7 +9,7 @@ returns the parent value(s) of `value` from the whole list, and `init` returns t
 `buildNavigationTree` works (it matches on `parentId`):
 
 ```ts
-import { TreeList } from "regira/treelist"
+import { TreeList } from "@regira/modules/treelist"
 
 const tree = new TreeList<FamilyItem>().init(items, (value, candidates) => {
     const parent = candidates.find((c) => c.id === value.parentId)
@@ -22,7 +22,7 @@ const tree = new TreeList<FamilyItem>().init(items, (value, candidates) => {
 Omit (or pass `undefined`) for a root, or a parent `TreeNode` to nest under it:
 
 ```ts
-import { TreeList, type TreeNode } from "regira/treelist"
+import { TreeList, type TreeNode } from "@regira/modules/treelist"
 
 const tree = new TreeList<TreeItem>()
 function add(item: TreeItem, parentNode?: TreeNode<TreeItem>) {
@@ -62,7 +62,7 @@ A `TreeNode` exposes `value` and `children` (read-only getters), so you can recu
 
 ```vue
 <script setup lang="ts">
-import type { TreeNode } from "regira/treelist"
+import type { TreeNode } from "@regira/modules/treelist"
 defineProps<{ node: TreeNode<INavItem> }>()
 </script>
 <template>

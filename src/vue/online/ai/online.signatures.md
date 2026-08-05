@@ -1,10 +1,10 @@
 # Regira Online — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/online`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/online`. Do not guess — look up here first.
 
 ```ts
-import { useOnlineChecker, plugin } from "regira/vue/online"
-import onlinePlugin from "regira/vue/online" // default export === plugin
+import { useOnlineChecker, plugin } from "@regira/modules/vue/online"
+import onlinePlugin from "@regira/modules/vue/online" // default export === plugin
 ```
 
 ## Composable

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ResetPasswordForm } from "regira/vue/auth"
-import { FormSection } from "regira/vue/ui"
+import { ResetPasswordForm } from "@regira/modules/vue/auth"
+import { FormSection } from "@regira/modules/vue/ui"
 
 const route = useRoute()
 const router = useRouter()

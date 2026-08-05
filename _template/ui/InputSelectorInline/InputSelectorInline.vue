@@ -21,8 +21,8 @@
 
 <script setup lang="ts" generic="T extends { _deleted?: boolean; id?: number | string | null }">
 import { computed, toRaw } from "vue"
-import { IconButton } from "regira/vue/ui"
-import type { InputSelectorInlineProps, InputSelectorInlineEmits, InputSelectorInlineSlots } from "regira/vue/entities"
+import { IconButton } from "@regira/modules/vue/ui"
+import type { InputSelectorInlineProps, InputSelectorInlineEmits, InputSelectorInlineSlots } from "@regira/modules/vue/entities"
 
 // Inline chip editor for an owned/join collection edited inside the parent's form.
 // Removing a persisted row MARKS it (`_deleted`, undoable until save) — pair with an

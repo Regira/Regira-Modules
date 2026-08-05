@@ -33,8 +33,8 @@
 </template>
 
 <script setup lang="ts">
-import { FileDropZone, FormSection, Icon } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
+import { FileDropZone, FormSection, Icon } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
 import { useEntityAttachments } from "../data/functions"
 import type Entity from "../data/Entity"
 import ListItem from "./ListItem.vue"

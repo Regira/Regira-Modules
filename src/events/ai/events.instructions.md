@@ -1,6 +1,6 @@
 # Regira Events — AI Agent Instructions
 
-A tiny event mixin (`regira/events`): an `Event` value object and an `EventHandler` whose
+A tiny event mixin (`@regira/modules/events`): an `Event` value object and an `EventHandler` whose
 `injectInto(target)` adds a `trigger` / `on` / `once` / `off` API to any object. Regira managers use it
 to broadcast state changes — e.g. the [identity manager](../../identity) injects it and fires
 `trigger("login" | "refresh" | "logoff", …)` so the app can react.
@@ -12,12 +12,12 @@ to broadcast state changes — e.g. the [identity manager](../../identity) injec
 ## Import
 
 ```ts
-import { Event, EventHandler } from "regira/events"
+import { Event, EventHandler } from "@regira/modules/events"
 // or the default barrel:
-import events from "regira/events" // { Event, EventHandler }
+import events from "@regira/modules/events" // { Event, EventHandler }
 ```
 
-There are no granular subpaths — only `regira/events` is exported.
+There are no granular subpaths — only `@regira/modules/events` is exported.
 
 ## Making an object an emitter
 

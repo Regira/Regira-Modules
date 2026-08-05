@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { useResetPasswordForm, type ResetPasswordFormProps, type ResetPasswordFormEmits } from "regira/vue/auth"
+import { useResetPasswordForm, type ResetPasswordFormProps, type ResetPasswordFormEmits } from "@regira/modules/vue/auth"
 
 const emit = defineEmits<ResetPasswordFormEmits>()
 const props = defineProps<ResetPasswordFormProps>()

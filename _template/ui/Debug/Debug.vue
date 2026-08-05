@@ -12,8 +12,8 @@
 
 <script setup lang="ts">
 import { ref, computed, getCurrentInstance } from "vue"
-import { Icon } from "regira/vue/ui"
-import type { DebugProps } from "regira/vue/debug"
+import { Icon } from "@regira/modules/vue/ui"
+import type { DebugProps } from "@regira/modules/vue/debug"
 
 const props = defineProps<DebugProps>()
 

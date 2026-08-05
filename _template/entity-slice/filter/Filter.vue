@@ -25,9 +25,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { injectModal } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
-import { useFilter, type FilterEmits } from "regira/vue/entities"
+import { injectModal } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
+import { useFilter, type FilterEmits } from "@regira/modules/vue/entities"
 import type SearchObject from "./SearchObject"
 import FilterInline from "./FilterInline.vue"
 

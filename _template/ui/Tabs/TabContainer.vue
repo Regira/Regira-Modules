@@ -12,8 +12,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
-import { Tab, type ITab } from "regira/vue/ui"
-import { tabContainerDefaults, type TabContainerProps, type TabsEmits } from "regira/vue/ui"
+import { Tab, type ITab } from "@regira/modules/vue/ui"
+import { tabContainerDefaults, type TabContainerProps, type TabsEmits } from "@regira/modules/vue/ui"
 import TabNavigation from "./TabNavigation.vue"
 
 const emit = defineEmits<TabsEmits>()

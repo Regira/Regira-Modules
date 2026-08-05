@@ -1,4 +1,4 @@
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 // An owned child row of __Parent__ (back-end `e.Related(x => x.__Children__)`). Rows are edited inside the
 // parent form and persisted with the parent's single `save()`; removal is a `_deleted` mark, never a splice.

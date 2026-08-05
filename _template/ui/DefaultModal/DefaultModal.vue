@@ -62,9 +62,9 @@
 <script setup lang="ts">
 import "./DefaultModal.scss"
 import { computed } from "vue"
-import { Icon } from "regira/vue/ui"
-import { IconButton } from "regira/vue/ui"
-import { ModalType, modalDefaults, type ModalProps, type ModalEmits, type ModalSlots } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import { IconButton } from "@regira/modules/vue/ui"
+import { ModalType, modalDefaults, type ModalProps, type ModalEmits, type ModalSlots } from "@regira/modules/vue/ui"
 
 const emit = defineEmits<ModalEmits>()
 const props = withDefaults(defineProps<ModalProps>(), { ...modalDefaults })

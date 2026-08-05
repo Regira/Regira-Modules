@@ -1,6 +1,6 @@
 # Regira TreeList (front-end)
 
-`regira/treelist` — a generic, framework-agnostic hierarchical data structure: a `TreeList<T>`
+`@regira/modules/treelist` — a generic, framework-agnostic hierarchical data structure: a `TreeList<T>`
 of `TreeNode<T>` items with helpers to navigate ancestors, offspring and roots. Plain TypeScript (no
 Vue, no axios). The [entities tree](../vue/entities/README.md) composable and `buildNavigationTree`
 are both built on it.

@@ -1,9 +1,9 @@
 # Regira HTTP — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/vue/http`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/vue/http`. Do not guess — look up here first.
 
 ```ts
-import { initAxios, useAxios, getFile, upload, createQueryString, type AxiosWithFilesInstance } from "regira/vue/http"
+import { initAxios, useAxios, getFile, upload, createQueryString, type AxiosWithFilesInstance } from "@regira/modules/vue/http"
 ```
 
 ## Axios instance

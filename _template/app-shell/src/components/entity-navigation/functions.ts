@@ -1,5 +1,5 @@
 import { computed, getCurrentInstance } from "vue"
-import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "regira/vue/entities"
+import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
 import { useConfig } from "@/app-config"
 
 // reads config.json → navigation + the collected $configs, builds the dashboard/navbar trees

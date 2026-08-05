@@ -5,8 +5,8 @@ Verify props/signatures in [ui.signatures.md](ui.signatures.md).
 ## Install plugins (startup)
 
 ```ts
-import { iconPlugin, feedbackPlugin, loadingPlugin, pagingPlugin, screenPlugin } from "regira/vue/ui"
-import "regira/style.css" // component styles (modal backdrop, autocomplete dropdown)
+import { iconPlugin, feedbackPlugin, loadingPlugin, pagingPlugin, screenPlugin } from "@regira/modules/vue/ui"
+import "@regira/modules/style.css" // component styles (modal backdrop, autocomplete dropdown)
 
 app.use(screenPlugin)
 app.use(feedbackPlugin)
@@ -15,14 +15,14 @@ app.use(loadingPlugin, { img: "/loading.svg" })
 app.use(pagingPlugin, { defaultPageSize: 10 })
 ```
 
-Plugins only configure; components are imported where used — e.g. `import { DefaultModal, Icon } from "regira/vue/ui"`.
+Plugins only configure; components are imported where used — e.g. `import { DefaultModal, Icon } from "@regira/modules/vue/ui"`.
 
 ## Overview building blocks
 
 ```vue
 <script setup lang="ts">
-import { Paging, LoadingContainer, Feedback } from "regira/vue/ui"
-import { useSearchView, useRouteOverview } from "regira/vue/entities"
+import { Paging, LoadingContainer, Feedback } from "@regira/modules/vue/ui"
+import { useSearchView, useRouteOverview } from "@regira/modules/vue/entities"
 import config from "../config/config"
 const { service } = useEntityStore()
 const { pagingInfo, items, itemsCount, isLoading, feedback, searchHandler } = useSearchView({
@@ -46,7 +46,7 @@ const { updateOverviewRoute } = useRouteOverview({ searchObject, pagingInfo, han
 ```vue
 <script setup lang="ts">
 import { computed } from "vue"
-import { TabContainer, Tab, useScreen } from "regira/vue/ui"
+import { TabContainer, Tab, useScreen } from "@regira/modules/vue/ui"
 const { screen } = useScreen()
 const tabs = computed(() =>
     [
@@ -88,7 +88,7 @@ const tabs = computed(() => [
 app.config.globalProperties.$feedback.success("Saved")
 
 // or a local instance
-import { useFeedback } from "regira/vue/ui"
+import { useFeedback } from "@regira/modules/vue/ui"
 const feedback = useFeedback({ autoHideDelay: 3000 })
 feedback.fail("Could not save", { title: "required" })
 ```
@@ -98,8 +98,8 @@ feedback.fail("Could not save", { title: "required" })
 ```vue
 <script setup lang="ts">
 import { ref } from "vue"
-import { DefaultModal, ModalType } from "regira/vue/ui/modal"
-import "regira/vue/ui/modal/style.scss"
+import { DefaultModal, ModalType } from "@regira/modules/vue/ui/modal"
+import "@regira/modules/vue/ui/modal/style.scss"
 const isVisible = ref(false)
 </script>
 <template>
@@ -120,7 +120,7 @@ const isVisible = ref(false)
 
 ```vue
 <script setup lang="ts">
-import { BsIcon, IconButton } from "regira/vue/ui"
+import { BsIcon, IconButton } from "@regira/modules/vue/ui"
 </script>
 <template>
     <BsIcon name="bi bi-box-seam" size="lg" />
@@ -132,8 +132,8 @@ import { BsIcon, IconButton } from "regira/vue/ui"
 
 ```vue
 <script setup lang="ts">
-import { Autocomplete } from "regira/vue/ui"
-import { get } from "regira/vue/ioc"
+import { Autocomplete } from "@regira/modules/vue/ui"
+import { get } from "@regira/modules/vue/ioc"
 const service = get<IEntityService<Product>>("Product")!
 </script>
 <template>
@@ -155,7 +155,7 @@ const service = get<IEntityService<Product>>("Product")!
 
 ```vue
 <script setup lang="ts">
-import { DateInput } from "regira/vue/ui"
+import { DateInput } from "@regira/modules/vue/ui"
 </script>
 <template>
     <DateInput v-model="item.publishedOn" culture="nl-BE" />
@@ -167,7 +167,7 @@ import { DateInput } from "regira/vue/ui"
 Full guide: [ui.customize.md](ui.customize.md). The three most-used moves:
 
 ```scss
-// 1) src/assets/theme.scss (imported after bootstrap + regira/style.css) — app-wide re-theme
+// 1) src/assets/theme.scss (imported after bootstrap + @regira/modules/style.css) — app-wide re-theme
 :root {
     --rg-accent: #7c3aed;
     --rg-accent-bg: rgba(124, 58, 237, 0.12);
@@ -189,8 +189,8 @@ app.use(modalPlugin, { Modal: MyBrandedModal })
 
 ```bash
 # 3) eject a reference skin and restyle the copy (imports stay on public regira API)
-node node_modules/regira/_template/scaffold.mjs --ui list
-node node_modules/regira/_template/scaffold.mjs --ui Paging
+node node_modules/@regira/modules/_template/scaffold.mjs --ui list
+node node_modules/@regira/modules/_template/scaffold.mjs --ui Paging
 ```
 
 ## See also

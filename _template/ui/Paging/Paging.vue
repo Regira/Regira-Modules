@@ -33,9 +33,9 @@
 
 <script setup lang="ts">
 import { toRefs } from "vue"
-import { useVModelField } from "regira/vue/vue-helper"
-import type { IPagingInfo } from "regira/vue/entities"
-import { usePaging, ButtonType, type PagingProps, type PagingEmits, type PagingSlots, pagingDefaults } from "regira/vue/ui"
+import { useVModelField } from "@regira/modules/vue/vue-helper"
+import type { IPagingInfo } from "@regira/modules/vue/entities"
+import { usePaging, ButtonType, type PagingProps, type PagingEmits, type PagingSlots, pagingDefaults } from "@regira/modules/vue/ui"
 import PagingAnchor from "./PagingAnchor.vue"
 import PagingButton from "./PagingButton.vue"
 

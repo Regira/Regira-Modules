@@ -31,7 +31,7 @@ server-sent `sortOrder` on load and mirrors the array index back into it after e
 ## `attachments/Entity.ts`
 
 ```ts
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 // The file itself; `_file` is the raw Blob, staged in memory until the parent is saved.
 export class Attachment extends EntityBase {
@@ -60,7 +60,7 @@ export default Attachment
 ## `data/Entity.ts`
 
 ```ts
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 import Attachment from "../attachments/Entity"
 
 // The owned join row on the parent (`parent.attachments`).
@@ -104,9 +104,9 @@ export default EntityAttachment
 
 ```ts
 import { ref, watch } from "vue"
-import { browse, fileToBlob, saveAs } from "regira/utilities/file-utility"
-import { enqueue } from "regira/utilities/promise-utility"
-import { useAxios } from "regira/vue/http"
+import { browse, fileToBlob, saveAs } from "@regira/modules/utilities/file-utility"
+import { enqueue } from "@regira/modules/utilities/promise-utility"
+import { useAxios } from "@regira/modules/vue/http"
 import Entity from "./Entity"
 import Attachment from "../attachments/Entity"
 
@@ -294,8 +294,8 @@ export async function download(item: Entity) {
 </template>
 
 <script setup lang="ts">
-import { FileDropZone, FormSection, Icon } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
+import { FileDropZone, FormSection, Icon } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
 import { useEntityAttachments } from "../data/functions"
 import type Entity from "../data/Entity"
 import ListItem from "./ListItem.vue"
@@ -330,8 +330,8 @@ const { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd
 </template>
 
 <script setup lang="ts">
-import { formatFileSize } from "regira/utilities/file-utility"
-import { Icon } from "regira/vue/ui"
+import { formatFileSize } from "@regira/modules/utilities/file-utility"
+import { Icon } from "@regira/modules/vue/ui"
 import type Entity from "../data/Entity"
 import { download } from "../data/functions"
 
@@ -369,7 +369,7 @@ own — `getAttachments` / `addAttachment` calling `this.axios.upload` / `getFil
 [entities.advanced.example.md](entities.advanced.example.md) §13 does — that the constructor takes an
 `AxiosWithFilesInstance` and `setup.ts` has to resolve one.
 
-The helper signatures (they live in **your** scaffolded slice, not in `regira`):
+The helper signatures (they live in **your** scaffolded slice, not in `@regira/modules`):
 
 ```ts
 // entity-attachments/data/functions.ts
@@ -416,7 +416,7 @@ protected override prepareItem(item: Owner): Owner {
 ```ts
 // setup.ts — ONLY if the service gained getAttachments/addAttachment of its own (they call this.axios
 // .upload/.getFile). With just the overrides above, leave setup.ts and the constructor as generated.
-import type { AxiosWithFilesInstance } from "regira/vue/http"
+import type { AxiosWithFilesInstance } from "@regira/modules/vue/http"
 serviceProvider.add(Entity.name, (sp) => new EntityService(sp.get<AxiosWithFilesInstance>("axios")!, config))
 ```
 

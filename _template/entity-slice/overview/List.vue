@@ -40,8 +40,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { Icon } from "regira/vue/ui"
-import type { OverviewEmits } from "regira/vue/entities"
+import { Icon } from "@regira/modules/vue/ui"
+import type { OverviewEmits } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"

@@ -1,6 +1,6 @@
 # Regira Utilities — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/utilities`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/utilities`. Do not guess — look up here first.
 
 ```ts
 import {
@@ -16,14 +16,14 @@ import {
     promiseUtility,
     stringUtility,
     clipboardUtility,
-} from "regira/utilities"
+} from "@regira/modules/utilities"
 ```
 
 The root export is the twelve namespaced barrels above (each is the `default` of its file). Four files
-also have granular subpaths — `regira/utilities/{array-utility,file-utility,string-utility,promise-utility}`
+also have granular subpaths — `@regira/modules/utilities/{array-utility,file-utility,string-utility,promise-utility}`
 — whose **named** exports include everything below (the barrel omits the ones marked _(subpath/file only)_).
 
-## arrayUtility — `regira/utilities/array-utility`
+## arrayUtility — `@regira/modules/utilities/array-utility`
 
 ```ts
 type Comparable = number | string | bigint | boolean
@@ -89,7 +89,7 @@ export declare const move: <T>(arr: T[], item: T, pos: number) => void // mutate
 export declare const reFill: <T>(arr: T[], values: T[]) => void // mutates arr
 ```
 
-## stringUtility — `regira/utilities/string-utility`
+## stringUtility — `@regira/modules/utilities/string-utility`
 
 ```ts
 export declare const equals: (s1: string, s2: string, ignoreCase?: boolean) => boolean
@@ -123,7 +123,7 @@ export declare const toPascalCase: (s: string) => string
 export declare const slugify: (s: string) => string
 ```
 
-## fileUtility — `regira/utilities/file-utility`
+## fileUtility — `@regira/modules/utilities/file-utility`
 
 ```ts
 type NamedBlob = Blob & { name: string }
@@ -264,7 +264,7 @@ export declare const setMetaTag: (name: string, content: string) => void
 export declare const setCanonicalTag: (url: string) => void
 ```
 
-## promiseUtility — `regira/utilities/promise-utility`
+## promiseUtility — `@regira/modules/utilities/promise-utility`
 
 ```ts
 export declare const debounceToPromise: <T>(func: (...args: unknown[]) => T, wait?: number) => (...args: unknown[]) => Promise<T>

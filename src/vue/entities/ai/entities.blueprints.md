@@ -19,7 +19,7 @@ Client side of the back-end **EntityLabels** blueprint: labels are an _owned_ co
 
 ```ts
 // entities/entity-labels/Entity.ts
-import { EntityBase } from "regira/vue/entities"
+import { EntityBase } from "@regira/modules/vue/entities"
 
 export class EntityLabel extends EntityBase {
     id: number = 0
@@ -107,8 +107,8 @@ Client side of the back-end **Multi-tenancy** blueprint. The active tenant lives
 // entities/tenants/store.ts
 import { ref, computed } from "vue"
 import { defineStore } from "pinia"
-import { useAxios } from "regira/vue/http"
-import { useAuthStore } from "regira/vue/auth"
+import { useAxios } from "@regira/modules/vue/http"
+import { useAuthStore } from "@regira/modules/vue/auth"
 import Entity from "./Entity"
 
 export const useEntityStore = defineStore(Entity.name, () => {
@@ -179,7 +179,7 @@ Map the edge rows to one **node item per distinct id** (`toTreeItems` — the `F
 step), then build a `TreeList`: roots are the ids no edge points at; children add recursively:
 
 ```ts
-import { TreeList, type TreeNode } from "regira/treelist"
+import { TreeList, type TreeNode } from "@regira/modules/treelist"
 
 // One node per distinct id; `children` = the edges leaving it. `item` is hydrated later.
 export class TreeItem {
@@ -265,7 +265,7 @@ hydrated `parent`/`child` payloads straight off the rows when the endpoint inclu
 />
 ```
 
-Share **one** `useDragDrop` engine (from `regira/vue/entities`) through the whole recursion via a prop — each level creating its own engine breaks cross-level drops. On a move: persist the edge change through the entity service first, then mirror it client-side with `tree.move(child, parent)`.
+Share **one** `useDragDrop` engine (from `@regira/modules/vue/entities`) through the whole recursion via a prop — each level creating its own engine breaks cross-level drops. On a move: persist the edge change through the entity service first, then mirror it client-side with `tree.move(child, parent)`.
 
 Container niceties from the reference apps (`Overview.vue`):
 

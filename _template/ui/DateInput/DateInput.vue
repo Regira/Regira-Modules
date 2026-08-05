@@ -12,9 +12,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { dateInputString } from "regira/vue/formatters"
+import { dateInputString } from "@regira/modules/vue/formatters"
 import { isValid } from "date-fns"
-import type { DateInputProps, DateInputEmits } from "regira/vue/ui"
+import type { DateInputProps, DateInputEmits } from "@regira/modules/vue/ui"
 
 const emit = defineEmits<DateInputEmits>()
 const props = defineProps<DateInputProps>()

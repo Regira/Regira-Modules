@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { useLoginForm, type LoginFormEmits, type LoginFormProps } from "regira/vue/auth"
+import { useLoginForm, type LoginFormEmits, type LoginFormProps } from "@regira/modules/vue/auth"
 
 const emit = defineEmits<LoginFormEmits>()
 const props = defineProps<LoginFormProps>()

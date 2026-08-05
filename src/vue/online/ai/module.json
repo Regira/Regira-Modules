@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.vue.online",
-    "import": "regira/vue/online",
+    "import": "@regira/modules/vue/online",
     "description": "Online/offline detection: the useOnlineChecker composable and an $isOnline reactive global.",
     "tags": ["frontend", "vue", "typescript", "online", "regira_modules"]
 }

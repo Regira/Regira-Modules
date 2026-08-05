@@ -1,6 +1,6 @@
 # Regira Auth (front-end)
 
-`regira/vue/auth` — JWT bearer authentication layered onto the shared
+`@regira/modules/vue/auth` — JWT bearer authentication layered onto the shared
 [axios instance](../http/README.md): login/token management, a Pinia auth store, a
 permission-aware route guard, and login UI.
 

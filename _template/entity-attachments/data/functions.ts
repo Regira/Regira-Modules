@@ -1,7 +1,7 @@
 import { ref, watch } from "vue"
-import { browse, fileToBlob, saveAs } from "regira/utilities/file-utility"
-import { enqueue } from "regira/utilities/promise-utility"
-import { useAxios } from "regira/vue/http"
+import { browse, fileToBlob, saveAs } from "@regira/modules/utilities/file-utility"
+import { enqueue } from "@regira/modules/utilities/promise-utility"
+import { useAxios } from "@regira/modules/vue/http"
 import Entity from "./Entity"
 import Attachment from "../attachments/Entity"
 

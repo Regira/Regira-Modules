@@ -1,5 +1,5 @@
 {
-    "name": "regira",
+    "name": "@regira/modules",
     "private": false,
     "version": "6.0.0",
     "description": "Regira front-end library: TypeScript utility modules and Vue 3 components for building SPAs against a Regira.Entities API.",

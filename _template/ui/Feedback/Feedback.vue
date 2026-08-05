@@ -21,11 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { IconButton } from "regira/vue/ui"
-import { Pending } from "regira/vue/ui"
-import { Success } from "regira/vue/ui"
-import { ErrorSummary } from "regira/vue/ui"
-import { FeedbackStatus, feedbackDefaults, type FeedbackEmits, type FeedbackProps, type FeedbackSlots } from "regira/vue/ui"
+import { IconButton } from "@regira/modules/vue/ui"
+import { Pending } from "@regira/modules/vue/ui"
+import { Success } from "@regira/modules/vue/ui"
+import { ErrorSummary } from "@regira/modules/vue/ui"
+import { FeedbackStatus, feedbackDefaults, type FeedbackEmits, type FeedbackProps, type FeedbackSlots } from "@regira/modules/vue/ui"
 
 import { computed } from "vue"
 

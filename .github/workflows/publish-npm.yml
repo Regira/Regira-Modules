@@ -1,10 +1,10 @@
 name: Publish to npm
 
-# Publishes the `regira` package to the npm registry.
+# Publishes the `@regira/modules` package to the npm registry.
 # Triggered by pushing a version tag (v6.0.0) or manually via Actions → Run workflow.
 # Requires the NPM_TOKEN repository secret. For the first publish this must be an all-packages
 # (or org-scoped) npm access token — a granular token cannot be scoped to a package that does not
-# exist on the registry yet; after the first publish it can be narrowed to read/write on `regira`.
+# exist on the registry yet; after the first publish it can be narrowed to read/write on `@regira/modules`.
 
 on:
   workflow_dispatch:
@@ -44,8 +44,8 @@ jobs:
       - name: Guard — version not already on npm
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if npm view "regira@$VERSION" version >/dev/null 2>&1; then
-            echo "regira@$VERSION is already published — bump the version first (npm versions are immutable)" >&2
+          if npm view "@regira/modules@$VERSION" version >/dev/null 2>&1; then
+            echo "@regira/modules@$VERSION is already published — bump the version first (npm versions are immutable)" >&2
             exit 1
           fi
 

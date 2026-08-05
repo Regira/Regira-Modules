@@ -1,10 +1,10 @@
 # Regira Vue Helper (front-end)
 
-`regira/vue/vue-helper` — three small Vue composition helpers the other modules are built on
+`@regira/modules/vue/vue-helper` — three small Vue composition helpers the other modules are built on
 (`useOwnedCollection`, `useListInput`, and `Autocomplete` use them internally).
 
 Source: [`src/vue/vue-helper.ts`](../vue-helper.ts) (this folder holds the module docs). Also re-exported
-from the `regira/vue` barrel.
+from the `@regira/modules/vue` barrel.
 
 > **In components, bind v-model with native `defineModel<T>()`** — the slice templates and examples do.
 > `useVModelField` is the runtime equivalent for the places the `defineModel` compiler macro can't go:

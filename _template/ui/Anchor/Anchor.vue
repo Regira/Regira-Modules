@@ -4,8 +4,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { isEmail, isIP, isPhone } from "regira/utilities"
-import type { AnchorProps, AnchorSlots } from "regira/vue/ui"
+import { isEmail, isIP, isPhone } from "@regira/modules/utilities"
+import type { AnchorProps, AnchorSlots } from "@regira/modules/vue/ui"
 
 const props = defineProps<AnchorProps>()
 defineSlots<AnchorSlots>()

@@ -56,7 +56,7 @@ export default defineConfig({
                 "vue/ui/modal/index": resolve(__dirname, "src/vue/ui/modal/index.ts"),
             },
             formats: ["es"],
-            // all extracted component CSS lands in dist/style.css — consumers import "regira/style.css"
+            // all extracted component CSS lands in dist/style.css — consumers import "@regira/modules/style.css"
             cssFileName: "style",
         },
         rollupOptions: {

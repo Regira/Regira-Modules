@@ -7,7 +7,7 @@ Verify signatures in [auth.signatures.md](auth.signatures.md).
 Run after the IoC/http and router are on `app`, passing the shared `axios` instance:
 
 ```ts
-import { plugin as authPlugin, LocalStorageTokenManager } from "regira/vue/auth"
+import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth"
 
 app.use(authPlugin, {
     enabled: true,
@@ -42,7 +42,7 @@ const routes = [
 ## Use the store in a component
 
 ```ts
-import { useAuthStore } from "regira/vue/auth"
+import { useAuthStore } from "@regira/modules/vue/auth"
 
 const auth = useAuthStore()
 // auth.isAuthenticated, auth.displayName, auth.hasPermission("users.write"), auth.authData.email
@@ -64,7 +64,7 @@ Drop-in modal:
 
 ```vue
 <script setup lang="ts">
-import { LoginModal } from "regira/vue/auth"
+import { LoginModal } from "@regira/modules/vue/auth"
 </script>
 <template>
     <LoginModal title="Sign in" @success="onSuccess" @forgot-password="showForgot" />
@@ -75,7 +75,7 @@ Or build a custom form with the composable:
 
 ```vue
 <script setup lang="ts">
-import { useLoginForm, type LoginFormEmits } from "regira/vue/auth"
+import { useLoginForm, type LoginFormEmits } from "@regira/modules/vue/auth"
 const emit = defineEmits<LoginFormEmits>()
 const props = defineProps<{ username?: string }>()
 const { username, password, failed, signingIn, isLockedOut, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
@@ -93,7 +93,7 @@ const { username, password, failed, signingIn, isLockedOut, handleSubmit, handle
 ## Password operations
 
 ```ts
-import { useAuth } from "regira/vue/auth"
+import { useAuth } from "@regira/modules/vue/auth"
 
 const { service } = useAuth()
 await service.changePassword({ currentPassword, newPassword })

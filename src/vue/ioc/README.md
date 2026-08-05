@@ -1,6 +1,6 @@
 # Regira IoC (front-end)
 
-`regira/vue/ioc` — a tiny inversion-of-control container that wires the app's services. Entity
+`@regira/modules/vue/ioc` — a tiny inversion-of-control container that wires the app's services. Entity
 services are registered and resolved through it. It also holds the library's cross-plugin
 **global options**.
 
@@ -24,7 +24,7 @@ so `<Icon>`, `<Loading>`, `<Paging>`, `<Debug>`, `<MyModal>`, … resolve withou
 turn on the flag before installing the plugins:
 
 ```ts
-import { configureGlobals } from "regira/vue/ioc"
+import { configureGlobals } from "@regira/modules/vue/ioc"
 
 configureGlobals({ registerComponentsGlobally: true })
 // then app.use(iconPlugin) / loadingPlugin / pagingPlugin / modalPlugin / debugPlugin
@@ -45,9 +45,9 @@ separately by the entities pooling layer, not here.
 
 ```
 // servicesPlugin is this module's `plugin` export:
-// import { plugin as servicesPlugin } from "regira/vue/ioc"
+// import { plugin as servicesPlugin } from "@regira/modules/vue/ioc"
 app.use(servicesPlugin, { configure: sp =>
-    sp.add("axios", () => axios)              // the shared HTTP instance (regira/vue/http)
+    sp.add("axios", () => axios)              // the shared HTTP instance (@regira/modules/vue/http)
       .add(PoolCache.name, () => defaultPoolCache) })
 
 // each entity setup.ts:

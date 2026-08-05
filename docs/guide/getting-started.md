@@ -1,30 +1,30 @@
 # Getting started
 
-`regira` is the Regira front-end library: TypeScript and Vue 3 building blocks
+`@regira/modules` is the Regira front-end library: TypeScript and Vue 3 building blocks
 (entities/CRUD, http, ioc, auth, ui, formatters, …) that pair with the Regira back-end packages.
 
 ## Install
 
-The library is published to the npm registry as [`regira`](https://www.npmjs.com/package/regira) —
+The library is published to the npm registry as [`@regira/modules`](https://www.npmjs.com/package/@regira/modules) —
 the published package ships a prebuilt `dist/`. The `prepare` build (`scripts/build.mjs`: `vite build`,
 `vue-tsc` declarations, SCSS copies, `_template` regeneration) runs at publish time, not on install:
 
 ```bash
-npm install regira
+npm install @regira/modules
 ```
 
 `npm install` resolves the **latest published version** and writes the caret range to `package.json` —
 don't pin a specific version by hand.
 
 > To pin an unreleased commit you can still install from the repo with
-> `"regira": "github:Regira/Regira-Modules"` — that path needs a `git` binary on `PATH` and runs the
+> `"@regira/modules": "github:Regira/Regira-Modules"` — that path needs a `git` binary on `PATH` and runs the
 > full `prepare` build on install, so expect it to be much slower than the registry install.
 
 Bare subpath imports resolve via the package `exports` map:
 
 ```ts
-import { EntityServiceBase } from "regira/vue/entities"
-import { initAxios } from "regira/vue/http"
+import { EntityServiceBase } from "@regira/modules/vue/entities"
+import { initAxios } from "@regira/modules/vue/http"
 ```
 
 ### Peer dependencies
@@ -49,7 +49,7 @@ A short alias keeps imports tidy in a consuming app (order matters):
 // vite.config.ts
 resolve: {
   alias: [
-    { find: "@/regira", replacement: fileURLToPath(new URL("./node_modules/regira/dist", import.meta.url)) },
+    { find: "@/regira", replacement: fileURLToPath(new URL("./node_modules/@regira/modules/dist", import.meta.url)) },
     { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
   ],
 }
@@ -59,7 +59,7 @@ resolve: {
 // tsconfig.app.json
 "compilerOptions": {
   "paths": {
-    "@/regira/*": ["./node_modules/regira/dist/*"],
+    "@/regira/*": ["./node_modules/@regira/modules/dist/*"],
     "@/*": ["./src/*"]
   }
 }
@@ -72,8 +72,8 @@ writes the app shell (`main.ts`, `App.vue`, router, dashboard + navbar, layout, 
 and one command per entity writes a complete, type-checked CRUD slice (~23 files; you customize ~8):
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs --shell     # app shell, once (--no-auth for apps without login)
-node node_modules/regira/_template/scaffold.mjs Product     # one slice per entity
+node node_modules/@regira/modules/_template/scaffold.mjs --shell     # app shell, once (--no-auth for apps without login)
+node node_modules/@regira/modules/_template/scaffold.mjs Product     # one slice per entity
 ```
 
 The scaffolded views are indicative of functionality, not appearance — restyle and restructure the

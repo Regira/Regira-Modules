@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watchEffect, type Ref } from "vue"
-import { Icon, injectModal } from "regira/vue/ui"
+import { Icon, injectModal } from "@regira/modules/vue/ui"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"

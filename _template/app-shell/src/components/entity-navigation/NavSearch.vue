@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue"
 import { useRouter } from "vue-router"
-import { IconButton } from "regira/vue/ui"
+import { IconButton } from "@regira/modules/vue/ui"
 import { useNavigation } from "./functions"
 const router = useRouter()
 const q = ref("")

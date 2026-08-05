@@ -47,7 +47,7 @@ export default {
 
 <script setup lang="ts" generic="T">
 import "./Autocomplete.scss"
-import { useAutocomplete, autocompleteDefaults, type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots } from "regira/vue/ui"
+import { useAutocomplete, autocompleteDefaults, type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots } from "@regira/modules/vue/ui"
 
 const emit = defineEmits<AutocompleteEmits<T>>()
 const props = withDefaults(defineProps<AutocompleteProps<T>>(), { ...autocompleteDefaults })

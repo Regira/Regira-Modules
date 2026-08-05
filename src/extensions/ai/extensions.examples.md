@@ -9,7 +9,7 @@ Every Regira demo app does exactly this in `main.ts` so `JSON.stringify(date)` e
 value the back-end expects (instead of the native UTC conversion):
 
 ```ts
-import dateSerializer from "regira/extensions/date-extensions"
+import dateSerializer from "@regira/modules/extensions/date-extensions"
 dateSerializer.use() // overrides Date.prototype.toJSON
 ```
 
@@ -19,7 +19,7 @@ The barrel default bundles convenience enablers — call them once, early, befor
 new prototype members:
 
 ```ts
-import extensions from "regira/extensions"
+import extensions from "@regira/modules/extensions"
 extensions.useArrayExtensions() // Array.prototype gains orderBy/groupBy/sum/…
 extensions.useDateExtensions() // Date.prototype.toJSON (local time)
 extensions.usePromiseExtensions() // Promise.debounce / Promise.enqueue

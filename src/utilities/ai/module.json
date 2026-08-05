@@ -1,6 +1,6 @@
 {
     "id": "regira_modules.utilities",
-    "import": "regira/utilities",
+    "import": "@regira/modules/utilities",
     "description": "Framework-agnostic helper library: array (LINQ-like), string, file/blob, datetime, color, html, http, image, number, object, promise, and clipboard utilities.",
     "tags": ["frontend", "typescript", "utilities", "regira_modules"]
 }

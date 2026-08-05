@@ -8,7 +8,7 @@ per use.
 `browse` opens a hidden file picker and resolves with the chosen `File[]`:
 
 ```ts
-import { FileHelper } from "regira/io"
+import { FileHelper } from "@regira/modules/io"
 
 const fh = new FileHelper()
 const [file] = await fh.browse({ accept: "application/json", multiple: false })
@@ -22,7 +22,7 @@ if (file) {
 `saveAs` normalises the input (File, Blob, URL, or base64) and triggers a browser download:
 
 ```ts
-import { FileHelper } from "regira/io"
+import { FileHelper } from "@regira/modules/io"
 
 const fh = new FileHelper()
 await fh.saveAs(blob) // uses the blob's own name/type
@@ -35,7 +35,7 @@ await fh.writeJson(report, "report.json").then((b) => fh.saveAs(b))
 `HTMLImageElement`; turn it back into a `Blob` with `getBlob`:
 
 ```ts
-import { ImageHelper } from "regira/io"
+import { ImageHelper } from "@regira/modules/io"
 
 const ih = new ImageHelper()
 const [picked] = await ih.browse({ accept: "image/*", multiple: false })

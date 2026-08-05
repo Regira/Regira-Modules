@@ -1,6 +1,6 @@
 # Regira Online — AI Agent Instructions
 
-The front-end online/offline layer (`regira/vue/online`): a tiny `useOnlineChecker` composable
+The front-end online/offline layer (`@regira/modules/vue/online`): a tiny `useOnlineChecker` composable
 plus a Vue plugin that keeps a single reactive `isOnline` ref in sync with the browser and exposes it
 app-wide as `$isOnline`. Use it to gate calls to the [entities client](../../entities/ai/entities.instructions.md)
 or [HTTP layer](../../http/ai/http.instructions.md) when the network is down.
@@ -10,8 +10,8 @@ or [HTTP layer](../../http/ai/http.instructions.md) when the network is down.
 ## Import
 
 ```ts
-import { useOnlineChecker, plugin } from "regira/vue/online"
-import onlinePlugin from "regira/vue/online" // default export === plugin
+import { useOnlineChecker, plugin } from "@regira/modules/vue/online"
+import onlinePlugin from "@regira/modules/vue/online" // default export === plugin
 ```
 
 There are no granular subpaths — everything is re-exported from the package root.

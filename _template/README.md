@@ -8,24 +8,24 @@ files.
 
 ```bash
 # from your app root, with regira installed:
-node node_modules/regira/_template/scaffold.mjs Product
+node node_modules/@regira/modules/_template/scaffold.mjs Product
 # → creates src/entities/products/ with the names filled in
 # no-auth app? also strip the auth-store reload hooks:
-node node_modules/regira/_template/scaffold.mjs Product --no-auth
+node node_modules/@regira/modules/_template/scaffold.mjs Product --no-auth
 # owns a collection (back-end e.Related)? scaffold its editable table too (repeat --owns per child):
-node node_modules/regira/_template/scaffold.mjs Order --owns OrderLine
+node node_modules/@regira/modules/_template/scaffold.mjs Order --owns OrderLine
 # a to-one relation? generate the pooled overview column AND its advanced filter (repeat --rel per relation):
-node node_modules/regira/_template/scaffold.mjs Intervention --rel Vehicle
+node node_modules/@regira/modules/_template/scaffold.mjs Intervention --rel Vehicle
 # the entity owns files? scaffold the shared attachments slice and wire it into this one:
-node node_modules/regira/_template/scaffold.mjs Intervention --attachments
+node node_modules/@regira/modules/_template/scaffold.mjs Intervention --attachments
 # server exposes the resource under a different name than the slice folder?
-node node_modules/regira/_template/scaffold.mjs PartyRelationshipType --api relationship-types
+node node_modules/@regira/modules/_template/scaffold.mjs PartyRelationshipType --api relationship-types
 ```
 
 Or copy by hand and replace the tokens:
 
 ```bash
-cp -r node_modules/regira/_template/entity-slice src/entities/products
+cp -r node_modules/@regira/modules/_template/entity-slice src/entities/products
 ```
 
 | Token             | Replace with                             | Example           |
@@ -65,8 +65,8 @@ used only by that hook); for an existing slice, delete those commented lines and
 the config-driven dashboard + navbar, layout chrome, and views. Scaffold it once into a new app:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs --shell            # auth-on
-node node_modules/regira/_template/scaffold.mjs --shell --no-auth  # no-auth (omits the auth files + wiring)
+node node_modules/@regira/modules/_template/scaffold.mjs --shell            # auth-on
+node node_modules/@regira/modules/_template/scaffold.mjs --shell --no-auth  # no-auth (omits the auth files + wiring)
 ```
 
 It writes `src/**` + `public/config.json` + `public/data/translations.json`, skipping files that already
@@ -80,8 +80,8 @@ entities setup guide → Install first.
 app — naming an entity does that and wires the slice up in one go:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs Product --attachments   # shared slice + wire it into a NEW Product slice
-node node_modules/regira/_template/scaffold.mjs --attachments           # shared slice only (--force overwrites)
+node node_modules/@regira/modules/_template/scaffold.mjs Product --attachments   # shared slice + wire it into a NEW Product slice
+node node_modules/@regira/modules/_template/scaffold.mjs --attachments           # shared slice only (--force overwrites)
 ```
 
 Into a slice it generates, it writes the `attachments?: Array<EntityAttachment>` field, the
@@ -101,11 +101,11 @@ paging, autocomplete, feedback, tabs and account forms down to the small input w
 debug, lang and gis components — for when CSS/slots aren't enough and you want the markup itself:
 
 ```bash
-node node_modules/regira/_template/scaffold.mjs --ui list          # what's available
-node node_modules/regira/_template/scaffold.mjs --ui DefaultModal  # → src/components/ui/ (--dir overrides)
+node node_modules/@regira/modules/_template/scaffold.mjs --ui list          # what's available
+node node_modules/@regira/modules/_template/scaffold.mjs --ui DefaultModal  # → src/components/ui/ (--dir overrides)
 ```
 
-The copy's imports are rewritten to public `regira/...` specifiers, so behavior (composables,
+The copy's imports are rewritten to public `@regira/modules/...` specifiers, so behavior (composables,
 contract types) keeps flowing from the library — only the markup is yours. Restyle freely; keep the
 contract (props/emits/slots, `rg-*`/`is-*` hooks, responsive) per the ui customize guide. The ejected
 modal is registered app-wide via `app.use(modalPlugin, { Modal })`; the ejected loading indicator via

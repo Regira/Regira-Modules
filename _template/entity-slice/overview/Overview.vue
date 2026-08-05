@@ -98,10 +98,10 @@
 </template>
 
 <script setup lang="ts">
-import { useSearchView, useRouteOverview, type OverviewEmits } from "regira/vue/entities"
-import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "regira/vue/ui"
-import { Debug } from "regira/vue/debug"
-import { useAuthStore } from "regira/vue/auth"
+import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
+import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
+import { Debug } from "@regira/modules/vue/debug"
+import { useAuthStore } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"

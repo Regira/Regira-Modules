@@ -1,6 +1,6 @@
 # Regira App (front-end)
 
-`regira/vue/app` — app lifecycle and culture for a Regira Vue app: a Pinia `AppStore` tracking
+`@regira/modules/vue/app` — app lifecycle and culture for a Regira Vue app: a Pinia `AppStore` tracking
 `AppStatus` (`Init` → `Loading` → `Mounting` → `Ready`) and culture, a plugin that exposes them as
 `$appStatus` / `$culture` / `$isReady` globals, and `onAppReady` / `whenAppReady` hooks to defer work
 until the app is ready.

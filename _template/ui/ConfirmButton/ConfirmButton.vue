@@ -24,9 +24,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { Icon } from "regira/vue/ui"
-import { injectModal } from "regira/vue/ui"
-import { confirmButtonDefaults, type ConfirmButtonProps, type ConfirmButtonEmits, type ConfirmButtonSlots } from "regira/vue/ui"
+import { Icon } from "@regira/modules/vue/ui"
+import { injectModal } from "@regira/modules/vue/ui"
+import { confirmButtonDefaults, type ConfirmButtonProps, type ConfirmButtonEmits, type ConfirmButtonSlots } from "@regira/modules/vue/ui"
 
 const emit = defineEmits<ConfirmButtonEmits>()
 withDefaults(defineProps<ConfirmButtonProps>(), { ...confirmButtonDefaults })

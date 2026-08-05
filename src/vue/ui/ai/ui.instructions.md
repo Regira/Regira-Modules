@@ -1,6 +1,6 @@
 # Regira UI — AI Agent Instructions
 
-The front-end UI toolkit (`regira/vue/ui`): the Vue components, composables, and plugins the
+The front-end UI toolkit (`@regira/modules/vue/ui`): the Vue components, composables, and plugins the
 [entity views](../../entities/ai/entities.instructions.md) render with — paging, loading, feedback,
 modal, tabs, icons, autocomplete, form inputs, and a reactive screen helper.
 
@@ -20,17 +20,17 @@ Everything is re-exported from the barrel; three areas also have dedicated sub-p
 exports:
 
 ```ts
-import { Paging, LoadingContainer, useFeedback, TabContainer, Tab, BsIcon, useScreen } from "regira/vue/ui"
-import { Pending, Success, ErrorSummary, type FeedbackError } from "regira/vue/ui/feedback"
-import { type IIconProvider, type IconProps } from "regira/vue/ui/icons"
-import { DefaultModal } from "regira/vue/ui/modal" // styles: import "regira/style.css" once
+import { Paging, LoadingContainer, useFeedback, TabContainer, Tab, BsIcon, useScreen } from "@regira/modules/vue/ui"
+import { Pending, Success, ErrorSummary, type FeedbackError } from "@regira/modules/vue/ui/feedback"
+import { type IIconProvider, type IconProps } from "@regira/modules/vue/ui/icons"
+import { DefaultModal } from "@regira/modules/vue/ui/modal" // styles: import "@regira/modules/style.css" once
 ```
 
 ## Plugins (install once at startup)
 
 Plugins configure globals only — **components are imported locally by default**; import every component
-from `regira/vue/ui` (or its sub-path). To opt back into app-wide registration, set
-`configureGlobals({ registerComponentsGlobally: true })` (from `regira/vue/ioc`) before
+from `@regira/modules/vue/ui` (or its sub-path). To opt back into app-wide registration, set
+`configureGlobals({ registerComponentsGlobally: true })` (from `@regira/modules/vue/ioc`) before
 installing the plugins — see the **Global registration** column.
 
 | Plugin           | Configures                                                                      | Options                                                              | Global registration                            |
@@ -51,7 +51,7 @@ screen-reader text comes from an injectable `loadingLabel` (`app.provide("loadin
 `iconPlugin` (defaults to Bootstrap glyphs). Modals need no plugin either — but installing
 `app.use(modalPlugin, { Modal: MyBrandedModal })` swaps **every** modal in the app, including the ones
 rendered inside library components (`ConfirmButton`, `ErrorSummary`, `LoginModal`, …), which resolve it
-via `injectModal()`. Import `regira/style.css` once in `main.ts` for the backdrop/overlay styling.
+via `injectModal()`. Import `@regira/modules/style.css` once in `main.ts` for the backdrop/overlay styling.
 
 The `Xxx?` component options take a replacement skin (compile-checked against the matching props
 contract) and swap what the plugin registers globally — so custom variants also reach apps that use
@@ -118,13 +118,13 @@ it before writing a new component.
   import it (`bootstrap-icons`/Font Awesome) or every glyph stays blank.
 - **Modal is a component, not a composable.** There is no `openModal()` here — use `DefaultModal` with
   `:is-visible` (one-way; it has no `update:isVisible` emit) plus `@close`/`@cancel` to flip your own state
-  (its backdrop/overlay CSS ships in `regira/style.css`). For entity edit-in-modal, use `useModal` from
+  (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from
   the [entities](../../entities/ai/entities.signatures.md) module.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an
   overview/form composable), not a string.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
-  internally, so the app must install the plugin from `regira/vue/directives`
-  (`import { clickOutside } from "regira/vue/directives"; app.use(clickOutside)`); without it Vue warns
+  internally, so the app must install the plugin from `@regira/modules/vue/directives`
+  (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns
   "Failed to resolve directive: click-outside" and the dropdown never closes.
 - **Sub-path exports.** `FeedbackError`/`FeedbackIn` (from `/feedback`) and the modal `style.scss`
   (from `/modal`) are sub-path-only — everything else is on the main barrel, except part of the screen

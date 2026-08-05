@@ -1,9 +1,9 @@
 # Regira IO — API Signatures Reference
 
-Verbatim TypeScript signatures for `regira/io`. Do not guess — look up here first.
+Verbatim TypeScript signatures for `@regira/modules/io`. Do not guess — look up here first.
 
 ```ts
-import { FileHelper, ImageHelper } from "regira/io"
+import { FileHelper, ImageHelper } from "@regira/modules/io"
 ```
 
 ## FileHelper
