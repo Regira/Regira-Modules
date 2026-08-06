@@ -435,6 +435,12 @@ src/entities/<name>/             # one entity slice — copy this folder set for
 > **erased** `import type { … }` form: the inline `import { type … }` survives to runtime under
 > `verbatimModuleSyntax`, and two slices that reference each other then form a barrel cycle that only the dev
 > server reports (`Cannot access 'Entity' before initialization`; `vue-tsc` and `npm run build` stay green).
+>
+> ⚠️ A **value** import (`InputSelector`, `FormModalButton`, `useEntityStore`) has no erased form, so it is
+> the edge that can still cycle. The barrel is entirely static, and pulling it evaluates that slice's
+> `data/store.ts`, which reads `Entity.name` immediately. One direction is fine — `--rel` relies on it. When
+> two slices each need a **value** from the other, break the second edge with a deep import of the module
+> itself (`@/entities/employees/details/FormModalButton.vue`, `@/entities/employees/data/store`).
 
 > **Title-agnostic, archive-agnostic by default.** The display boilerplate (overview rows, selectors)
 > renders `item.$title` — the accessor every `Entity` implements — so point `$title` at your label field in

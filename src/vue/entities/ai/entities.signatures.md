@@ -113,6 +113,8 @@ override toEntity(item: object): Entity {
     if (item instanceof Entity) return item
     const entity = Object.assign(this.createInstance(Entity as new () => Entity), item || {})
     if (entity.startsOn && !(entity.startsOn instanceof Date)) entity.startsOn = new Date(entity.startsOn)
+    // an owned-collection lift needs the same guard — a fresh array is a mutation like a fresh Date
+    if (entity.lines?.some((row) => !(row instanceof Line))) entity.lines = entity.lines.map((row) => Line.create(row))
     return entity
 }
 ```
@@ -340,6 +342,12 @@ export type RouteOverviewOut = {
 }
 export function useRouteOverview({ pagingInfo, searchObject, defaultPageSize, handler }: RouteOverviewIn): RouteOverviewOut
 ```
+
+`updateOverviewRoute` pushes onto the **current** route — it spreads `router.currentRoute` and replaces only
+`query`, never naming a slice route. So a slice's `Overview` can be embedded in any app-owned view (a saved-
+queue rail, a split view, a dashboard with a live list) and its filters and paging sync to that view's URL
+instead of navigating away to `/entities`. The paired constraint: `routeWatcher` re-runs the search only while
+the route **name** is unchanged, so a filter handler that pushes to a different named route stops the watcher.
 
 `OverviewProps<T>` / `OverviewEmits<T>` (for custom overview components):
 

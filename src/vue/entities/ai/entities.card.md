@@ -96,6 +96,14 @@
   references are normal in a CRUD app, so prefer the erased form everywhere; it costs nothing.
   Inside a slice, import its **own** model as the default (`import type Entity from "./data/Entity"`) —
   `import { type Entity }` from the data module grabs the `const` value binding and fails `TS2749`.
+- **⚠️ A cross-slice *value* import cannot be erased, so it is the half that can still cycle.** `--rel`
+  generates `import { FormModalButton as XButton, useEntityStore as useXStore } from "@/entities/xs"` into
+  `overview/ListItem.vue` and `import { InputSelector as XInputSelector }` into `filter/FilterAdv.vue`. The
+  barrel is fully static — no lazy or async indirection — so importing it eagerly evaluates that slice's
+  `data/store.ts`, and a slice referencing back closes the same `Cannot access 'Entity' before
+  initialization` loop the erased type import avoids, with the same dev-server-only tell. One direction is
+  always safe; when both directions need a **value**, deep-import the module instead of the barrel
+  (`@/entities/xs/details/FormModalButton.vue`, `@/entities/xs/data/store`) on the second edge.
 
 ## Relations & owned collections
 
@@ -166,11 +174,15 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
   A form with 2+ related collections splits into `TabContainer` tabs; overview rows use flexible
   `col text-truncate` + breakpoint-hidden columns, so the row fits without scrolling sideways.
 - **Pooling is the point of the store.** Views use the store's pooled `service` (saves propagate to every
-  view). A nested DTO from `?includes=` is a plain object — no `$id`/`$title` — so route every displayed
-  relation through the owning slice's `fromPool(item.relation)`, which both rehydrates it and returns the
-  one shared instance, so editing that entity anywhere relabels it here. `Object.assign(new Category(),
-dto)` also rehydrates but yields a **detached copy that goes stale** — use it only when a snapshot is
-  what you want. Custom endpoints live on the raw `get<EntityService>(Entity.name)`, not the pooled store.
+  view). A nested DTO from `?includes=` is a plain object — no `$id`/`$title` — so a relation **you render
+  yourself** (a list cell, a chip, a custom label) goes through the owning slice's `fromPool(item.relation)`,
+  which both rehydrates it and returns the one shared instance, so editing that entity anywhere relabels it
+  here. The generated `InputSelector`, `Autocomplete`, `Selector` and `SelectorList` already pool
+  `modelValue` internally, so **a relation on a form binds the nested object directly** —
+  `<BrandSelector v-model="item.brand" v-model:idValue="item.brandId" />` — and needs no `fromPool` round
+  trip, no local `ref` and no `watch`. `Object.assign(new Category(), dto)` also rehydrates but yields a
+  **detached copy that goes stale** — use it only when a snapshot is what you want. Custom endpoints live on
+  the raw `get<EntityService>(Entity.name)`, not the pooled store.
 - **A displayed relation is a component, not text**: the related entity's `FormModalButton` beside its
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK

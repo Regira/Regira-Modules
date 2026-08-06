@@ -87,6 +87,14 @@ override toEntity(item: object): Entity {
 computed's own dependency and throws `Maximum recursive updates exceeded` **against the library
 component** — the error names the wrong code. Keep `toEntity` idempotent.
 
+The same rule governs **every** conversion in the override, including the owned-collection lift
+([Owned rows with scalar fields](#owned-rows-with-scalar-fields--the-inline-table)) — a fresh array counts
+as a mutation just as a fresh `Date` does, so guard the reassignment rather than mapping unconditionally:
+
+```ts
+if (e.orderLines?.some((row) => !(row instanceof OrderLine))) e.orderLines = e.orderLines.map((row) => OrderLine.create(row))
+```
+
 ## Transient client-only fields
 
 `prepareItem` strips **top-level** properties whose key starts with **`_`** before sending — use them for
@@ -295,10 +303,16 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 > **A single-FK `InputSelector` needs BOTH bindings to show a value:** `v-model` (the related **object**, which
 > the control displays via its `$title`) **and** `v-model:idValue` (the **FK** that is saved). Bind only
 > `idValue` and a populated form renders the control blank — the most common "why is the picker empty" bug.
+> In dev the control `console.warn`s when it sees `idValue` without `v-model`.
 >
 > ```vue
 > <BrandSelector v-model="item.brand" v-model:idValue="item.brandId" />
 > ```
+>
+> Bind `item.brand` **straight off the entity**. The generated control runs `modelValue` through its own
+> slice's `fromPool`, which rehydrates the plain nested DTO and returns the shared instance, and it back-fills
+> from `idValue` on mount when the relation was not included. A local `ref` fed by a `watch`, or a writable
+> computed wrapping `fromPool`, is redundant here — pool by hand only for relations you render yourself.
 
 > **⚠️ Delete semantics differ.** The multi-`Selector` **hard-removes** on its delete icon — the row leaves
 > the array immediately, so it cannot deliver the marked-deleted UX (visible, undoable until save). For any
@@ -548,16 +562,23 @@ Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines"
 > // data/EntityService.ts — the owning entity's service
 > override toEntity(item: object): Entity {
 >     const entity = item instanceof Entity ? item : Object.assign(this.createInstance(Entity), item || {})
->     // OrderLine.create is the child's named constructor (scaffolded with the owned slice); map to a NEW
->     // array — the incoming one belongs to the caller's payload
->     entity.orderLines = entity.orderLines?.map((row) => OrderLine.create(row))
+>     // OrderLine.create is the child's named constructor (scaffolded with the owned slice). Only reassign
+>     // when a row still needs lifting, and map to a NEW array — the incoming one belongs to the caller
+>     if (entity.orderLines?.some((row) => !(row instanceof OrderLine)))
+>         entity.orderLines = entity.orderLines.map((row) => OrderLine.create(row))
 >     return entity
 > }
 > ```
 >
-> Two details: guard for absence (`?.`) because `toEntity` also runs for `newEntity({})`, where the collection
-> is missing; and call the factory from an arrow rather than passing it to `map` bare, so `map`'s index
-> argument can never land on a second parameter.
+> Three details. Guard for absence (`?.`) because `toEntity` also runs for `newEntity({})`, where the
+> collection is missing. Call the factory from an arrow rather than passing it to `map` bare, so `map`'s index
+> argument can never land on a second parameter. And ⚠️ **guard the reassignment with `.some(row => !(row
+> instanceof OrderLine))`** — this is the collection form of the
+> [`toEntity` idempotency rule](#date-hydration), and it is load-bearing, not style: an unconditional `map`
+> builds a fresh array on every call, and `toEntity` runs inside computeds (`fromPool`, the library
+> `FormModalButton.modalTitle`), so the new array mutates the computed's own dependency and Vue aborts with
+> `Maximum recursive updates exceeded` **against the library component**. The slice builds green and every
+> page renders; the error names the wrong file.
 >
 > ⚠️ **That covers the stored rows, not the add-row.** `newItem` never passes through any `toEntity` — it is
 > minted by the composable — so if it needs defaults or a real prototype, seed it after **both** mount and

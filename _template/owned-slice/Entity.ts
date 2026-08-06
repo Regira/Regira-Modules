@@ -22,9 +22,15 @@ export class __Child__ extends EntityBase {
 
     /**
      * Named constructor for a row that arrives as plain JSON — which every stored row does: only the ROOT item
-     * passes through a service's `toEntity`. Use it in the owning service's `toEntity` to lift the collection
-     * (`entity.__children__ = entity.__children__?.map((row) => __Child__.create(row))`), and wherever the view
-     * mints a row itself; without it the row has no getters and no field defaults.
+     * passes through a service's `toEntity`. Use it in the owning service's `toEntity` to lift the collection,
+     * guarding the reassignment so the lift stays idempotent — `toEntity` runs inside computeds, and an
+     * unconditional `map` builds a fresh array on every call, which throws "Maximum recursive updates
+     * exceeded" against a LIBRARY component:
+     *
+     *     if (entity.__children__?.some((row) => !(row instanceof __Child__)))
+     *         entity.__children__ = entity.__children__.map((row) => __Child__.create(row))
+     *
+     * Also use it wherever the view mints a row itself; without it the row has no getters and no field defaults.
      */
     static create(values?: object): __Child__ {
         return Object.assign(new __Child__(), values || {})
