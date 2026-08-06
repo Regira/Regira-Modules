@@ -10,6 +10,19 @@ heading.
 - `vue/entities` setup guide: the _Install_ section now describes the npm-registry install (prebuilt
   `dist/`, no on-install build), with the `github:Regira/Regira-Modules` specifier kept only as the
   unreleased-commit fallback — matching the README and getting-started guide.
+- `vue/entities` guides and `_template/`: the owned-collection lift in `toEntity` is shown with its
+  idempotency guard (`if (e.lines?.some((row) => !(row instanceof Line)))`). `toEntity` runs inside
+  computeds, so an unconditional `map` rebuilds the array on every call and throws
+  `Maximum recursive updates exceeded` **against a library component** — the guard was documented for date
+  conversion but the collection-lift recipe, which the card instructs you to write, omitted it.
+- `vue/entities` card and setup guide: a relation on a form binds the nested object directly —
+  `InputSelector`, `Autocomplete`, `Selector` and `SelectorList` pool `modelValue` themselves, so the
+  manual `fromPool` round trip applies only to relations the app renders itself. Cross-slice **value**
+  imports (`FormModalButton`, `useEntityStore`, `InputSelector`) are also documented as the remaining
+  barrel-cycle edge: `import type` is erased and safe, a value import is not, and `--rel` emits them.
+- `vue/entities` signatures: `updateOverviewRoute` pushes onto the **current** route, so a slice
+  `Overview` can be embedded in an app-owned view without hijacking navigation — paired with the
+  constraint that `routeWatcher` only re-runs while the route name is unchanged.
 
 ## 6.0.0 — 2026-08-05
 

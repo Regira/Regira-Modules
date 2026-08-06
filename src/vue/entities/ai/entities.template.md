@@ -583,9 +583,11 @@ export class EntityService extends EntityServiceBase<Entity> {
     }
 
     // Keep this IDEMPOTENT — it runs inside computeds (fromPool, FormModalButton.modalTitle). Return an
-    // existing instance untouched, and guard any extra date conversion you add:
+    // existing instance untouched, and guard every conversion you add — dates:
     //   if (typeof (e as any).publishedOn === "string") e.publishedOn = new Date((e as any).publishedOn)
-    // An unconditional `new Date(x)` throws "Maximum recursive updates exceeded" against a LIBRARY component.
+    // and owned-collection lifts, where a fresh array is a mutation just like a fresh Date:
+    //   if (e.children?.some((row) => !(row instanceof Child))) e.children = e.children.map((row) => Child.create(row))
+    // An unconditional conversion throws "Maximum recursive updates exceeded" against a LIBRARY component.
     override toEntity(item: object): Entity {
         return item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
     }
