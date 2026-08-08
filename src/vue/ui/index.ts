@@ -22,6 +22,7 @@ export {
     FeedbackStatus,
     feedbackDefaults,
     plugin as feedbackPlugin,
+    useAppFeedback,
     type FeedbackOut,
     type FeedbackEmits,
     type FeedbackProps,

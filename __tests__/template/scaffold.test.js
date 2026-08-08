@@ -80,6 +80,18 @@ describe("scaffold.mjs entity name", () => {
 
         expect(out).not.toContain("DOM global")
     })
+
+    test("warns when an --owns or --rel class shadows a DOM global", () => {
+        // The child/relation classes land in the same barrel, so they shadow the global just as effectively —
+        // and the warning has to precede generation, or acting on it costs a scaffold-and-delete cycle.
+        const owns = run("Diary", "--owns", "Event", "--no-auth")
+        expect(owns).toContain("DOM global")
+        expect(owns.indexOf("DOM global")).toBeLessThan(owns.indexOf("✓ Scaffolded"))
+
+        const rel = run("Venue", "--rel", "Location", "--no-auth")
+        expect(rel).toContain("DOM global")
+        expect(rel.indexOf("DOM global")).toBeLessThan(rel.indexOf("✓ Scaffolded"))
+    })
 })
 
 describe("scaffold.mjs derived paths", () => {
@@ -240,6 +252,27 @@ describe("scaffold.mjs owned collections", () => {
         expect(overview).toContain('class="menu-items-editor"')
         expect(overview).not.toContain("menuItems-editor")
         expect(overview).toContain('v-model="item.menuItems"') // the BINDING stays the camelCase JSON key
+    })
+
+    test("--picker emits chips over a plain join row, not the scalar editable table", () => {
+        // A pure join has nothing to type into, and InputSelectorInline constrains rows to
+        // `{ _deleted?, id? }` — giving it the EntityBase row class is what makes add({...}) fail to compile.
+        run("Article", "--owns", "ArticleCategory", "--as", "categories", "--picker", "Category", "--no-auth")
+        const dir = ["src", "entities", "articles", "article-categories"]
+        const entity = readFileSync(app(...dir, "Entity.ts"), "utf8")
+        const overview = readFileSync(app(...dir, "Overview.vue"), "utf8")
+
+        expect(entity).toContain("export interface ArticleCategory")
+        expect(entity).toContain("categoryId: number")
+        expect(entity).not.toContain("extends EntityBase")
+        expect(overview).toContain("InputSelectorInline")
+        expect(overview).toContain("add({ categoryId: x.id!, category: x })")
+        expect(overview).not.toContain("useOwnedCollection")
+    })
+
+    test("--picker names the OTHER side of the join", () => {
+        expect(() => run("Article", "--owns", "ArticleCategory", "--picker", "ArticleCategory", "--no-auth")).toThrow(/repeats the --owns class/)
+        expect(() => run("Article", "--rel", "Category", "--picker", "Category", "--no-auth")).toThrow(/directly after the --owns/)
     })
 })
 

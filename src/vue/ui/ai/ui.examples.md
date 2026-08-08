@@ -159,6 +159,8 @@ import { DateInput } from "@regira/modules/vue/ui"
 </script>
 <template>
     <DateInput v-model="item.publishedOn" culture="nl-BE" />
+    <!-- show-time renders <input type="datetime-local"> and keeps the time on the emitted Date -->
+    <DateInput v-model="item.startsAt" show-time />
 </template>
 ```
 

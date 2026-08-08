@@ -80,7 +80,7 @@ defineProps<{ node: TreeNode<INavItem> }>()
 A Regira Entities back-end with recursive-entity support serves flat `{ parentId, childId, level, rootId }`
 rows from `GET {api}/family|ancestors|offspring`. Assemble those into a `TreeList` and render with a
 recursive component pair — full worked slice (assembly, expand/collapse, drag-move):
-`get_package("regira_modules.vue.entities", section: "blueprints", heading: "Family tree view")`.
+`get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Family tree view")`.
 
 ## See also
 

@@ -502,11 +502,12 @@ object — that refetches on every keystroke.
 
 ```ts
 import type { FeedbackOut } from "@regira/modules/vue/ui"
+// reactive(): read the fields directly, no .value — :disabled="feedback.isPending"
 export interface FeedbackOut {
-    status: Ref<FeedbackStatus> // "" | "Pending" | "Success" | "Failed"
-    message: Ref<string>
-    error: Ref<string | Record<string, string> | undefined>
-    isPending: ComputedRef<boolean> // busy flag — gate submit buttons on it
+    status: FeedbackStatus // "" | "Pending" | "Success" | "Failed"
+    message: string
+    error: string | Record<string, string> | undefined
+    readonly isPending: boolean // busy flag — gate submit buttons on it
     pending(msg: string): void // every setter REQUIRES a message
     success(msg: string): void
     fail(msg: string, ex?: string | Record<string, string>): void

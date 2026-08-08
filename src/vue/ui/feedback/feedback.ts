@@ -1,4 +1,4 @@
-import { computed, ref, type ComputedRef, type Ref } from "vue"
+import { computed, reactive, ref } from "vue"
 
 export enum FeedbackStatus {
     none = "",
@@ -16,12 +16,16 @@ export type FeedbackIn = {
  * yourself and pass `ex.response?.data?.errors`.
  */
 export type FeedbackError = string | Record<string, string>
+/**
+ * A reactive object, not a bag of refs: read the fields directly (`feedback.isPending`), in script and
+ * template alike, and bind them without `.value` — `:disabled="feedback.isPending"`.
+ */
 export interface FeedbackOut {
-    status: Ref<FeedbackStatus>
-    message: Ref<string>
-    error: Ref<FeedbackError | undefined>
+    status: FeedbackStatus
+    message: string
+    error: FeedbackError | undefined
     /** busy flag — `status === FeedbackStatus.pending`, so a view can disable its buttons without re-deriving it */
-    isPending: ComputedRef<boolean>
+    readonly isPending: boolean
 
     pending(msg: string): void
     success(msg: string): void
@@ -92,7 +96,8 @@ export function useFeedback({ autoHideDelay = 1500 }: FeedbackIn = {}): Feedback
         }
     }
 
-    return {
+    // reactive() unwraps the refs, so consumers never write `.value` — the internals keep using them
+    return reactive({
         status,
         message,
         error,
@@ -102,7 +107,7 @@ export function useFeedback({ autoHideDelay = 1500 }: FeedbackIn = {}): Feedback
         success,
         fail,
         reset,
-    }
+    }) as FeedbackOut
 }
 
 export default useFeedback

@@ -447,9 +447,30 @@ sync overwrites them on every save. The genuine owned-vs-first-class trade-off i
 
 Four numbered steps, one per layer:
 
-1. **Model** — the join rows live on the parent: `articleCategories?: Array<ArticleCategory>` where the
-   row type carries `categoryId`, the nested `category?`, and `_deleted?: boolean`. New rows need no id —
-   `Related()` inserts rows that arrive without one.
+`scaffold.mjs <Parent> --owns <Join> --picker <Target>` generates all of this. The steps below are what it
+emits — read them when hand-writing the recipe or adapting the generated files.
+
+1. **Model** — the join rows live on the parent: `articleCategories?: Array<ArticleCategory>`. Declare the
+   row as a plain **interface**, not an `EntityBase` subclass:
+
+    ```ts
+    // src/entities/articles/article-categories/Entity.ts
+    import type { Entity as Category } from "@/entities/categories"
+
+    export interface ArticleCategory {
+        id?: number
+        categoryId: number
+        category?: Category
+        _deleted?: boolean
+    }
+    ```
+
+    `InputSelectorInline` constrains rows to `{ _deleted?: boolean; id?: number | string | null }` and asks
+    for nothing else, and `Related()` inserts rows that arrive without an id — so a row minted by `add(...)`
+    needs no `id`, no `$id` and no `$title`. Reaching for the model class instead is what makes the `add({…})`
+    in step 2 fail with _"missing the following properties: id, $id, $title"_. A join row that also carries a
+    scalar of its own is not a pure join — edit it as a table (previous section) instead.
+
 2. **Render** — `InputSelectorInline` (`@regira/modules/vue/entities`) renders each row as a chip with a
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
    this session via `add` are removed outright — tracked by identity, so the join-row shape needs no `id`)
@@ -478,7 +499,7 @@ Four numbered steps, one per layer:
         <InputSelectorInline v-model="item.articleCategories" :row-key="(r) => r.categoryId" :exclude-key="(r) => r.categoryId">
             <template #chip="{ row }">
                 <CategoryButton :modelValue="hydrate(row.category)" />
-                {{ row.category?.title }}
+                {{ hydrate(row.category)?.$title }}
             </template>
             <template #selector="{ add, exclude }">
                 <CategorySelector :filter-defaults="{ exclude }" @select="(c?: Category) => c && add({ categoryId: c.id!, category: c })" />
@@ -490,7 +511,9 @@ Four numbered steps, one per layer:
     The chip embeds the related entity's `FormModalButton` (an edit affordance) — don't simplify it to a
     bare label. `hydrate` widens the join-DTO and pools it in one step, so an edit through the chip's own
     modal relabels it live; `Object.assign(new Category(), row.category)` hydrates too but yields a detached
-    copy whose label goes stale until a reload.
+    copy whose label goes stale until a reload. Label off the hydrated instance, not the raw row: a nested
+    DTO carries the API's fields but none of the model's getters, so `row.category.$title` reads `undefined`
+    with no error to point at.
 
 3. **Purge on save** — the `prepareItem` override from [Transient client-only fields](#transient-client-only-fields)
    filters `_deleted` rows per collection; `Related()` then deletes by omission. Purge **every nesting
@@ -573,7 +596,7 @@ Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines"
 > Three details. Guard for absence (`?.`) because `toEntity` also runs for `newEntity({})`, where the
 > collection is missing. Call the factory from an arrow rather than passing it to `map` bare, so `map`'s index
 > argument can never land on a second parameter. And ⚠️ **guard the reassignment with `.some(row => !(row
-> instanceof OrderLine))`** — this is the collection form of the
+instanceof OrderLine))`** — this is the collection form of the
 > [`toEntity` idempotency rule](#date-hydration), and it is load-bearing, not style: an unconditional `map`
 > builds a fresh array on every call, and `toEntity` runs inside computeds (`fromPool`, the library
 > `FormModalButton.modalTitle`), so the new array mutates the computed's own dependency and Vue aborts with
@@ -767,7 +790,8 @@ protected override prepareItem(item: Owner): Owner {
 
 ## Form validation & error handling
 
-`useForm` returns the `feedback: FeedbackOut` it drives (`status`/`message`/`error` refs +
+`useForm` returns the `feedback: FeedbackOut` it drives — a `reactive()` object, so read its fields
+directly, without `.value` (`status`/`message`/`error`/`isPending` +
 `pending(msg)`/`success(msg)`/`fail(msg, err?)`/`reset()`). `handleSubmit` already calls `pending("Saving…")` → `success("Saved")`,
 or on failure `fail(...)` **and re-throws** — so wrap the call. The failure mapping is fixed:
 
@@ -817,7 +841,7 @@ async function submit() {
 }
 
 // client errors first, then the server's 400 field map (a Record) on feedback.error
-const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.error.value === "object" ? feedback.error.value?.[name] : undefined)
+const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.error === "object" ? feedback.error?.[name] : undefined)
 </script>
 
 <template>
@@ -833,7 +857,7 @@ const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.erro
             <input v-model.number="item.price" type="number" step="0.01" class="form-control" :class="{ 'is-invalid': fieldError('price') }" />
             <div class="invalid-feedback">{{ fieldError("price") }}</div>
         </div>
-        <button type="submit" class="btn btn-primary" :disabled="feedback.status.value === FeedbackStatus.pending">Save</button>
+        <button type="submit" class="btn btn-primary" :disabled="feedback.isPending">Save</button>
     </form>
 </template>
 ```

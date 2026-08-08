@@ -34,6 +34,11 @@
 //                       plural of the child, OrderLine → orderLines). After --rel: the to-one navigation property
 //                       (default camelCase of the class, Employee → employee; its FK is that + Id). Place it right after its --owns/--rel:
 //                       --owns Row --as orderRows  /  --rel Employee --as assignedToEmployee
+//   --picker <Target>   the --owns before it is a PURE JOIN onto <Target> — only the two FKs, no scalar fields
+//                       of its own: emit InputSelectorInline chips selecting <Target> instead of an editable
+//                       table, over a plain join-row interface. Chains after --as; the picked slice must
+//                       already be scaffolded. A join row that also carries a scalar (a quantity, a status)
+//                       is not pure — leave --picker off and edit it as a table.
 //   --shell             scaffold the app shell (toolchain, main.ts, App.vue, config, router, dashboard/navbar, layout, views) into the app root
 //   --ui <Component>    copy a UI-kit component's reference skin into the app for free restyling; the copy
 //                       imports only public @regira/modules/... API, so behavior keeps flowing from the library
@@ -69,7 +74,7 @@ const opt = (flag, fallback) => {
 }
 // The entity name is the first bare token — but a flag's VALUE is bare too, so `--dir src/modules` would
 // otherwise be read as the entity (and `--attachments --dir x` would die on "SrcModules is not PascalCase").
-const VALUE_FLAGS = new Set(["--dir", "--api", "--plural", "--singular", "--ui", "--rel", "--owns", "--as"])
+const VALUE_FLAGS = new Set(["--dir", "--api", "--plural", "--singular", "--ui", "--rel", "--owns", "--as", "--picker"])
 const firstBareArg = () => argv.find((a, i) => !a.startsWith("--") && !VALUE_FLAGS.has(argv[i - 1]))
 const noAuth = argv.includes("--no-auth")
 const force = argv.includes("--force")
@@ -186,12 +191,17 @@ const DOM_GLOBALS = [
     "Option",
     "Attr",
 ]
-if (DOM_GLOBALS.includes(name)) {
+// Applies to the scaffolded entity AND to every --owns/--rel class: a child or relation named only through a
+// flag still emits a model class into the same barrel, so it shadows the global just as effectively. Called
+// once the flags are parsed but before anything is written — a collision found after generation costs a
+// scaffold-and-delete cycle.
+const warnDomGlobal = (className, origin) => {
+    if (!DOM_GLOBALS.includes(className)) return
     console.log(
-        `! "${name}" is also a DOM global. The model class shadows window.${name} inside every module that imports this slice — a handler typed (e: ${name}) resolves to your entity, and new ${name}() can reach the DOM constructor and throw "Illegal constructor".`
+        `! "${className}"${origin} is also a DOM global. The model class shadows window.${className} inside every module that imports this slice — a handler typed (e: ${className}) resolves to your entity, and new ${className}() can reach the DOM constructor and throw "Illegal constructor".`
     )
     console.log(
-        `  Prefer a suffixed class name (${name}Item, ${name}Record) and keep the resource, route and i18n keys as they are — renaming later needs --overwrite-slice, which REPLACES the 8 (c) files you authored by then.`
+        `  Prefer a suffixed class name (${className}Item, ${className}Record). Renaming the CLASS does not rename the back-end JSON key it binds to, so every --owns/--rel pointing at it then needs --as <originalKey>; keep the resource, route and i18n keys as they are. Renaming later needs --overwrite-slice, which REPLACES the 8 (c) files you authored by then.`
     )
 }
 const lowerFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1)
@@ -246,9 +256,9 @@ for (let i = 0; i < argv.length; i++) {
             console.error("✗ --owns requires a PascalCase child class name (e.g. --owns OrderLine).")
             process.exit(1)
         }
-        const entry = { child: value, field: undefined }
+        const entry = { child: value, field: undefined, picker: undefined }
         owns.push(entry)
-        pending = { set: (f) => (entry.field = f), kind: "--owns", valueIndex: i + 1 }
+        pending = { entry, set: (f) => (entry.field = f), kind: "--owns", valueIndex: i + 1 }
     } else if (flag === "--rel") {
         if (!hasValue || !/^[A-Z][A-Za-z0-9]*$/.test(value)) {
             console.error("✗ --rel requires a PascalCase related class name (e.g. --rel Vehicle).")
@@ -256,9 +266,9 @@ for (let i = 0; i < argv.length; i++) {
         }
         const entry = { name: value, field: undefined }
         rels.push(entry)
-        pending = { set: (f) => (entry.field = f), kind: "--rel", valueIndex: i + 1 }
+        pending = { entry, set: (f) => (entry.field = f), kind: "--rel", valueIndex: i + 1 }
     } else if (flag === "--as") {
-        if (!pending || pending.valueIndex !== i - 1) {
+        if (!pending || pending.valueIndex !== i - 1 || pending.as) {
             console.error(
                 "✗ --as must come directly after the --owns or --rel it renames (e.g. --owns OrderLine --as lines, --rel Employee --as assignedToEmployee)."
             )
@@ -282,9 +292,38 @@ for (let i = 0; i < argv.length; i++) {
             process.exit(1)
         }
         pending.set(value)
-        pending = null // consumed — a second --as here would be misplaced
+        // Stays pending so a --picker can chain after the rename (--owns X --as f --picker Y); `as` marks it
+        // consumed, so a second --as is misplaced rather than silently overwriting the first.
+        pending.as = true
+        pending.valueIndex = i + 1
+    } else if (flag === "--picker") {
+        if (!pending || pending.kind !== "--owns" || pending.valueIndex !== i - 1 || pending.picker) {
+            console.error(
+                "✗ --picker must come directly after the --owns it applies to (e.g. --owns ArticleCategory --as categories --picker Category)."
+            )
+            process.exit(1)
+        }
+        if (!hasValue || !/^[A-Z][A-Za-z0-9]*$/.test(value)) {
+            console.error(
+                "✗ --picker requires the PascalCase class the join row points AT — the entity being picked, not the join itself (e.g. --owns ArticleCategory --picker Category)."
+            )
+            process.exit(1)
+        }
+        if (value === pending.entry.child) {
+            console.error(
+                `✗ --picker ${value} repeats the --owns class. It names the OTHER side of the join — the entity whose rows the chips select.`
+            )
+            process.exit(1)
+        }
+        pending.entry.picker = value
+        pending.picker = true
+        pending.valueIndex = i + 1
     }
 }
+
+warnDomGlobal(name, "")
+for (const o of owns) warnDomGlobal(o.child, " (--owns)")
+for (const r of rels) warnDomGlobal(r.name, " (--rel)")
 
 // The owned-collection JSON key — the back-end navigation's camelCase key, defaulting to the camelCase plural
 // of the child class. Derived once: the generated prepareItem filter and the sub-slice scaffolder below must
@@ -665,8 +704,10 @@ if (sliceGenerated) {
 
 // ------------------------------------------------------------- owned sub-slices
 // Each `--owns <Child>` scaffolds an editable owned-collection table under the parent slice.
+// `--picker <Target>` switches to the join template: chips selecting <Target>, not an editable scalar table.
 const ownedSrcRoot = resolve(here, "owned-slice")
-for (const { child, field } of owns) scaffoldOwned(child, field)
+const ownedJoinSrcRoot = resolve(here, "owned-slice-join")
+for (const { child, field, picker } of owns) scaffoldOwned(child, field, picker)
 
 // An existing slice keeps its own (c) files, so the three attachment edits cannot be written into it —
 // they are handed back instead. Printed last, after any owned sub-slice has had its say.
@@ -675,15 +716,19 @@ if (attachmentsOwner && !sliceGenerated) {
     attachmentsManualSteps()
 }
 
-function scaffoldOwned(childName, fieldName) {
+function scaffoldOwned(childName, fieldName, pickerName) {
     if (!/^[A-Z]/.test(childName)) {
         console.error(`✗ --owns ${childName}: expected a PascalCase child name, e.g. --owns OrderLine`)
         return
     }
-    if (!existsSync(ownedSrcRoot)) {
-        console.error(`✗ ${ownedSrcRoot} not found — regira is missing the owned-slice template.`)
+    const srcRoot = pickerName ? ownedJoinSrcRoot : ownedSrcRoot
+    if (!existsSync(srcRoot)) {
+        console.error(`✗ ${srcRoot} not found — regira is missing the ${pickerName ? "owned-slice-join" : "owned-slice"} template.`)
         return
     }
+    // The picked slice is looked up the same way a --rel is: it may live under its own --plural.
+    const targetFolder = pickerName ? (findSliceFolder(pickerName) ?? lowerFirst(kebab(pluralize(pickerName)))) : undefined
+    const targetAlias = pickerName ? `@/${aliasRoot}/${targetFolder}` : undefined
     const childFolder = kebab(pluralize(childName)) // OrderLine → order-lines (folder / import path — kebab-case, like every other derived path)
     // The DTO field must match the back-end navigation's camelCase JSON key — that follows the C# property
     // name, not the child class name. Default: camelCase plural of the class; pass --as when they differ.
@@ -701,6 +746,8 @@ function scaffoldOwned(childName, fieldName) {
     // (so a `ShoppingList` child FK is `shoppingListId`, matching the server). Folder/import paths use childFolder.
     // __childrenSlug__ → the same field kebab-cased, for markup identifiers (CSS classes): every class name in
     // the templates is kebab-case, so a camelCase one (.shoppingListItems-editor) sticks out as a typo.
+    // __Target__/__target__/__targetAlias__ are only present in the join template — the picked entity's class,
+    // its camelCase navigation (whose FK is that + "Id") and the import path to its slice.
     const childSubst = (s) =>
         s
             .replace(/__Children__/g, ChildrenPascal)
@@ -709,6 +756,9 @@ function scaffoldOwned(childName, fieldName) {
             .replace(/__children__/g, childField)
             .replace(/__Parent__/g, name)
             .replace(/__parent__/g, camelSingular)
+            .replace(/__targetAlias__/g, targetAlias ?? "")
+            .replace(/__Target__/g, pickerName ?? "")
+            .replace(/__target__/g, pickerName ? lowerFirst(pickerName) : "")
     // Printed BEFORE the folder exists: once it does, correcting the key needs --overwrite-slice, so a hint
     // that only appears in the wiring list below is a hint you can no longer act on cheaply.
     if (fieldName == null) {
@@ -720,13 +770,18 @@ function scaffoldOwned(childName, fieldName) {
         )
     }
     mkdirSync(childDest, { recursive: true })
-    for (const entry of readdirSync(ownedSrcRoot, { withFileTypes: true })) {
-        if (entry.isDirectory()) continue // owned-slice is flat
-        writeFileSync(resolve(childDest, entry.name), childSubst(readFileSync(join(ownedSrcRoot, entry.name), "utf8")))
+    for (const entry of readdirSync(srcRoot, { withFileTypes: true })) {
+        if (entry.isDirectory()) continue // both owned templates are flat
+        writeFileSync(resolve(childDest, entry.name), childSubst(readFileSync(join(srcRoot, entry.name), "utf8")))
     }
     const p = (f) => join(baseDir, plural, f)
     const filterLine = `item.${childField} = item.${childField}?.filter((x) => !x._deleted)`
-    console.log(`✓ Owned collection ${childName} → ${join(baseDir, plural, childFolder)} (editable table)`)
+    console.log(`✓ Owned collection ${childName} → ${join(baseDir, plural, childFolder)} (${pickerName ? `${pickerName} chips` : "editable table"})`)
+    if (pickerName && !findSliceFolder(pickerName)) {
+        console.log(
+            `  ! The chips import from ${join(baseDir, targetFolder)}, which does not exist yet — scaffold the ${pickerName} slice or vue-tsc will fail.`
+        )
+    }
     console.log(`  Wire it into the ${name} slice (the editor is generated; these ${sliceGenerated ? "two" : "three"} lines connect it):`)
     console.log(
         `    1. ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // import type { Entity as ${childName} } from "../${childFolder}"`
@@ -740,6 +795,11 @@ function scaffoldOwned(childName, fieldName) {
             : `    3. ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // add it yourself: the existing service was left untouched`
     )
     console.log(`    back-end: e.Related(x => x.${ChildrenPascal}) on ${name} (owned child — no For<>()/controller/budget slot).`)
+    if (pickerName) {
+        console.log(
+            `    back-end: eager-load the nested ${pickerName} too — .Include(x => x.${ChildrenPascal}).ThenInclude(r => r.${pickerName}) — or every chip renders blank.`
+        )
+    }
 }
 
 // -------------------------------------------------------------- app-shell impl
@@ -954,6 +1014,10 @@ Owned collections (a back-end e.Related(...) child):
   --as <fieldName>    JSON key for the --owns OR --rel directly before it — must match the back-end navigation's
                       camelCase key. After --owns: the collection field (default camelCase plural, OrderLine →
                       orderLines). After --rel: the to-one nav property (default camelCase class, Employee → employee)
+  --picker <Entity>   the --owns before it is a PURE JOIN onto <Entity> (only the two FKs, no scalar fields of
+                      its own): emit chips selecting <Entity> instead of an editable table. Chains after --as.
+                      The picked slice must already be scaffolded. A join row that also carries a scalar
+                      (a quantity, a status) is not pure — leave --picker off and edit it as a table
 
 Modes & shared flags:
   --shell             scaffold the app shell (toolchain, main.ts, App.vue, config, router, dashboard, layout, views)
@@ -971,6 +1035,7 @@ Examples:
   scaffold.mjs Intervention --rel Vehicle --rel Supplier
   scaffold.mjs Task --rel Employee --as assignedToEmployee
   scaffold.mjs Order --owns OrderLine --as lines
+  scaffold.mjs Article --owns ArticleCategory --as categories --picker Category
   scaffold.mjs --shell --no-auth
   scaffold.mjs --ui DefaultModal`)
 }

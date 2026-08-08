@@ -60,24 +60,30 @@ only `Form.vue` and `FilterAdv.vue` change per entity.
 The Regira MCP server (`https://mcp.regira.com/mcp`) has full knowledge of every front-end module,
 including ones not yet installed locally. Use it to discover and read guides on demand:
 
-| Tool                                                       | Purpose                                                                                                                                                                                       |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `list_packages` (filter `vue` / `frontend`)                | Browse the front-end module catalog.                                                                                                                                                          |
-| `recommend_packages` / `search_packages`                   | First-pass / keyword package discovery.                                                                                                                                                       |
-| `get_package_card`                                         | **Orient first** — the must-know card (e.g. `regira_modules.vue.entities`); often enough on its own.                                                                                          |
-| `get_package_toc`                                          | List a package's documentation sections.                                                                                                                                                      |
-| `get_section_toc`                                          | List a section's headings before loading content.                                                                                                                                             |
-| `get_package` (`section=`, `heading=`, `maxChars`, `page`) | Read the actual guidance, scoped.                                                                                                                                                             |
-| `get_example` (`section=`)                                 | Pull only matching examples.                                                                                                                                                                  |
-| `list_types` / `get_type`                                  | **One symbol, one call** — exact signature from the `.d.ts` map, e.g. `get_type("regira_modules.vue.ui", "useFeedback")`. Composables and component prop types are indexed, not just classes. |
+Parameter names are **not** uniform across these tools — the search term is `query` on one, `pattern` on
+another and `task` on a third, and a package is `id` everywhere except `search_docs`, where `package` scopes
+the search. Copy the call form below rather than inferring it from a neighbouring tool; where a package is
+taken, `id`, `pkg` and `package` all resolve, so a wrong guess costs nothing.
+
+| Tool                      | Call                                                                                        | Purpose                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `list_packages`           | `list_packages(category: "vue")`                                                            | Browse the front-end module catalog.                                                                                                 |
+| `recommend_packages`      | `recommend_packages(feature: "…", platform: "frontend")`                                    | First-pass package discovery. `search_packages(query: "…")` for keywords.                                                            |
+| `get_package_card`        | `get_package_card(id: "regira_modules.vue.entities")`                                       | **Orient first** — the must-know card; often enough on its own.                                                                      |
+| `get_package_toc`         | `get_package_toc(id: "regira_modules.vue.entities")`                                        | List a package's documentation sections.                                                                                             |
+| `get_section_toc`         | `get_section_toc(id: "regira_modules.vue.ui", section: "ui.signatures")`                    | List a section's headings before loading content.                                                                                    |
+| `get_package`             | `get_package(id: "regira_modules.vue.ui", section: "ui.examples", heading: "Modal, Icons")` | Read the actual guidance, scoped. `heading` takes a comma-separated list; `maxChars` / `page` paginate.                              |
+| `get_example`             | `get_example(id: "regira_modules.vue.entities", pattern: "owned collection")`               | Pull only matching examples. `section` scopes it.                                                                                    |
+| `search_docs`             | `search_docs(query: "…", package: "regira_modules.vue.ui")`                                 | When you don't know where a topic lives — searches every package at once.                                                            |
+| `list_types` / `get_type` | `get_type(id: "regira_modules.vue.ui", typeName: "useFeedback")`                            | **One symbol, one call** — exact signature from the `.d.ts` map. Composables and component prop types are indexed, not just classes. |
 
 Context economy: orient with `get_package_card` first; read only your tier's primary guides in full; for
 everything else prefer `get_section_toc` + heading-scoped `get_package` (several headings in one call,
-comma-separated) and `get_example(pattern=…)` over whole-section reads. When you
+comma-separated) and `get_example(pattern: …)` over whole-section reads. When you
 **delegate reference-mining to a sub-agent**, ask it for distilled patterns + the 3–4 files worth cloning —
 never a verbatim dump of every file (that alone can cost 100k+ tokens for little gain).
 
-**Checking one signature: use `get_type`.** `get_type("regira_modules.vue.ui", "useFeedback")` returns the
+**Checking one signature: use `get_type`.** `get_type(id: "regira_modules.vue.ui", typeName: "useFeedback")` returns the
 declaration in a single call. Reach for the installed `dist/**/*.d.ts` (in `node_modules/@regira/modules`) when you want to _browse_ a module's
 surface — locating the right file first costs several shell round-trips, which is enough friction that
 guessing starts to look cheaper than verifying. It never is: `useFeedback`, `useOwnedCollection` and
@@ -85,9 +91,9 @@ guessing starts to look cheaper than verifying. It never is: `useFeedback`, `use
 
 **Components answer to the same call, under a different name.** A `.vue` build emits an anonymous default
 export, so a component is never indexed — its authored contract is, as `<Component>Props` / `<Component>Emits`
-/ `<Component>Slots`. `get_type("regira_modules.vue.ui", "ConfirmButton")` resolves to those types for you and
+/ `<Component>Slots`. `get_type(id: "regira_modules.vue.ui", typeName: "ConfirmButton")` resolves to those types for you and
 says which of the three exist; for slots, events and defaults that the prop type cannot carry, the source of
-truth is `get_package("regira_modules.vue.ui", section: "ui.signatures")`.
+truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
 
 ## Pre-flight checklist
 
@@ -222,7 +228,7 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    driven headless, and its output then blocks step 5: `scaffold.mjs --shell` refuses to overwrite the
    generated `index.html` without `--force`, and that file has no `#modals` teleport host — so every
    modal, `FormModalButton` and `ConfirmButton` silently opens nothing.
-4. Orient with `get_package_card("regira_modules.vue.entities")`, then read the core sections of
+4. Orient with `get_package_card(id: "regira_modules.vue.entities")`, then read the core sections of
    `entities.instructions` and `entities.setup` (via MCP `get_package`). Troubleshooting/lookup tables are
    symptom-driven — fetch a heading when you hit the symptom, not up front. For one exact signature call
    `get_type`; for a set of them read `entities.signatures` / `ui.signatures` by heading rather than whole.

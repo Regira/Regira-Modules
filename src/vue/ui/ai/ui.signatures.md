@@ -5,7 +5,7 @@ component prop not listed, use the MCP source map (`get_type` on `regira_modules
 
 **Where each export lives** — headings group by _category_, so searching for a component name finds nothing.
 Look the name up here, then fetch its heading, e.g.
-`get_package("regira_modules.vue.ui", section: "ui.signatures", heading: "Buttons & input components")`:
+`get_package(id: "regira_modules.vue.ui", section: "ui.signatures", heading: "Buttons & input components")`:
 
 | Heading                      | Exports                                                                                                                                                                                                                  |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -22,7 +22,7 @@ Look the name up here, then fetch its heading, e.g.
 
 The table indexes **components, composables and plugins**. Their contract types (`XxxProps` / `XxxEmits` /
 `XxxSlots`) and defaults (`xxxDefaults`) live under the same heading as the thing they belong to — or ask
-`get_type("regira_modules.vue.ui", "ConfirmButton")`, which resolves a component name straight to them.
+`get_type(id: "regira_modules.vue.ui", typeName: "ConfirmButton")`, which resolves a component name straight to them.
 
 **Contract convention.** Every skinnable component exports its contract from the barrel:
 `XxxProps` / `XxxEmits` / `XxxSlots` (+ `xxxDefaults` where props have defaults), with behavior in an
@@ -70,17 +70,22 @@ export type FeedbackIn = { autoHideDelay?: number }
 // ⚠️ A FIELD-ERROR MAP ({ title: "Required" } — the 400 body an EntityInputException's InputErrors produces),
 // or a plain string. NOT an Error: log the exception yourself and pass error.response?.data?.errors.
 export type FeedbackError = string | Record<string, string>
+// reactive(), not a bag of refs: read the fields directly in script and template — :disabled="f.isPending".
+// Destructuring it snapshots the values, as with any reactive object — pass the object, or toRefs() it.
 export interface FeedbackOut {
-    status: Ref<FeedbackStatus>
-    message: Ref<string>
-    error: Ref<FeedbackError | undefined>
-    isPending: ComputedRef<boolean> // busy flag = status === FeedbackStatus.pending; gate buttons on this
+    status: FeedbackStatus
+    message: string
+    error: FeedbackError | undefined
+    readonly isPending: boolean // busy flag = status === FeedbackStatus.pending; gate buttons on this
     pending(msg: string): void // every setter REQUIRES a message — there is no no-arg form
     success(msg: string): void
     fail(msg: string, errors?: FeedbackError): void // second arg is the FIELD-ERROR MAP above, never an Error
     reset(): void
 }
 export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
+// the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own; throws
+// when the plugin was never installed
+export function useAppFeedback(): FeedbackOut
 
 // Feedback component contract:
 export type FeedbackProps = { feedback: FeedbackOut; hideCloseButton?: boolean; enableErrorPopup?: boolean }
@@ -294,8 +299,10 @@ import {
 //   exposes: open() / close() — `open` is BOTH an emit (fired on click) and an exposed method. To raise the
 //   same confirmation from another affordance (a swipe, a context menu, a shortcut), keep the button in the
 //   tree and call it through a ref: <ConfirmButton ref="confirm" … /> + confirm.value?.open()
-// DateInput contract (DateInputProps/Emits): { modelValue?: string | Date; culture?: string; readonly?: boolean } (v-model;
-//   `readonly` also refuses the emit — a native picker cannot write through it)
+// DateInput contract (DateInputProps/Emits): { modelValue?: string | Date; culture?: string; readonly?: boolean;
+//   showTime?: boolean } (v-model; `readonly` also refuses the emit — a native picker cannot write through it).
+//   showTime renders <input type="datetime-local"> and keeps the time on the emitted Date; without it the
+//   control is date-only. The matching formatters are dateInputString / dateTimeInputString.
 // NullableCheckBox contract (NullableCheckBoxProps/Emits): { modelValue?: boolean | string | number; label?: string }
 //   (v-model: true → false → undefined, rendered indeterminate). `label` renders a clickable <label> beside the
 //   box — pass `id` too and it is associated via `for`:

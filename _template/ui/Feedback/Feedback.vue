@@ -33,16 +33,20 @@ const emit = defineEmits<FeedbackEmits>()
 const props = withDefaults(defineProps<FeedbackProps>(), { ...feedbackDefaults })
 defineSlots<FeedbackSlots>()
 
-// isPending is the composable's own busy flag (also public API for views); the other two stay local
-const { status, message, error, isPending, reset } = props.feedback
-
-const isSuccess = computed(() => status.value === FeedbackStatus.success)
-const isFailed = computed(() => status.value === FeedbackStatus.failed)
+// Every field is read through the prop, never destructured or toRefs'd: FeedbackOut is reactive, so
+// destructuring snapshots the values, and toRefs pins them to the object identity present at setup — a
+// panel whose `feedback` prop is later swapped for a different instance would then render half of each.
+// isPending is the composable's own busy flag (also public API for views); the other two stay local.
+const message = computed(() => props.feedback.message)
+const error = computed(() => props.feedback.error)
+const isPending = computed(() => props.feedback.isPending)
+const isSuccess = computed(() => props.feedback.status === FeedbackStatus.success)
+const isFailed = computed(() => props.feedback.status === FeedbackStatus.failed)
 
 const handleClose = (e: Event) => {
     e.stopPropagation() // prevent triggering buttons underneath
-    emit("close", { status: status.value, error: error.value })
+    emit("close", { status: props.feedback.status, error: props.feedback.error })
 
-    reset()
+    props.feedback.reset()
 }
 </script>

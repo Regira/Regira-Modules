@@ -6,16 +6,16 @@ services are registered and resolved through it. It also holds the library's cro
 
 ## What it provides
 
-| Export             | Purpose                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------ |
-| `ServiceProvider`  | Container: `add(key, factory)` to register, `get<T>(key)` to resolve.                |
-| `get<T>(key)`      | Resolve from the shared default provider (used outside components).                  |
+| Export             | Purpose                                                                                                                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ServiceProvider`  | Container: `add(key, factory)` to register, `get<T>(key)` to resolve.                                                                                                                         |
+| `get<T>(key)`      | Resolve from the shared default provider (used outside components).                                                                                                                           |
 | `plugin`           | Vue plugin: exposes the provider as `$services` and `provide("services", …)`, initializes the `$configs` container (for entity `IConfig` registrations), and runs a `configure(sp)` callback. |
-| `IServiceProvider` | The container interface.                                                             |
-| default export     | The shared `ServiceProvider` singleton.                                              |
-| `globalOptions`    | Shared, mutable options object read by plugins at install time.                      |
-| `configureGlobals` | Setter that merges into `globalOptions`; call once before `app.use(...)`.            |
-| `GlobalOptions`    | The options shape.                                                                   |
+| `IServiceProvider` | The container interface.                                                                                                                                                                      |
+| default export     | The shared `ServiceProvider` singleton.                                                                                                                                                       |
+| `globalOptions`    | Shared, mutable options object read by plugins at install time.                                                                                                                               |
+| `configureGlobals` | Setter that merges into `globalOptions`; call once before `app.use(...)`.                                                                                                                     |
+| `GlobalOptions`    | The options shape.                                                                                                                                                                            |
 
 ## Global component registration
 

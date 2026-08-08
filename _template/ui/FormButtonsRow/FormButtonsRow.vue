@@ -44,7 +44,7 @@ const isArchived = computed(() => !!(props.item as { isArchived?: number | boole
 const title = computed(() => (props.item as { $title?: string } | undefined)?.$title ?? "")
 // disable submit while a save/delete is in flight (or just succeeded, before it auto-clears) to block double-submits
 const busy = computed(() => {
-    const s = props.feedback?.status.value
+    const s = props.feedback?.status
     return s != null && s !== FeedbackStatus.none && s !== FeedbackStatus.failed
 })
 </script>

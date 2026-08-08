@@ -14,7 +14,7 @@ of a larger front-end stack (`vue/app`, `vue/ioc`, `vue/http`, `vue/auth`, `vue/
 ## Mandatory first action
 
 Before writing any code, load the guides — via the MCP server
-`get_package("regira_modules.vue.entities", section: "...")`, or by reading these files from
+`get_package(id: "regira_modules.vue.entities", section: "...")`, or by reading these files from
 `src/vue/entities/ai/`:
 
 1. `entities.instructions.md` — the module map, workflow, and conventions (always)

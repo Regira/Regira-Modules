@@ -26,6 +26,8 @@ There are no granular subpaths — everything lives under `@regira/modules/vue/f
   `yy/yyyy`, `h/hh` (hours, 24-hour — `H/HH` are aliases), `m/mm` (minutes), `n`…`nnnn` (ms). Every other
   character is emitted verbatim.
 - **`dateInputString(date?)`** — `yyyy-MM-dd`, for `<input type="date">`.
+- **`dateTimeInputString(date?)`** — `yyyy-MM-ddTHH:mm`, for `<input type="datetime-local">`. Local time,
+  no zone suffix: that input rejects a trailing `Z` and renders blank.
 - **`formatTime(date?)`** — wraps `formatDateTime(date, "hh:mm")`.
 
 ⚠️ **Mask or culture — the two families are not interchangeable.** `formatDateTime` / `formatTime` take a

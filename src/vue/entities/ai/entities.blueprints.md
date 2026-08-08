@@ -1,6 +1,6 @@
 # Regira Entities — Domain Blueprints (SPA)
 
-Front-end counterparts of the back-end domain blueprints (`get_package("Regira.Entities", section: "blueprints")`). Ready-to-copy feature slices proven in the Regira reference apps — copy into your app and adapt names; everything builds on the standard module surface (`EntityBase`, `EntityServiceBase`, `useOwnedCollection`, `useTree`, the auth store).
+Front-end counterparts of the back-end domain blueprints (`get_package(id: "Regira.Entities", section: "blueprints")`). Ready-to-copy feature slices proven in the Regira reference apps — copy into your app and adapt names; everything builds on the standard module surface (`EntityBase`, `EntityServiceBase`, `useOwnedCollection`, `useTree`, the auth store).
 
 | Blueprint                                                                  | Use when                                                                         |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -343,8 +343,8 @@ read-only `ListItem`/`Summary`), client-side `getLabelType(value)` detection on 
 `<Labels v-model="item.labels" />` in the owner form. Strip `_deleted` rows in the owner service's
 `prepareItem` — the back-end `Related()` sync deletes by omission.
 
-**See:** `get_package("regira_modules.vue.entities", section: "blueprints", heading: "Labels editor")`;
-back-end: `get_package("Regira.Entities", section: "blueprints", heading: "EntityLabels")`.
+**See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Labels editor")`;
+back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "EntityLabels")`.
 
 ### Switch the active tenant (tenant switcher)
 
@@ -356,8 +356,8 @@ Copy the **Tenant switcher blueprint**: a pinia store that loads `/tenants` on e
 `authStore.refresh({ tenantId })`, which re-mints the token server-side. No tenant header: the bearer
 token _is_ the tenant context. Register the tenant plugin before the auth plugin.
 
-**See:** `get_package("regira_modules.vue.entities", section: "blueprints", heading: "Tenant switcher")`;
-back-end: `get_package("Regira.Entities", section: "blueprints", heading: "Multi-tenancy")`.
+**See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Tenant switcher")`;
+back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "Multi-tenancy")`.
 
 ### Render an entity's family tree (ancestors + descendants)
 
@@ -370,8 +370,8 @@ mutually recursive `TreeView ⇄ TreeViewItem` pair (`v-show="node.value.isExpan
 `useDragDrop` engine through the recursion; on move, save through the service then
 `tree.move(child, parent)`.
 
-**See:** `get_package("regira_modules.vue.entities", section: "blueprints", heading: "Family tree view")`;
-back-end: `get_package("Regira.Entities", section: "blueprints", heading: "Recursive entities")`.
+**See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Family tree view")`;
+back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "Recursive entities")`.
 
 ### Consume a polymorphic (TPH) endpoint with one client class
 
@@ -383,5 +383,5 @@ the discriminator (`partyType`); `$title`/getters branch on it; the form shows s
 selects the input DTO server-side. Owned collections (incl. nested ones) strip `_deleted` at every
 level in `prepareItem`.
 
-**See:** `get_package("regira_modules.vue.entities", section: "blueprints", heading: "Polymorphic entity")`;
-back-end: `get_package("Regira.Entities", section: "blueprints", heading: "Stakeholders")`.
+**See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Polymorphic entity")`;
+back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "Stakeholders")`.

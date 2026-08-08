@@ -6,6 +6,7 @@ Verbatim TypeScript signatures for `@regira/modules/vue/formatters`. Do not gues
 import {
     formatDateTime,
     dateInputString,
+    dateTimeInputString,
     formatTime,
     formatDate,
     formatShortDate,
@@ -29,6 +30,7 @@ import {
 // Any other character passes through verbatim.
 export declare const formatDateTime: (date?: Date, mask?: string) => string // default mask "dd-MM-yyyy"
 export declare const dateInputString: (date?: Date) => string // "yyyy-MM-dd"
+export declare const dateTimeInputString: (date?: Date) => string // "yyyy-MM-ddTHH:mm" — local, no zone suffix
 export declare const formatTime: (date?: Date) => string // wraps formatDateTime(date, "hh:mm")
 export declare const formatDate: (date?: Date | string, culture?: string) => string
 export declare const formatShortDate: (date?: Date | string, culture?: string) => string

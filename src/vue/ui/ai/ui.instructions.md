@@ -93,6 +93,11 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 - `useFeedback({ autoHideDelay? })` → `FeedbackOut` (`status`, `message`, `error`, `isPending`,
   `pending(msg)` / `success(msg)` / `fail(msg, err?)` / `reset()`). `isPending` is the busy flag to disable
   buttons against double-submits; the message argument is **required** — `pending()` does not compile.
+  The result is `reactive()`, so bind the fields straight (`:disabled="feedback.isPending"`) — and, as with
+  any reactive object, destructuring it snapshots the values.
+- `useAppFeedback()` → the **app-wide** `FeedbackOut` the feedback plugin installs — the panel the shell
+  renders, as opposed to the per-form instance `useFeedback()` mints. Use it to report from a handler that
+  owns no panel of its own (an add-to-cart button); it throws if the plugin was never installed.
 - `useScreen()` → `{ size, screen }` where `screen` exposes `isSmall`…`isExtraExtraLarge`, `layout`,
   `isSize`. It is a **module-level shared instance** that owns a single debounced
   `resize`/`orientationchange` subscription, so it tracks the viewport with or without `screenPlugin`
@@ -115,7 +120,16 @@ it before writing a new component.
 - **Icon name resolution.** `Icon` renders a registered friendly key (`new`, `search`, …) via
   the seeded map, and renders a raw class (`bi bi-grid`, `fa-solid fa-user`) directly when given one;
   `source` (`"bs"`/`"fa"`) selects which glyph set `iconPlugin` seeds. The glyph **font CSS** is separate —
-  import it (`bootstrap-icons`/Font Awesome) or every glyph stays blank.
+  import it (`bootstrap-icons`/Font Awesome) or every glyph stays blank. The same resolution applies to every
+  `icon`-typed prop in the kit (`IconButton`, `Tab.create({ icon })`, the nav config), so the rules below hold
+  everywhere one is accepted.
+- **The registered keys are a fixed list — an unregistered one renders nothing** (with a console warning,
+  easily lost in a busy log). The two seed maps are the source of truth: `icons/bootstrap-icons.ts` (~124 keys)
+  and `icons/fontawesome-icons.ts` (~57). Read the map rather than guessing a plausible name, or pass the raw
+  class. The `fa` set is a **subset with different coverage**, not a mirror — `admin`, `calendar`, `settings`,
+  `tag`, `list` and ~60 more exist only under `bs`, and `iconPlugin({ source: "fa" })` re-seeds the shared map,
+  so switching source silently blanks every key the `fa` set does not define. Register your own with
+  `iconPlugin`'s `icons` option instead of adding a raw class per call site.
 - **Modal is a component, not a composable.** There is no `openModal()` here — use `DefaultModal` with
   `:is-visible` (one-way; it has no `update:isVisible` emit) plus `@close`/`@cancel` to flip your own state
   (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from

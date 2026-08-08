@@ -46,7 +46,7 @@
             <div class="col-12 col-md order-3 order-md-2">
                 <div class="overflow-hidden">
                     <Feedback v-bind="{ feedback }" :hideCloseButton="true" />
-                    <div v-show="!feedback.status.value" class="row g-0">
+                    <div v-show="!feedback.status" class="row g-0">
                         <div class="col-auto">
                             <div v-if="selected?.id" class="form-control bg-info py-0">
                                 <IconButton icon="selected" class="px-1 me-1" @click="handleSelect(undefined)" />

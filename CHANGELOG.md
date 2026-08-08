@@ -7,6 +7,23 @@ heading.
 
 ## Unreleased
 
+- `vue/ui`: `useFeedback()` returns a `reactive()` object instead of a bag of refs, so its fields bind
+  straight from a template — `:disabled="feedback.isPending"` now type-checks where it previously failed
+  `vue-tsc` with `TS2322`. **Migration:** drop `.value` from every `FeedbackOut` field read
+  (`feedback.status.value` → `feedback.status`). `vue-tsc` reports each one
+  (`Property 'value' does not exist on type 'FeedbackStatus'`); an app that does not type-check reads
+  `undefined` instead — falsy, so re-check any `v-if`/`:disabled` bound to feedback. As with any reactive
+  object, destructuring it snapshots the values: pass the object, or `toRefs()` it.
+- `vue/ui`: new `useAppFeedback()` returns the app-wide `FeedbackOut` the feedback plugin installs, for a
+  handler that owns no panel of its own. Throws when the plugin was never installed.
+- `vue/ui`: `DateInput` takes `showTime`, rendering `<input type="datetime-local">` and keeping the time on
+  the emitted `Date`. `vue/formatters` gains the matching `dateTimeInputString`.
+- `_template/scaffold.mjs`: `--owns <Join> --picker <Target>` scaffolds a pure many-to-many join as
+  `InputSelectorInline` chips over a plain join-row interface, instead of the scalar editable table that has
+  to be discarded for a join carrying nothing but its two foreign keys. The DOM-global collision warning now
+  also covers `--owns`/`--rel` class names, and runs before any file is written.
+- `vue/ui` guides: the registered icon keys are named as a source of truth, with the `bs`/`fa` sets flagged
+  as different rather than mirrored — switching `source` silently blanks any key the `fa` set omits.
 - `vue/entities` setup guide: the _Install_ section now describes the npm-registry install (prebuilt
   `dist/`, no on-install build), with the `github:Regira/Regira-Modules` specifier kept only as the
   unreleased-commit fallback — matching the README and getting-started guide.

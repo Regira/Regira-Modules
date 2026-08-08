@@ -8,7 +8,7 @@
 > exactly that shape, and assembling the equivalent from four sections costs more than reading it. **Read economically:** this card + a heading-scoped `get_package` (its `section` + `heading`
 > params; find headings with `get_section_toc`) usually suffices — pull a whole section only when a
 > heading isn't enough.
-> Back-end counterpart: `get_package_card("Regira.Entities")`.
+> Back-end counterpart: `get_package_card(id: "Regira.Entities")`.
 >
 > **⚠️ Three sections are not summarised here, and their headings are listed so you can fetch _one_ by
 > name rather than gamble on the file size:**
@@ -39,7 +39,7 @@
   the capability the replaced component provided (every entity manageable, paging + count + filter,
   confirmed delete, related records openable, pooled labels, feedback, the full account surface when auth
   is requested). The checklist:
-  `get_package("regira_modules.vue.entities", section: "entities.instructions")` → Functionality contract.
+  `get_package(id: "regira_modules.vue.entities", section: "entities.instructions")` → Functionality contract.
 - **The provided components, composables and patterns _are_ the product — they are how you ship a scalable,
   production-ready app with little code.** Reach for a built-in and restyle/wrap it; hand-rolling one is a
   deviation to declare: feedback (`useFeedback` + `<Feedback>`), tabs (`TabContainer` + `Tab.create`),
@@ -70,7 +70,7 @@
   (a scaffold's tight `py-1`, etc.) needs `!important` back. Improve the look via CSS after the library css,
   by wrapping components, or by swapping the app-wide modal via `modalPlugin`.
 - **Styling has one canonical guide — read it before writing any CSS:**
-  `get_package("regira_modules.vue.ui", section: "ui.customize")` (theme tokens → `rg-*`/`is-*` class hooks
+  `get_package(id: "regira_modules.vue.ui", section: "ui.customize")` (theme tokens → `rg-*`/`is-*` class hooks
   → slots → contract-typed replacement → `scaffold.mjs --ui` eject). ⚠️ **`rg-*` is the _library's_ class
   namespace** — style those hooks, never mint your own `rg-*` class, or your app collides with the next
   library release. App classes get an app prefix.
@@ -96,12 +96,12 @@
   references are normal in a CRUD app, so prefer the erased form everywhere; it costs nothing.
   Inside a slice, import its **own** model as the default (`import type Entity from "./data/Entity"`) —
   `import { type Entity }` from the data module grabs the `const` value binding and fails `TS2749`.
-- **⚠️ A cross-slice *value* import cannot be erased, so it is the half that can still cycle.** `--rel`
+- **⚠️ A cross-slice _value_ import cannot be erased, so it is the half that can still cycle.** `--rel`
   generates `import { FormModalButton as XButton, useEntityStore as useXStore } from "@/entities/xs"` into
   `overview/ListItem.vue` and `import { InputSelector as XInputSelector }` into `filter/FilterAdv.vue`. The
   barrel is fully static — no lazy or async indirection — so importing it eagerly evaluates that slice's
   `data/store.ts`, and a slice referencing back closes the same `Cannot access 'Entity' before
-  initialization` loop the erased type import avoids, with the same dev-server-only tell. One direction is
+initialization` loop the erased type import avoids, with the same dev-server-only tell. One direction is
   always safe; when both directions need a **value**, deep-import the module instead of the barrel
   (`@/entities/xs/details/FormModalButton.vue`, `@/entities/xs/data/store`) on the second edge.
 
@@ -134,7 +134,7 @@
 ## Signatures, auth & i18n
 
 - **Day-one signatures — verify, never extrapolate.** One call answers any of these:
-  `get_type("regira_modules.vue.ui", "useFeedback")` — cheaper than finding and reading the `.d.ts`.
+  `get_type(id: "regira_modules.vue.ui", typeName: "useFeedback")` — cheaper than finding and reading the `.d.ts`.
     - `useFeedback()` **returns the feedback object itself** — `const feedback = useFeedback()`, then bind
       `<Feedback :feedback="feedback" />`. Not `const { feedback } = …`: that is `useForm()`'s shape, and the
       asymmetry is the trap. Members: `pending(msg)` / `success(msg)` / `fail(msg, errors?)` / `reset()` — **the
@@ -215,6 +215,6 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
 
 ## Blueprints
 
-- **Building a common domain feature? Check the blueprints** — `get_package("regira_modules.vue.entities", section: "blueprints")`
+- **Building a common domain feature? Check the blueprints** — `get_package(id: "regira_modules.vue.entities", section: "blueprints")`
   has the SPA counterparts of the back-end blueprints: labels editor, tenant switcher, family tree view,
   polymorphic (TPH) entity.

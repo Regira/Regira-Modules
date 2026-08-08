@@ -47,7 +47,7 @@ describe("useDetails feedback", () => {
         const { details } = await mountDetails(makeService(() => Promise.reject({ response: { status: 403 } })))
         await flush()
 
-        expect(details().feedback.status.value).toBe(FeedbackStatus.failed)
+        expect(details().feedback.status).toBe(FeedbackStatus.failed)
     })
 
     test("a successful retry clears the previous failure", async () => {
@@ -56,12 +56,12 @@ describe("useDetails feedback", () => {
             makeService(() => (fail ? Promise.reject({ response: { status: 403 } }) : Promise.resolve({ id: 7 })))
         )
         await flush()
-        expect(details().feedback.status.value).toBe(FeedbackStatus.failed)
+        expect(details().feedback.status).toBe(FeedbackStatus.failed)
 
         fail = false
         await details().load()
 
-        expect(details().feedback.status.value).toBe(FeedbackStatus.none)
+        expect(details().feedback.status).toBe(FeedbackStatus.none)
         expect(details().item.value).toEqual({ id: 7 })
     })
 
@@ -69,7 +69,7 @@ describe("useDetails feedback", () => {
         const { details } = await mountDetails(makeService(() => Promise.reject(new Error("Network Error"))))
         await flush()
 
-        expect(details().feedback.status.value).toBe(FeedbackStatus.failed)
-        expect(details().feedback.message.value).toContain("Network Error")
+        expect(details().feedback.status).toBe(FeedbackStatus.failed)
+        expect(details().feedback.message).toContain("Network Error")
     })
 })

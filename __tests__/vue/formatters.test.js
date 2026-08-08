@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { dateInputString, formatDate, formatDateTime, formatShortDate, formatTime } from "../../src/vue/formatters"
+import { dateInputString, dateTimeInputString, formatDate, formatDateTime, formatShortDate, formatTime } from "../../src/vue/formatters"
 
 // local-time constructor + local-time getters, so these are timezone independent
 const evening = new Date(2026, 6, 25, 23, 5, 9, 7) // 2026-07-25 23:05:09.007
@@ -72,6 +72,14 @@ describe("dateInputString", () => {
     test("emits the ISO-ish value an <input type=date> accepts", () => {
         expect(dateInputString(morning)).toBe("2026-07-05")
         expect(dateInputString(evening)).toBe("2026-07-25")
+    })
+})
+
+describe("dateTimeInputString", () => {
+    test("emits the local value an <input type=datetime-local> accepts", () => {
+        // no zone suffix: that input rejects a trailing Z and would render blank
+        expect(dateTimeInputString(morning)).toBe("2026-07-05T09:05")
+        expect(dateTimeInputString(evening)).toBe("2026-07-25T23:05")
     })
 })
 

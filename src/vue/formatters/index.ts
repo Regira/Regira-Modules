@@ -53,6 +53,8 @@ function _formatDateTime(date?: Date, mask?: string) {
  */
 export const formatDateTime = (date?: Date, mask: string = "dd-MM-yyyy") => (date ? _formatDateTime(date, mask) : "")
 export const dateInputString = (date?: Date) => formatDateTime(date, "yyyy-MM-dd")
+/** the `<input type="datetime-local">` wire format — local time, no zone suffix, which is what that input accepts */
+export const dateTimeInputString = (date?: Date) => formatDateTime(date, "yyyy-MM-ddThh:mm")
 export const formatTime = (date?: Date) => formatDateTime(date, "hh:mm")
 
 export const formatDate = (date?: Date | string, culture?: string) => {
