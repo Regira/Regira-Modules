@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.1.0 — 2026-08-08
 
 - `vue/ui`: `useFeedback()` returns a `reactive()` object instead of a bag of refs, so its fields bind
   straight from a template — `:disabled="feedback.isPending"` now type-checks where it previously failed
