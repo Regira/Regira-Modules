@@ -5,6 +5,13 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- Licensing: `@regira/modules` is now licensed under the **Apache License 2.0** (previously the Regira
+  Commercial License). `package.json` `license` is the SPDX expression `Apache-2.0`, and the repository
+  ships the Apache-2.0 `LICENSE` plus a `NOTICE` file. No code changes — the library never contained
+  license validation.
+
 ## 6.1.0 — 2026-08-08
 
 - `vue/ui`: `useFeedback()` returns a `reactive()` object instead of a bag of refs, so its fields bind

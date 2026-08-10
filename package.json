@@ -4,7 +4,7 @@
     "version": "6.1.0",
     "description": "Regira front-end library: TypeScript utility modules and Vue 3 components for building SPAs against a Regira.Entities API.",
     "author": "Regira bv",
-    "license": "SEE LICENSE IN LICENSE",
+    "license": "Apache-2.0",
     "homepage": "https://regira.com",
     "repository": {
         "type": "git",

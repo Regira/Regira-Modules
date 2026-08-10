@@ -154,3 +154,7 @@ _vite.config.ts_
     }
   }
 ```
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE). This library contains no license validation. The Regira back-end packages have their own licensing — see [Regira-Packages licensing](https://github.com/Regira/Regira-Packages/blob/main/licensing.md).
