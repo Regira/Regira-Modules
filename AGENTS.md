@@ -88,3 +88,8 @@ Published npm versions are **immutable** — never reuse or overwrite one.
 
 When writing a report, present it as a single markdown block or give the user a link that he can open.
 The content of the report should always be (temporarily) accessible to the user.
+
+## 9. Git
+
+Commit or push only when the user explicitly asks. Leave finished work in the working tree and report
+what is ready — a review verdict ("ready to commit") or a checklist step is not that ask.
