@@ -445,6 +445,9 @@ A **lookup** entity keeps the folders but drops the list UI (omit the views and 
 
 1. **Model** — `data/Entity.ts` (c): `extends EntityBase` with concrete fields; `override get $id()`
    (`this.id || "new"`) and `override get $title()`. Export the class, `export const Entity = …`, and a default.
+   ⚠️ API-projected fields must be plain assignable properties — a class getter named after a JSON key makes
+   `Object.assign` hydration throw at runtime (`Cannot set property … which has only a getter`); `vue-tsc`
+   stays green. Keep derived values in `$`-getters or names the API never serializes.
 2. **Config** — `config/config.ts` (c): a `const config: IConfig` — `key`, `routePrefix`, `api`, the `*Url`
    fields, `defaultPageSize`, `icon`, titles, and `baseQueryParams` — usually `{}`; add
    `{ includes: ["Lines"] }` only for a collection the API gates behind its named `[Flags]` enum.

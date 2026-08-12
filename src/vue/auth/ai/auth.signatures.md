@@ -39,10 +39,11 @@ export interface IAuthData {
     email?: string
     displayName?: string
     culture?: string
-    role?: string
+    role?: string // first role found across the three claim spellings — display only; check with hasRole()
     get(claimType: string): string | Array<string> | undefined
     hasClaim(claimType: string, claimValue?: string): boolean
-    hasPermission(value: string): boolean
+    hasPermission(value: string): boolean // reads the "permissions" claim — NOT a role check
+    hasRole(role: string): boolean // probes "role" / "roles" / the ClaimTypes.Role URI (mirrors backend FindRoles())
 }
 // NOTE: the `AuthData` *class* is internal — it is NOT re-exported from "@regira/modules/vue/auth"
 // (no deep-import subpath either). Only the `IAuthData` type is reachable; code against the type.
@@ -153,6 +154,7 @@ export interface IAuthStore extends Store {
     isAuthenticated: boolean
     isRequired: boolean
     hasPermission: (permission: string) => boolean
+    hasRole: (role: string) => boolean
     displayName: string | undefined
     hasClaim: (type: string, value?: string) => boolean
     getClaimValue: (type: string) => string | Array<string> | undefined

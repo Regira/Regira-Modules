@@ -35,9 +35,12 @@ const routes = [
     { path: "/login", name: "login", component: LoginView, meta: { allowAnonymous: true } },
     { path: "/forbidden", name: "forbidden", component: ForbiddenView, meta: { allowAnonymous: true } },
     { path: "/users", name: "UserOverview", component: UserOverview, meta: { permissions: ["users.read"] } },
-    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store) => store.hasPermission("admin") } },
+    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store) => store.hasRole("Admin") } },
 ]
 ```
+
+`permissions` checks the `permissions` claim; a role-gated route (Identity roles in the JWT) uses a
+`policy` with `store.hasRole(...)`, which probes all three role-claim spellings.
 
 ## Use the store in a component
 
@@ -45,7 +48,7 @@ const routes = [
 import { useAuthStore } from "@regira/modules/vue/auth"
 
 const auth = useAuthStore()
-// auth.isAuthenticated, auth.displayName, auth.hasPermission("users.write"), auth.authData.email
+// auth.isAuthenticated, auth.displayName, auth.hasRole("Manager"), auth.hasPermission("users.write"), auth.authData.email
 async function signOut() {
     auth.logout()
 }

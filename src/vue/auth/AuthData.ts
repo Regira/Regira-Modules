@@ -1,5 +1,10 @@
 type IClaimValue = string | Array<string>
 
+// Role claims arrive under one of three spellings depending on the issuer: "role" (self-issued JWT),
+// "roles" (Entra) or the ClaimTypes.Role URI (ASP.NET Identity's default, API keys) — mirrors the
+// backend's FindRoles() / ClaimNormalizationOptions.RoleClaimTypes.
+const ROLE_CLAIM_TYPES = ["role", "roles", "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]
+
 export interface IAuthData {
     isAuthenticated: boolean
     expires: number
@@ -13,6 +18,7 @@ export interface IAuthData {
     get(claimType: string): IClaimValue | undefined
     hasClaim(claimType: string, claimValue?: string): boolean
     hasPermission(value: string): boolean
+    hasRole(role: string): boolean
 }
 
 export class AuthData implements IAuthData {
@@ -35,6 +41,9 @@ export class AuthData implements IAuthData {
         this.email = this.get("email") as string
         this.displayName = (this.get("displayName") ?? this.get("display_name")) as string
         this.culture = this.get("culture") as string
+        // first role found, for display — use hasRole() for checks; a multi-role user has more
+        const roleClaim = ROLE_CLAIM_TYPES.map((t) => this.get(t)).find((v) => typeof v !== "undefined")
+        this.role = Array.isArray(roleClaim) ? roleClaim[0] : roleClaim
     }
 
     get(claimType: string): IClaimValue | undefined {
@@ -46,6 +55,9 @@ export class AuthData implements IAuthData {
     }
     hasPermission(value: string): boolean {
         return this.hasClaim("permissions", value)
+    }
+    hasRole(role: string): boolean {
+        return ROLE_CLAIM_TYPES.some((t) => this.hasClaim(t, role))
     }
 }
 

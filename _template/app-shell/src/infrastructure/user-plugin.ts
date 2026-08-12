@@ -8,6 +8,8 @@ export const plugin = {
     install(app: App) {
         const authStore = useAuthStore()
         Object.defineProperty(app.config.globalProperties, "$isAdmin", {
+            // hasPermission reads a "permissions" claim — role-based API (Identity + AddRoles)?
+            // use authStore.hasRole("Admin") here instead; see the auth module
             get: () => authStore.authData.hasPermission(Permissions.ADMIN),
             enumerable: true,
             configurable: true,

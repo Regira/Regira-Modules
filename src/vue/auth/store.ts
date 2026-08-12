@@ -18,6 +18,7 @@ export interface IDefineAuthStore {
     isAuthenticated: ComputedRef<boolean>
     isRequired: ComputedRef<boolean>
     hasPermission: ComputedRef<(permission: string) => boolean>
+    hasRole: ComputedRef<(role: string) => boolean>
     displayName: ComputedRef<string | undefined>
     hasClaim: ComputedRef<(type: string, value?: string) => boolean>
     getClaimValue: ComputedRef<(type: string) => string | Array<string> | undefined>
@@ -39,6 +40,7 @@ export interface IAuthStore extends Store {
     isAuthenticated: boolean
     isRequired: boolean
     hasPermission: (permission: string) => boolean
+    hasRole: (role: string) => boolean
     displayName: string | undefined
     hasClaim: (type: string, value?: string) => boolean
     getClaimValue: (type: string) => string | Array<string> | undefined
@@ -76,6 +78,7 @@ export function createStore(): IDefineAuthStore {
     const getClaimValue = computed(() => (type: string) => authData.value.get(type))
     const hasClaim = computed(() => (type: string, value?: string) => authData.value?.hasClaim(type, value) ?? false)
     const hasPermission = computed(() => (permission: string) => authData.value?.hasPermission(permission) ?? false)
+    const hasRole = computed(() => (role: string) => authData.value?.hasRole(role) ?? false)
 
     function setClientApp(value?: string) {
         // one write path into the owner — `clientApp` above and `$auth` reflect it because they read through
@@ -111,6 +114,7 @@ export function createStore(): IDefineAuthStore {
         isRequired,
         isAuthenticated,
         hasPermission,
+        hasRole,
         displayName,
         hasClaim,
         getClaimValue,

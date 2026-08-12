@@ -104,6 +104,9 @@
 initialization` loop the erased type import avoids, with the same dev-server-only tell. One direction is
   always safe; when both directions need a **value**, deep-import the module instead of the barrel
   (`@/entities/xs/details/FormModalButton.vue`, `@/entities/xs/data/store`) on the second edge.
+  `scaffold.mjs` skips a `--rel` naming the entity being scaffolded for the same reason — a self-relation
+  (`Employee → manager`) is wired by hand: a plain FK field on the model plus a relative deep import of the
+  slice's own `selecting/InputSelector.vue`.
 
 ## Relations & owned collections
 

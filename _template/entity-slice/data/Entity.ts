@@ -14,6 +14,9 @@ export class __Entity__ extends EntityBase {
     //                                    // store.ts's Entity.name — dev-server only, build stays green
     // status?: Status                    // mirror a C# enum as a const object + union type, never a TS `enum`
     //                                    // (erasableSyntaxOnly rejects enums — see entities.setup.md → Tooling)
+    // ⚠️ fields the API projects must be plain assignable properties — a class getter named after a
+    //    JSON key (a `get fullName()` mirroring a projected fullName) makes hydration throw at runtime;
+    //    vue-tsc stays green
 
     created?: Date
     lastModified?: Date
