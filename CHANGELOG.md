@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.1.1 — 2026-08-12
 
 - `vue/auth`: `hasRole(role)` on the auth store and `AuthData` — probes the three role-claim spellings a
   raw token can carry (`role` for a self-issued JWT, `roles` for Entra, the `ClaimTypes.Role` URI for
