@@ -39,6 +39,10 @@
 //                       table, over a plain join-row interface. Chains after --as; the picked slice must
 //                       already be scaffolded. A join row that also carries a scalar (a quantity, a status)
 //                       is not pure — leave --picker off and edit it as a table.
+//   --fk <fkName>       the owned child's FK property to the parent, when the C# property is not named after
+//                       the parent class (default camelCase parent + "Id": QCreditRequest → qCreditRequestId;
+//                       a C# property `RequestId` needs --fk requestId). Chains after its --owns, with --as.
+//                       Editable-table sub-slices only: a --picker join carries no parent FK on the client.
 //   --shell             scaffold the app shell (toolchain, main.ts, App.vue, config, router, dashboard/navbar, layout, views) into the app root
 //   --ui <Component>    copy a UI-kit component's reference skin into the app for free restyling; the copy
 //                       imports only public @regira/modules/... API, so behavior keeps flowing from the library
@@ -60,6 +64,7 @@
 //   node .../scaffold.mjs Task --rel Employee --as assignedToEmployee   # FK assignedToEmployeeId → Employee slice
 //   node .../scaffold.mjs Order --owns OrderLine
 //   node .../scaffold.mjs Order --owns OrderLine --as lines   # back-end nav `Lines` → JSON key "lines"
+//   node .../scaffold.mjs QCreditRequest --owns QCreditRequestItem --as items --fk requestId   # C# FK `RequestId`
 //   node .../scaffold.mjs --shell --no-auth
 //   node .../scaffold.mjs --ui DefaultModal
 
@@ -74,7 +79,7 @@ const opt = (flag, fallback) => {
 }
 // The entity name is the first bare token — but a flag's VALUE is bare too, so `--dir src/modules` would
 // otherwise be read as the entity (and `--attachments --dir x` would die on "SrcModules is not PascalCase").
-const VALUE_FLAGS = new Set(["--dir", "--api", "--plural", "--singular", "--ui", "--rel", "--owns", "--as", "--picker"])
+const VALUE_FLAGS = new Set(["--dir", "--api", "--plural", "--singular", "--ui", "--rel", "--owns", "--as", "--picker", "--fk"])
 const firstBareArg = () => argv.find((a, i) => !a.startsWith("--") && !VALUE_FLAGS.has(argv[i - 1]))
 const noAuth = argv.includes("--no-auth")
 const force = argv.includes("--force")
@@ -256,7 +261,7 @@ for (let i = 0; i < argv.length; i++) {
             console.error("✗ --owns requires a PascalCase child class name (e.g. --owns OrderLine).")
             process.exit(1)
         }
-        const entry = { child: value, field: undefined, picker: undefined }
+        const entry = { child: value, field: undefined, picker: undefined, fk: undefined }
         owns.push(entry)
         pending = { entry, set: (f) => (entry.field = f), kind: "--owns", valueIndex: i + 1 }
     } else if (flag === "--rel") {
@@ -296,6 +301,22 @@ for (let i = 0; i < argv.length; i++) {
         // consumed, so a second --as is misplaced rather than silently overwriting the first.
         pending.as = true
         pending.valueIndex = i + 1
+    } else if (flag === "--fk") {
+        if (!pending || pending.kind !== "--owns" || pending.valueIndex !== i - 1 || pending.fk) {
+            console.error(
+                "✗ --fk must come directly after the --owns it applies to (e.g. --owns QCreditRequestItem --fk requestId), chaining with --as."
+            )
+            process.exit(1)
+        }
+        if (!hasValue || !/^[a-z][A-Za-z0-9]*Id$/.test(value)) {
+            console.error(
+                `✗ --fk requires the child's camelCase FK property ending in "Id" — the back-end C# property's JSON key (e.g. --fk requestId).`
+            )
+            process.exit(1)
+        }
+        pending.entry.fk = value
+        pending.fk = true
+        pending.valueIndex = i + 1
     } else if (flag === "--picker") {
         if (!pending || pending.kind !== "--owns" || pending.valueIndex !== i - 1 || pending.picker) {
             console.error(
@@ -318,6 +339,17 @@ for (let i = 0; i < argv.length; i++) {
         pending.entry.picker = value
         pending.picker = true
         pending.valueIndex = i + 1
+    }
+}
+
+// A --picker join's client row carries only the two join FKs; the parent FK is set server-side by the
+// Related() sync, so there is nothing for --fk to rename there.
+for (const o of owns) {
+    if (o.picker && o.fk) {
+        console.error(
+            `✗ --fk does not apply to --owns ${o.child} --picker ${o.picker}: a pure join carries no parent FK on the client — drop --fk (it renames the FK in the editable-table template only).`
+        )
+        process.exit(1)
     }
 }
 
@@ -361,16 +393,29 @@ function findSliceFolder(className) {
     }
     return undefined
 }
-const relations = rels.map((r) => {
-    const folder = findSliceFolder(r.name) ?? lowerFirst(kebab(pluralize(r.name)))
-    return {
-        name: r.name,
-        field: r.field ?? lowerFirst(r.name), // FK binding — `--as` overrides it for a differently-named to-one
-        folder,
-        key: r.field ?? lowerFirst(r.name), // header i18n key — distinct per role when `--as` renames it
-        alias: `@/${aliasRoot}/${folder}`,
+// A --rel naming the entity being scaffolded would emit imports from the slice's own barrel (a self-import
+// cycle through store.ts) and collide with its own identifiers — a self-relation (Employee → manager) is
+// wired by hand with a relative deep import instead (see the entities guide's cycle-breaker note).
+const selfRels = rels.filter((r) => r.name === name)
+if (selfRels.length) {
+    for (const r of selfRels) {
+        console.log(
+            `! --rel ${r.name} references the ${name} slice itself — skipped. Wire the self-relation by hand: a plain FK field on the model plus a relative import of the slice's own selecting/InputSelector.vue (never the barrel, which would cycle).`
+        )
     }
-})
+}
+const relations = rels
+    .filter((r) => r.name !== name)
+    .map((r) => {
+        const folder = findSliceFolder(r.name) ?? lowerFirst(kebab(pluralize(r.name)))
+        return {
+            name: r.name,
+            field: r.field ?? lowerFirst(r.name), // FK binding — `--as` overrides it for a differently-named to-one
+            folder,
+            key: r.field ?? lowerFirst(r.name), // header i18n key — distinct per role when `--as` renames it
+            alias: `@/${aliasRoot}/${folder}`,
+        }
+    })
 // The per-ENTITY blocks (imports, store consts, model imports) de-dupe by class name, so two --rel to the
 // SAME entity (--rel Employee --as assignedTo --rel Employee --as reportedBy) never emit a duplicate identifier.
 const relEntities = [...new Map(relations.map((r) => [r.name, r])).values()]
@@ -707,7 +752,7 @@ if (sliceGenerated) {
 // `--picker <Target>` switches to the join template: chips selecting <Target>, not an editable scalar table.
 const ownedSrcRoot = resolve(here, "owned-slice")
 const ownedJoinSrcRoot = resolve(here, "owned-slice-join")
-for (const { child, field, picker } of owns) scaffoldOwned(child, field, picker)
+for (const { child, field, picker, fk } of owns) scaffoldOwned(child, field, picker, fk)
 
 // An existing slice keeps its own (c) files, so the three attachment edits cannot be written into it —
 // they are handed back instead. Printed last, after any owned sub-slice has had its say.
@@ -716,7 +761,7 @@ if (attachmentsOwner && !sliceGenerated) {
     attachmentsManualSteps()
 }
 
-function scaffoldOwned(childName, fieldName, pickerName) {
+function scaffoldOwned(childName, fieldName, pickerName, fkName) {
     if (!/^[A-Z]/.test(childName)) {
         console.error(`✗ --owns ${childName}: expected a PascalCase child name, e.g. --owns OrderLine`)
         return
@@ -742,8 +787,9 @@ function scaffoldOwned(childName, fieldName, pickerName) {
         }
         rmSync(childDest, { recursive: true, force: true }) // clean replace, like the parent slice
     }
-    // __children__ → the camelCase field (the JSON key), NOT the folder; __parent__ → camelCase parent singular
-    // (so a `ShoppingList` child FK is `shoppingListId`, matching the server). Folder/import paths use childFolder.
+    // __children__ → the camelCase field (the JSON key), NOT the folder; __parent__ → the child FK's stem —
+    // camelCase parent singular by default (a `ShoppingList` child FK is `shoppingListId`), or --fk minus its
+    // "Id" when the C# property is named differently (--fk requestId → `requestId`). Folder/import paths use childFolder.
     // __childrenSlug__ → the same field kebab-cased, for markup identifiers (CSS classes): every class name in
     // the templates is kebab-case, so a camelCase one (.shoppingListItems-editor) sticks out as a typo.
     // __Target__/__target__/__targetAlias__ are only present in the join template — the picked entity's class,
@@ -755,7 +801,7 @@ function scaffoldOwned(childName, fieldName, pickerName) {
             .replace(/__childrenSlug__/g, kebab(childField))
             .replace(/__children__/g, childField)
             .replace(/__Parent__/g, name)
-            .replace(/__parent__/g, camelSingular)
+            .replace(/__parent__/g, fkName ? fkName.replace(/Id$/, "") : camelSingular)
             .replace(/__targetAlias__/g, targetAlias ?? "")
             .replace(/__Target__/g, pickerName ?? "")
             .replace(/__target__/g, pickerName ? lowerFirst(pickerName) : "")
@@ -767,6 +813,11 @@ function scaffoldOwned(childName, fieldName, pickerName) {
         )
         console.log(
             `  If they differ, stop here and re-run with --owns ${childName} --as <fieldName> — correcting it later needs --overwrite-slice, which REPLACES the 8 (c) files you authored by then.`
+        )
+    }
+    if (fkName == null) {
+        console.log(
+            `! Owned ${childName}: defaulting its FK to the parent to "${camelSingular}Id" — it must match the child's C# property (class name ≠ property name is common: a QCreditRequest FK property "RequestId" needs --fk requestId).`
         )
     }
     mkdirSync(childDest, { recursive: true })
@@ -855,6 +906,11 @@ function scaffoldShell() {
     console.log("  The layout/navigation components are default implementations, not a prescribed design — restyle them,")
     console.log("  or replace any of them with your own as long as the functionality stays available")
     console.log("  (entities.shell.template.md → Default implementations, not requirements).")
+    if (!noAuth) {
+        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasPermission("admin") — a permissions-claim`)
+        console.log(`  backend. On a role-based API (Identity + AddRoles) switch it to authStore.hasRole("Admin"),`)
+        console.log(`  or $isAdmin stays false for every user.`)
+    }
 }
 
 // ---------------------------------------------------- attachments slice impl
@@ -884,7 +940,10 @@ function attachmentsManualSteps() {
         `    1. data/Entity.ts         field    attachments?: Array<EntityAttachment>   // import type { Entity as EntityAttachment } from "../../entity-attachments"`
     )
     console.log(
-        `    2. data/EntityService.ts  override insert/update via insertWithAttachments/updateWithAttachments; ⚠️ prepareItem must drop _deleted rows — without it a file the user removed is submitted unchanged and comes back after the save, with no error`
+        `    2. data/EntityService.ts  override insert/update via insertWithAttachments/updateWithAttachments   // import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"`
+    )
+    console.log(
+        `                              ⚠️ prepareItem must drop _deleted rows — without it a file the user removed is submitted unchanged and comes back after the save, with no error`
     )
     console.log(`    3. setup.ts               nothing to change — the helpers upload through useAxios(), so the default axios registration stands`)
     console.log(`  A NEW slice gets edits 1 and 2 written for it: scaffold.mjs <Entity> --attachments`)
@@ -1018,6 +1077,10 @@ Owned collections (a back-end e.Related(...) child):
                       its own): emit chips selecting <Entity> instead of an editable table. Chains after --as.
                       The picked slice must already be scaffolded. A join row that also carries a scalar
                       (a quantity, a status) is not pure — leave --picker off and edit it as a table
+  --fk <fkName>       the child's FK property to the parent, when the C# property is not the parent class name
+                      (default: camelCase parent + "Id", QCreditRequest → qCreditRequestId; a property named
+                      RequestId needs --fk requestId). Chains after the --owns it applies to, with --as.
+                      Editable-table sub-slices only — a --picker join carries no parent FK on the client
 
 Modes & shared flags:
   --shell             scaffold the app shell (toolchain, main.ts, App.vue, config, router, dashboard, layout, views)
@@ -1035,6 +1098,7 @@ Examples:
   scaffold.mjs Intervention --rel Vehicle --rel Supplier
   scaffold.mjs Task --rel Employee --as assignedToEmployee
   scaffold.mjs Order --owns OrderLine --as lines
+  scaffold.mjs QCreditRequest --owns QCreditRequestItem --as items --fk requestId
   scaffold.mjs Article --owns ArticleCategory --as categories --picker Category
   scaffold.mjs --shell --no-auth
   scaffold.mjs --ui DefaultModal`)

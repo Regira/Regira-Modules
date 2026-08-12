@@ -211,6 +211,9 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
 - **Auth means the full account surface, shown on time.** Wire login **and** forgot/reset/change
   password with the provided components (`vue/auth`), and pop the login modal immediately for anonymous
   users instead of rendering a dashboard they can't use (`auth.instructions` → _Account UI_).
+- **Role gating uses `authStore.hasRole(...)`,** never `hasPermission` (that reads a `permissions` claim
+  the standard Identity backend doesn't mint). The full backend-to-SPA chain is `Regira.Security` →
+  security.instructions → _Roles end-to-end_ (`how_to` key `roles-end-to-end`).
 - **Multilanguage means a visible selector.** Wire `LangSelector` (from `vue/lang`) into the header
   whenever the app is multilanguage.
 - **Group form fields** with `FormSection` (+ `FormLabel`, `input-group` icon prefixes) instead of flat

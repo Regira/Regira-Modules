@@ -630,6 +630,11 @@ instanceof OrderLine))`** — this is the collection form of the
 > **silently**: no type error, no runtime error — the collection just never round-trips and nothing
 > persists. Verify the key against an actual API response before binding (`scaffold.mjs --owns … --as
 <fieldName>` sets it explicitly).
+>
+> **The child's FK to the parent follows the same rule** — it is the C# property's JSON key, which defaults
+> to camelCase parent class + `Id` but is often shorter on the server (`QCreditRequest` items carrying
+> `RequestId`). `--owns … --fk <fkName>` sets it at scaffold time; verify against the API response like the
+> collection key.
 
 New rows mint
 **negative temp ids** and insert with the parent's single `save()`; `_deleted` rows drop in the `prepareItem`

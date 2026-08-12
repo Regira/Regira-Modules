@@ -274,6 +274,49 @@ describe("scaffold.mjs owned collections", () => {
         expect(() => run("Article", "--owns", "ArticleCategory", "--picker", "ArticleCategory", "--no-auth")).toThrow(/repeats the --owns class/)
         expect(() => run("Article", "--rel", "Category", "--picker", "Category", "--no-auth")).toThrow(/directly after the --owns/)
     })
+
+    test("--fk overrides the child's FK to the parent", () => {
+        // The default FK derives from the parent CLASS name, but the wire key follows the C# PROPERTY —
+        // a `QCreditRequest` child whose FK property is `RequestId` needs requestId, not qCreditRequestId.
+        run("CreditRequest", "--owns", "CreditRequestItem", "--as", "items", "--fk", "requestId", "--no-auth")
+        const entity = readFileSync(app("src", "entities", "credit-requests", "credit-request-items", "Entity.ts"), "utf8")
+
+        expect(entity).toContain("requestId?: number")
+        expect(entity).not.toContain("creditRequestId")
+    })
+
+    test("without --fk the FK defaults to the parent class name, and the run says so", () => {
+        const out = run("WorkOrder", "--owns", "WorkOrderStep", "--no-auth")
+        const entity = readFileSync(app("src", "entities", "work-orders", "work-order-steps", "Entity.ts"), "utf8")
+
+        expect(entity).toContain("workOrderId?: number")
+        expect(out).toContain('defaulting its FK to the parent to "workOrderId"')
+    })
+
+    test("--fk validates its value and placement", () => {
+        expect(() => run("Ledger", "--owns", "LedgerLine", "--fk", "request", "--no-auth")).toThrow(/ending in "Id"/)
+        expect(() => run("Ledger", "--rel", "Account", "--fk", "accountId", "--no-auth")).toThrow(/directly after the --owns/)
+    })
+
+    test("--fk on a --picker join is rejected", () => {
+        // The join template carries no parent FK on the client (Related() sets it server-side), so an
+        // accepted-but-ignored --fk would read as a successful rename.
+        expect(() => run("Order", "--owns", "OrderTag", "--as", "tags", "--picker", "Tag", "--fk", "orderId", "--no-auth")).toThrow(
+            /--fk does not apply/
+        )
+    })
+})
+
+describe("scaffold.mjs self-referencing --rel", () => {
+    test("a --rel naming the scaffolded entity is skipped with a hand-wiring hint", () => {
+        // The generated relation blocks import from the related slice's BARREL — for a self-relation
+        // (Employee → manager) that is the slice's own barrel, a self-import cycle through store.ts.
+        const out = run("Employee", "--rel", "Employee", "--no-auth")
+
+        expect(out).toContain("references the Employee slice itself — skipped")
+        const listItem = readFileSync(app("src", "entities", "employees", "overview", "ListItem.vue"), "utf8")
+        expect(listItem).not.toContain('from "@/entities/employees"')
+    })
 })
 
 describe("scaffold.mjs --shell config.json", () => {

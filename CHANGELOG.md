@@ -5,8 +5,25 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.1.1 — 2026-08-12
 
+- `vue/auth`: `hasRole(role)` on the auth store and `AuthData` — probes the three role-claim spellings a
+  raw token can carry (`role` for a self-issued JWT, `roles` for Entra, the `ClaimTypes.Role` URI for
+  ASP.NET Identity's default), mirroring the backend's `FindRoles()`. `hasPermission` reads the
+  `permissions` claim and is unsuited for role gating. **Note:** `hasRole` is a required member of the
+  exported `IAuthData`, so a hand-rolled test double typed as `IAuthData` needs the method added.
+- `vue/auth`: `AuthData.role` is populated — the first role found across the three spellings, for display.
+- `vue/auth`: new package index card (`auth.card.md`) served by the MCP's `get_package_card`.
+- `scaffold.mjs`: `--owns … --fk <fkName>` sets the owned child's FK property to the parent when the C#
+  property is not named after the parent class (a `QCreditRequest` child carrying `RequestId` takes
+  `--fk requestId`); without the flag the run names the derived default. `--fk` on a `--picker` join is
+  rejected — the join row carries no parent FK on the client. A `--rel` naming the entity being scaffolded
+  is skipped with a hand-wiring hint (its generated imports would cycle into the slice's own barrel).
+- `_template/entity-slice/data/Entity.ts`: the model skeleton notes that API-projected fields are plain
+  assignable properties — a class getter named after a JSON key makes hydration throw at runtime while
+  `vue-tsc` stays green.
+- `scaffold.mjs --shell`: the output names the `$isAdmin` claim choice (`hasPermission("admin")` vs
+  `hasRole("Admin")` on a role-based backend).
 - Licensing: `@regira/modules` is now licensed under the **Apache License 2.0** (previously the Regira
   Commercial License). `package.json` `license` is the SPDX expression `Apache-2.0`, and the repository
   ships the Apache-2.0 `LICENSE` plus a `NOTICE` file. No code changes — the library never contained

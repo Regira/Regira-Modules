@@ -68,13 +68,22 @@ The bearer interceptor reads `tokenManager.token`; you never set headers manuall
 The Pinia store is the reactive source of truth for components:
 
 - **state/getters:** `isAuthenticated`, `isRequired`, `authData`, `displayName`, `hasPermission(p)`,
-  `hasClaim(type, value?)`, `getClaimValue(type)`, `clientApp`, `enabled`.
+  `hasRole(r)`, `hasClaim(type, value?)`, `getClaimValue(type)`, `clientApp`, `enabled`.
 - **actions:** `login({ username, password })`, `validateToken()`, `refresh(o)`, `logout()`, `setClientApp(c)`.
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 
 `authData` (`IAuthData`) is decoded from the JWT: `userId`, `name`, `email`, `displayName`, `culture`,
-`role`, `expires`, plus `get(claim)`, `hasClaim`, `hasPermission`.
+`role` (the first role found, for display), `expires`, plus `get(claim)`, `hasClaim`, `hasPermission`,
+`hasRole`.
+
+⚠️ **Role checks are `hasRole(r)`, not `hasPermission(r)`.** The store decodes the **raw** token, and role
+claims arrive under one of three spellings depending on the issuer — `role` (self-issued JWT), `roles`
+(Entra), or the `ClaimTypes.Role` URI (ASP.NET Identity's default) — `hasRole` probes all three, mirroring
+the backend's `FindRoles()`. `hasPermission(p)` reads a **`permissions`** claim, which the standard
+Identity/JWT recipe never mints — using it for role gating silently answers `false`. The full backend chain
+(emitting role claims from Identity) is `Regira.Security` → security.instructions → _Roles end-to-end_
+(`how_to` key `roles-end-to-end`).
 
 ## Endpoints (`AuthService`)
 
@@ -110,6 +119,8 @@ Both are installed automatically by the plugin and are **not exported** from `@r
 - `meta.allowAnonymous` → always allowed.
 - Authenticated: each matched route's `meta.policy(store)` and `meta.permissions: string[]`
   (via `store.hasPermission`) must pass, else redirect to route **`forbidden`** (`query.url` = target).
+  Role-gated routes use a policy — `meta.policy: (store) => store.hasRole("Admin")` — since
+  `meta.permissions` checks the `permissions` claim, not roles.
 - Not authenticated: sets `authRequired` and **allows navigation** (the app shows a login popup rather
   than redirecting). Define an `allowAnonymous` route for public pages and a `forbidden` route.
 

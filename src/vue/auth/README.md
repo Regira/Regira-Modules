@@ -10,7 +10,7 @@ permission-aware route guard, and login UI.
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugin` (auth)                                                                                                                                                                                          | Wires everything at startup: bearer interceptor, token validation, route guard, 401 auto-logout.                                                                    |
 | `LocalStorageTokenManager` / `CookieTokenManager` / `MemoryTokenManager`                                                                                                                                 | Pluggable token storage (`ITokenManager`).                                                                                                                          |
-| `useAuthStore`                                                                                                                                                                                           | Reactive auth state: `isAuthenticated`, `displayName`, `hasPermission`, `login`, `logout`, …                                                                        |
+| `useAuthStore`                                                                                                                                                                                           | Reactive auth state: `isAuthenticated`, `displayName`, `hasPermission`, `hasRole`, `login`, `logout`, …                                                             |
 | `AuthService`                                                                                                                                                                                            | The HTTP calls: login, refresh, validate, change/forgot/reset password.                                                                                             |
 | `routeGuard`                                                                                                                                                                                             | `beforeEach` guard reading `meta.allowAnonymous` / `permissions` / `policy`.                                                                                        |
 | `useAuth`                                                                                                                                                                                                | The wiring object (`IAuth`): `enabled`, `clientApp`, `tokenManager`, `service` — no `authData`.                                                                     |
@@ -26,7 +26,7 @@ initAxios → shared axios ──┐
 tokenManager ──────────────┘            + validateToken on load
                                         + routeGuard(router, store)
                                         + autoLogoutOnFailedRequest (401 → re-validate)
-useAuthStore  ←─ components read isAuthenticated / displayName / hasPermission
+useAuthStore  ←─ components read isAuthenticated / displayName / hasPermission / hasRole
 ```
 
 Install **after** the router and `initAxios`, passing that same axios instance. Auth endpoints are
