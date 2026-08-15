@@ -668,6 +668,7 @@ export { default as config } from "./config/config"
 export { default as Entity } from "./data/Entity"
 export { default as EntityService } from "./data/EntityService"
 export { default as useEntityStore } from "./data/store"
+export { default as SearchObject } from "./filter/SearchObject"
 
 export { default as Filter } from "./filter/Filter.vue"
 export { default as FilterInline } from "./filter/FilterInline.vue"

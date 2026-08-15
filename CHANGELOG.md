@@ -5,6 +5,25 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- **Breaking** — `vue/entities`: `useForm`'s `handleSubmit` and `handleRestore` no longer re-throw after setting feedback,
+  matching `handleRemove`. The scaffolded `@submit.prevent="handleSubmit"` binding logged an unhandled
+  rejection on every failed save; consumers wrapping the call in `try/catch` can drop the wrapper, and code
+  that needs the outcome branches on `feedback` instead. ⚠️ Code placed *after* `await handleSubmit()` that
+  relied on the throw to short-circuit — `router.push(...)` on the next line — now runs on failure too, and
+  navigates away from a form that did not save. Guard it on `feedback.status`.
+- `scaffold.mjs`: the shell's `$isAdmin` now wires to `authStore.hasRole(Roles.ADMIN)` against a `Roles` map
+  in `infrastructure/permissions.ts`, the Identity + `AddRoles` default the guides prescribe — it previously
+  generated `hasPermission("admin")`, which reads a claim a standard Identity backend never mints, leaving
+  `$isAdmin` false for every user. Permission-claim backends swap to `hasPermission` per the file's comment.
+- `scaffold.mjs`: entity-slice barrels export `SearchObject`, so a hand-written view can construct one
+  without patching the barrel.
+- Guides: tab lists drop a responsive tab with `undefined` and no filtering step (`null` does not satisfy
+  `TabContainer`'s prop type, and neither `.filter((t) => t)` nor `.filter(Boolean)` narrows it away);
+  `vue/formatters`, `vue/lang` and `vue/app` added to the wiring table, with the mask-vs-culture split
+  spelled out; `setup.md`'s infrastructure snippets brought in line with the generated shell.
+
 ## 6.1.1 — 2026-08-12
 
 - `vue/auth`: `hasRole(role)` on the auth store and `AuthData` — probes the three role-claim spellings a

@@ -907,9 +907,9 @@ function scaffoldShell() {
     console.log("  or replace any of them with your own as long as the functionality stays available")
     console.log("  (entities.shell.template.md → Default implementations, not requirements).")
     if (!noAuth) {
-        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasPermission("admin") — a permissions-claim`)
-        console.log(`  backend. On a role-based API (Identity + AddRoles) switch it to authStore.hasRole("Admin"),`)
-        console.log(`  or $isAdmin stays false for every user.`)
+        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Admin") — the Identity + AddRoles`)
+        console.log(`  default. The match is exact and case-sensitive, so confirm the role name against the API (and`)
+        console.log(`  switch to hasPermission on a permissions-claim backend), or $isAdmin stays false for everyone.`)
     }
 }
 
