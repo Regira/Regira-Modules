@@ -798,7 +798,7 @@ protected override prepareItem(item: Owner): Owner {
 `useForm` returns the `feedback: FeedbackOut` it drives — a `reactive()` object, so read its fields
 directly, without `.value` (`status`/`message`/`error`/`isPending` +
 `pending(msg)`/`success(msg)`/`fail(msg, err?)`/`reset()`). `handleSubmit` already calls `pending("Saving…")` → `success("Saved")`,
-or on failure `fail(...)`. A failed save no longer re-throws, so `@submit.prevent="handleSubmit"` binds
+or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
 directly — branch on `feedback` when you need the outcome. (It still throws synchronously on a **readonly**
 form, before any save is attempted.) The failure mapping is fixed:
 

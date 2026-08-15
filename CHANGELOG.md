@@ -7,6 +7,11 @@ heading.
 
 ## Unreleased
 
+- `vue/entities` guides: new **Contact data & address editors** blueprint — phone/email rows with
+  type-sniffed `tel:`/`mailto:` actions and address lists with a shared formatter and `GMapButton`, as
+  owned-collection editors composed in the owner's form; `how_to` keys `contact-data-editor` and
+  `addresses-editor`. Sibling of the labels editor; the polymorphic-entity blueprint now points at it.
+
 - `vue/entities`: `useForm`'s `handleSubmit` and `handleRestore` no longer re-throw after setting feedback,
   matching `handleRemove`. The scaffolded `@submit.prevent="handleSubmit"` binding logged an unhandled
   rejection on every failed save; consumers wrapping the call in `try/catch` can drop the wrapper, and code

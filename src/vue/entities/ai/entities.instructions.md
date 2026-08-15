@@ -586,6 +586,7 @@ SPA counterparts of the back-end domain blueprints (`get_package(id: "Regira.Ent
 - **Tenant switcher** — active tenant derived from the JWT `tenant` claim; switching = `authStore.refresh({ tenantId })`.
 - **Family tree view** — flat rows from the tree endpoints → `TreeList` → mutually recursive `TreeView ⇄ TreeViewItem` components with drag-move.
 - **Polymorphic entity** — one flattened client class + discriminator field over a TPH back-end (Person/Organization parties).
+- **Contact data & address editors** — phone/email rows (type-sniffed `tel:`/`mailto:` actions) and address lists (`GMapButton`, shared formatter) as owned-collection editors in the owner's form.
 
 ---
 
