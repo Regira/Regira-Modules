@@ -7,18 +7,28 @@ heading.
 
 ## Unreleased
 
-- **Breaking** — `vue/entities`: `useForm`'s `handleSubmit` and `handleRestore` no longer re-throw after setting feedback,
+- `vue/entities`: `useForm`'s `handleSubmit` and `handleRestore` no longer re-throw after setting feedback,
   matching `handleRemove`. The scaffolded `@submit.prevent="handleSubmit"` binding logged an unhandled
   rejection on every failed save; consumers wrapping the call in `try/catch` can drop the wrapper, and code
-  that needs the outcome branches on `feedback` instead. ⚠️ Code placed *after* `await handleSubmit()` that
-  relied on the throw to short-circuit — `router.push(...)` on the next line — now runs on failure too, and
-  navigates away from a form that did not save. Guard it on `feedback.status`.
+  that needs the outcome branches on `feedback` instead. Shipped as a patch because the rejection was never
+  a supported signal — the guides only ever documented wrapping the call, and `handleRemove` already behaved
+  this way. If you nonetheless placed work *after* `await handleSubmit()` that relied on the throw to
+  short-circuit — `router.push(...)` on the next line — guard it on `feedback.status`, or it now runs on a
+  failed save.
 - `scaffold.mjs`: the shell's `$isAdmin` now wires to `authStore.hasRole(Roles.ADMIN)` against a `Roles` map
   in `infrastructure/permissions.ts`, the Identity + `AddRoles` default the guides prescribe — it previously
   generated `hasPermission("admin")`, which reads a claim a standard Identity backend never mints, leaving
   `$isAdmin` false for every user. Permission-claim backends swap to `hasPermission` per the file's comment.
-- `scaffold.mjs`: entity-slice barrels export `SearchObject`, so a hand-written view can construct one
-  without patching the barrel.
+- `scaffold.mjs`: entity-slice barrels export `SearchObject`, so another slice can reach the **type**
+  (`import type { SearchObject } from "@/entities/vehicles"`) without patching the barrel. Constructing one
+  is a value import — take the leaf module (`…/filter/SearchObject`, a default export) per
+  `entities.namespaces`.
+- Guides: extending an emit contract now says to match the shape being extended. The call-signature
+  contracts (`FormEmits`, `FilterEmits`, …) take `(e: "reload"): void`, as `FormModalEmits extends
+  FormEmits` already does; **`OverviewEmits` is the exception** — declared as tuple properties, so a custom
+  event on it must be a tuple member (`{ "reload": [] }`). A call signature there flips `defineEmits` to the
+  call-signature branch and every inherited two-argument emit stops compiling, which the previously
+  documented fix ran into. The two worked examples that extend `OverviewEmits` are corrected.
 - Guides: tab lists drop a responsive tab with `undefined` and no filtering step (`null` does not satisfy
   `TabContainer`'s prop type, and neither `.filter((t) => t)` nor `.filter(Boolean)` narrows it away);
   `vue/formatters`, `vue/lang` and `vue/app` added to the wiring table, with the mask-vs-culture split

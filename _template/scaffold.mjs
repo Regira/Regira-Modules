@@ -815,7 +815,9 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             `  If they differ, stop here and re-run with --owns ${childName} --as <fieldName> — correcting it later needs --overwrite-slice, which REPLACES the 8 (c) files you authored by then.`
         )
     }
-    if (fkName == null) {
+    // A --picker join carries no parent FK on the client, and --fk is rejected for it — so the hint would
+    // send the reader straight into that error.
+    if (fkName == null && !pickerName) {
         console.log(
             `! Owned ${childName}: defaulting its FK to the parent to "${camelSingular}Id" — it must match the child's C# property (class name ≠ property name is common: a QCreditRequest FK property "RequestId" needs --fk requestId).`
         )
