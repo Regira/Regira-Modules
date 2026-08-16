@@ -346,15 +346,21 @@ freely on one form.
 // entities/contact-data/Entity.ts
 export class ContactDetails extends EntityBase {
     id: number = 0
-    title?: string          // "work", "mobile" — optional qualifier
+    title?: string // "work", "mobile" — optional qualifier
     value!: string
-    dataType?: string       // display hint, client-detected
+    dataType?: string // display hint, client-detected
     description?: string
-    _deleted?: boolean      // transient UI mark — stripped before save
+    _deleted?: boolean // transient UI mark — stripped before save
 
-    override get $id() { return this.id || "new" }
-    override get $title() { return this.value }
-    static create(values?: object) { return Object.assign(new ContactDetails(), values || {}) }
+    override get $id() {
+        return this.id || "new"
+    }
+    override get $title() {
+        return this.value
+    }
+    static create(values?: object) {
+        return Object.assign(new ContactDetails(), values || {})
+    }
 }
 ```
 
@@ -373,7 +379,7 @@ export function getDataType(item?: ContactDetails) {
 - **`Overview.vue`** — the editor: a `FormSection`, a list of rows bound through
   `useOwnedCollection({ props, emit })`, and one always-present "add new" input that appends a row on
   enter/blur. A `#summary` slot shows the compact read-only variant when the section is collapsed.
-- **`ActionButton.vue`** — the detected type as a *working* affordance: `tel:` / `mailto:` / `href`
+- **`ActionButton.vue`** — the detected type as a _working_ affordance: `tel:` / `mailto:` / `href`
   (websites `target="_blank"`) rendered as an anchor; anything undetected falls back to a
   copy-to-clipboard button (`clipboardUtility`).
 - **`ContactDataIcon.vue`** — type → icon map (`phone`/`mail`/`website`, fallback `connect`).
@@ -395,9 +401,15 @@ export class Address extends EntityBase {
     sortOrder: number = 0
     _deleted?: boolean
 
-    override get $id() { return this.id || "new" }
-    override get $title() { return this.title ?? `${this.street} ${this.houseNumber}, ${this.postalCode} ${this.city}`.trim() }
-    static create(values?: object) { return Object.assign(new Address(), values || {}) }
+    override get $id() {
+        return this.id || "new"
+    }
+    override get $title() {
+        return this.title ?? `${this.street} ${this.houseNumber}, ${this.postalCode} ${this.city}`.trim()
+    }
+    static create(values?: object) {
+        return Object.assign(new Address(), values || {})
+    }
 }
 ```
 

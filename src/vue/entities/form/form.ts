@@ -67,16 +67,23 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         item.value = entityService.toEntity(deepCopy(original.value))
     }
 
-    function checkReadonly(): void {
+    // returns false when the form is readonly, after reporting it through `feedback`. Callers early-return
+    // on false: throwing here rejected the promise of the `async` handler that called it, which is exactly
+    // the unhandled rejection `@submit.prevent="handleSubmit"` used to log — a throw before the first
+    // `await` is still a rejected promise, never a synchronous throw.
+    function checkReadonly(): boolean {
         if (readonly) {
             feedback.fail("Readonly")
-            throw new Error("Readonly")
+            return false
         }
+        return true
     }
 
     const router = useRouter()
     async function handleSubmit(): Promise<void> {
-        checkReadonly()
+        if (!checkReadonly()) {
+            return
+        }
 
         emit("changeState", FormStates.pending)
         try {
@@ -125,7 +132,9 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
     }
 
     async function handleRemove(): Promise<void> {
-        checkReadonly()
+        if (!checkReadonly()) {
+            return
+        }
 
         emit("changeState", FormStates.pending)
         try {

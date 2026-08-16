@@ -2753,14 +2753,12 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 // Tabs
 const { translate } = useLang()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
-        !screen.isLarge ? Tab.create("components", { icon: "component", title: translate("product.components") }) : undefined,
-        Tab.create("assemblies", { icon: "assembly", title: translate("assemblies") }),
-        !screen.isLarge ? Tab.create("suppliers", { icon: "supplier", title: translate("product.suppliers") }) : undefined,
-    ]
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
+    !screen.isLarge ? Tab.create("components", { icon: "component", title: translate("product.components") }) : undefined,
+    Tab.create("assemblies", { icon: "assembly", title: translate("assemblies") }),
+    !screen.isLarge ? Tab.create("suppliers", { icon: "supplier", title: translate("product.suppliers") }) : undefined,
+])
 </script>
 ```
 

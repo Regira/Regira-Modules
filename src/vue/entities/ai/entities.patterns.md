@@ -799,8 +799,9 @@ protected override prepareItem(item: Owner): Owner {
 directly, without `.value` (`status`/`message`/`error`/`isPending` +
 `pending(msg)`/`success(msg)`/`fail(msg, err?)`/`reset()`). `handleSubmit` already calls `pending("Saving…")` → `success("Saved")`,
 or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
-directly — branch on `feedback` when you need the outcome. (It still throws synchronously on a **readonly**
-form, before any save is attempted.) The failure mapping is fixed:
+directly — branch on `feedback` when you need the outcome. (On a **readonly** form it reports
+`fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
+fixed:
 
 | HTTP status | `feedback.message` | `feedback.error`                                                 |
 | ----------- | ------------------ | ---------------------------------------------------------------- |
@@ -904,13 +905,11 @@ import { Tab, useScreen } from "@regira/modules/vue/ui"
 
 const { translate } = useLang()
 const { screen } = useScreen()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
-        Tab.create("lines", { icon: "list", title: translate("lines"), isDisabled: !item.value.id }), // gate until saved
-        !screen.isLarge ? Tab.create("files", { icon: "attachment", title: translate("files") }) : undefined,
-    ]
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
+    Tab.create("lines", { icon: "list", title: translate("lines"), isDisabled: !item.value.id }), // gate until saved
+    !screen.isLarge ? Tab.create("files", { icon: "attachment", title: translate("files") }) : undefined,
+])
 ```
 
 Worked example: the `Vehicle` slice in [entities.advanced.example.md](entities.advanced.example.md) §5.

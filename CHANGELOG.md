@@ -19,7 +19,11 @@ heading.
   a supported signal — the guides only ever documented wrapping the call, and `handleRemove` already behaved
   this way. If you nonetheless placed work *after* `await handleSubmit()` that relied on the throw to
   short-circuit — `router.push(...)` on the next line — guard it on `feedback.status`, or it now runs on a
-  failed save.
+  failed save. Same for the **readonly** guard in `handleSubmit`/`handleRemove`: it reported
+  `fail("Readonly")` and then threw, which — because both handlers are `async` — surfaced as a rejected
+  promise, not a synchronous throw, so it produced the very unhandled rejection this change removes. The
+  guard now returns early after setting feedback; no save or delete was ever attempted in that branch, so
+  the only difference is the absent rejection.
 - `scaffold.mjs`: the shell's `$isAdmin` now wires to `authStore.hasRole(Roles.ADMIN)` against a `Roles` map
   in `infrastructure/permissions.ts`, the Identity + `AddRoles` default the guides prescribe — it previously
   generated `hasPermission("admin")`, which reads a claim a standard Identity backend never mints, leaving

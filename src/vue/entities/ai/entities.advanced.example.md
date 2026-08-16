@@ -429,13 +429,11 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 // Tabs
 const { translate } = useLang()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
-        Tab.create("files", { icon: "attachment", title: translate("files") }),
-        Tab.create("interventions", { icon: Intervention.name, title: translate("interventions"), isDisabled: !item.value?.id }),
-    ]
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
+    Tab.create("files", { icon: "attachment", title: translate("files") }),
+    Tab.create("interventions", { icon: Intervention.name, title: translate("interventions"), isDisabled: !item.value?.id }),
+])
 </script>
 ```
 
@@ -858,7 +856,7 @@ import useEntityStore from "../data/store"
 import FormModalButton from "../details/FormModalButton.vue"
 
 interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
-    "select": [Entity | null]
+    select: [Entity | null]
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<{
