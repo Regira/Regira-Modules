@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.1.2 — 2026-08-16
 
 - `vue/entities` guides: new **Contact data & address editors** blueprint — phone/email rows with
   type-sniffed `tel:`/`mailto:` actions and address lists with a shared formatter and `GMapButton`, as
