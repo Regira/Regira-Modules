@@ -48,12 +48,10 @@ const { updateOverviewRoute } = useRouteOverview({ searchObject, pagingInfo, han
 import { computed } from "vue"
 import { TabContainer, Tab, useScreen } from "@regira/modules/vue/ui"
 const { screen } = useScreen()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: "Form", isDefault: true }),
-        !screen.isLarge ? Tab.create("more", { icon: "list", title: "More" }) : undefined,
-    ].filter(Boolean)
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: "Form", isDefault: true }),
+    !screen.isLarge ? Tab.create("more", { icon: "list", title: "More" }) : undefined,
+])
 </script>
 <template>
     <TabContainer :tabs="tabs">

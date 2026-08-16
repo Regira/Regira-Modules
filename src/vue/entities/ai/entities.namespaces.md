@@ -47,7 +47,15 @@ import { initAxios, useAxios, createQueryString } from "@regira/modules/vue/http
 > **Cross-slice import rule:** a slice barrel re-exports its model as the default **`Entity`**, not under the
 > class name. Import another slice's model aliased, with the fully erased form —
 > `import type { Entity as Vehicle } from "@/entities/vehicles"` — and its `config` / `EntityService` /
-> `Selector` / `InputSelector` by those same generic export names.
+> `SearchObject` / `Selector` / `InputSelector` by those same generic export names.
+>
+> **`SearchObject` — which of the two paths.** A hand-written view that queries a slice **constructs** one
+> (`const so = new SearchObject()`), and that is a _value_ import: through the barrel it pulls in every
+> component in the slice, including a `FilterAdv.vue` that imports back into whatever slices it was
+> scaffolded `--rel` against. Take the leaf module for that — note it exports a **default**:
+> `import SearchObject from "@/entities/vehicles/filter/SearchObject"`. Needing only the **type** is the safe
+> case either way, because `import type { … }` is erased before it can create an edge:
+> `import type { SearchObject } from "@/entities/vehicles"`.
 >
 > ⚠️ **`import type { … }`, not `import { type … }`.** Under `verbatimModuleSyntax` the inline modifier keeps
 > the import statement at runtime, so two slices referencing each other's model make a barrel cycle that
@@ -95,12 +103,22 @@ listed in `package.json` `exports` resolve as standalone imports; for anything e
 
 ## Wiring modules
 
-| Specifier                        | Exports                                                                                                   | Used for                                                                                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@regira/modules/vue/ioc`        | `ServiceProvider`, `get`, `IServiceProvider`, `plugin`                                                    | register/resolve services                                                                                                                  |
-| `@regira/modules/vue/http`       | `initAxios`, `useAxios`, `AxiosWithFilesInstance`, `createQueryString`                                    | the shared axios instance + query strings                                                                                                  |
-| `@regira/modules/vue/auth`       | `plugin`, `LocalStorageTokenManager`/`CookieTokenManager`/`MemoryTokenManager`, `useAuthStore`, `useAuth` | bearer-token auth on the shared axios                                                                                                      |
-| `@regira/modules/vue/vue-helper` | `useVModelField`, `createFromComputedPool`, `useEventListener`                                            | pool-backed computed + DOM-listener helpers; `useVModelField` only where native `defineModel` can't go (composables taking `props`/`emit`) |
+| Specifier                        | Exports                                                                                                                                                                                                                                         | Used for                                                                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@regira/modules/vue/ioc`        | `ServiceProvider`, `get`, `IServiceProvider`, `plugin`                                                                                                                                                                                          | register/resolve services                                                                                                                  |
+| `@regira/modules/vue/http`       | `initAxios`, `useAxios`, `AxiosWithFilesInstance`, `createQueryString`                                                                                                                                                                          | the shared axios instance + query strings                                                                                                  |
+| `@regira/modules/vue/auth`       | `plugin`, `LocalStorageTokenManager`/`CookieTokenManager`/`MemoryTokenManager`, `useAuthStore`, `useAuth`                                                                                                                                       | bearer-token auth on the shared axios                                                                                                      |
+| `@regira/modules/vue/vue-helper` | `useVModelField`, `createFromComputedPool`, `useEventListener`                                                                                                                                                                                  | pool-backed computed + DOM-listener helpers; `useVModelField` only where native `defineModel` can't go (composables taking `props`/`emit`) |
+| `@regira/modules/vue/lang`       | `useLang`, `translate`, `translateMessage`, `LangSelector`, `plugin`                                                                                                                                                                            | translations (`$t` / `$tm`) and the active language                                                                                        |
+| `@regira/modules/vue/app`        | `useAppStore`, `AppStatus`, `useCulture`, `onAppReady`, `whenAppReady`, `plugin`                                                                                                                                                                | app-readiness gating (`$isReady`) and the active culture                                                                                   |
+| `@regira/modules/vue/formatters` | `formatDateTime(date, mask)`, `formatDate`/`formatShortDate`/`formatNumber`/`formatCurrency`/`formatPercentage` (2nd arg is a **culture**), the fixed-mask `formatTime`/`dateInputString`/`dateTimeInputString`, `getInitials`, `shortenString` | rendering dates, numbers and money — do not hand-roll these                                                                                |
+
+⚠️ **`formatDateTime` is the only one that takes a mask; the rest take a culture** — and the pair is not
+type-distinguishable, so getting it wrong is a runtime problem. A locale tag handed to `formatDateTime` is
+token-substituted (`"en-GB"` → `"e<ms>-GB"`). A mask handed to `formatDate` reaches
+`toLocaleDateString` and usually throws `RangeError: Incorrect locale information provided` — but a mask
+that happens to parse as a language tag (`"dd-MM"`) silently returns a locale-formatted date instead. Full
+signatures: `get_package(id: "regira_modules.vue.formatters", section: "formatters.signatures")`.
 
 > **Deep specifiers in the advanced example.** The verbatim Vehicle slice
 > ([entities.advanced.example.md](entities.advanced.example.md)) reaches two granular paths:

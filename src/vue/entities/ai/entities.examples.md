@@ -1558,6 +1558,7 @@ export { default as config } from "./config/config"
 export { default as Entity } from "./data/Entity"
 export { default as EntityService } from "./data/EntityService"
 export { default as useEntityStore } from "./data/store"
+export { default as SearchObject } from "./filter/SearchObject"
 
 export { default as Filter } from "./filter/Filter.vue"
 export { default as FilterInline } from "./filter/FilterInline.vue"
@@ -2752,14 +2753,12 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 // Tabs
 const { translate } = useLang()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
-        !screen.isLarge ? Tab.create("components", { icon: "component", title: translate("product.components") }) : null,
-        Tab.create("assemblies", { icon: "assembly", title: translate("assemblies") }),
-        !screen.isLarge ? Tab.create("suppliers", { icon: "supplier", title: translate("product.suppliers") }) : null,
-    ].filter((tab) => tab)
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
+    !screen.isLarge ? Tab.create("components", { icon: "component", title: translate("product.components") }) : undefined,
+    Tab.create("assemblies", { icon: "assembly", title: translate("assemblies") }),
+    !screen.isLarge ? Tab.create("suppliers", { icon: "supplier", title: translate("product.suppliers") }) : undefined,
+])
 </script>
 ```
 

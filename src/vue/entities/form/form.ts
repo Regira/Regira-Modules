@@ -67,16 +67,23 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         item.value = entityService.toEntity(deepCopy(original.value))
     }
 
-    function checkReadonly(): void {
+    // returns false when the form is readonly, after reporting it through `feedback`. Callers early-return
+    // on false: throwing here rejected the promise of the `async` handler that called it, which is exactly
+    // the unhandled rejection `@submit.prevent="handleSubmit"` used to log — a throw before the first
+    // `await` is still a rejected promise, never a synchronous throw.
+    function checkReadonly(): boolean {
         if (readonly) {
             feedback.fail("Readonly")
-            throw new Error("Readonly")
+            return false
         }
+        return true
     }
 
     const router = useRouter()
     async function handleSubmit(): Promise<void> {
-        checkReadonly()
+        if (!checkReadonly()) {
+            return
+        }
 
         emit("changeState", FormStates.pending)
         try {
@@ -115,14 +122,19 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
                 feedback.fail("Server error", error.response?.data?.message || error.message)
             }
             emit("changeState", FormStates.error)
-            throw ex
+            // no re-throw: feedback surfaces the error, and `save` only emits on success (above), so a
+            // consumer that navigates/closes on @save correctly does nothing on failure. Re-throwing left
+            // `@submit.prevent="handleSubmit"` — the binding the scaffold generates — logging an unhandled
+            // rejection on every failed save. Validate before calling it; branch on `feedback` after.
         } finally {
             emit("changeState", FormStates.saved)
         }
     }
 
     async function handleRemove(): Promise<void> {
-        checkReadonly()
+        if (!checkReadonly()) {
+            return
+        }
 
         emit("changeState", FormStates.pending)
         try {
@@ -170,7 +182,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             const error = ex as any
             feedback.fail("Restoring failed", error.response?.data?.errors)
             emit("changeState", FormStates.error)
-            throw ex
+            // no re-throw — same reasoning as handleSubmit/handleRemove above
         } finally {
             emit("changeState", FormStates.saved)
         }

@@ -815,7 +815,9 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             `  If they differ, stop here and re-run with --owns ${childName} --as <fieldName> — correcting it later needs --overwrite-slice, which REPLACES the 8 (c) files you authored by then.`
         )
     }
-    if (fkName == null) {
+    // A --picker join carries no parent FK on the client, and --fk is rejected for it — so the hint would
+    // send the reader straight into that error.
+    if (fkName == null && !pickerName) {
         console.log(
             `! Owned ${childName}: defaulting its FK to the parent to "${camelSingular}Id" — it must match the child's C# property (class name ≠ property name is common: a QCreditRequest FK property "RequestId" needs --fk requestId).`
         )
@@ -907,9 +909,9 @@ function scaffoldShell() {
     console.log("  or replace any of them with your own as long as the functionality stays available")
     console.log("  (entities.shell.template.md → Default implementations, not requirements).")
     if (!noAuth) {
-        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasPermission("admin") — a permissions-claim`)
-        console.log(`  backend. On a role-based API (Identity + AddRoles) switch it to authStore.hasRole("Admin"),`)
-        console.log(`  or $isAdmin stays false for every user.`)
+        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Admin") — the Identity + AddRoles`)
+        console.log(`  default. The match is exact and case-sensitive, so confirm the role name against the API (and`)
+        console.log(`  switch to hasPermission on a permissions-claim backend), or $isAdmin stays false for everyone.`)
     }
 }
 

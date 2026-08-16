@@ -21,7 +21,7 @@
 > cache · Auth reload hooks · Navigation from the config map · Custom query params · Type the client from
 > OpenAPI · Debug panel
 >
-> `"blueprints"` (~19k chars) — Labels editor · Tenant switcher · Family tree view · Polymorphic entity
+> `"blueprints"` (~26k chars) — Labels editor · Tenant switcher · Family tree view · Polymorphic entity · Contact data & address editors
 >
 > `ui.signatures` on **`regira_modules.vue.ui`** (~20k chars) — Plugins · Feedback · Paging · Loading ·
 > Modal · Tabs · Icons · Screen · Autocomplete · Buttons & input components. This is where the kit's exact
@@ -220,4 +220,4 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
 
 - **Building a common domain feature? Check the blueprints** — `get_package(id: "regira_modules.vue.entities", section: "blueprints")`
   has the SPA counterparts of the back-end blueprints: labels editor, tenant switcher, family tree view,
-  polymorphic (TPH) entity.
+  polymorphic (TPH) entity, contact data & address editors.

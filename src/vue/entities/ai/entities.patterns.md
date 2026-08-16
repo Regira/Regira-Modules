@@ -798,7 +798,10 @@ protected override prepareItem(item: Owner): Owner {
 `useForm` returns the `feedback: FeedbackOut` it drives — a `reactive()` object, so read its fields
 directly, without `.value` (`status`/`message`/`error`/`isPending` +
 `pending(msg)`/`success(msg)`/`fail(msg, err?)`/`reset()`). `handleSubmit` already calls `pending("Saving…")` → `success("Saved")`,
-or on failure `fail(...)` **and re-throws** — so wrap the call. The failure mapping is fixed:
+or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
+directly — branch on `feedback` when you need the outcome. (On a **readonly** form it reports
+`fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
+fixed:
 
 | HTTP status | `feedback.message` | `feedback.error`                                                 |
 | ----------- | ------------------ | ---------------------------------------------------------------- |
@@ -838,11 +841,7 @@ async function submit() {
         feedback.fail("Please fix the highlighted fields", errors.value)
         return
     }
-    try {
-        await handleSubmit()
-    } catch {
-        /* feedback already set by useForm; swallow the re-throw */
-    }
+    await handleSubmit()
 }
 
 // client errors first, then the server's 400 field map (a Record) on feedback.error
@@ -885,7 +884,11 @@ Split the form with `TabContainer` (from `vue/ui`); the scaffolded `Form.vue` al
 `initialTab` / `isPopup` for it. Pass `Tab.create(key, { icon, title, isDefault?, isDisabled? })` entries
 and one `<template #key>` per tab. Always pass `:use-route-nav="!isPopup"` — the prop defaults to `false`, so
 without it a refresh silently drops back to the first tab; with it the active tab mirrors to the URL hash
-(deep-linkable, back-button aware). Returning `null` from the list drops a tab responsively:
+(deep-linkable, back-button aware). Drop a tab responsively by leaving **`undefined`** in the list — the
+prop is `Array<ITab | string | undefined>` and `TabContainer` skips nullish entries itself, so no filtering
+step is needed. ⚠️ `null` does **not** satisfy that type, and neither `.filter((t) => t)` nor
+`.filter(Boolean)` narrows it away — both keep the element type as-is, so a `null` entry is a `TS2322` on
+the `:tabs` binding:
 
 ```vue
 <TabContainer :tabs="tabs" :active="initialTab" :use-route-nav="!isPopup">
@@ -902,19 +905,17 @@ import { Tab, useScreen } from "@regira/modules/vue/ui"
 
 const { translate } = useLang()
 const { screen } = useScreen()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
-        Tab.create("lines", { icon: "list", title: translate("lines"), isDisabled: !item.value.id }), // gate until saved
-        !screen.isLarge ? Tab.create("files", { icon: "attachment", title: translate("files") }) : null,
-    ].filter((t) => t)
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
+    Tab.create("lines", { icon: "list", title: translate("lines"), isDisabled: !item.value.id }), // gate until saved
+    !screen.isLarge ? Tab.create("files", { icon: "attachment", title: translate("files") }) : undefined,
+])
 ```
 
 Worked example: the `Vehicle` slice in [entities.advanced.example.md](entities.advanced.example.md) §5.
 
 > **Dual-render for responsive forms:** render a section inline for large screens (`class="d-none d-lg-block"`)
-> **and** expose the same component as a small-screen-only tab (`!screen.isLarge ? Tab.create(…) : null`) —
+> **and** expose the same component as a small-screen-only tab (`!screen.isLarge ? Tab.create(…) : undefined`) —
 > one component, two placements, no duplication.
 
 ## Restyling & overriding the built-ins

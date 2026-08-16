@@ -8,12 +8,13 @@ Front-end counterparts of the back-end domain blueprints (`get_package(id: "Regi
 | [Tenant switcher](#tenant-switcher-multi-tenancy)                          | Letting a user switch the active tenant of a multi-tenant API                    |
 | [Family tree view](#family-tree-view-recursive-entities)                   | Rendering/navigating an entity's ancestors + descendants from the tree endpoints |
 | [Polymorphic entity](#polymorphic-entity-single-class-over-a-tph-back-end) | One SPA slice over a TPH back-end (e.g. Person/Organization parties)             |
+| [Contact data & address editors](#contact-data--address-editors)           | Editing phone/email rows and address lists inside an owner's form                |
 
 ---
 
 ## Labels editor (EntityLabels)
 
-Client side of the back-end **EntityLabels** blueprint: labels are an _owned_ collection on the owner entity — edited inline in the owner's form, persisted with the owner's save, deleted by omission. No label store, service, or route of its own.
+Client side of the back-end **EntityLabels** blueprint: labels are an _owned_ collection on the owner entity — edited inline in the owner's form, persisted with the owner's save, deleted by omission. No label store, service, or route of its own. (The [Contact data & address editors](#contact-data--address-editors) follow the same contract; the three compose freely on one form.)
 
 ### Entity + client-side type detection
 
@@ -314,7 +315,7 @@ export class Party extends EntityBase {
 - **Form:** branch the subtype fields on the discriminator (`v-if="item.$isOrganization"` … `v-else`); pick the type once at create time and treat it as immutable afterwards (the back-end discriminator is `init`-only).
 - **Config:** request the owned collections up front — `baseQueryParams: { includes: ["Addresses", "ContactData", "Relationships"] }` (names = the back-end `[Flags]` members).
 - **Save:** the discriminator decides which input DTO the back-end binds (`PersonInputDto` vs `OrganizationInputDto`) — always send `partyType`, and only the fields of that subtype are honored.
-- **Owned collections:** contact data + addresses are plain owned collections (`useOwnedCollection` + inline list — see [entities.patterns.md → Owned (child) collections](entities.patterns.md)); relations are **two** collections (`parentRelationships`/`childRelationships`), each row nesting its own `contactData`. Strip `_deleted` rows at **every** nesting level before save:
+- **Owned collections:** contact data + addresses use the [Contact data & address editors](#contact-data--address-editors) component sets; relations are **two** collections (`parentRelationships`/`childRelationships`), each row nesting its own `contactData`. Strip `_deleted` rows at **every** nesting level before save:
 
 ```ts
 protected override prepareItem(item: Party): Party {
@@ -331,7 +332,154 @@ protected override prepareItem(item: Party): Party {
 
 ---
 
+## Contact data & address editors
+
+Client side of the back-end **Contact data & addresses** blueprint: both are _owned_ collections on the
+owner entity — edited inline in the owner's form, persisted with the owner's save, deleted by omission. No
+store, service, or route of their own; the owner is anything with the collections (a supplier, a party, a
+location). Same contract family as the [Labels editor](#labels-editor-entitylabels); the three compose
+freely on one form.
+
+### Contact data — entity + type detection
+
+```ts
+// entities/contact-data/Entity.ts
+export class ContactDetails extends EntityBase {
+    id: number = 0
+    title?: string // "work", "mobile" — optional qualifier
+    value!: string
+    dataType?: string // display hint, client-detected
+    description?: string
+    _deleted?: boolean // transient UI mark — stripped before save
+
+    override get $id() {
+        return this.id || "new"
+    }
+    override get $title() {
+        return this.value
+    }
+    static create(values?: object) {
+        return Object.assign(new ContactDetails(), values || {})
+    }
+}
+```
+
+The data type is sniffed from the value's shape (`isPhone`/`isEmail`/`isUrl` from
+`@regira/modules/utilities/string-utility`) — recompute on every edit; the back-end only stores it:
+
+```ts
+export function getDataType(item?: ContactDetails) {
+    if (item == null) return undefined
+    return isPhone(item.value) ? "Phone" : isEmail(item.value) ? "Email" : isUrl(item.value) ? "Website" : undefined
+}
+```
+
+**Component set** — one folder, reusable across owners:
+
+- **`Overview.vue`** — the editor: a `FormSection`, a list of rows bound through
+  `useOwnedCollection({ props, emit })`, and one always-present "add new" input that appends a row on
+  enter/blur. A `#summary` slot shows the compact read-only variant when the section is collapsed.
+- **`ActionButton.vue`** — the detected type as a _working_ affordance: `tel:` / `mailto:` / `href`
+  (websites `target="_blank"`) rendered as an anchor; anything undetected falls back to a
+  copy-to-clipboard button (`clipboardUtility`).
+- **`ContactDataIcon.vue`** — type → icon map (`phone`/`mail`/`website`, fallback `connect`).
+- **`ListInput.vue`** / **`ListItem.vue`** — the editable row (value + qualifier + soft-delete toggle) and
+  its read-only sibling.
+
+### Addresses — entity + formatter
+
+```ts
+// entities/addresses/Entity.ts — fields mirror the back-end AddressBase; adapt both together
+export class Address extends EntityBase {
+    id: number = 0
+    title?: string
+    street?: string
+    houseNumber?: string
+    postalCode?: string
+    city?: string
+    countryCode?: string
+    sortOrder: number = 0
+    _deleted?: boolean
+
+    override get $id() {
+        return this.id || "new"
+    }
+    override get $title() {
+        return this.title ?? `${this.street} ${this.houseNumber}, ${this.postalCode} ${this.city}`.trim()
+    }
+    static create(values?: object) {
+        return Object.assign(new Address(), values || {})
+    }
+}
+```
+
+A tiny `formatter.ts` owns the display string (`format(item)` → `"Kerkstraat 12, 2000 Antwerpen (BE)"`,
+plus a `formatCity` that appends the country only when it differs from a reference address) — every
+component renders through it, so the format changes in one place.
+
+**Component set:**
+
+- **`Overview.vue`** — `useOwnedCollection` list of `AddressDisplay` rows + an add button opening the
+  row form; drag handle drives `sortOrder`.
+- **`AddressDisplay.vue`** — one row: drag handle, `AddressButton`, the formatted string.
+- **`AddressButton.vue`** — wraps the shipped **`GMapButton`** (`@regira/modules/vue/ui`) with the address
+  parts, so every displayed address opens in Google Maps; `GMapLink` is the anchor variant.
+- **`Form.vue`** — the field editor (street/number/postal/city/country), used inline or in a modal
+  (`FormModalButton`).
+
+### Owner integration
+
+```html
+<!-- owner details/Form.vue -->
+<ContactDataOverview v-model="item.contactData" />
+<AddressesOverview v-model="item.addresses" />
+```
+
+```ts
+// owner data/EntityService.ts — deletion by omission, same contract as every owned collection
+protected override prepareItem(item: Entity): Entity {
+    item.contactData = item.contactData?.filter((x) => !x._deleted)
+    item.addresses = item.addresses?.filter((x) => !x._deleted)
+    return super.prepareItem(item)
+}
+```
+
+- Add the owner's includes flags (`ContactData`, `Addresses`) to `baseQueryParams.includes` when the
+  **overview list** renders them; detail forms get them without config (Details eager-loads all flags).
+- **Keep input `maxlength` aligned with the back-end `[MaxLength]`** (value 256; street 128, city 128).
+- Pass `createRow: () => Address.create()` where rows are minted, or new rows arrive without class
+  defaults ([entities.patterns.md → Owned (child) collections](entities.patterns.md)).
+
+---
+
 ## In-code recipes (how_to)
+
+### Edit contact data inside an owner's form
+
+<!-- how_to: key=contact-data-editor aliases=contact-editor,contact-data,contactdata,phone-input,email-input,contact-rows -->
+
+Copy the contact-data half of the **Contact data & address editors blueprint**: a `ContactDetails extends
+EntityBase` client class (`$title` = `value`, `_deleted` mark), `getDataType(value)` sniffing via
+`isPhone`/`isEmail`/`isUrl` on every edit, and a component set around `useOwnedCollection` — `Overview`
+with an always-present add-row input, `ActionButton` rendering the detected type as a working `tel:` /
+`mailto:` / link (clipboard fallback), `ContactDataIcon`. Bind `<ContactDataOverview
+v-model="item.contactData" />` in the owner form and strip `_deleted` rows in the owner service's
+`prepareItem` — the back-end `Related()` sync deletes by omission.
+
+**See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Contact data & address editors")`.
+
+### Edit addresses inside an owner's form
+
+<!-- how_to: key=addresses-editor aliases=address-editor,addresses,address-input,address-list,gmaps,map-button -->
+
+Copy the address half of the **Contact data & address editors blueprint**: an `Address extends EntityBase`
+client class mirroring the back-end `AddressBase` fields, a `formatter.ts` owning the display string, and a
+component set around `useOwnedCollection` — `Overview` (draggable rows), `AddressDisplay`,
+`AddressButton` wrapping the shipped `GMapButton` so every address opens in Google Maps, and a `Form` for
+the field editor. Bind `<AddressesOverview v-model="item.addresses" />` in the owner form; strip `_deleted`
+rows in `prepareItem`; pass `createRow: () => Address.create()` where rows are minted.
+
+**See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Contact data & address editors")`.
 
 ### Edit labels/tags inside an owner's form (labels editor)
 

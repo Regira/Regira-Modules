@@ -429,13 +429,11 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 // Tabs
 const { translate } = useLang()
-const tabs = computed(() =>
-    [
-        Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
-        Tab.create("files", { icon: "attachment", title: translate("files") }),
-        Tab.create("interventions", { icon: Intervention.name, title: translate("interventions"), isDisabled: !item.value?.id }),
-    ].filter((x) => x)
-)
+const tabs = computed(() => [
+    Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
+    Tab.create("files", { icon: "attachment", title: translate("files") }),
+    Tab.create("interventions", { icon: Intervention.name, title: translate("interventions"), isDisabled: !item.value?.id }),
+])
 </script>
 ```
 
@@ -731,14 +729,15 @@ export default EntitySearchObject
 
 <script setup lang="ts">
 import { computed } from "vue"
-import type { OverviewEmits, SaveResult } from "@regira/modules/vue/entities"
+import type { OverviewEmits } from "@regira/modules/vue/entities"
 import useEntityStore from "../data/store"
 import type Entity from "../data/Entity"
 import ListItem from "./ListItem.vue"
 
+// Tuple members, matching what OverviewEmits declares — a call signature here would stop every
+// inherited event from being callable (see entities.instructions → Gotchas).
 interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
-    (e: "save", args: SaveResult<Entity>): void | Promise<void>
-    (e: "request-reload"): void
+    "request-reload": []
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<{
@@ -857,7 +856,7 @@ import useEntityStore from "../data/store"
 import FormModalButton from "../details/FormModalButton.vue"
 
 interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
-    (e: "select", selected: Entity | null): void
+    select: [Entity | null]
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<{
@@ -886,6 +885,7 @@ export { default as config } from "./config/config"
 export { default as Entity } from "./data/Entity"
 export { default as EntityService } from "./data/EntityService"
 export { default as useEntityStore } from "./data/store"
+export { default as SearchObject } from "./filter/SearchObject"
 
 export { default as Filter } from "./filter/Filter.vue"
 export { default as FilterInline } from "./filter/FilterInline.vue"

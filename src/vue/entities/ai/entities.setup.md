@@ -1145,14 +1145,16 @@ and each `node.value` is an `INavItem` (`routeName` / `initialQuery` / `icon` / 
 
 ### `src/infrastructure/` (keep it basic)
 
-App-wide glue only — a permission enum and a small plugin that exposes `$isAdmin` from the auth store and
-persists the chosen language. Skip both for a no-auth app.
+App-wide glue only — the role/permission names and a small plugin that exposes `$isAdmin` from the auth
+store and persists the chosen language. Skip both for a no-auth app.
 
 ```ts
-// src/infrastructure/permissions.ts — erasableSyntaxOnly-safe const map (not an enum)
+// src/infrastructure/permissions.ts — erasableSyntaxOnly-safe const maps (not enums)
+export const Roles = { ADMIN: "Admin" } as const
+export type Role = (typeof Roles)[keyof typeof Roles]
+
 export const Permissions = { CAN_READ: "can_read", CAN_WRITE: "can_write", ADMIN: "admin" } as const
 export type Permission = (typeof Permissions)[keyof typeof Permissions]
-export default Permissions
 ```
 
 ```ts
@@ -1160,13 +1162,14 @@ export default Permissions
 import { type App, watch } from "vue"
 import { useAuthStore } from "@regira/modules/vue/auth"
 import { useLang } from "@regira/modules/vue/lang"
-import Permissions from "@/infrastructure/permissions"
+import { Roles } from "@/infrastructure/permissions"
 
 export const plugin = {
     install(app: App) {
         const authStore = useAuthStore()
         Object.defineProperty(app.config.globalProperties, "$isAdmin", {
-            get: () => authStore.authData.hasPermission(Permissions.ADMIN),
+            // Identity + AddRoles mints roles, not a "permissions" claim — match the API's role name exactly.
+            get: () => authStore.hasRole(Roles.ADMIN),
             enumerable: true,
             configurable: true,
         })
@@ -1244,8 +1247,9 @@ in the app's `src/assets/theme.scss`** (scaffolded by the shell), imported after
 
 **Restyling is encouraged** — the library defaults are deliberately plain; the ui module's
 customize guide (`ui.customize`) is the canonical 5-layer ladder (tokens → css hooks → slots →
-contract-typed replacement → eject). Common app-level hooks: the `--rg-*` tokens (`--rg-accent-bg`,
-`--rg-deleted-bg`, …), `.is-deleted` (pending-delete rows, incl. `InputSelectorInline` chips),
+contract-typed replacement → eject). Common app-level hooks: the `--rg-*` tokens — **`--rg-accent`**
+re-accents the app, `--rg-accent-bg` is only the modal-header tint, `--rg-deleted-bg`, … (full list in
+`ui.customize` → L0) — `.is-deleted` (pending-delete rows, incl. `InputSelectorInline` chips),
 `.is-selected`, a sticky `.form-toolbar` (`position: sticky; top: 0`; the app-owned wrapper — styling
 `FormButtonsRow`'s own `.form-buttons` root instead applies the rule twice), `.form-section` framing,
 zebra `.striped` rows.

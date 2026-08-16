@@ -293,6 +293,17 @@ describe("scaffold.mjs owned collections", () => {
         expect(out).toContain('defaulting its FK to the parent to "workOrderId"')
     })
 
+    test("a --picker join gets no FK hint — the flag it would suggest is rejected for pure joins", () => {
+        // The join row carries only the two FKs, so there is no parent FK to rename; acting on the hint
+        // hard-errors with "--fk does not apply to … --picker".
+        const out = run("Article", "--owns", "ArticleTag", "--as", "tags", "--picker", "Tag", "--no-auth")
+
+        expect(out).not.toContain("defaulting its FK to the parent")
+        expect(() => run("Post", "--owns", "PostTag", "--as", "tags", "--picker", "Tag", "--fk", "postId", "--no-auth")).toThrow(
+            /--fk does not apply/
+        )
+    })
+
     test("--fk validates its value and placement", () => {
         expect(() => run("Ledger", "--owns", "LedgerLine", "--fk", "request", "--no-auth")).toThrow(/ending in "Id"/)
         expect(() => run("Ledger", "--rel", "Account", "--fk", "accountId", "--no-auth")).toThrow(/directly after the --owns/)
