@@ -54,12 +54,25 @@ async function signOut() {
 }
 ```
 
-## Re-run work on login / refresh
+## Re-run work when a token arrives
 
 ```ts
-const auth = useAuthStore()
-auth.$onAction(({ name, after }) => ["login", "refresh"].includes(name) && after(() => auth.isAuthenticated && reload()))
+import { onAuthenticated } from "@regira/modules/vue/auth"
+
+onAuthenticated(() => reload())
+// already fetching on mount (useRouteOverview / useDetails)? pass { immediate: false }
 ```
+
+Covers all of it: signing in, a refresh (tenant switch included), a token restored from storage on a hard
+reload, and mounting while already signed in. Re-validating the *same* token does not re-run it.
+
+⚠️ **Use this for anything that fetches on mount.** Views mount before a stored token is validated, and
+restoring one dispatches `validateToken`, not `login` — so a hand-rolled `$onAction(… "login" …)` silently
+never fires after F5. The 401 interceptor does not cover it either: with a valid stored token nothing 401s,
+and a fetch guarded on `isAuthenticated` sent no request to catch.
+
+`$onAction` still works and existing code needs no change. Listening for actions by name means keeping the
+list complete (`["login", "refresh", "validateToken"]`); `onAuthenticated` has nothing to keep in sync.
 
 ## Login UI
 

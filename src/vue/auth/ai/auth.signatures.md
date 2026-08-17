@@ -10,6 +10,7 @@ import {
     getAccountName,
     useAuthStore,
     createStore,
+    onAuthenticated,
     routeGuard,
     AuthService,
     CookieTokenManager,
@@ -25,6 +26,7 @@ import {
     type ITokenManager,
     type IAuthStore,
     type IDefineAuthStore,
+    type OnAuthenticatedOptions,
 } from "@regira/modules/vue/auth"
 ```
 
@@ -34,6 +36,7 @@ import {
 export interface IAuthData {
     isAuthenticated: boolean
     expires: number
+    readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated
     userId?: string
     name?: string
     email?: string
@@ -51,6 +54,19 @@ export class AuthData implements IAuthData {
     constructor(token?: string, options?: { isAuthenticated: boolean })
     /* + IAuthData members */
 }
+```
+
+## Reacting to authentication
+
+```ts
+export type OnAuthenticatedOptions = {
+    immediate?: boolean // default true; pass FALSE when the view already fetches on mount (useRouteOverview / useDetails do)
+    store?: Pick<IAuthStore, "authData"> // defaults to the plugin's configured store, then the default pinia store
+}
+// Runs `handler` whenever an authenticated token arrives: sign-in, refresh (tenant switch included), and a
+// token restored from storage on reload. Re-validating the SAME token does not re-run it.
+// Prefer this over authStore.$onAction(...) for anything that fetches on mount.
+export function onAuthenticated(handler: () => unknown, options?: OnAuthenticatedOptions): WatchStopHandle
 ```
 
 ## Auth service

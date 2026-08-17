@@ -6,6 +6,7 @@ export { type ITokenManager, CookieTokenManager, MemoryTokenManager, LocalStorag
 
 export { useAuth, useGlobalAuth, getAccountName, type IAuth, type IGlobalAuth, type GlobalAuth } from "./auth"
 export { useAuthStore, createStore, type IDefineAuthStore, type IAuthStore } from "./store"
+export { onAuthenticated, type OnAuthenticatedOptions } from "./onAuthenticated"
 export { default as plugin } from "./plugin"
 export { useLoginForm, type LoginFormEmits, type LoginFormProps, type LoginModalProps, type LoginModalSlots, type LoginInput } from "./useLoginForm"
 export {

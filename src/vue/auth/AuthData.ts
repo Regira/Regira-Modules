@@ -8,6 +8,12 @@ const ROLE_CLAIM_TYPES = ["role", "roles", "http://schemas.microsoft.com/ws/2008
 export interface IAuthData {
     isAuthenticated: boolean
     expires: number
+    /**
+     * The raw JWT this data was decoded from — the identity signal `onAuthenticated()` watches. It changes
+     * on sign-in and on every refresh (a tenant switch included), and stays equal when the plugin
+     * re-validates the same token, which is what keeps a periodic check from re-running your handler.
+     */
+    readonly token?: string
     userId?: string
     name?: string
     email?: string
@@ -23,6 +29,7 @@ export interface IAuthData {
 
 export class AuthData implements IAuthData {
     private _decodedToken: Record<string, any> // decoded JWT claim bag (mixed value types: string, number, string[])
+    readonly token?: string
     isAuthenticated: boolean
     expires: number
     userId?: string
@@ -34,6 +41,7 @@ export class AuthData implements IAuthData {
 
     constructor(token?: string, options: { isAuthenticated: boolean } = { isAuthenticated: false }) {
         this._decodedToken = token != null ? JSON.parse(window.atob(token.split(".")[1]!)) : {}
+        this.token = token
         this.isAuthenticated = options.isAuthenticated
         this.expires = (this._decodedToken.exp ?? 0) - (this._decodedToken.nbf ?? 0)
         this.userId = this.get("sub") as string

@@ -13,6 +13,7 @@ a permission-aware route guard, and login UI. Install it **after** the IoC/http 
 import {
     plugin as authPlugin,
     useAuthStore,
+    onAuthenticated,
     useAuth,
     LocalStorageTokenManager,
     CookieTokenManager,
@@ -73,9 +74,26 @@ The Pinia store is the reactive source of truth for components:
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 
-`authData` (`IAuthData`) is decoded from the JWT: `userId`, `name`, `email`, `displayName`, `culture`,
-`role` (the first role found, for display), `expires`, plus `get(claim)`, `hasClaim`, `hasPermission`,
-`hasRole`.
+`authData` (`IAuthData`) is decoded from the JWT: `token` (the raw JWT), `userId`, `name`, `email`,
+`displayName`, `culture`, `role` (the first role found, for display), `expires`, plus `get(claim)`,
+`hasClaim`, `hasPermission`, `hasRole`.
+
+### Reacting to a token — `onAuthenticated`
+
+```ts
+onAuthenticated(() => load())
+```
+
+Runs the handler whenever an authenticated token arrives: sign-in, a refresh (a tenant switch included), a
+token restored from storage on reload, and immediately when one is already present. **Use it for anything
+that fetches on mount** — views mount _before_ a stored token is validated, so a fetch guarded on
+`isAuthenticated` is otherwise skipped and never retried, leaving a blank panel with no error and no failed
+request. Restoring a token dispatches `validateToken`, not `login`, which is why a hand-rolled
+`$onAction(… "login" …)` misses it.
+
+⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
+or the immediate run races their `onMounted` fetch during `setup`. Pass `{ store }` only if the app
+configured a custom `authStore` that the plugin has not yet installed.
 
 ⚠️ **Role checks are `hasRole(r)`, not `hasPermission(r)`.** The store decodes the **raw** token, and role
 claims arrive under one of three spellings depending on the issuer — `role` (self-issued JWT), `roles`
