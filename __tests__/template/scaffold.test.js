@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest"
 import { execFileSync } from "child_process"
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from "fs"
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs"
 import { tmpdir } from "os"
 import { dirname, join, resolve } from "path"
 import { fileURLToPath } from "url"
@@ -315,6 +315,75 @@ describe("scaffold.mjs owned collections", () => {
         expect(() => run("Order", "--owns", "OrderTag", "--as", "tags", "--picker", "Tag", "--fk", "orderId", "--no-auth")).toThrow(
             /--fk does not apply/
         )
+    })
+})
+
+describe("scaffold.mjs --no-auth", () => {
+    // 40+ calls pass --no-auth for convenience but nothing asserted on what stripping produced, so a marker
+    // that stopped matching went unnoticed: the hook and its import were removed while the multi-line
+    // comment describing them stayed, telling the reader to "delete this line AND its import above" when
+    // both were already gone.
+    test("leaves no trace of the auth hook in an entity slice", () => {
+        run("Kiosk", "--no-auth")
+
+        for (const file of ["overview/Overview.vue", "details/Details.vue"]) {
+            const src = readFileSync(app("src", "entities", "kiosks", ...file.split("/")), "utf8")
+            expect(src, `${file} mentions auth`).not.toMatch(/auth/i)
+            expect(src, `${file} kept the marker comment`).not.toMatch(/no-auth app:/i)
+            expect(src, `${file} kept the hook's comment block`).not.toMatch(/token arrives/i)
+        }
+    })
+
+    test("drops `load` from Details' useDetails destructure — it exists only to feed the hook", () => {
+        run("Terminal", "--no-auth")
+
+        const details = readFileSync(app("src", "entities", "terminals", "details", "Details.vue"), "utf8")
+        expect(details).toContain("useDetails(service)")
+        expect(details).not.toMatch(/\bload\b/)
+    })
+
+    test("without --no-auth the hook and its comment both survive", () => {
+        run("Terminus")
+
+        const overview = readFileSync(app("src", "entities", "terminuses", "overview", "Overview.vue"), "utf8")
+        expect(overview).toContain("onAuthenticated(")
+        expect(overview).toMatch(/no-auth app:/i) // the marker the stripper keys on
+    })
+})
+
+describe("scaffold.mjs --overwrite-slice", () => {
+    // The clean replace used to wipe the whole slice folder before re-emitting the template. An owned
+    // sub-slice lives INSIDE that folder and is only re-emitted when the run repeats its --owns, so
+    // re-running the flag without it silently destroyed the hand-authored child files and exited 0.
+    test("keeps a nested owned sub-slice the run does not regenerate", () => {
+        run("Purchase", "--owns", "PurchaseLine", "--no-auth")
+        const childEntity = app("src", "entities", "purchases", "purchase-lines", "Entity.ts")
+        writeFileSync(childEntity, "// hand-authored\n")
+
+        const out = run("Purchase", "--overwrite-slice", "--no-auth") // note: no --owns
+
+        expect(readFileSync(childEntity, "utf8")).toContain("hand-authored")
+        expect(out).toContain("purchase-lines") // and it names what it kept rather than silently keeping it
+    })
+
+    test("repeating the --owns does replace the sub-slice", () => {
+        run("Delivery", "--owns", "DeliveryLine", "--no-auth")
+        const childEntity = app("src", "entities", "deliveries", "delivery-lines", "Entity.ts")
+        writeFileSync(childEntity, "// hand-authored\n")
+
+        run("Delivery", "--owns", "DeliveryLine", "--overwrite-slice", "--no-auth")
+
+        expect(readFileSync(childEntity, "utf8")).not.toContain("hand-authored")
+    })
+
+    test("still replaces the slice's own (c) files", () => {
+        run("Shipment", "--no-auth")
+        const form = app("src", "entities", "shipments", "details", "Form.vue")
+        writeFileSync(form, "<!-- hand-authored -->\n")
+
+        run("Shipment", "--overwrite-slice", "--no-auth")
+
+        expect(readFileSync(form, "utf8")).not.toContain("hand-authored")
     })
 })
 
