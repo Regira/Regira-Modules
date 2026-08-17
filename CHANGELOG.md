@@ -5,6 +5,28 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/auth`: new **`onAuthenticated(handler, { immediate?, store? })`** — runs a handler whenever an
+  authenticated token arrives: sign-in, a refresh (a tenant switch included), and a token restored from
+  storage on a hard reload. It replaces hand-rolled `authStore.$onAction(… "login" …)` hooks, which silently
+  never fired on a reload — the plugin restores a stored token through the **`validateToken`** action, and
+  views mount before it resolves, so a fetch guarded on `isAuthenticated` was skipped and never retried (a
+  blank panel, no error, no failed request). Watching the token also re-runs on a refresh that swaps
+  identity, which `isAuthenticated` alone cannot see, while staying quiet when the plugin re-validates the
+  same token. `$onAction` is unchanged and existing code keeps working.
+- `vue/auth`: `IAuthData` exposes the raw **`token`** it was decoded from — the identity signal
+  `onAuthenticated` watches.
+- `_template/entity-slice`: the scaffolded `Overview.vue`/`Details.vue` reload hooks move to
+  `onAuthenticated(…, { immediate: false })`; `immediate: false` because `useRouteOverview`/`useDetails`
+  already own the mount fetch. `scaffold.mjs --no-auth` strips the new form and the old one alike.
+- `_template/scaffold.mjs`: `--overwrite-slice` no longer deletes owned sub-slices it does not regenerate.
+  The clean replace wiped the whole slice folder before re-emitting the template, and an owned sub-slice
+  lives inside it — so re-running the flag without repeating the original `--owns` silently destroyed the
+  hand-authored child files and exited 0. The replace is now scoped to the template's own entries, any
+  nested sub-slice this run does not regenerate is kept and named in the output, and repeating its `--owns`
+  still replaces it.
+
 ## 6.1.2 — 2026-08-16
 
 - `vue/entities` guides: new **Contact data & address editors** blueprint — phone/email rows with
