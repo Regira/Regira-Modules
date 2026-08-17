@@ -1008,7 +1008,7 @@ disabled), make these four changes:
     ```
 
 4. **Entity slices — scaffold with `--no-auth`.** The boilerplate `overview/Overview.vue` and
-   `details/Details.vue` carry `authStore.$onAction` reload-on-login hooks.
+   `details/Details.vue` carry `onAuthenticated` reload hooks.
    `node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --no-auth` strips them (imports
    included, plus `load` from `Details.vue`'s `useDetails` destructure — used only by that hook); for an
    already-scaffolded slice, delete the marked lines in those two files and drop `load` from that

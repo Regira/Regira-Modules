@@ -1046,20 +1046,35 @@ when that entity is already pooled — loaded by its own overview, or warmed by 
 argument, every cached `Ref<T>` of the type (`Array<Ref<T>>`). It never fetches — it reports only what
 pooling has already seen.
 
-## Auth reload hooks (login-driven refresh)
+## Auth reload hooks (`onAuthenticated`)
 
-In an auth-enabled app, data requested before the user logs in fails or comes back empty, so the
-scaffolded `overview/Overview.vue` and `details/Details.vue` re-run their load on login.
+In an auth-enabled app, data requested before a token arrives fails or comes back empty, so the scaffolded
+`overview/Overview.vue` and `details/Details.vue` re-run their load through `onAuthenticated`.
 
-⚠️ **The rule generalises: anything that fetches on mount must also react to login.** A dashboard, report or
-home-page widget you write yourself mounts while the login modal is still open, short-circuits on
-`!isAuthenticated`, and nothing re-triggers it — a blank panel, no console error, no failed request. Use the
-hook below, or a watch, which also covers mounting _after_ login:
+⚠️ **The rule generalises: anything that fetches on mount must use it too.** A dashboard, report or
+home-page widget you write yourself mounts *before* a stored token is validated, short-circuits on
+`!isAuthenticated`, and nothing re-triggers it — a blank panel, no console error, no failed request.
 
 ```ts
-const authStore = useAuthStore()
-watch(() => authStore.isAuthenticated, load, { immediate: true })
+import { onAuthenticated } from "@regira/modules/vue/auth"
+
+onAuthenticated(() => load())
 ```
+
+> It fires on sign-in, on a refresh (tenant switch included), on a token restored from storage, and
+> immediately when one is already present — and not when the same token is merely re-validated. Rolling
+> your own `$onAction` still works but means keeping the action list complete
+> (`["login", "refresh", "validateToken"]`); restoring a stored token dispatches `validateToken`, not
+> `login`, which is the one that gets forgotten.
+>
+> ⚠️ **Pass `{ immediate: false }` when the view already fetches on mount.** `useRouteOverview` and
+> `useDetails` register their own `onMounted` fetch, so the default immediate run would fire a second,
+> unsequenced request during `setup` — before the search object and paging are read from the route. That is
+> why the scaffolded views pass it. In a view you wrote yourself, where this *is* the only fetch, keep the
+> default.
+>
+> Drive the whole feedback lifecycle, not just the `catch`: `fail()` does not auto-hide (only `success()`
+> does), so a first attempt that 401'd leaves its banner under the data the retry loaded.
 
 Slices scaffolded with `--no-auth` have these hooks stripped — and because `load` is destructured from
 `useDetails` **only** to feed the Details hook, `--no-auth` also drops `load` from that destructure
@@ -1067,28 +1082,27 @@ Slices scaffolded with `--no-auth` have these hooks stripped — and because `lo
 binding when the app enables the auth plugin later:
 
 ```ts
-// overview/Overview.vue — re-search on login / token refresh.
-// `searchHandler` is already in the useSearchView destructure (useRouteOverview needs it) — nothing to re-add there.
-import { useAuthStore } from "@regira/modules/vue/auth"
+// overview/Overview.vue — `searchHandler` is already in the useSearchView destructure (useRouteOverview needs it).
+import { onAuthenticated } from "@regira/modules/vue/auth"
 
-const authStore = useAuthStore()
-authStore.$onAction(({ name, after }) => ["login", "refresh"].includes(name) && after(() => authStore.isAuthenticated && searchHandler(false)))
+onAuthenticated(() => searchHandler(false), { immediate: false })
 ```
 
 ```ts
-// details/Details.vue — load on login, only when nothing was loaded yet.
-// Add `load` back to the existing useDetails destructure: const { item, …, load, feedback } = useDetails(service)
-import { useAuthStore } from "@regira/modules/vue/auth"
+// details/Details.vue — add `load` back to the existing useDetails destructure:
+// const { item, …, load, feedback } = useDetails(service)
+import { onAuthenticated } from "@regira/modules/vue/auth"
 
-const authStore = useAuthStore()
-authStore.$onAction(({ name, after }) => name == "login" && after(() => item.value == null && authStore.isAuthenticated && load()))
+onAuthenticated(() => item.value == null && load(), { immediate: false })
 ```
 
 The same primitive drives any other login-sensitive work — see
-[auth.examples.md → Re-run work on login / refresh](../../auth/ai/auth.examples.md). A common one:
+[auth.examples.md → Re-run work when a token arrives](../../auth/ai/auth.examples.md). A common one:
 **preload the lookup/reference entities on login** so relation labels resolve app-wide —
-`onAuthenticationChange: (isAuthenticated) => isAuthenticated && preload([Country, UnitType])` (the
-`usePreloader` primitive) instead of every view fetching them lazily.
+`onAuthenticationChange: (auth) => auth.isAuthenticated && preload([Country, UnitType])` (the
+`usePreloader` primitive) instead of every view fetching them lazily. The parameter is the `IAuthData`,
+not a boolean — the plugin also calls it on the logged-out transition, so an unguarded `preload` there
+fires a burst of 401s.
 
 ## Navigation from the config map
 

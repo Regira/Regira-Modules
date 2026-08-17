@@ -109,7 +109,7 @@ Client side of the back-end **Multi-tenancy** blueprint. The active tenant lives
 import { ref, computed } from "vue"
 import { defineStore } from "pinia"
 import { useAxios } from "@regira/modules/vue/http"
-import { useAuthStore } from "@regira/modules/vue/auth"
+import { useAuthStore, onAuthenticated } from "@regira/modules/vue/auth"
 import Entity from "./Entity"
 
 export const useEntityStore = defineStore(Entity.name, () => {
@@ -126,14 +126,9 @@ export const useEntityStore = defineStore(Entity.name, () => {
     }
     const activeTenant = computed(() => items.value?.find((x) => x.id == getClaimValue("tenant")))
 
-    // reload the tenant list whenever a token arrives (register this plugin BEFORE the auth plugin)
-    authStore.$onAction(
-        ({ name, after }) =>
-            ["login", "refresh", "validateToken"].includes(name) &&
-            after(() => {
-                if (authStore.isAuthenticated) load()
-            })
-    )
+    // reload the tenant list whenever a token arrives — including the new one setActiveTenant mints, and
+    // one already in place if the auth plugin registered first (no plugin-ordering requirement)
+    onAuthenticated(() => load())
 
     return { items, activeTenant, load, setActiveTenant }
 })
@@ -153,7 +148,7 @@ app.config.globalProperties.$activeTenant = computed(() => useEntityStore().acti
 - `authStore.refresh(o)` passes `o` as query parameters to the refresh endpoint; the back-end reads `tenantId`, rebuilds the claims for that tenant (membership verified server-side), and returns a fresh token. The axios interceptor keeps sending `Authorization: Bearer` — nothing else changes client-side.
 - `activeTenant` is **derived, not stored** — `getClaimValue("tenant")` decodes the current token, so a page reload keeps the right tenant automatically.
 - Per-tenant permissions arrive as claims in the same token — gate UI with `getClaimValue("permissions")` (e.g. hide write actions without `can_write`).
-- After a switch, tenant-scoped stores hold rows of the _previous_ tenant — refresh them (the `$onAction` hook above covers `refresh`, so stores wired the same way reload themselves).
+- After a switch, tenant-scoped stores hold rows of the _previous_ tenant — refresh them (the `onAuthenticated` hook above fires on the re-minted token, so stores wired the same way reload themselves).
 
 ---
 
@@ -498,11 +493,11 @@ back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "E
 
 <!-- how_to: key=tenant-switcher aliases=switch-tenant,active-tenant,tenant-selector,tenant-ui,multitenant-ui -->
 
-Copy the **Tenant switcher blueprint**: a pinia store that loads `/tenants` on every auth action
-(`authStore.$onAction` for `login`/`refresh`/`validateToken`), derives `activeTenant` from the JWT —
+Copy the **Tenant switcher blueprint**: a pinia store that loads `/tenants` whenever a token arrives
+(`onAuthenticated`), derives `activeTenant` from the JWT —
 `items.find(x => x.id == getClaimValue("tenant"))` — and switches with
 `authStore.refresh({ tenantId })`, which re-mints the token server-side. No tenant header: the bearer
-token _is_ the tenant context. Register the tenant plugin before the auth plugin.
+token _is_ the tenant context.
 
 **See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Tenant switcher")`;
 back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "Multi-tenancy")`.
