@@ -64,7 +64,7 @@ onAuthenticated(() => reload())
 ```
 
 Covers all of it: signing in, a refresh (tenant switch included), a token restored from storage on a hard
-reload, and mounting while already signed in. Re-validating the *same* token does not re-run it.
+reload, and mounting while already signed in. Re-validating the _same_ token does not re-run it.
 
 ⚠️ **Use this for anything that fetches on mount.** Views mount before a stored token is validated, and
 restoring one dispatches `validateToken`, not `login` — so a hand-rolled `$onAction(… "login" …)` silently

@@ -65,6 +65,8 @@ export type OnAuthenticatedOptions = {
 }
 // Runs `handler` whenever an authenticated token arrives: sign-in, refresh (tenant switch included), and a
 // token restored from storage on reload. Re-validating the SAME token does not re-run it.
+// Auth disabled (plugin `enabled: false`): no token ever arrives, so it honours `immediate` once and stops
+// — unless an explicit `{ store }` names one to watch, which wins over the app-wide flag.
 // Prefer this over authStore.$onAction(...) for anything that fetches on mount.
 export function onAuthenticated(handler: () => unknown, options?: OnAuthenticatedOptions): WatchStopHandle
 ```

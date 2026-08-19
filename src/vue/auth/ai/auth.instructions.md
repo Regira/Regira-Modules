@@ -92,8 +92,10 @@ request. Restoring a token dispatches `validateToken`, not `login`, which is why
 `$onAction(… "login" …)` misses it.
 
 ⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
-or the immediate run races their `onMounted` fetch during `setup`. Pass `{ store }` only if the app
-configured a custom `authStore` that the plugin has not yet installed.
+or the immediate run races their `onMounted` fetch during `setup`. With the plugin `enabled: false` no
+token ever arrives, so it honours `immediate` once and stops — nothing is gated in such an app. Pass
+`{ store }` only if the app configured a custom `authStore` that the plugin has not yet installed; it
+names the store to watch and is honoured even with the plugin disabled.
 
 ⚠️ **Role checks are `hasRole(r)`, not `hasPermission(r)`.** The store decodes the **raw** token, and role
 claims arrive under one of three spellings depending on the issuer — `role` (self-issued JWT), `roles`

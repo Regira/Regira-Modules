@@ -1052,7 +1052,7 @@ In an auth-enabled app, data requested before a token arrives fails or comes bac
 `overview/Overview.vue` and `details/Details.vue` re-run their load through `onAuthenticated`.
 
 ⚠️ **The rule generalises: anything that fetches on mount must use it too.** A dashboard, report or
-home-page widget you write yourself mounts *before* a stored token is validated, short-circuits on
+home-page widget you write yourself mounts _before_ a stored token is validated, short-circuits on
 `!isAuthenticated`, and nothing re-triggers it — a blank panel, no console error, no failed request.
 
 ```ts
@@ -1070,7 +1070,7 @@ onAuthenticated(() => load())
 > ⚠️ **Pass `{ immediate: false }` when the view already fetches on mount.** `useRouteOverview` and
 > `useDetails` register their own `onMounted` fetch, so the default immediate run would fire a second,
 > unsequenced request during `setup` — before the search object and paging are read from the route. That is
-> why the scaffolded views pass it. In a view you wrote yourself, where this *is* the only fetch, keep the
+> why the scaffolded views pass it. In a view you wrote yourself, where this _is_ the only fetch, keep the
 > default.
 >
 > Drive the whole feedback lifecycle, not just the `catch`: `fail()` does not auto-hide (only `success()`

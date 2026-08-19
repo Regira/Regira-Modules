@@ -173,6 +173,53 @@ describe("onAuthenticated store resolution", () => {
         expect(calls.count).toBe(1);
     });
 
+    test("auth disabled: runs immediately, since no token will ever arrive", () => {
+        harness();
+        setGlobalAuth({ enabled: false }); // what the plugin sets for app.use(authPlugin, { enabled: false })
+
+        const { calls } = track();
+
+        // watching for a token in an auth-disabled app would never fire — the blank panel this prevents
+        expect(calls.count).toBe(1);
+    });
+
+    test("auth disabled + immediate: false stays a no-op — the composable already fetched", () => {
+        harness();
+        setGlobalAuth({ enabled: false });
+
+        let count = 0;
+        const scope = effectScope();
+        scope.run(() => onAuthenticated(() => count++, { immediate: false }));
+
+        expect(count).toBe(0);
+    });
+
+    // The per-call argument outranks the app-wide flag: `enabled: false` says the PLUGIN is off, which
+    // tells us nothing about a store the caller handed us. Without the exemption the disabled branch
+    // short-circuits first and the named store is never watched.
+    test("an explicit { store } is still watched when the plugin is disabled", async () => {
+        harness();
+        setGlobalAuth({ enabled: false });
+        const explicit = ref({ token: undefined, isAuthenticated: false });
+
+        let count = 0;
+        const scope = effectScope();
+        scope.run(() =>
+            onAuthenticated(() => count++, {
+                store: {
+                    get authData() {
+                        return explicit.value;
+                    },
+                },
+            })
+        );
+        expect(count).toBe(0); // no token yet — not the disabled branch's unconditional immediate run
+
+        explicit.value = { token: tokenA, isAuthenticated: true };
+        await nextTick();
+        expect(count).toBe(1);
+    });
+
     test("does not fire for a token the store has not accepted", async () => {
         harness();
         const customAuthData = ref({ token: undefined, isAuthenticated: false });

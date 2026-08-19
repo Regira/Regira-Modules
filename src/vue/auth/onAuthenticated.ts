@@ -15,7 +15,8 @@ export type OnAuthenticatedOptions = {
     immediate?: boolean
     /**
      * The store to read from. Defaults to the one the auth plugin was configured with, falling back to this
-     * module's default pinia store — only pass this when neither applies.
+     * module's default pinia store — only pass this when neither applies. Naming a store here outranks the
+     * plugin's `enabled` flag, so it is watched even in an app that installed the plugin disabled.
      */
     store?: Pick<IAuthStore, "authData">
 }
@@ -41,6 +42,19 @@ export function onAuthenticated(handler: () => unknown, { immediate = true, stor
     // app never populates. It is only set once the plugin has installed, so a store constructed before
     // `app.use(authPlugin, …)` falls back to the default (which is what such an app is using anyway).
     const globalAuth = useGlobalAuth()
+
+    // Auth disabled (`app.use(authPlugin, { enabled: false })`): no token will ever arrive, so a watch here
+    // would never fire and the caller's fetch would never run — the blank panel this primitive exists to
+    // prevent. Nothing is gated in such an app, so treat it as permanently authenticated and honour
+    // `immediate`: a view whose only fetch is this one runs it now, while `{ immediate: false }` (the
+    // scaffolded views, whose composables already fetch on mount) correctly stays a no-op.
+    // An explicit `{ store }` is exempt: it names the store to watch, and the per-call argument outranks
+    // the app-wide flag — the plugin being disabled says nothing about a store the caller handed us.
+    if (!store && globalAuth != null && globalAuth.enabled === false) {
+        if (immediate) handler()
+        return () => {}
+    }
+
     const readAuthData: () => IAuthData | undefined = store
         ? () => store.authData
         : globalAuth != null && "authData" in globalAuth

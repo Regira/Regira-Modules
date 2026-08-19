@@ -157,11 +157,10 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
       the route hash, so keep it stable); it also seeds the title, which `values.title` then overrides. Tab
       titles render untranslated unless you pass one.
 - **Anything that fetches on mount must go through `onAuthenticated(() => load())`** (from
-  `@regira/modules/vue/auth`). Views mount *before* a stored token is validated, so a fetch guarded on
+  `@regira/modules/vue/auth`). Views mount _before_ a stored token is validated, so a fetch guarded on
   `isAuthenticated` leaves a blank panel with no error and no failed request; `onAuthenticated` covers
   sign-in, refresh, a restored token, and already being signed in. A hand-rolled `$onAction` must list all
   three actions (`["login", "refresh", "validateToken"]`) — the third is the one that fires on reload.
-  Clear the feedback on success too — `fail()` does not auto-hide.
 - **Login can switch the language.** The scaffolded `main.ts` applies the JWT culture claim
   (`setLangCode(auth.culture.split("-")[0])`), so an app translated in one language silently degrades to
   raw keys after login when the user's culture differs. Provide translations for every `langs` entry and
