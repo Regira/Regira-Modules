@@ -23,7 +23,14 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
         resetPage,
     } = useOverviewCore({ service, searchObject, defaultPageSize })
 
+    // Only the newest search may write. Two are genuinely in flight on a hard reload — `useRouteOverview`
+    // fetches on mount, and the `onAuthenticated` hook searches again the moment the restored token lands —
+    // and without this the one that settles LAST wins. The bad ordering is the common one: the mount fetch
+    // 401s and lands after the retry succeeded, so `feedback.fail` (which does not auto-hide, unlike
+    // `success`) paints an error banner over data that is already on screen.
+    let latestSearchId = 0
     async function searchHandler(resetPaging = false): Promise<void> {
+        const searchId = ++latestSearchId
         isLoading.value = true
         try {
             feedback.reset()
@@ -32,14 +39,19 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
                 so.page = 1
             }
             const { items: data, count } = await service.search(so)
+            if (searchId !== latestSearchId) return
             items.value = data
             itemsCount.value = count
         } catch (ex) {
             console.error("fetching failed", { ex })
-            const error = ex as OverviewError
-            feedback.fail("fetching data failed", error.response?.data?.errors)
+            // a superseded search still reports to the console, but its banner would sit over a newer result
+            if (searchId === latestSearchId) {
+                const error = ex as OverviewError
+                feedback.fail("fetching data failed", error.response?.data?.errors)
+            }
         } finally {
-            isLoading.value = false
+            // a superseded search leaves the spinner to the one that replaced it
+            if (searchId === latestSearchId) isLoading.value = false
         }
     }
     const debouncedSearchHandler = debounceToPromise(

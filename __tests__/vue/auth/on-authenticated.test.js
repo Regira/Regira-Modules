@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { effectScope, nextTick, ref } from "vue";
+import { createApp, defineComponent, effectScope, h, nextTick, ref } from "vue";
 import { setActivePinia, createPinia } from "pinia";
 import { createAuth, setGlobalAuth } from "../../../src/vue/auth/auth";
 import { useAuthStore } from "../../../src/vue/auth/store";
@@ -173,6 +173,22 @@ describe("onAuthenticated store resolution", () => {
         expect(calls.count).toBe(1);
     });
 
+    // Registering before the plugin installs is ordinary (a pinia setup store is built on first use, which
+    // can be at import time). Capturing `$auth` once would pin such a registration to the default store,
+    // which `authStore ?? useAuthStore()` then never populates — the list never loads and never errors.
+    test("switches to the plugin's custom store when the plugin installs afterwards", async () => {
+        harness(); // default store exists and stays signed out
+
+        const { calls } = track(); // registered while $auth does not exist yet
+        expect(calls.count).toBe(0);
+
+        globalAuthOver(ref({ token: tokenA, isAuthenticated: true })); // app.use(authPlugin, { authStore }), already signed in
+        await nextTick();
+
+        expect(calls.count).toBe(1);
+        expect(useAuthStore().isAuthenticated).toBe(false); // proof it was NOT the default store that fired
+    });
+
     test("auth disabled: runs immediately, since no token will ever arrive", () => {
         harness();
         setGlobalAuth({ enabled: false }); // what the plugin sets for app.use(authPlugin, { enabled: false })
@@ -181,6 +197,30 @@ describe("onAuthenticated store resolution", () => {
 
         // watching for a token in an auth-disabled app would never fire — the blank panel this prevents
         expect(calls.count).toBe(1);
+    });
+
+    // The disabled branch runs the handler itself rather than through a token that never arrives. A bare
+    // call would put it OUTSIDE Vue's error handling: a throw aborts the caller's setup() and blanks the
+    // subtree, where every watched path lands in app.config.errorHandler instead.
+    test("auth disabled: a throwing handler is reported, not thrown out of setup", () => {
+        setGlobalAuth({ enabled: false });
+        const errors = [];
+        const host = document.createElement("div");
+        const app = createApp(
+            defineComponent({
+                setup() {
+                    onAuthenticated(() => {
+                        throw new Error("boom");
+                    });
+                    return () => h("p", "rendered");
+                },
+            })
+        );
+        app.config.errorHandler = (err) => errors.push(err);
+        app.mount(host);
+
+        expect(errors.map((e) => e.message)).toEqual(["boom"]);
+        expect(host.textContent).toBe("rendered");
     });
 
     test("auth disabled + immediate: false stays a no-op — the composable already fetched", () => {
@@ -192,6 +232,20 @@ describe("onAuthenticated store resolution", () => {
         scope.run(() => onAuthenticated(() => count++, { immediate: false }));
 
         expect(count).toBe(0);
+    });
+
+    // Same ordering problem as the custom store, with a worse ending: the disabled flag arrives with the
+    // install, so a registration made before it would sit watching for a token the app never mints.
+    test("a plugin installed disabled AFTER registration still releases the handler", async () => {
+        harness();
+
+        const { calls } = track();
+        expect(calls.count).toBe(0);
+
+        setGlobalAuth({ enabled: false }); // app.use(authPlugin, { enabled: false })
+        await nextTick();
+
+        expect(calls.count).toBe(1);
     });
 
     // The per-call argument outranks the app-wide flag: `enabled: false` says the PLUGIN is off, which

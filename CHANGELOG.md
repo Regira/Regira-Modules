@@ -16,7 +16,12 @@ heading.
   identity, which `isAuthenticated` alone cannot see, while staying quiet when the plugin re-validates the
   same token. `$onAction` is unchanged and existing code keeps working. With the plugin installed disabled
   (`enabled: false`) no token ever arrives, so it honours `immediate` once rather than waiting forever —
-  a slice keeps its hooks in that mode; an explicit `{ store }` still names the store to watch.
+  a slice keeps its hooks in that mode; an explicit `{ store }` still names the store to watch. Plugin
+  install order does not matter either way: the store is resolved per read, so a hook registered before
+  `app.use(authPlugin, …)` — from inside a pinia store, say — follows a custom `authStore`, and sees an
+  `enabled: false` install, as soon as the plugin lands. Installing **no** auth plugin at all is the one
+  state it cannot detect, being indistinguishable from "not installed yet", so a no-auth app leaves the
+  hooks out (`scaffold.mjs --no-auth`) rather than relying on them.
 - `vue/auth`: `IAuthData` exposes the raw **`token`** it was decoded from — the identity signal
   `onAuthenticated` watches.
 - `_template/entity-slice`: the scaffolded `Overview.vue`/`Details.vue` reload hooks move to
@@ -26,9 +31,41 @@ heading.
   The clean replace wiped the whole slice folder before re-emitting the template, and an owned sub-slice
   lives inside it — so re-running the flag without repeating the original `--owns` silently destroyed the
   hand-authored child files and exited 0. The replace is now scoped to the template's own entries, and
-  repeating a sub-slice's `--owns` still replaces it. Everything that survives is named in the output —
-  sub-slices to re-pass `--owns` for, and any other file the current template does not emit — so a
-  destructive flag never looks like it silently did nothing.
+  repeating a sub-slice's `--owns` still replaces it. Everything that survives is named in the output — owned
+  sub-slices to re-pass `--owns` for, and anything else the current template does not emit (a stray file, a
+  hand-added `components/`) to review by hand — so a destructive flag never looks like it silently did
+  nothing, and no folder gets advice that would scaffold something unrelated over it.
+- `vue/entities` guides + `_template/entity-slice`: the scaffolded `data/Entity.ts` names `created`/
+  `lastModified` as the only auto-hydrated dates — every other `Date`, nested rows included, arrives as a
+  string and needs a guarded lift in `EntityService.toEntity`. The rule was stated only where the field is
+  not being added, so one reached a template as a string and threw at runtime with `vue-tsc` green.
+- `vue/entities` guides: the `filter/FilterAdv.vue` example binds `minCreated`/`maxCreated` with `DateInput`
+  instead of a raw `<input type="date">`, which takes `yyyy-MM-dd` only and so never prefilled from a `Date`.
+- `vue/auth`: the failed-request `console.error` in the 401 interceptor no longer prints the bearer
+  credential — `authData.token` and the request's `Authorization` header are both masked, and the error is
+  logged through its own fields instead of as the object that carries that header. Every 401, 404, timeout
+  or network blip passes through this line, and console output is captured verbatim by breadcrumb and
+  session-replay telemetry. Nothing is mutated, so the rejected error still holds the real header for a
+  retry, and the decoded claims are still logged.
+- `vue/entities`: `useSearchView`'s `searchHandler` and `useListView`'s `listHandler` let only the newest
+  call write `items`, `itemsCount`, `feedback` and `isLoading`. Two fetches genuinely overlap on a hard
+  reload — `useRouteOverview` fetches on mount while `onAuthenticated` re-fetches the moment the restored
+  token lands — and the one that settled last used to win. In the common ordering the mount fetch 401'd and
+  landed after the retry succeeded, painting `feedback.fail` (which does not auto-hide) over rows that were
+  already on screen.
+- `vue/entities`: **`useListView` now sends the search object** it was given. It read `.value` off the
+  constructor argument — a plain search object, not the ref — so the spread was always empty and every
+  `service.list()` call carried paging alone: filters set in the UI, and any query the URL restored through
+  `useRouteOverview`, were silently dropped. `vue-tsc` could not see it because `ISearchObject` extends
+  `Record<string, any>`, which types the stray `.value` as `any`. It now reads the same ref the view mutates,
+  matching `useSearchView` and what every guide already described. **Expect list requests to carry filter
+  parameters they did not before** — a back-end that rejects unknown query parameters will notice.
+- `vue/ui`: `DateInput` emits `undefined` when the field is cleared instead of `new Date("")`. An Invalid
+  Date is truthy, so a search-object field bound to it stayed "active" (`value != null` lights the filter
+  badge, the control renders `is-invalid`) while `createQueryString` dropped the value and nothing filtered.
+- `vue/auth`: `useGlobalAuth()` (`$auth`, script-side) is reactive — reading it inside a computed or watcher
+  tracks the plugin install itself, so a reader that ran before `app.use(authPlugin, …)` re-evaluates when it
+  lands instead of being stuck with the `undefined` it first saw.
 
 ## 6.1.2 — 2026-08-16
 

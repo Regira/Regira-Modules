@@ -382,7 +382,7 @@ const { filterIsActive, handleReset, handleUpdate, handleToggle } = useFilter({
                     <div class="input-group-text">
                         <Icon name="from" />
                     </div>
-                    <input type="date" v-model="searchObject.minCreated" class="form-control" @change="handleUpdate" />
+                    <DateInput v-model="searchObject.minCreated" @update:model-value="handleUpdate" />
                 </div>
             </div>
             <!-- maxCreated -->
@@ -391,7 +391,7 @@ const { filterIsActive, handleReset, handleUpdate, handleToggle } = useFilter({
                     <div class="input-group-text">
                         <Icon name="to" />
                     </div>
-                    <input type="date" v-model="searchObject.maxCreated" class="form-control" @change="handleUpdate" />
+                    <DateInput v-model="searchObject.maxCreated" @update:model-value="handleUpdate" />
                 </div>
             </div>
         </div>
@@ -399,7 +399,7 @@ const { filterIsActive, handleReset, handleUpdate, handleToggle } = useFilter({
 </template>
 
 <script setup lang="ts">
-import { Icon, IconButton } from "@regira/modules/vue/ui"
+import { DateInput, Icon, IconButton } from "@regira/modules/vue/ui"
 import { useFilter, type FilterEmits } from "@regira/modules/vue/entities"
 import SearchObject from "./SearchObject"
 

@@ -33,10 +33,16 @@ until the next fetch.
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
 `useListView` when a plain list is enough (`service.list()` → `Array<T>`, already unwrapped — never
-destructure `{ items }` from it).
+destructure `{ items }` from it). Both send the current search object merged with the paging info, and
+`useListView` derives `itemsCount` from the rows it got back rather than from a server total.
 
 > **Guard the lazy refs.** `items` / `itemsCount` are `undefined` until the first fetch, so bind
 > `v-for="x in items ?? []"` and `:count="itemsCount ?? 0"`.
+
+> **Overlapping fetches settle predictably.** Only the newest `searchHandler` / `listHandler` call writes
+> `items`, `itemsCount`, `feedback` and `isLoading` — a slower earlier one is dropped when it lands. Two
+> really do overlap on a hard reload: `useRouteOverview` fetches on mount while the `onAuthenticated` hook
+> re-fetches as soon as the restored token arrives.
 
 ## Details — `useDetails`
 

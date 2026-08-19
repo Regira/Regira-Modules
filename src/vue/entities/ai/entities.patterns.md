@@ -296,6 +296,13 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 [Form validation & error handling](#form-validation--error-handling)), or reuse the surrounding form's
 `feedback` (`useForm` returns it) instead of minting a second one.
 
+> **`fail()` does not auto-hide — only `success()` does.** A failure banner stays up until something calls
+> `reset()` (or the next `pending()`/`success()`), so drive the whole lifecycle rather than just the
+> `catch`: a first attempt that failed otherwise leaves its banner sitting over the data a later attempt
+> loaded. The composables do this for you — `useSearchView` resets on every search and discards the
+> feedback of one a newer search superseded, which is what keeps a hard reload's 401 from banner-ing over
+> the rows the retry brought back (see [Auth reload hooks](#auth-reload-hooks-onauthenticated)).
+
 ## Entity selector (relation picker) — `selecting/`
 
 **Which one:** single FK on a form → `InputSelector`; free-text filter field → `Autocomplete`; join/owned rows edited in a form → **`InputSelectorInline`** (marked-delete — the default for m2m, [below](#owned-child-collections)); multi-value over a **fixed option set (enum, no service)** → a checkbox group rather than a native `<select multiple>` ([below](#multi-value-over-a-fixed-option-set-enum)); a plain entity array where instant removal is genuinely wanted → `Selector`.
@@ -1073,8 +1080,11 @@ onAuthenticated(() => load())
 > why the scaffolded views pass it. In a view you wrote yourself, where this _is_ the only fetch, keep the
 > default.
 >
-> Drive the whole feedback lifecycle, not just the `catch`: `fail()` does not auto-hide (only `success()`
-> does), so a first attempt that 401'd leaves its banner under the data the retry loaded.
+> `{ immediate: false }` does not make the two fetches sequential — on a hard reload the mount fetch is
+> still in flight when the restored token fires the hook. `useSearchView` settles that itself: a search that
+> a newer one superseded writes neither rows nor feedback
+> ([Feedback](#feedback-for-custom-saves-outside-useform) covers why the banner matters), and `useDetails`'s
+> `item.value == null` guard is the Details equivalent.
 
 Slices scaffolded with `--no-auth` have these hooks stripped — and because `load` is destructured from
 `useDetails` **only** to feed the Details hook, `--no-auth` also drops `load` from that destructure

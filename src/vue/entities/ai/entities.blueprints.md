@@ -126,8 +126,9 @@ export const useEntityStore = defineStore(Entity.name, () => {
     }
     const activeTenant = computed(() => items.value?.find((x) => x.id == getClaimValue("tenant")))
 
-    // reload the tenant list whenever a token arrives — including the new one setActiveTenant mints, and
-    // one already in place if the auth plugin registered first (no plugin-ordering requirement)
+    // reload the tenant list whenever a token arrives — including the new one setActiveTenant mints, and one
+    // already in place when this store is built. Plugin order does not matter: a store constructed before
+    // app.use(authPlugin, …) still follows the plugin's authStore once it installs.
     onAuthenticated(() => load())
 
     return { items, activeTenant, load, setActiveTenant }

@@ -94,8 +94,14 @@ request. Restoring a token dispatches `validateToken`, not `login`, which is why
 ⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
 or the immediate run races their `onMounted` fetch during `setup`. With the plugin `enabled: false` no
 token ever arrives, so it honours `immediate` once and stops — nothing is gated in such an app. Pass
-`{ store }` only if the app configured a custom `authStore` that the plugin has not yet installed; it
-names the store to watch and is honoured even with the plugin disabled.
+`{ store }` only for a store the plugin knows nothing about; it names the store to watch and is honoured
+even with the plugin disabled. Registration order needs no `{ store }`: the plugin's store is resolved on
+every read, so a pinia store built before `app.use(authPlugin, …)` still follows a custom `authStore`.
+
+⚠️ **An app that installs no auth plugin at all cannot be detected.** `enabled: false` is a signal the
+plugin sets; never installing it leaves the same blank state as "not installed _yet_", so the hook waits
+for a token that never arrives. In a no-auth app leave the hooks out (`scaffold.mjs --no-auth`) or install
+the plugin disabled.
 
 ⚠️ **Role checks are `hasRole(r)`, not `hasPermission(r)`.** The store decodes the **raw** token, and role
 claims arrive under one of three spellings depending on the issuer — `role` (self-issued JWT), `roles`
@@ -128,6 +134,9 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
   when a token is present.
 - **`autoLogoutOnFailedRequest(axios, store)`** — response interceptor; on a **401** for a non-`auth/`
   URL it sets `authRequired` and re-validates the token (triggering the login popup). 403 is not handled.
+  It `console.error`s every rejected response for diagnostics, with the bearer credential masked —
+  `authData.token` and the `Authorization` header both, since console output is captured verbatim by
+  breadcrumb and session-replay telemetry. Keep that property in any logging you add around auth.
 
 Both are installed automatically by the plugin and are **not exported** from `@regira/modules/vue/auth`
 (internal); they are listed here only to document the request/response behavior.

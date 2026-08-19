@@ -1019,9 +1019,13 @@ disabled), make these four changes:
 > Then `$auth` is `{ enabled: false }` and the bearer interceptor is off — but the auth **store** still
 > reports protected routes as "required", so either omit `LoginModal` (as above) or mark routes with
 > `meta: { allowAnonymous: true }`. In this mode advance to `Ready` from `onAuthenticationChange` (it
-> fires once at startup). Slices keep their `onAuthenticated` hooks — with the plugin disabled it runs the
-> handler once instead of waiting for a token that never comes, so `--no-auth` is not needed here. For a
-> pure no-auth app, removing the plugin (above) is simpler.
+> fires once at startup). Slices keep their `onAuthenticated` hooks — with the plugin disabled no token will
+> ever arrive, so instead of waiting for one the hook honours `immediate`: a view you wrote yourself, where
+> this is the only fetch, runs it once; the scaffolded views pass `{ immediate: false }` and simply idle,
+> since their composables fetch on mount regardless. Either way nothing hangs, so `--no-auth` is not needed
+> here. For a pure no-auth app, removing the plugin (above) is simpler — but then strip the hooks with
+> `--no-auth`: with no plugin installed at all there is no `enabled: false` to detect, so a hook left in
+> waits for a token that never comes.
 
 > Skip `infrastructure/user-plugin.ts` and the `components/users/` folder entirely for a no-auth app.
 
