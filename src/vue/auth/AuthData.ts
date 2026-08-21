@@ -12,6 +12,9 @@ export interface IAuthData {
      * The raw JWT this data was decoded from — the identity signal `onAuthenticated()` watches. It changes
      * on sign-in and on every refresh (a tenant switch included), and stays equal when the plugin
      * re-validates the same token, which is what keeps a periodic check from re-running your handler.
+     *
+     * Readable as a property, but **non-enumerable**: it is left out of `{ ...authData }` and
+     * `JSON.stringify(authData)` so the credential cannot ride along into a log or a telemetry payload.
      */
     readonly token?: string
     userId?: string
@@ -29,7 +32,7 @@ export interface IAuthData {
 
 export class AuthData implements IAuthData {
     private _decodedToken: Record<string, any> // decoded JWT claim bag (mixed value types: string, number, string[])
-    readonly token?: string
+    declare readonly token?: string // defined in the constructor, non-enumerable — see the interface
     isAuthenticated: boolean
     expires: number
     userId?: string
@@ -41,7 +44,13 @@ export class AuthData implements IAuthData {
 
     constructor(token?: string, options: { isAuthenticated: boolean } = { isAuthenticated: false }) {
         this._decodedToken = token != null ? JSON.parse(window.atob(token.split(".")[1]!)) : {}
-        this.token = token
+        // Non-enumerable, so the credential is absent from `{ ...authData }` and `JSON.stringify(authData)`.
+        // Both matter: the plugin hands `authData` straight to `onAuthenticationChange` — whose documented
+        // use is welcoming the user and preloading, i.e. exactly where an app calls its telemetry SDK — and
+        // the 401 interceptor logs it, with console output captured verbatim by breadcrumb and session-replay
+        // tooling. Reading `authData.token` still works, so `onAuthenticated` and any deliberate caller are
+        // unaffected; this hides it from serialization, not from callers.
+        Object.defineProperty(this, "token", { value: token, enumerable: false, writable: false, configurable: true })
         this.isAuthenticated = options.isAuthenticated
         this.expires = (this._decodedToken.exp ?? 0) - (this._decodedToken.nbf ?? 0)
         this.userId = this.get("sub") as string

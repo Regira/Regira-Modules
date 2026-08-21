@@ -36,9 +36,14 @@ export function autoLogoutOnFailedRequest(axios: AxiosInstance, store: Store & I
             // No bearer token may reach the console: console output is captured verbatim by breadcrumb and
             // session-replay telemetry, and every failed request passes through here. The JWT rides in twice
             // over — `authData.token` (the identity signal `onAuthenticated` watches) and the Authorization
-            // header `addBearerHeader` put on the request — so both are masked in the copies logged here.
-            // The error is logged field by field for the same reason: it carries this very config. Nothing
-            // is mutated, so what gets rejected below still holds the real header for a retry to reuse.
+            // header `addBearerHeader` put on the request.
+            //
+            // `AuthData` defines `token` non-enumerable, so the spread below drops it on its own; the explicit
+            // omit is for a custom `IAuthService` returning a plain-object `IAuthData`, where it is an ordinary
+            // enumerable field. The header is masked in a copy, and the error is logged field by field for the
+            // same reason — it carries this very config. Nothing is mutated, so what gets rejected below still
+            // holds the real header for a retry to reuse. The decoded claims (`_decodedToken`) are logged as
+            // they are: diagnostics worth having, and not a credential anything can replay.
             const { token, ...auth } = { ...store.authData }
             console.error("axios error", {
                 error: {

@@ -389,6 +389,8 @@ export type DetailsOut<T> = {
     hasFiche: ComputedRef<boolean>
     isLoading: Ref<boolean>
     feedback: FeedbackOut
+    // Concurrent calls are safe: only the newest writes item/feedback/isLoading, so the anonymous mount load
+    // that 401s cannot paint its banner over the retry that already succeeded (same rule as searchHandler)
     load(): Promise<void>
 }
 ```

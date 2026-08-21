@@ -36,7 +36,9 @@ import {
 export interface IAuthData {
     isAuthenticated: boolean
     expires: number
-    readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated
+    readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated.
+    // NON-ENUMERABLE: absent from { ...authData } and JSON.stringify(authData), so the credential cannot ride
+    // along into a log or a telemetry payload. Reading authData.token still works.
     userId?: string
     name?: string
     email?: string
@@ -200,7 +202,7 @@ type Input<TStore extends IAuthStore, TTokenManager extends ITokenManager> = IAu
     axios: AxiosInstance
     enableRouteGuard?: boolean // default true
     enabled?: boolean // default true
-    onAuthenticationChange?(auth: IAuthData): void
+    onAuthenticationChange?(auth: IAuthData): void // receives the live IAuthData; its `token` is non-enumerable, so forwarding this object to telemetry does not leak the JWT
 }
 export const plugin: {
     install<TStore extends IAuthStore = IAuthStore, TTokenManager extends ITokenManager = ITokenManager>(

@@ -84,6 +84,9 @@ Published npm versions are **immutable** — never reuse or overwrite one.
   refuses to publish when the tag and `package.json` disagree, the version already exists on npm,
   or the changelog lacks the release heading.
 
+Release/deploy mechanics for the wider Regira toolchain live in `DEPLOY.md` in the sibling
+**Regira-Tools** checkout, next to this repo — outside this package.
+
 ## 8. Code Reviews
 
 When writing a report, present it as a single markdown block or give the user a link that he can open.

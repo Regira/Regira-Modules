@@ -23,7 +23,16 @@ heading.
   state it cannot detect, being indistinguishable from "not installed yet", so a no-auth app leaves the
   hooks out (`scaffold.mjs --no-auth`) rather than relying on them.
 - `vue/auth`: `IAuthData` exposes the raw **`token`** it was decoded from — the identity signal
-  `onAuthenticated` watches.
+  `onAuthenticated` watches. It is defined **non-enumerable**, so it is absent from `{ ...authData }` and
+  `JSON.stringify(authData)` while `authData.token` still reads normally. The plugin hands `authData`
+  straight to `onAuthenticationChange` — whose documented use is welcoming the user and preloading, i.e.
+  exactly where an app calls its telemetry SDK — and the 401 interceptor logs it, so a plain field would put
+  a live bearer credential into whatever those paths serialize.
+- `vue/entities`: `useDetails`' `load` lets only the newest call write `item`, `feedback` and `isLoading`,
+  matching `useSearchView`/`useListView`. A details page opened as a deep link fails once while anonymous
+  and is retried when the token lands, and the two overlap whenever the first has not settled yet — the
+  401 then arrived after the retry had succeeded and painted `feedback.fail` (which does not auto-hide)
+  over an item already on screen, or cleared the spinner the retry still owned.
 - `_template/entity-slice`: the scaffolded `Overview.vue`/`Details.vue` reload hooks move to
   `onAuthenticated(…, { immediate: false })`; `immediate: false` because `useRouteOverview`/`useDetails`
   already own the mount fetch. `scaffold.mjs --no-auth` strips the new form and the old one alike.
