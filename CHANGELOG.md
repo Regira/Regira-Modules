@@ -5,6 +5,16 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/ui`: `Autocomplete`'s result panel flips **above** the control when the results do not fit below it
+  and there is more room above — a field at the foot of a modal used to drop its options off screen. The
+  panel also clamps its height to the room on the side it opens to, so a list that fits neither way scrolls
+  inside the viewport instead of running past its edge; `--rg-dropdown-max-height` stays the ceiling.
+  `useAutocomplete` returns a `resultEl` ref for this and `Autocomplete` binds and exposes it — a
+  replacement skin must put `ref="resultEl"` on its panel next to `:style="resultStyle"`, or the panel is
+  never measured and keeps opening downwards.
+
 ## 6.1.2 — 2026-08-16
 
 - `vue/entities` guides: new **Contact data & address editors** blueprint — phone/email rows with

@@ -54,7 +54,7 @@ Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 | `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                      |
 | `--rg-modal-z`             | `9998`                       | modal mask z-index                                                                                              |
 | `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index                                                                                    |
-| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results                                                                                            |
+| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control             |
 | `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                  |
 
 **The Bootstrap nuance an agent must not get wrong:** apps import _precompiled_ Bootstrap 5.3, whose
@@ -224,7 +224,9 @@ slots. Every replacement/ejected skin MUST:
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
     - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default
-      slot for items — all provided by `useAutocomplete`; keep them wired.
+      slot for items — all provided by `useAutocomplete`; keep them wired. The result panel also needs
+      `:style="resultStyle"` **and** `ref="resultEl"`: the composable measures that element to decide
+      whether the results open below the control or flip above it, and how tall they may get.
     - **Feedback**: render the pending/success/error regions per `FeedbackStatus`; keep the close
       button emitting `close` and resetting.
     - **EntityOverview**: reload on mount; expose `reload`/`setPage`.

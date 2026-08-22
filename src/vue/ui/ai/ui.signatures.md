@@ -275,6 +275,10 @@ import { type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots,
 //   displayItemFormatter(item) with the matched term in bold (safe text — no innerHTML)
 export const autocompleteDefaults: { data: () => []; maxResults: 10; debounceTime: 250; autoSelect: false }
 export function useAutocomplete<T = any, TKey = number | string | T>(props, { emit }): AutocompleteOut<T, TKey>
+// AutocompleteOut carries the two bindings the result panel needs: `resultStyle` (:style) and `resultEl`
+// (ref) — the element it measures to place the panel below the control or flip it above, and to cap its
+// height to the room there. Autocomplete exposes both elements: { inputEl, resultEl, q, selectedItem,
+// search(term?), reset(), resetQ() }
 ```
 
 ## Buttons & input components

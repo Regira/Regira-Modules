@@ -108,3 +108,7 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module.
+- `Autocomplete` places its result panel against the viewport itself: it opens below the control, flips
+  **above** it when the results do not fit below and there is more room up there (the field at the foot
+  of a modal), and caps its height to the room on the side it opens to, so a long list scrolls instead of
+  running off screen. Nothing to configure — `--rg-dropdown-max-height` stays the ceiling.

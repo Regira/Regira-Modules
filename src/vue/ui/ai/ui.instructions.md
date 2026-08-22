@@ -136,6 +136,11 @@ it before writing a new component.
   the [entities](../../entities/ai/entities.signatures.md) module.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an
   overview/form composable), not a string.
+- **`Autocomplete`'s result panel places itself.** It opens below the control, flips **above** it when the
+  results do not fit below and there is more room above (a field at the foot of a modal), and clamps its
+  height to the room on the side it opens to — `--rg-dropdown-max-height` is the ceiling, not the height.
+  A replacement skin gets this from `useAutocomplete` only if it binds **both** `:style="resultStyle"` and
+  `ref="resultEl"` on the panel; without the element ref the panel cannot be measured and always opens down.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns
