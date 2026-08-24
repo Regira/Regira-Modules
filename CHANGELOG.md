@@ -10,9 +10,10 @@ heading.
 - `_template/scaffold.mjs`: `--overwrite-slice` no longer deletes owned sub-slices it does not regenerate.
   The clean replace wiped the whole slice folder before re-emitting the template, and an owned sub-slice
   lives inside it — so re-running the flag without repeating the original `--owns` silently destroyed the
-  hand-authored child files and exited 0. The replace is now scoped to the template's own entries, any
-  nested sub-slice this run does not regenerate is kept and named in the output, and repeating its `--owns`
-  still replaces it.
+  hand-authored child files and exited 0. The replace is now scoped to the template's own entries, and
+  repeating a sub-slice's `--owns` still replaces it. Everything that survives is named in the output —
+  sub-slices to re-pass `--owns` for, and any other file the current template does not emit — so a
+  destructive flag never looks like it silently did nothing.
 
 ## 6.1.2 — 2026-08-16
 

@@ -708,11 +708,17 @@ if (sliceGenerated) {
             if (templateEntries.has(entry)) rmSync(resolve(destRoot, entry), { recursive: true, force: true })
         }
         const regenerating = new Set(owns.map((o) => kebab(pluralize(o.child))))
-        const kept = readdirSync(destRoot, { withFileTypes: true })
-            .filter((e) => e.isDirectory() && !regenerating.has(e.name))
-            .map((e) => e.name)
-        if (kept.length) {
-            console.log(`  Kept nested sub-slice(s) this run does not regenerate: ${kept.join(", ")} — re-pass their --owns to replace them.`)
+        // Report EVERYTHING that survived, not just folders: the scoped delete only removes entries the
+        // current template emits, so a stray file (an older template's leftover, or something hand-added)
+        // also stays — and staying unannounced is how a destructive flag looks like it did nothing.
+        const surviving = readdirSync(destRoot, { withFileTypes: true }).filter((e) => !regenerating.has(e.name))
+        const keptSlices = surviving.filter((e) => e.isDirectory()).map((e) => e.name)
+        const keptFiles = surviving.filter((e) => !e.isDirectory()).map((e) => e.name)
+        if (keptSlices.length) {
+            console.log(`  Kept nested sub-slice(s) this run does not regenerate: ${keptSlices.join(", ")} — re-pass their --owns to replace them.`)
+        }
+        if (keptFiles.length) {
+            console.log(`  Kept file(s) the current template does not emit: ${keptFiles.join(", ")} — review and delete by hand if stale.`)
         }
     }
     copyDir(srcRoot, destRoot)
