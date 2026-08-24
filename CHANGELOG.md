@@ -33,6 +33,11 @@ heading.
   paging does the same — and the one that settled last used to win. In the common ordering the earlier fetch
   401'd and landed after the later one succeeded, painting `feedback.fail` (which does not auto-hide) over
   rows that were already on screen.
+- `vue/entities`: `useDetails`' `load` lets only the newest call write `item`, `feedback` and `isLoading`,
+  matching `useSearchView`/`useListView`. A details page opened as a deep link fails once while anonymous
+  and is retried once the user signs in, and the two overlap whenever the first has not settled yet — the
+  401 then arrived after the retry had succeeded and painted `feedback.fail` (which does not auto-hide)
+  over an item already on screen, or cleared the spinner the retry still owned.
 - `vue/entities`: **`useListView` now sends the search object** it was given. It read `.value` off the
   constructor argument — a plain search object, not the ref — so the spread was always empty and every
   `service.list()` call carried paging alone: filters set in the UI, and any query the URL restored through

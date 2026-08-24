@@ -61,30 +61,44 @@ export function useDetails<T extends IEntity>(entityService: IEntityService<T>, 
             .some((r) => r.name == router.currentRoute.value.name?.toString().replace("Form", "Fiche"))
     )
 
+    // Only the newest load may write — the same rule `useSearchView`/`useListView` follow. The retry described
+    // below overlaps the load it retries whenever the first one has not settled yet, and the one that settles
+    // LAST would otherwise win: the anonymous attempt's 401 lands after the retry succeeded and paints its
+    // banner (`fail()` does not auto-hide) over an item that is already on screen.
+    let latestLoadId = 0
     async function setItem() {
+        const loadId = ++latestLoadId
         // A load starts from a clean slate: a details page typically fails once while anonymous (deep link,
         // token still being restored) and is retried after login, and without this the retry succeeds behind
         // the previous failure's banner — a correctly loaded page showing an error.
         feedback.reset()
         if (isNew.value) {
-            item.value = await entityService.newEntity({})
+            const created = await entityService.newEntity({})
+            if (loadId !== latestLoadId) return
+            item.value = created
             return
         }
         isLoading.value = true
         try {
             // archived-inclusive: the server 404s an archived row, and the form is the only surface that can
             // restore one. Row security (tenant/owner filters) is unaffected — this widens by the archived flag alone.
-            item.value = await entityService.details(routeId.value, { archived: ArchivedFilter.included })
+            const data = await entityService.details(routeId.value, { archived: ArchivedFilter.included })
+            if (loadId !== latestLoadId) return
+            item.value = data
         } catch (ex: any) {
             console.error(`Fetching details failed for #${routeId.value}`, { id: routeId.value, ex })
-            // Optional chaining: a network/CORS failure carries no response, and reading through it here
-            // throws out of the catch block — replacing the message with an unhandled rejection.
-            feedback.fail(
-                `Fetching item #${routeId.value} failed`,
-                ex.response?.status == 403 ? "Not allowed" : ex.response?.status == 404 ? "Not found" : ex.response?.data || ex.message
-            )
+            // a superseded load still reports to the console, but its banner would sit over a newer result
+            if (loadId === latestLoadId) {
+                // Optional chaining: a network/CORS failure carries no response, and reading through it here
+                // throws out of the catch block — replacing the message with an unhandled rejection.
+                feedback.fail(
+                    `Fetching item #${routeId.value} failed`,
+                    ex.response?.status == 403 ? "Not allowed" : ex.response?.status == 404 ? "Not found" : ex.response?.data || ex.message
+                )
+            }
         } finally {
-            isLoading.value = false
+            // a superseded load leaves the spinner to the one that replaced it
+            if (loadId === latestLoadId) isLoading.value = false
         }
     }
 
