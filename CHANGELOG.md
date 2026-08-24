@@ -11,9 +11,38 @@ heading.
   The clean replace wiped the whole slice folder before re-emitting the template, and an owned sub-slice
   lives inside it — so re-running the flag without repeating the original `--owns` silently destroyed the
   hand-authored child files and exited 0. The replace is now scoped to the template's own entries, and
-  repeating a sub-slice's `--owns` still replaces it. Everything that survives is named in the output —
-  sub-slices to re-pass `--owns` for, and any other file the current template does not emit — so a
-  destructive flag never looks like it silently did nothing.
+  repeating a sub-slice's `--owns` still replaces it. Everything that survives is named in the output — owned
+  sub-slices to re-pass `--owns` for, and anything else the current template does not emit (a stray file, a
+  hand-added `components/`) to review by hand — so a destructive flag never looks like it silently did
+  nothing, and no folder gets advice that would scaffold something unrelated over it.
+- `vue/entities` guides + `_template/entity-slice`: the scaffolded `data/Entity.ts` names `created`/
+  `lastModified` as the only auto-hydrated dates — every other `Date`, nested rows included, arrives as a
+  string and needs a guarded lift in `EntityService.toEntity`. The rule was stated only where the field is
+  not being added, so one reached a template as a string and threw at runtime with `vue-tsc` green.
+- `vue/entities` guides: the `filter/FilterAdv.vue` example binds `minCreated`/`maxCreated` with `DateInput`
+  instead of a raw `<input type="date">`, which takes `yyyy-MM-dd` only and so never prefilled from a `Date`.
+- `vue/auth`: the failed-request `console.error` in the 401 interceptor no longer prints the bearer
+  credential — the request's `Authorization` header is masked in the logged copy, and the error is logged
+  through its own fields instead of as the object that carries that header. Every 401, 404, timeout or
+  network blip passes through this line, and console output is captured verbatim by breadcrumb and
+  session-replay telemetry. Nothing is mutated, so the rejected error still holds the real header for a
+  retry, and the decoded claims are still logged.
+- `vue/entities`: `useSearchView`'s `searchHandler` and `useListView`'s `listHandler` let only the newest
+  call write `items`, `itemsCount`, `feedback` and `isLoading`. Fetches genuinely overlap — `useRouteOverview`
+  fetches on mount while the slice's login/refresh reload hook searches again, and a filter change or fast
+  paging does the same — and the one that settled last used to win. In the common ordering the earlier fetch
+  401'd and landed after the later one succeeded, painting `feedback.fail` (which does not auto-hide) over
+  rows that were already on screen.
+- `vue/entities`: **`useListView` now sends the search object** it was given. It read `.value` off the
+  constructor argument — a plain search object, not the ref — so the spread was always empty and every
+  `service.list()` call carried paging alone: filters set in the UI, and any query the URL restored through
+  `useRouteOverview`, were silently dropped. `vue-tsc` could not see it because `ISearchObject` extends
+  `Record<string, any>`, which types the stray `.value` as `any`. It now reads the same ref the view mutates,
+  matching `useSearchView` and what every guide already described. **Expect list requests to carry filter
+  parameters they did not before** — a back-end that rejects unknown query parameters will notice.
+- `vue/ui`: `DateInput` emits `undefined` when the field is cleared instead of `new Date("")`. An Invalid
+  Date is truthy, so a search-object field bound to it stayed "active" (`value != null` lights the filter
+  badge, the control renders `is-invalid`) while `createQueryString` dropped the value and nothing filtered.
 
 ## 6.1.2 — 2026-08-16
 

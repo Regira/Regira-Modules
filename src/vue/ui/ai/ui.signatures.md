@@ -303,6 +303,8 @@ import {
 //   showTime?: boolean } (v-model; `readonly` also refuses the emit — a native picker cannot write through it).
 //   showTime renders <input type="datetime-local"> and keeps the time on the emitted Date; without it the
 //   control is date-only. The matching formatters are dateInputString / dateTimeInputString.
+//   Clearing the field emits `undefined` — so a search-object field bound to it goes back to inactive
+//   (`value != null` is what marks a filter active), and an unparseable value emits nothing at all.
 // NullableCheckBox contract (NullableCheckBoxProps/Emits): { modelValue?: boolean | string | number; label?: string }
 //   (v-model: true → false → undefined, rendered indeterminate). `label` renders a clickable <label> beside the
 //   box — pass `id` too and it is associated via `for`:

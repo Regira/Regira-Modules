@@ -382,6 +382,26 @@ describe("scaffold.mjs --overwrite-slice", () => {
 
         expect(readFileSync(form, "utf8")).not.toContain("hand-authored")
     })
+
+    test("a hand-added folder is reported for review, not as a sub-slice to re-pass --owns for", () => {
+        // The scoped delete keeps every entry the template does not emit, folders included — but only an
+        // owned sub-slice can be replaced by repeating its --owns. Offering that advice for a components/
+        // or __tests__/ folder points the reader at a run that would scaffold something unrelated.
+        run("Consignment", "--owns", "ConsignmentLine", "--no-auth")
+        mkdirSync(app("src", "entities", "consignments", "components"), { recursive: true })
+        writeFileSync(app("src", "entities", "consignments", "components", "Badge.vue"), "<!-- mine -->\n")
+        writeFileSync(app("src", "entities", "consignments", "notes.md"), "mine\n")
+
+        const out = run("Consignment", "--overwrite-slice", "--no-auth")
+        const subSliceLine = out.split("\n").find((l) => l.includes("Kept nested sub-slice"))
+        const reviewLine = out.split("\n").find((l) => l.includes("Also kept"))
+
+        expect(subSliceLine).toContain("consignment-lines")
+        expect(subSliceLine).not.toContain("components")
+        expect(reviewLine).toContain("components")
+        expect(reviewLine).toContain("notes.md")
+        expect(isDir("src", "entities", "consignments", "components")).toBe(true) // kept, not deleted
+    })
 })
 
 describe("scaffold.mjs self-referencing --rel", () => {

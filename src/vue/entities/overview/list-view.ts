@@ -23,18 +23,33 @@ export function useListView<T extends IEntity, SO extends ISearchObject = ISearc
         resetPage,
     } = useOverviewCore({ service, searchObject, defaultPageSize })
 
+    // Only the newest list may write — the same reasoning as `useSearchView`'s `searchHandler`: a second
+    // call starts before the first settles (a filter change, fast paging, or the slice's login/refresh
+    // reload hook firing over a mount fetch), and the one that settles last would otherwise win, up to
+    // painting a 401's banner (`fail()` does not auto-hide) over rows already on screen.
+    let latestListId = 0
     async function listHandler(): Promise<void> {
+        const listId = ++latestListId
         isLoading.value = true
         try {
             feedback.reset()
-            items.value = await service.list({ ...(searchObject.value || {}), ...(pagingInfo.value || {}) })
-            itemsCount.value = items.value.length
+            // the REF, not the `searchObject` argument still in scope — that one is only the initial value,
+            // while the ref is what the view mutates. `.value` on the argument type-checks (`ISearchObject`
+            // extends `Record<string, any>`) and reads undefined, which silently sends paging alone.
+            const data = await service.list({ ...(searchObjectRef.value || {}), ...(pagingInfo.value || {}) })
+            if (listId !== latestListId) return
+            items.value = data
+            itemsCount.value = data.length
         } catch (ex) {
             console.error("fetching failed", { ex })
-            const error = ex as OverviewError
-            feedback.fail("fetching data failed", error.response?.data?.errors)
+            // a superseded list still reports to the console, but its banner would sit over a newer result
+            if (listId === latestListId) {
+                const error = ex as OverviewError
+                feedback.fail("fetching data failed", error.response?.data?.errors)
+            }
         } finally {
-            isLoading.value = false
+            // a superseded list leaves the spinner to the one that replaced it
+            if (listId === latestListId) isLoading.value = false
         }
     }
     const debouncedListHandler = debounceToPromise(listHandler, debounceDelay) as unknown as () => Promise<void>

@@ -164,6 +164,10 @@ export class Foo extends EntityBase {
     //    JSON key (a `get fullName()` mirroring a projected fullName) makes hydration throw at runtime;
     //    vue-tsc stays green
 
+    // the only two Date fields hydrated for you (EntityServiceBase.processItem) — every OTHER Date field
+    // arrives as an ISO string and needs a guarded lift in EntityService.toEntity, nested rows included,
+    // or `.getTime()`/a mask formatter throws at runtime while vue-tsc stays green
+    // (see entities.instructions.md → Item hydration)
     created?: Date
     lastModified?: Date
 

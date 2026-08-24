@@ -295,10 +295,13 @@ export interface IListViewIn<T, SO> extends OverviewCoreIn<T, SO> {
     debounceDelay?: number
 }
 export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
+    // Concurrent calls are safe: only the newest writes items/count/feedback/isLoading, so a slower earlier
+    // search cannot overwrite a newer result (the mount fetch racing the login/refresh reload hook)
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
 }
 export interface IListViewOut<T, SO> extends OverviewCoreOut<T, SO> {
+    // Sends the current searchObject + pagingInfo to service.list(); same concurrency guarantee as searchHandler
     listHandler(): Promise<void>
     debouncedListHandler(): Promise<void>
 }

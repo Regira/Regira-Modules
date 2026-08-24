@@ -711,14 +711,20 @@ if (sliceGenerated) {
         // Report EVERYTHING that survived, not just folders: the scoped delete only removes entries the
         // current template emits, so a stray file (an older template's leftover, or something hand-added)
         // also stays — and staying unannounced is how a destructive flag looks like it did nothing.
+        // Only an owned sub-slice earns the "re-pass their --owns" advice, though: a hand-added folder
+        // (components/, __tests__/) survives the same way, and that advice would scaffold something
+        // unrelated over it. Both owned templates are flat and emit the same file set, so their presence is
+        // the test — anything else joins the by-hand bucket.
+        const ownedSliceFiles = readdirSync(resolve(here, "owned-slice"))
+        const isOwnedSlice = (dir) => ownedSliceFiles.every((f) => existsSync(resolve(destRoot, dir, f)))
         const surviving = readdirSync(destRoot, { withFileTypes: true }).filter((e) => !regenerating.has(e.name))
-        const keptSlices = surviving.filter((e) => e.isDirectory()).map((e) => e.name)
-        const keptFiles = surviving.filter((e) => !e.isDirectory()).map((e) => e.name)
+        const keptSlices = surviving.filter((e) => e.isDirectory() && isOwnedSlice(e.name)).map((e) => e.name)
+        const keptOther = surviving.filter((e) => !keptSlices.includes(e.name)).map((e) => e.name)
         if (keptSlices.length) {
             console.log(`  Kept nested sub-slice(s) this run does not regenerate: ${keptSlices.join(", ")} — re-pass their --owns to replace them.`)
         }
-        if (keptFiles.length) {
-            console.log(`  Kept file(s) the current template does not emit: ${keptFiles.join(", ")} — review and delete by hand if stale.`)
+        if (keptOther.length) {
+            console.log(`  Also kept, not emitted by the current template: ${keptOther.join(", ")} — review and delete by hand if stale.`)
         }
     }
     copyDir(srcRoot, destRoot)

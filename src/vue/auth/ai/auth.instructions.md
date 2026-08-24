@@ -108,6 +108,9 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
   when a token is present.
 - **`autoLogoutOnFailedRequest(axios, store)`** — response interceptor; on a **401** for a non-`auth/`
   URL it sets `authRequired` and re-validates the token (triggering the login popup). 403 is not handled.
+  It `console.error`s every rejected response for diagnostics, with the bearer credential masked — the
+  `Authorization` header is redacted in the logged copy, since console output is captured verbatim by
+  breadcrumb and session-replay telemetry. Keep that property in any logging you add around auth.
 
 Both are installed automatically by the plugin and are **not exported** from `@regira/modules/vue/auth`
 (internal); they are listed here only to document the request/response behavior.
