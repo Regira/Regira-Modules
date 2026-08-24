@@ -73,9 +73,16 @@ export function useDetails<T extends IEntity>(entityService: IEntityService<T>, 
         // the previous failure's banner — a correctly loaded page showing an error.
         feedback.reset()
         if (isNew.value) {
-            const created = await entityService.newEntity({})
-            if (loadId !== latestLoadId) return
-            item.value = created
+            try {
+                const created = await entityService.newEntity({})
+                if (loadId !== latestLoadId) return
+                item.value = created
+            } finally {
+                // Switching to `/new` supersedes an in-flight detail fetch, whose guarded `finally` then
+                // leaves the spinner to the load that replaced it — this one. Without clearing it here the
+                // flag that fetch raised would never come down, and the spinner would sit on a loaded form.
+                if (loadId === latestLoadId) isLoading.value = false
+            }
             return
         }
         isLoading.value = true

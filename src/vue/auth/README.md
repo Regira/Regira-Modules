@@ -33,3 +33,8 @@ Install **after** the router and `initAxios`, passing that same axios instance. 
 relative to the axios `baseURL` (`auth`, `auth/validate`, `auth/refresh`, `auth/password*`). `logout()`
 is client-side (clears the token); unauthenticated navigation is allowed (the app shows a login popup),
 so provide a login view and a `forbidden` route.
+
+Failed requests are logged with every credential masked — the bearer header, and the body, `params` and
+query string of a credential-bearing endpoint (the `auth` family plus a configured `loginUrl`). The masking
+is internal; since an axios error carries the request that produced it, log the error's own fields in your
+own `catch` blocks rather than `{ ex }`, and never log the token.

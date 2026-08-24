@@ -28,7 +28,7 @@ function mountDetails(service) {
 
     return router.push("/things/7").then(() => {
         app.mount(document.createElement("div"))
-        return { app, details: () => details }
+        return { app, router, details: () => details }
     })
 }
 
@@ -52,9 +52,7 @@ describe("useDetails feedback", () => {
 
     test("a successful retry clears the previous failure", async () => {
         let fail = true
-        const { details } = await mountDetails(
-            makeService(() => (fail ? Promise.reject({ response: { status: 403 } }) : Promise.resolve({ id: 7 })))
-        )
+        const { details } = await mountDetails(makeService(() => (fail ? Promise.reject({ response: { status: 403 } }) : Promise.resolve({ id: 7 }))))
         await flush()
         expect(details().feedback.status).toBe(FeedbackStatus.failed)
 
@@ -127,5 +125,20 @@ describe("useDetails overlapping loads", () => {
         await flush()
 
         expect(d.isLoading.value).toBe(true) // load #1 is still in flight
+    })
+
+    test("switching to `/new` mid-fetch clears the spinner the superseded fetch raised", async () => {
+        const service = deferredService()
+        const { router, details } = await mountDetails(service) // mount starts load #0
+        const d = details()
+        expect(d.isLoading.value).toBe(true)
+
+        await router.push("/things/new") // the route watch starts load #1, down the isNew path
+        await flush()
+        service.rejectWith(0, { response: { status: 401 } }) // load #0 settles behind it, and skips its guarded finally
+        await flush()
+
+        expect(d.item.value).toEqual({ id: 0 })
+        expect(d.isLoading.value).toBe(false) // nothing is in flight any more
     })
 })

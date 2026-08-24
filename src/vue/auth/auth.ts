@@ -1,6 +1,7 @@
 import type { AxiosInstance } from "axios"
 import type { ITokenManager } from "./token-manager"
 import { AuthService, type IAuthService } from "./auth-service"
+import { registerLoginUrl } from "./error-logging"
 import type { IAuthData } from "./AuthData"
 
 export interface IAuth {
@@ -39,6 +40,8 @@ export function createAuth(options: Input): IAuth {
     // framework. Everything else (this getter, $auth, the store) reads through instead of keeping a copy,
     // so the mirrors can't drift apart. The store wraps this in its own reactive view.
     const service = new AuthService(axios, tokenManager, { clientApp, loginUrl })
+    // a login endpoint that is not `auth` still posts the password — tell the log masking about it
+    registerLoginUrl(loginUrl)
     auth = {
         enabled,
         get clientApp() {

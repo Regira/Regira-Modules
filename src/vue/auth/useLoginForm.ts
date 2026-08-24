@@ -1,5 +1,6 @@
 import { ref } from "vue"
 import { useAuthStore } from "./store"
+import { maskAxiosError } from "./error-logging"
 
 export type LoginInput = { username: string; password: string }
 
@@ -48,7 +49,8 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
                 emit("fail", username.value)
             }
         } catch (ex: any) {
-            console.error("login failed", { ex })
+            // the error carries the request that produced it — the posted { username, password } included
+            console.error("login failed", maskAxiosError(ex))
             failed.value = true
             isLockedOut.value = ex.response?.data?.isLockedOut
             emit("fail", username.value)

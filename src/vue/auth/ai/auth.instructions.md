@@ -108,12 +108,35 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
   when a token is present.
 - **`autoLogoutOnFailedRequest(axios, store)`** — response interceptor; on a **401** for a non-`auth/`
   URL it sets `authRequired` and re-validates the token (triggering the login popup). 403 is not handled.
-  It `console.error`s every rejected response for diagnostics, with the bearer credential masked — the
-  `Authorization` header is redacted in the logged copy, since console output is captured verbatim by
-  breadcrumb and session-replay telemetry. Keep that property in any logging you add around auth.
+  It `console.error`s every rejected response for diagnostics, masked (below).
 
 Both are installed automatically by the plugin and are **not exported** from `@regira/modules/vue/auth`
 (internal); they are listed here only to document the request/response behavior.
+
+## Logging (no credential reaches the console)
+
+Console output is captured verbatim by breadcrumb and session-replay telemetry, and an axios error carries
+the **request** that produced it — headers, body and URL. So nothing in this module logs a raw error or a
+raw request config. Every `catch` logs `maskAxiosError(ex)` instead (internal, `error-logging.ts`): the
+message, code, status, response data and stack, plus a masked copy of the request. Masked means
+
+- the **`Authorization` header** redacted (any spelling — header names are case-insensitive), and axios'
+  own `auth` (basic-auth) field with it;
+- for credential-bearing endpoints, the request **body**, **`params`** and **query string** dropped
+  wholesale — the endpoint and status are the diagnostics that matter, and a key list would silently miss
+  whatever field an API adds next. Credential-bearing = the `auth` family wherever a `baseURL` puts it
+  (`auth`, `auth/password`, `auth/password/reset`, `auth/refresh`, …) **plus a configured `loginUrl`**
+  that lives elsewhere, which `createAuth` registers with the masking for exactly this reason.
+
+Nothing is mutated, so the rejected error still holds the real header for a retry, and the decoded claims
+(`authData`) are still logged: diagnostics, not a credential anything can replay. The **token itself is
+never logged** — not by `validateToken`, whose `catch` runs on every app load that restores a saved token,
+and not through a `tokenManager` that holds it.
+
+The helper is internal (not exported from `@regira/modules/vue/auth`), so keep the same rule in your own
+code: in a `catch` around anything auth-adjacent log the error's **own fields** (`ex.message`,
+`ex.response?.status`, `ex.response?.data`) — never `{ ex }`, which drags the whole request along, and
+never the token.
 
 ## Route guard
 

@@ -21,12 +21,23 @@ heading.
   not being added, so one reached a template as a string and threw at runtime with `vue-tsc` green.
 - `vue/entities` guides: the `filter/FilterAdv.vue` example binds `minCreated`/`maxCreated` with `DateInput`
   instead of a raw `<input type="date">`, which takes `yyyy-MM-dd` only and so never prefilled from a `Date`.
-- `vue/auth`: the failed-request `console.error` in the 401 interceptor no longer prints the bearer
-  credential — the request's `Authorization` header is masked in the logged copy, and the error is logged
-  through its own fields instead of as the object that carries that header. Every 401, 404, timeout or
-  network blip passes through this line, and console output is captured verbatim by breadcrumb and
-  session-replay telemetry. Nothing is mutated, so the rejected error still holds the real header for a
-  retry, and the decoded claims are still logged.
+- `vue/auth`: **no credential reaches the console any more.** An axios error carries the request that
+  produced it, and every `catch` in the module used to log that error whole — so the 401 interceptor, the
+  login/change-password/reset-password/forgot-password forms and `validateToken` each printed the bearer
+  header, and the auth calls printed the posted password or the reset token with it. `validateToken` also
+  logged the raw JWT twice by name, on a path that runs on every app load that restores a saved token.
+  Everything now logs through one internal masking helper: the error field by field (message, code, status,
+  response data, stack) plus a copy of the request with the `Authorization` header and axios' `auth` field
+  redacted, and with the body, `params` and query string dropped for credential-bearing endpoints — the
+  `auth` family wherever a `baseURL` puts it, plus a configured `loginUrl` that lives elsewhere, which
+  `createAuth` registers for this purpose. The helper stays internal — the guides carry the same rule for
+  application code (log the error's own fields, never `{ ex }`). Console output is captured verbatim by breadcrumb and
+  session-replay telemetry, and a wrong-password 401 is the most frequent error of all. Nothing is mutated,
+  so a rejected error still holds the real header for a retry; the decoded claims, the endpoint and the
+  status are still logged, and a non-auth request body is still logged as the diagnostic it is. The axios
+  instance is no longer logged: noise, and a leak vector for any credential set as a default header. A
+  request that failed before it was built (no `config`) no longer throws out of the interceptor on the
+  `auth/` URL check.
 - `vue/entities`: `useSearchView`'s `searchHandler` and `useListView`'s `listHandler` let only the newest
   call write `items`, `itemsCount`, `feedback` and `isLoading`. Fetches genuinely overlap — `useRouteOverview`
   fetches on mount while the slice's login/refresh reload hook searches again, and a filter change or fast
@@ -37,7 +48,9 @@ heading.
   matching `useSearchView`/`useListView`. A details page opened as a deep link fails once while anonymous
   and is retried once the user signs in, and the two overlap whenever the first has not settled yet — the
   401 then arrived after the retry had succeeded and painted `feedback.fail` (which does not auto-hide)
-  over an item already on screen, or cleared the spinner the retry still owned.
+  over an item already on screen, or cleared the spinner the retry still owned. Navigating from a detail
+  route to `/new` while its fetch is in flight clears that spinner too, instead of leaving it turning over a
+  loaded form.
 - `vue/entities`: **`useListView` now sends the search object** it was given. It read `.value` off the
   constructor argument — a plain search object, not the ref — so the spread was always empty and every
   `service.list()` call carried paging alone: filters set in the UI, and any query the URL restored through

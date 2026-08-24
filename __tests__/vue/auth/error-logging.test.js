@@ -1,13 +1,27 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
 import { AxiosHeaders } from "axios"
 import { autoLogoutOnFailedRequest } from "../../../src/vue/auth/auth-axios"
+import { maskAxiosError, maskCredentials, registerLoginUrl } from "../../../src/vue/auth/error-logging"
+import { AuthService } from "../../../src/vue/auth/auth-service"
+import { createAuth } from "../../../src/vue/auth/auth"
+import { useChangePasswordForm } from "../../../src/vue/auth/useChangePasswordForm"
 import { AuthData } from "../../../src/vue/auth/AuthData"
 
-// The response interceptor logs every rejected request for diagnostics. Console output is captured verbatim
-// by breadcrumb and session-replay telemetry, so the bearer credential must not appear in it — it reaches
-// the log through the Authorization header addBearerHeader put on the request.
+// Everything this module logs goes through maskAxiosError, because console output is captured verbatim by
+// breadcrumb and session-replay telemetry and an axios error carries the request that produced it. Every
+// credential the module handles rides that request: the bearer token on the Authorization header
+// addBearerHeader put there, the password and the reset token in the body (login, changePassword and
+// resetPassword all post on this same instance — a wrong password is the most frequent error of all), and
+// a refresh token in the query string.
 
 const jwt = `header.${btoa(JSON.stringify({ sub: "1", name: "u", exp: 9999999999, nbf: 0 }))}.signature`
+
+const axiosError = (config, { status = 401, message = "Request failed" } = {}) => ({
+    message,
+    code: "ERR_BAD_REQUEST",
+    config,
+    response: { status, data: {} },
+})
 
 function harness() {
     let onRejected
@@ -26,11 +40,25 @@ function harness() {
     headers["Authorization"] = `Bearer ${jwt}`
     headers["Accept"] = "application/json"
     const config = { url: "products", method: "get", headers }
-    const error = { message: "Request failed with status code 404", code: "ERR_BAD_REQUEST", config, response: { status: 404, data: {} } }
+    const error = axiosError(config, { status: 404, message: "Request failed with status code 404" })
     return { config, error, reject: () => onRejected(error).catch(() => {}) }
 }
 
-afterEach(() => vi.restoreAllMocks())
+/** the interceptor over a request that carries credentials the way AuthService sends them */
+function authCallHarness(config) {
+    let onRejected
+    const axios = { interceptors: { response: { use: (_onFulfilled, onError) => (onRejected = onError) } } }
+    const store = { isAuthenticated: false, authData: new AuthData(), $patch: () => {}, validateToken: async () => true }
+    autoLogoutOnFailedRequest(axios, store)
+
+    const error = axiosError({ method: "post", headers: new AxiosHeaders(), ...config })
+    return { reject: () => onRejected(error).catch(() => {}) }
+}
+
+afterEach(() => {
+    vi.restoreAllMocks()
+    registerLoginUrl(undefined) // module-level, like the auth setup that registers it
+})
 
 describe("autoLogoutOnFailedRequest logging", () => {
     test("the Authorization header does not reach the console", async () => {
@@ -41,7 +69,7 @@ describe("autoLogoutOnFailedRequest logging", () => {
 
         const [, payload] = log.mock.calls[0]
         expect(JSON.stringify(payload)).not.toContain(jwt)
-        expect(payload.config.headers.Authorization).not.toContain(jwt)
+        expect(payload.error.config.headers.Authorization).not.toContain(jwt)
     })
 
     test("the diagnostics themselves survive — claims, status and the request that failed", async () => {
@@ -55,8 +83,44 @@ describe("autoLogoutOnFailedRequest logging", () => {
         expect(payload.auth.isAuthenticated).toBe(true)
         expect(payload.error.status).toBe(404)
         expect(payload.error.message).toContain("404")
-        expect(payload.config.url).toBe("products")
-        expect(payload.config.headers.Accept).toBe("application/json")
+        expect(payload.error.config.url).toBe("products")
+        expect(payload.error.config.headers.Accept).toBe("application/json")
+    })
+
+    test("the login body does not reach the console", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {})
+        const { reject } = authCallHarness({ url: "auth?clientApp=app", data: JSON.stringify({ username: "bram", password: "hunter2" }) })
+
+        await reject()
+
+        const [, payload] = log.mock.calls[0]
+        expect(JSON.stringify(payload)).not.toContain("hunter2")
+        expect(payload.error.config.data).toBe("<redacted>")
+        expect(payload.error.config.url).toBe("auth?<redacted>") // the endpoint survives, its parameters do not
+        expect(payload.error.status).toBe(401)
+    })
+
+    test("the axios instance itself is not logged", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {})
+        const { reject } = harness()
+
+        await reject()
+
+        const [, payload] = log.mock.calls[0]
+        expect(payload).not.toHaveProperty("axios")
+    })
+
+    test("a request that failed before it was built carries no config, and still logs", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {})
+        let onRejected
+        const axios = { interceptors: { response: { use: (_onFulfilled, onError) => (onRejected = onError) } } }
+        const store = { isAuthenticated: false, authData: new AuthData(), $patch: () => {}, validateToken: async () => true }
+        autoLogoutOnFailedRequest(axios, store)
+
+        await onRejected({ message: "Network Error", code: "ERR_NETWORK" }).catch(() => {})
+
+        const [, payload] = log.mock.calls[0]
+        expect(payload.error.message).toBe("Network Error")
     })
 
     test("the rejected error is untouched, so a retry still has the real header", async () => {
@@ -66,5 +130,140 @@ describe("autoLogoutOnFailedRequest logging", () => {
         await reject()
 
         expect(config.headers.Authorization).toBe(`Bearer ${jwt}`)
+    })
+})
+
+// The masking decides per URL, so the boundary is the thing to pin down: every endpoint that carries a
+// credential, and nothing that merely looks like one.
+describe("maskCredentials — which endpoints are credential-bearing", () => {
+    test.each([
+        ["auth?clientApp=app", { username: "bram", password: "hunter2" }],
+        ["auth/password", { currentPassword: "hunter2", newPassword: "hunter3" }],
+        ["auth/password/reset", { token: "reset-token", password: "hunter3" }],
+        ["https://api.host/auth", { username: "bram", password: "hunter2" }], // absolute, or prefixed by a baseURL
+    ])("%s: the body is dropped", (url, body) => {
+        const masked = maskCredentials({ url, data: JSON.stringify(body) })
+
+        expect(masked.data).toBe("<redacted>")
+        for (const secret of Object.values(body)) {
+            expect(JSON.stringify(masked)).not.toContain(secret)
+        }
+    })
+
+    test.each(["products", "oauth/token", "/api/authors"])("%s: the body is a diagnostic, and survives", (url) => {
+        expect(maskCredentials({ url, data: JSON.stringify({ title: "chair" }) }).data).toContain("chair")
+    })
+
+    test("a refresh token in the query string is dropped — `refresh` posts no body at all", () => {
+        // AuthService.refresh builds `auth/refresh/?<params>` and posts nothing, so masking the body alone
+        // would leave the credential sitting in the logged url
+        const masked = maskCredentials({ url: "auth/refresh/?refreshToken=hunter2&clientApp=app" })
+
+        expect(masked.url).toBe("auth/refresh/?<redacted>")
+        expect(JSON.stringify(masked)).not.toContain("hunter2")
+    })
+
+    test("params and axios' own basic-auth field are dropped too", () => {
+        const masked = maskCredentials({
+            url: "auth/refresh/",
+            params: { refreshToken: "hunter2" },
+            auth: { username: "u", password: "hunter2" },
+        })
+
+        expect(masked.params).toBe("<redacted>")
+        expect(masked.auth).toBe("<redacted>")
+        expect(JSON.stringify(masked)).not.toContain("hunter2")
+    })
+
+    test("a configured loginUrl outside `auth/` is credential-bearing as well", () => {
+        // IAuthOptions.loginUrl is public — createAuth registers it, since nothing in such a URL says "auth"
+        registerLoginUrl("account/login")
+
+        expect(maskCredentials({ url: "account/login?clientApp=app", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "https://api.host/account/login", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "account/profile", data: '{"title":"chair"}' }).data).toContain("chair")
+    })
+
+    test("createAuth registers the configured loginUrl", () => {
+        createAuth({ enabled: true, tokenManager: { token: undefined }, axios: { post: async () => ({ data: {} }) }, loginUrl: "account/login" })
+
+        expect(maskCredentials({ url: "account/login", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+    })
+
+    test("nothing is mutated — the caller keeps the real request for a retry", () => {
+        const config = { url: "auth", data: '{"password":"hunter2"}', headers: { Authorization: `Bearer ${jwt}` } }
+
+        maskCredentials(config)
+
+        expect(config.data).toBe('{"password":"hunter2"}')
+        expect(config.headers.Authorization).toBe(`Bearer ${jwt}`)
+    })
+})
+
+// validateToken runs on every app load that restores a saved token, and its catch fires on any 401 or
+// network blip — the most routine log in the module, over a token that is replayable until it expires.
+describe("AuthService.validateToken logging", () => {
+    const loggedArgs = (call) => call.map((a) => JSON.stringify(a)).join()
+
+    test("the token reaches neither the message nor the logged error", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {})
+        const headers = new AxiosHeaders()
+        headers["Authorization"] = `Bearer ${jwt}`
+        const axios = { post: async () => Promise.reject(axiosError({ url: "auth/validate", headers })) }
+        const service = new AuthService(axios, { token: jwt })
+
+        await service.validateToken()
+
+        expect(loggedArgs(log.mock.calls[0])).not.toContain(jwt)
+    })
+
+    test("an invalid status logs the status, and no token bag with it", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const service = new AuthService({ post: async () => ({ status: 400 }) }, { token: jwt })
+
+        await service.validateToken()
+
+        expect(loggedArgs(warn.mock.calls[0])).not.toContain(jwt)
+        expect(warn.mock.calls[0]).toContain(400)
+    })
+})
+
+// The form composables log their own failure too — and the request they log is the one carrying the password.
+describe("form composables", () => {
+    test("changePassword's failure log prints neither password", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {})
+        const axios = {
+            post: async (url, data) => Promise.reject(axiosError({ url, data: JSON.stringify(data), headers: new AxiosHeaders() }, { status: 400 })),
+        }
+        createAuth({ enabled: true, tokenManager: { token: undefined }, axios })
+        const form = useChangePasswordForm(() => {})
+        form.currentPassword.value = "hunter2"
+        form.newPassword.value = "hunter3"
+        form.confirmPassword.value = "hunter3"
+
+        await form.handleSubmit()
+
+        expect(form.isSuccess.value).toBe(false)
+        const [, payload] = log.mock.calls[0]
+        expect(JSON.stringify(payload)).not.toContain("hunter2")
+        expect(JSON.stringify(payload)).not.toContain("hunter3")
+        expect(payload.config.url).toBe("auth/password") // it still says which call failed
+    })
+})
+
+describe("maskAxiosError", () => {
+    test("logs the error field by field — never the error object that carries the request", () => {
+        const headers = new AxiosHeaders()
+        headers["Authorization"] = `Bearer ${jwt}`
+        const ex = axiosError({ url: "auth", data: '{"password":"hunter2"}', headers }, { message: "Request failed with status code 401" })
+        ex.stack = "Error: Request failed"
+
+        const masked = maskAxiosError(ex)
+
+        expect(JSON.stringify(masked)).not.toContain("hunter2")
+        expect(JSON.stringify(masked)).not.toContain(jwt)
+        expect(masked.status).toBe(401)
+        expect(masked.message).toContain("401")
+        expect(masked.stack).toBe("Error: Request failed")
     })
 })

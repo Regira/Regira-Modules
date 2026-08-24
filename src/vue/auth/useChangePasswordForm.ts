@@ -1,5 +1,6 @@
 import { ref, computed } from "vue"
 import { useAuth } from "./auth"
+import { maskAxiosError } from "./error-logging"
 
 export interface ChangePasswordFormEmits {
     (e: "success"): void
@@ -37,7 +38,8 @@ export function useChangePasswordForm(emit: ChangePasswordFormEmits) {
             emit("success")
         } catch (ex: any) {
             isSuccess.value = false
-            console.error("changing password failed", { ex })
+            // the error carries the request that produced it — both posted passwords included
+            console.error("changing password failed", maskAxiosError(ex))
             emit("fail", ex)
         } finally {
             isLoading.value = false

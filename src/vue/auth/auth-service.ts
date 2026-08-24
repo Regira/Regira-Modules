@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios"
 import { createQueryString } from "../http/query"
 import type { ITokenManager } from "./token-manager"
 import { AuthData, type IAuthData } from "./AuthData"
+import { maskAxiosError } from "./error-logging"
 import type { IAuthOptions } from "./auth"
 
 export type IAuthenticateInput = { token: string; isAuthenticated: boolean }
@@ -77,13 +78,15 @@ export class AuthService implements IAuthService {
                 if (response.status >= 200 && response.status < 300) {
                     return this.authenticate({ token: this.tokenManager.token, isAuthenticated: true })
                 } else {
-                    console.warn("validateToken: invalid statusCode", response.status, {
-                        tokenManager: this.tokenManager,
-                        token: this.tokenManager.token,
-                    })
+                    // The token itself is never logged, here or below: it is a bearer credential, replayable
+                    // until it expires, and console output is captured verbatim by breadcrumb and
+                    // session-replay telemetry. This path runs on every app load that restores a saved token,
+                    // so its logs are routine. `tokenManager` is not logged either — it holds the same token.
+                    console.warn("validateToken: invalid statusCode", response.status)
                 }
             } catch (ex: any) {
-                console.error("validating token failed", { ex, token: this.tokenManager.token })
+                // the error carries the request that produced it, Authorization header included
+                console.error("validating token failed", maskAxiosError(ex))
                 if (ex.response && ex.response.status === 401) {
                     this.tokenManager.token = undefined
                 }
