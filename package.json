@@ -284,15 +284,15 @@
         "vue-router": "^5.0.4"
     },
     "devDependencies": {
-        "@types/node": "^26.1.2",
+        "@types/node": "^26.2.0",
         "@vitejs/plugin-vue": "^6.0.8",
-        "jsdom": "^30.0.0",
+        "jsdom": "^30.0.1",
         "prettier": "^3.9.6",
         "regenerator-runtime": "^0.14.1",
-        "sass-embedded": "^1.100.0",
+        "sass-embedded": "^1.103.1",
         "typescript": "^6.0.3",
-        "vite": "^8.1.5",
-        "vitest": "^4.1.10",
-        "vue-tsc": "^3.3.8"
+        "vite": "^8.2.2",
+        "vitest": "^4.1.11",
+        "vue-tsc": "^3.3.11"
     }
 }
