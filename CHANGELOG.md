@@ -5,6 +5,15 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `_template/scaffold.mjs`: `--overwrite-slice` no longer deletes owned sub-slices it does not regenerate.
+  The clean replace wiped the whole slice folder before re-emitting the template, and an owned sub-slice
+  lives inside it — so re-running the flag without repeating the original `--owns` silently destroyed the
+  hand-authored child files and exited 0. The replace is now scoped to the template's own entries, any
+  nested sub-slice this run does not regenerate is kept and named in the output, and repeating its `--owns`
+  still replaces it.
+
 ## 6.1.2 — 2026-08-16
 
 - `vue/entities` guides: new **Contact data & address editors** blueprint — phone/email rows with

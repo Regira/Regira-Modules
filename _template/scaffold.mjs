@@ -55,7 +55,8 @@
 //   --force             overwrite files that already exist (--shell / --ui / --attachments only — never an
 //                       entity slice; slices hold hand-edited (c) files and need the explicit flag below)
 //   --overwrite-slice   overwrite an existing entity slice (or owned sub-slice), customized (c) files
-//                       included — destructive, deliberate opt-in
+//                       included — destructive, deliberate opt-in. Nested owned sub-slices are kept unless
+//                       this run repeats their --owns, which replaces them too.
 //
 // Examples:
 //   node .../scaffold.mjs Category --plural categories
@@ -698,8 +699,21 @@ const sliceGenerated = !sliceExists || overwriteSlice
 if (sliceGenerated) {
     if (sliceExists) {
         console.log(`! ${destRoot} exists — --overwrite-slice: replacing it, customized (c) files included.`)
-        // a clean replace, not an overlay — files from an older template generation must not linger
-        rmSync(destRoot, { recursive: true, force: true })
+        // A clean replace, not an overlay — files from an older template generation must not linger. Scoped to
+        // the template's OWN entries: an owned sub-slice lives in its own folder alongside them and is only
+        // re-emitted when this run repeats its --owns, so wiping the whole slice root would silently delete
+        // hand-authored children the run never regenerates.
+        const templateEntries = new Set(readdirSync(srcRoot))
+        for (const entry of readdirSync(destRoot)) {
+            if (templateEntries.has(entry)) rmSync(resolve(destRoot, entry), { recursive: true, force: true })
+        }
+        const regenerating = new Set(owns.map((o) => kebab(pluralize(o.child))))
+        const kept = readdirSync(destRoot, { withFileTypes: true })
+            .filter((e) => e.isDirectory() && !regenerating.has(e.name))
+            .map((e) => e.name)
+        if (kept.length) {
+            console.log(`  Kept nested sub-slice(s) this run does not regenerate: ${kept.join(", ")} — re-pass their --owns to replace them.`)
+        }
     }
     copyDir(srcRoot, destRoot)
     console.log(`✓ Scaffolded ${name} → ${join(baseDir, plural)}${noAuth ? " (auth hooks stripped)" : ""}`)
