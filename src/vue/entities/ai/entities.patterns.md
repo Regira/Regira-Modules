@@ -300,9 +300,11 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 > `reset()` (or the next `pending()`/`success()`), so drive the whole lifecycle rather than just the
 > `catch`: a first attempt that failed otherwise leaves its banner sitting over the data a later attempt
 > loaded. The composables do this for you — `useSearchView` resets on every search and discards the
-> feedback of one a newer search superseded, which is what keeps an overlapping fetch's 401 from
+> feedback of any call a newer one superseded, which is what keeps an overlapping fetch's 401 from
 > banner-ing over the rows a later search brought back (see
-> [Auth reload hooks](#auth-reload-hooks-login-driven-refresh)).
+> [Auth reload hooks](#auth-reload-hooks-login-driven-refresh)). `searchHandler`, `listHandler`, `applySave`
+> and `applyRemove` share that one gate, so a save or a refused delete settling mid-fetch cannot paint over
+> a newer result either.
 
 ## Entity selector (relation picker) — `selecting/`
 

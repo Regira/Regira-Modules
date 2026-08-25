@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
 import { AxiosHeaders } from "axios"
 import { autoLogoutOnFailedRequest } from "../../../src/vue/auth/auth-axios"
-import { maskAxiosError, maskCredentials, registerLoginUrl } from "../../../src/vue/auth/error-logging"
+import { maskAxiosError, maskCredentials, registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../../src/vue/auth/error-logging"
 import { AuthService } from "../../../src/vue/auth/auth-service"
 import { createAuth } from "../../../src/vue/auth/auth"
 import { useChangePasswordForm } from "../../../src/vue/auth/useChangePasswordForm"
@@ -58,6 +58,7 @@ function authCallHarness(config) {
 afterEach(() => {
     vi.restoreAllMocks()
     registerLoginUrl(undefined) // module-level, like the auth setup that registers it
+    resetCredentialUrls()
 })
 
 describe("autoLogoutOnFailedRequest logging", () => {
@@ -79,7 +80,7 @@ describe("autoLogoutOnFailedRequest logging", () => {
         await reject()
 
         const [, payload] = log.mock.calls[0]
-        expect(payload.auth.name).toBe("u") // decoded claims are not the credential
+        expect(payload.auth.name).toBe("u") // the named diagnostics are not the credential
         expect(payload.auth.isAuthenticated).toBe(true)
         expect(payload.error.status).toBe(404)
         expect(payload.error.message).toContain("404")
@@ -197,6 +198,91 @@ describe("maskCredentials — which endpoints are credential-bearing", () => {
 
         expect(config.data).toBe('{"password":"hunter2"}')
         expect(config.headers.Authorization).toBe(`Bearer ${jwt}`)
+    })
+})
+
+// The interceptor is installed on the app's shared axios instance, so it logs every failed request the SPA
+// makes — but only this module's endpoints are credential-bearing by construction. An application says
+// which of its OWN endpoints post a password, and the boundary is what needs pinning: registered paths lose
+// their body, everything else keeps it as the diagnostic it is.
+describe("application-registered credential endpoints", () => {
+    test("a registered path loses its body, wherever a baseURL puts it", () => {
+        registerCredentialUrls("invitations/accept")
+
+        expect(maskCredentials({ url: "invitations/accept", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "https://api.host/v2/invitations/accept", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+    })
+
+    test("`*` stands for exactly one segment, so an id in the path is covered", () => {
+        registerCredentialUrls("users/*/password")
+
+        expect(maskCredentials({ url: "users/123/password", data: '{"newPassword":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "users/me/password", data: '{"newPassword":"hunter2"}' }).data).toBe("<redacted>")
+        // one segment, not "the rest of the path" — a deeper route is a different endpoint
+        expect(maskCredentials({ url: "users/123/devices/password", data: '{"title":"chair"}' }).data).toContain("chair")
+    })
+
+    test("a RegExp is matched against the path, without query string or outer slashes", () => {
+        registerCredentialUrls(/(^|\/)tokens\//)
+
+        expect(maskCredentials({ url: "/admin/tokens/issue?scope=all", data: '{"secret":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "admin/tokenshop", data: '{"title":"chair"}' }).data).toContain("chair")
+    })
+
+    test("registration is additive, and unregistered endpoints keep their body", () => {
+        registerCredentialUrls("invitations/accept")
+        registerCredentialUrls("users/*/password")
+
+        expect(maskCredentials({ url: "invitations/accept", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "users/1/password", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+        // the guarantee an app has to opt into: this one was never registered
+        expect(maskCredentials({ url: "users", data: '{"password":"hunter2"}' }).data).toContain("hunter2")
+    })
+
+    test("the Authorization header is masked on every request, registered or not", () => {
+        // the header needs no registration — addBearerHeader puts it on everything
+        const masked = maskCredentials({ url: "products", headers: { Authorization: `Bearer ${jwt}` } })
+
+        expect(masked.headers.Authorization).toBe("<redacted>")
+    })
+
+    test("createAuth registers its credentialUrls option, and re-running it replaces the list", () => {
+        const setup = (credentialUrls) =>
+            createAuth({ enabled: true, tokenManager: { token: undefined }, axios: { post: async () => ({ data: {} }) }, credentialUrls })
+
+        setup(["invitations/accept"])
+        expect(maskCredentials({ url: "invitations/accept", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+
+        // one auth setup owns the option-provided list — a second run must not inherit the first's
+        setup(["users/*/password"])
+        expect(maskCredentials({ url: "users/1/password", data: '{"password":"hunter2"}' }).data).toBe("<redacted>")
+        expect(maskCredentials({ url: "invitations/accept", data: '{"password":"hunter2"}' }).data).toContain("hunter2")
+    })
+})
+
+// AuthData._decodedToken is private to TypeScript only — at runtime it is an ordinary own enumerable
+// property, so `{ ...store.authData }` would ship the whole decoded claim bag to telemetry that captures
+// console output verbatim. The log names the fields it wants instead.
+describe("the signed-in user is logged by named field", () => {
+    test("the decoded claim bag does not reach the console", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {})
+        const token = `header.${btoa(JSON.stringify({ sub: "1", name: "u", role: "admin", ssn: "hunter2", exp: 9999999999, nbf: 0 }))}.signature`
+        let onRejected
+        const axios = { interceptors: { response: { use: (_onFulfilled, onError) => (onRejected = onError) } } }
+        const store = {
+            isAuthenticated: true,
+            authData: new AuthData(token, { isAuthenticated: true }),
+            $patch: () => {},
+            validateToken: async () => true,
+        }
+        autoLogoutOnFailedRequest(axios, store)
+
+        await onRejected(axiosError({ url: "products", headers: new AxiosHeaders() }, { status: 404 })).catch(() => {})
+
+        const [, payload] = log.mock.calls[0]
+        expect(payload.auth).toEqual({ isAuthenticated: true, userId: "1", name: "u", role: "admin" })
+        expect(payload.auth).not.toHaveProperty("_decodedToken")
+        expect(JSON.stringify(payload)).not.toContain("hunter2") // a custom claim the app never meant to log
     })
 })
 

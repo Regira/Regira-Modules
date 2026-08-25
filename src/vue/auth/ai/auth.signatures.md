@@ -21,6 +21,8 @@ import {
     LoginModal,
     LogoutForm,
     ForgotPasswordModal,
+    registerCredentialUrls,
+    type IAuthOptions,
     type IGlobalAuth,
     type ITokenManager,
     type IAuthStore,
@@ -87,7 +89,12 @@ export class AuthService implements IAuthService {
 // `service.options` is the SINGLE OWNER of clientApp — plain state, no framework. IAuth/$auth expose it as
 // read-through getters; the store wraps it in a reactive view (a customRef, Vue stays in the Vue layer), so
 // `setClientApp(v)` and `store.clientApp = v` both write the owner and no copy exists to go stale.
-export type IAuthOptions = { clientApp?: string; loginUrl?: string }
+export type IAuthOptions = {
+    clientApp?: string
+    loginUrl?: string
+    // the APPLICATION's credential-bearing endpoints, on top of this module's own — see Logging below
+    credentialUrls?: Array<string | RegExp>
+}
 export interface IGlobalAuth {
     enabled: boolean
     readonly clientApp?: string
@@ -141,6 +148,20 @@ export function autoLogoutOnFailedRequest(
     axios: AxiosInstance,
     store: Store & { isAuthenticated: boolean; authData: IAuthData; validateToken(): Promise<boolean> }
 ): void
+```
+
+## Logging
+
+```ts
+// The ONLY exported part of the masking — maskAxiosError / maskCredentials stay internal.
+// Registers the APPLICATION's own credential-bearing endpoints, so their request body, params and query
+// string are dropped from the failed-request log the way the `auth` family's already are. Additive.
+// A string matches a whole path or its trailing segments (a baseURL prefix is irrelevant), with `*` = one
+// segment: "users/*/password" covers users/123/password, not users/1/devices/password. A RegExp is tested
+// against the lower-cased path, without query string or outer slashes.
+// Call it AFTER the plugin installed, or pass IAuthOptions.credentialUrls — createAuth resets the list to
+// what its options carry. The Authorization header needs no registration: it is masked on every request.
+export function registerCredentialUrls(...urls: Array<string | RegExp>): void
 ```
 
 ## Store

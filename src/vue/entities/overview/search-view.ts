@@ -21,6 +21,7 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
         handleSave,
         handleRemove,
         resetPage,
+        claimWrite,
     } = useOverviewCore({ service, searchObject, defaultPageSize })
 
     // Only the newest search may write. Two are genuinely in flight whenever a second starts before the
@@ -28,10 +29,10 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
     // searches again, and a filter change or fast paging does the same — and without this the one that
     // settles LAST wins. The bad ordering is the common one: the earlier fetch 401s and lands after the
     // later one succeeded, so `feedback.fail` (which does not auto-hide, unlike `success`) paints an error
-    // banner over data that is already on screen.
-    let latestSearchId = 0
+    // banner over data that is already on screen. The counter is the core's, shared with
+    // `applySave`/`applyRemove` — a save settling mid-search must not clear the spinner this one owns.
     async function searchHandler(resetPaging = false): Promise<void> {
-        const searchId = ++latestSearchId
+        const isLatest = claimWrite()
         isLoading.value = true
         try {
             feedback.reset()
@@ -40,19 +41,19 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
                 so.page = 1
             }
             const { items: data, count } = await service.search(so)
-            if (searchId !== latestSearchId) return
+            if (!isLatest()) return
             items.value = data
             itemsCount.value = count
         } catch (ex) {
             console.error("fetching failed", { ex })
             // a superseded search still reports to the console, but its banner would sit over a newer result
-            if (searchId === latestSearchId) {
+            if (isLatest()) {
                 const error = ex as OverviewError
                 feedback.fail("fetching data failed", error.response?.data?.errors)
             }
         } finally {
             // a superseded search leaves the spinner to the one that replaced it
-            if (searchId === latestSearchId) isLoading.value = false
+            if (isLatest()) isLoading.value = false
         }
     }
     const debouncedSearchHandler = debounceToPromise(

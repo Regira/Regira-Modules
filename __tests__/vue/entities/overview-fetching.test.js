@@ -7,14 +7,17 @@ import { FeedbackStatus } from "../../../src/vue/ui/feedback"
 // hook searches again, and a filter change or fast paging does the same. Whichever settled LAST used to
 // win — and the bad ordering is the common one, the earlier fetch 401'ing after the later one succeeded.
 
-/** a service whose fetches you settle by hand, in whatever order the test needs */
-function deferredService(method) {
+/** a service whose calls you settle by hand, in whatever order the test needs */
+function deferredService(...methods) {
     const pending = []
-    return {
-        [method]: () => new Promise((resolve, reject) => pending.push({ resolve, reject })),
+    const service = {
         resolveWith: (index, result) => pending[index].resolve(result),
         rejectWith: (index, error) => pending[index].reject(error),
     }
+    for (const method of methods) {
+        service[method] = () => new Promise((resolve, reject) => pending.push({ resolve, reject }))
+    }
+    return service
 }
 
 afterEach(() => vi.restoreAllMocks())
@@ -120,5 +123,83 @@ describe("useListView", () => {
 
         expect(items.value).toEqual([{ id: "fresh" }])
         expect(itemsCount.value).toBe(1)
+    })
+})
+// The same invariant, one step further: a save or a delete writes the same isLoading/feedback the fetch
+// handlers do, and the two overlap in both directions — a row saved while a filter change is still
+// fetching, a list refreshed while a delete is in flight. They share one counter, so whichever call is
+// newest owns the shared state; each caller's own return value is delivered either way, because the list
+// mutation (handleSave/handleRemove) has to happen whatever else is on the wire.
+describe("saves and deletes settling against an in-flight fetch", () => {
+    test("a save that settles mid-search does not clear the spinner the search owns", async () => {
+        const service = deferredService("search", "save")
+        const { isLoading, applySave, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const save = applySave({ $id: "1", $title: "chair" })
+        const search = searchHandler()
+        service.resolveWith(0, { saved: { $id: "1" }, isNew: false }) // the save lands first
+        await save
+        expect(isLoading.value).toBe(true) // the search still owns it
+
+        service.resolveWith(1, { items: [{ $id: "1" }], count: 1 })
+        await search
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a superseded save still returns its result, so the row is applied to the list", async () => {
+        const service = deferredService("search", "save")
+        const { applySave, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const save = applySave({ $id: "1", $title: "chair" })
+        const search = searchHandler()
+        service.resolveWith(0, { saved: { $id: "1", $title: "chair" }, isNew: false })
+        service.resolveWith(1, { items: [], count: 0 })
+
+        expect(await save).toEqual({ saved: { $id: "1", $title: "chair" }, isNew: false })
+        await search
+    })
+
+    test("a superseded delete leaves no banner over the rows that did load", async () => {
+        // feedback.fail() does not auto-hide — a 409 landing after the list refreshed used to sit on top
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("list", "remove")
+        const { items, feedback, isLoading, applyRemove, listHandler } = useListView({ service, searchObject: {} })
+
+        const remove = applyRemove({ $id: "1", $title: "chair" })
+        const list = listHandler()
+        service.rejectWith(0, { response: { status: 409 } })
+        service.resolveWith(1, [{ $id: "1" }])
+        const removed = await remove
+        await list
+
+        expect(removed).toBe(false) // the caller still learns the delete failed, and keeps the row
+        expect(feedback.status).toBe(FeedbackStatus.none)
+        expect(items.value).toEqual([{ $id: "1" }])
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a lone failing delete still reports", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("remove")
+        const { feedback, isLoading, applyRemove } = useListView({ service, searchObject: {} })
+
+        const only = applyRemove({ $id: "1", $title: "chair" })
+        service.rejectWith(0, { response: { data: { errors: { id: "still referenced" } } } })
+
+        expect(await only).toBe(false)
+        expect(feedback.status).toBe(FeedbackStatus.failed)
+        expect(feedback.error).toEqual({ id: "still referenced" })
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a lone save reports success", async () => {
+        const service = deferredService("save")
+        const { feedback, applySave } = useListView({ service, searchObject: {} })
+
+        const only = applySave({ $id: "1", $title: "chair" })
+        service.resolveWith(0, { saved: { $id: "1" }, isNew: true })
+        await only
+
+        expect(feedback.status).toBe(FeedbackStatus.success)
     })
 })

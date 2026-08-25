@@ -125,15 +125,40 @@ message, code, status, response data and stack, plus a masked copy of the reques
 - for credential-bearing endpoints, the request **body**, **`params`** and **query string** dropped
   wholesale — the endpoint and status are the diagnostics that matter, and a key list would silently miss
   whatever field an API adds next. Credential-bearing = the `auth` family wherever a `baseURL` puts it
-  (`auth`, `auth/password`, `auth/password/reset`, `auth/refresh`, …) **plus a configured `loginUrl`**
-  that lives elsewhere, which `createAuth` registers with the masking for exactly this reason.
+  (`auth`, `auth/password`, `auth/password/reset`, `auth/refresh`, …), **a configured `loginUrl`** that
+  lives elsewhere, which `createAuth` registers for exactly this reason, and **whatever the application
+  registered** (below).
 
-Nothing is mutated, so the rejected error still holds the real header for a retry, and the decoded claims
-(`authData`) are still logged: diagnostics, not a credential anything can replay. The **token itself is
-never logged** — not by `validateToken`, whose `catch` runs on every app load that restores a saved token,
-and not through a `tokenManager` that holds it.
+Nothing is mutated, so the rejected error still holds the real header for a retry. The signed-in user is
+logged by **named field** — `{ isAuthenticated, userId, name, role }`, never `{ ...store.authData }`:
+`AuthData._decodedToken` is private to TypeScript only, so a spread ships the whole decoded claim bag
+(every custom claim the issuer put in the token) into telemetry. The **token itself is never logged** — not
+by `validateToken`, whose `catch` runs on every app load that restores a saved token, and not through a
+`tokenManager` that holds it.
 
-The helper is internal (not exported from `@regira/modules/vue/auth`), so keep the same rule in your own
+### The application's own credential endpoints
+
+`autoLogoutOnFailedRequest` is installed on the app's **shared** axios instance, so it logs every failed
+request the SPA makes — but only this module's endpoints are credential-bearing by construction. An app
+that posts a password anywhere else registers those paths, or their bodies are logged in full:
+
+```ts
+// either at setup…
+app.use(authPlugin, { axios, tokenManager, credentialUrls: ["users/*/password", "invitations/accept"] })
+// …or afterwards (additive; `createAuth` resets the list to what its options carried, so not before)
+registerCredentialUrls("users/*/password", /(^|\/)tokens\//)
+```
+
+A `string` matches a whole path or its trailing segments (a `baseURL` prefix is irrelevant), with `*`
+standing for exactly one segment (`users/*/password` → `users/123/password`, not `users/1/devices/password`);
+a `RegExp` is tested against the lower-cased path without its query string or outer slashes. The
+`Authorization` header needs no registration — it is masked on every request. Anything unregistered keeps
+its body: a failed request's body is a real diagnostic, so it is not thrown away everywhere.
+
+`registerCredentialUrls` is the one part of the masking that IS exported from
+`@regira/modules/vue/auth`; `maskAxiosError` / `maskCredentials` stay internal.
+
+The masking helper itself is internal, so keep the same rule in your own
 code: in a `catch` around anything auth-adjacent log the error's **own fields** (`ex.message`,
 `ex.response?.status`, `ex.response?.data`) — never `{ ex }`, which drags the whole request along, and
 never the token.

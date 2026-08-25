@@ -27,8 +27,10 @@
   the entities app shell (`scaffold.mjs --shell`) wires all five.
 - **Never log a raw auth error.** An axios error carries the request that produced it — the bearer header,
   the posted password, a token in the query. This module masks all of that internally and never logs the
-  token; in your own `catch` blocks log `ex.message` / `ex.response?.status`, never `{ ex }`. See
-  _Logging_ in `auth.instructions`.
+  token; in your own `catch` blocks log `ex.message` / `ex.response?.status`, never `{ ex }`. The response
+  interceptor logs every failed request the app makes, so **register the app's own credential endpoints** —
+  `credentialUrls: ["users/*/password", …]` on the plugin, or `registerCredentialUrls(...)` — or their
+  bodies are logged in full. See _Logging_ in `auth.instructions`.
 - **Top traps:** `siteUrl` for recovery is the reset _page_, not the origin; read the mailed token via
   vue-router `route.query.token` (URLSearchParams corrupts base64 `+`); gate `LoginModal` with `v-if`, not
   visibility; a 401 on non-`auth/` URLs auto-triggers re-validation + the login popup (403 does not).

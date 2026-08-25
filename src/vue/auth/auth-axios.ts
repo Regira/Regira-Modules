@@ -26,10 +26,14 @@ export function autoLogoutOnFailedRequest(axios: AxiosInstance, store: Store & I
             // Every failed request passes through here, so nothing that reaches this line may carry a
             // credential to the console — `maskAxiosError` logs the error field by field with the request's
             // Authorization header, body and query masked (see error-logging.ts). Nothing is mutated, so the
-            // error rejected below still holds the real header for a retry to reuse. The decoded claims are
-            // logged as they are: diagnostics worth having, and not a credential anything can replay. The
-            // axios instance is not logged at all — noise, and a leak vector for any default header.
-            console.error("axios error", { error: maskAxiosError(error), auth: { ...store.authData } })
+            // error rejected below still holds the real header for a retry to reuse. The axios instance is
+            // not logged at all — noise, and a leak vector for any default header.
+            // The signed-in user is logged by NAMED field, never as `{ ...store.authData }`: `_decodedToken`
+            // is private to TypeScript only, so a spread ships the whole decoded claim bag — every custom
+            // claim the issuer put in the token — into telemetry that captures console output verbatim.
+            // These four are the diagnostics that make a failed request readable, and none is replayable.
+            const { isAuthenticated, userId, name, role } = store.authData ?? ({} as IAuthData)
+            console.error("axios error", { error: maskAxiosError(error), auth: { isAuthenticated, userId, name, role } })
             // Deliberately narrower than error-logging's `isAuthUrl`: this decides whether a 401 should log
             // the user out, and only the `auth/` calls made with a token (validate, refresh, password) may
             // skip that. A failed login is not exempted — it needs no exemption, since `isAuthenticated` is

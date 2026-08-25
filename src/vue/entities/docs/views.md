@@ -39,10 +39,13 @@ destructure `{ items }` from it). Both send the current search object merged wit
 > **Guard the lazy refs.** `items` / `itemsCount` are `undefined` until the first fetch, so bind
 > `v-for="x in items ?? []"` and `:count="itemsCount ?? 0"`.
 
-> **Overlapping fetches settle predictably.** Only the newest `searchHandler` / `listHandler` call writes
-> `items`, `itemsCount`, `feedback` and `isLoading` — a slower earlier one is dropped when it lands. They
-> really do overlap: a filter change or fast paging starts a second call, and the slice's login/refresh
-> reload hook can search again while `useRouteOverview`'s mount fetch is still in flight.
+> **Overlapping calls settle predictably.** `searchHandler`, `listHandler`, `applySave` and `applyRemove`
+> share one "newest wins" gate: only the newest of them writes `items`, `itemsCount`, `feedback` and
+> `isLoading`, so a slower earlier call is dropped when it lands. They really do overlap: a filter change or
+> fast paging starts a second fetch, the slice's login/refresh reload hook can search again while
+> `useRouteOverview`'s mount fetch is still in flight, and a row saved or deleted from the list settles
+> against whichever of those is on the wire. Only the shared state is gated — `applySave` and `applyRemove`
+> still return what the server said, so `handleSave` / `handleRemove` apply to the list either way.
 
 ## Details — `useDetails`
 

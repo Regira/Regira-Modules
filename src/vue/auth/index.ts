@@ -4,7 +4,8 @@ export { AuthService, type IAuthenticateInput, type IChangePasswordInput, type I
 export { default as routeGuard } from "./route-guard"
 export { type ITokenManager, CookieTokenManager, MemoryTokenManager, LocalStorageTokenManager } from "./token-manager"
 
-export { useAuth, useGlobalAuth, getAccountName, type IAuth, type IGlobalAuth, type GlobalAuth } from "./auth"
+export { useAuth, useGlobalAuth, getAccountName, type IAuth, type IGlobalAuth, type GlobalAuth, type IAuthOptions } from "./auth"
+export { registerCredentialUrls } from "./error-logging"
 export { useAuthStore, createStore, type IDefineAuthStore, type IAuthStore } from "./store"
 export { default as plugin } from "./plugin"
 export { useLoginForm, type LoginFormEmits, type LoginFormProps, type LoginModalProps, type LoginModalSlots, type LoginInput } from "./useLoginForm"

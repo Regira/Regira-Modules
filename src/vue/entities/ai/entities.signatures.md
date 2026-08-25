@@ -285,6 +285,9 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     itemsCount: Ref<number | undefined>
     isLoading: Ref<boolean>
     feedback: FeedbackOut
+    // applySave/applyRemove share the "newest wins" gate with searchHandler/listHandler: only the newest
+    // call writes feedback/isLoading, so a save settling mid-fetch cannot clear the spinner the fetch owns.
+    // The return value is never gated — the caller still learns what the server said.
     applySave(item: T): Promise<SaveResult<T> | undefined> // undefined = the save failed
     applyRemove(item: T): Promise<boolean> // false = the server refused the delete (409, 403, …)
     handleSave({ saved, isNew }: SaveResult<T>): void
@@ -296,7 +299,8 @@ export interface IListViewIn<T, SO> extends OverviewCoreIn<T, SO> {
 }
 export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // Concurrent calls are safe: only the newest writes items/count/feedback/isLoading, so a slower earlier
-    // search cannot overwrite a newer result (the mount fetch racing the login/refresh reload hook)
+    // search cannot overwrite a newer result (the mount fetch racing the login/refresh reload hook). The
+    // same gate covers applySave/applyRemove, which write the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
 }
@@ -322,7 +326,9 @@ export function useOverviewCore<T extends IEntity, SO extends ISearchObject = IS
     service,
     searchObject,
     defaultPageSize,
-}: OverviewCoreIn<T, SO>): OverviewCoreOut<T, SO>
+}: OverviewCoreIn<T, SO>): OverviewCoreOut<T, SO> & OverviewCoreInternals
+// OverviewCoreInternals = { claimWrite(): () => boolean } — the shared "newest wins" gate useSearchView and
+// useListView build their handlers on. Internal: it is NOT part of ISearchViewOut/IListViewOut.
 ```
 
 ⚠️ **`applySave` and `applyRemove` both report failure through their return value, and both need guarding.**

@@ -45,6 +45,17 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     resetPage(): void
 }
 
+/**
+ * The "newest wins" gate the core shares with the composables built on it — internal, not part of a
+ * composable's output. `claimWrite()` takes the turn and returns the predicate that says whether it is
+ * still the newest; everything that writes the SHARED state (`isLoading`, `feedback`, `items`) checks it
+ * before writing, so a slower earlier call cannot clear a spinner or paint a banner a newer one owns.
+ * A caller's own result is never gated: `applySave`/`applyRemove` still return what the server said.
+ */
+export type OverviewCoreInternals = {
+    claimWrite(): () => boolean
+}
+
 export interface IListViewIn<T extends IEntity, SO extends ISearchObject = ISearchObject> extends OverviewCoreIn<T, SO> {
     debounceDelay?: number
 }
