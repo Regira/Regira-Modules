@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.1.3 — 2026-08-26
 
 - `_template/scaffold.mjs`: `--overwrite-slice` no longer deletes owned sub-slices it does not regenerate.
   The clean replace wiped the whole slice folder first, so re-running the flag without repeating the original
