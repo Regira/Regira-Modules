@@ -29,7 +29,9 @@ const handleChange = (e: any) => {
     }
     const date = new Date(e.target.value)
     if (!e.target.value || isValid(date)) {
-        emit("update:modelValue", date || e.target.value)
+        // cleared → `undefined`, never `new Date("")`: that is an Invalid Date and truthy, so a filter field
+        // bound here would stay "active" (`value != null`) and flagged invalid while filtering nothing
+        emit("update:modelValue", e.target.value ? date : undefined)
     }
 }
 </script>

@@ -55,7 +55,8 @@
 //   --force             overwrite files that already exist (--shell / --ui / --attachments only — never an
 //                       entity slice; slices hold hand-edited (c) files and need the explicit flag below)
 //   --overwrite-slice   overwrite an existing entity slice (or owned sub-slice), customized (c) files
-//                       included — destructive, deliberate opt-in
+//                       included — destructive, deliberate opt-in. Nested owned sub-slices are kept unless
+//                       this run repeats their --owns, which replaces them too.
 //
 // Examples:
 //   node .../scaffold.mjs Category --plural categories
@@ -698,8 +699,33 @@ const sliceGenerated = !sliceExists || overwriteSlice
 if (sliceGenerated) {
     if (sliceExists) {
         console.log(`! ${destRoot} exists — --overwrite-slice: replacing it, customized (c) files included.`)
-        // a clean replace, not an overlay — files from an older template generation must not linger
-        rmSync(destRoot, { recursive: true, force: true })
+        // A clean replace, not an overlay — files from an older template generation must not linger. Scoped to
+        // the template's OWN entries: an owned sub-slice lives in its own folder alongside them and is only
+        // re-emitted when this run repeats its --owns, so wiping the whole slice root would silently delete
+        // hand-authored children the run never regenerates.
+        const templateEntries = new Set(readdirSync(srcRoot))
+        for (const entry of readdirSync(destRoot)) {
+            if (templateEntries.has(entry)) rmSync(resolve(destRoot, entry), { recursive: true, force: true })
+        }
+        const regenerating = new Set(owns.map((o) => kebab(pluralize(o.child))))
+        // Report EVERYTHING that survived, not just folders: the scoped delete only removes entries the
+        // current template emits, so a stray file (an older template's leftover, or something hand-added)
+        // also stays — and staying unannounced is how a destructive flag looks like it did nothing.
+        // Only an owned sub-slice earns the "re-pass their --owns" advice, though: a hand-added folder
+        // (components/, __tests__/) survives the same way, and that advice would scaffold something
+        // unrelated over it. Both owned templates are flat and emit the same file set, so their presence is
+        // the test — anything else joins the by-hand bucket.
+        const ownedSliceFiles = readdirSync(resolve(here, "owned-slice"))
+        const isOwnedSlice = (dir) => ownedSliceFiles.every((f) => existsSync(resolve(destRoot, dir, f)))
+        const surviving = readdirSync(destRoot, { withFileTypes: true }).filter((e) => !regenerating.has(e.name))
+        const keptSlices = surviving.filter((e) => e.isDirectory() && isOwnedSlice(e.name)).map((e) => e.name)
+        const keptOther = surviving.filter((e) => !keptSlices.includes(e.name)).map((e) => e.name)
+        if (keptSlices.length) {
+            console.log(`  Kept nested sub-slice(s) this run does not regenerate: ${keptSlices.join(", ")} — re-pass their --owns to replace them.`)
+        }
+        if (keptOther.length) {
+            console.log(`  Also kept, not emitted by the current template: ${keptOther.join(", ")} — review and delete by hand if stale.`)
+        }
     }
     copyDir(srcRoot, destRoot)
     console.log(`✓ Scaffolded ${name} → ${join(baseDir, plural)}${noAuth ? " (auth hooks stripped)" : ""}`)

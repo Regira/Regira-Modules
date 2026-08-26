@@ -1,0 +1,205 @@
+import { describe, test, expect, vi, afterEach } from "vitest"
+import { useSearchView } from "../../../src/vue/entities/overview/search-view"
+import { useListView } from "../../../src/vue/entities/overview/list-view"
+import { FeedbackStatus } from "../../../src/vue/ui/feedback"
+
+// Two fetches really do overlap: useRouteOverview fetches on mount while the slice's login/refresh reload
+// hook searches again, and a filter change or fast paging does the same. Whichever settled LAST used to
+// win — and the bad ordering is the common one, the earlier fetch 401'ing after the later one succeeded.
+
+/** a service whose calls you settle by hand, in whatever order the test needs */
+function deferredService(...methods) {
+    const pending = []
+    const service = {
+        resolveWith: (index, result) => pending[index].resolve(result),
+        rejectWith: (index, error) => pending[index].reject(error),
+    }
+    for (const method of methods) {
+        service[method] = () => new Promise((resolve, reject) => pending.push({ resolve, reject }))
+    }
+    return service
+}
+
+afterEach(() => vi.restoreAllMocks())
+
+describe("useSearchView overlapping searches", () => {
+    test("a slower earlier search does not overwrite the newer result", async () => {
+        const service = deferredService("search")
+        const { items, itemsCount, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const first = searchHandler()
+        const second = searchHandler()
+        service.resolveWith(1, { items: [{ id: "fresh" }], count: 1 })
+        service.resolveWith(0, { items: [{ id: "stale" }], count: 99 })
+        await Promise.all([first, second])
+
+        expect(items.value).toEqual([{ id: "fresh" }])
+        expect(itemsCount.value).toBe(1)
+    })
+
+    test("a superseded failure leaves no banner over the data that did load", async () => {
+        // feedback.fail() does not auto-hide, so the 401 arriving late used to sit on top of the rows.
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("search")
+        const { items, feedback, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const first = searchHandler()
+        const second = searchHandler()
+        service.resolveWith(1, { items: [{ id: "fresh" }], count: 1 })
+        service.rejectWith(0, { response: { status: 401 } })
+        await Promise.all([first, second])
+
+        expect(feedback.status).toBe(FeedbackStatus.none)
+        expect(items.value).toEqual([{ id: "fresh" }])
+    })
+
+    test("the spinner stays up until the newest search settles", async () => {
+        const service = deferredService("search")
+        const { isLoading, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const first = searchHandler()
+        const second = searchHandler()
+        service.resolveWith(0, { items: [], count: 0 }) // the superseded one lands first
+        await first
+        expect(isLoading.value).toBe(true)
+
+        service.resolveWith(1, { items: [{ id: "fresh" }], count: 1 })
+        await second
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a lone failing search still reports", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("search")
+        const { feedback, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const only = searchHandler()
+        service.rejectWith(0, { response: { status: 500, data: { errors: { q: "invalid" } } } })
+        await only
+
+        expect(feedback.status).toBe(FeedbackStatus.failed)
+        expect(feedback.error).toEqual({ q: "invalid" })
+    })
+})
+
+// The two composables are a fetch-shape choice and nothing else — same inputs, same overview surface — so
+// useListView has to send the same search object and settle overlapping fetches the same way.
+describe("useListView", () => {
+    /** records what reached service.list() */
+    function recordingService() {
+        const calls = []
+        return { calls, list: async (so) => (calls.push(so), []) }
+    }
+
+    test("sends the search object, not paging alone", async () => {
+        const service = recordingService()
+        const { listHandler } = useListView({ service, searchObject: { q: "widget" }, defaultPageSize: 20 })
+
+        await listHandler()
+
+        expect(service.calls[0]).toMatchObject({ q: "widget", page: 1, pageSize: 20 })
+    })
+
+    test("follows the search object the view mutates, not the one it was constructed with", async () => {
+        // what Filter.vue and useRouteOverview do — they write the ref the composable handed back
+        const service = recordingService()
+        const { searchObject, listHandler } = useListView({ service, searchObject: { q: "widget" } })
+
+        searchObject.value = { q: "gadget" }
+        await listHandler()
+
+        expect(service.calls[0]).toMatchObject({ q: "gadget" })
+    })
+
+    test("a slower earlier list does not overwrite the newer result", async () => {
+        const service = deferredService("list")
+        const { items, itemsCount, listHandler } = useListView({ service, searchObject: {} })
+
+        const first = listHandler()
+        const second = listHandler()
+        service.resolveWith(1, [{ id: "fresh" }])
+        service.resolveWith(0, [{ id: "stale" }, { id: "also-stale" }])
+        await Promise.all([first, second])
+
+        expect(items.value).toEqual([{ id: "fresh" }])
+        expect(itemsCount.value).toBe(1)
+    })
+})
+// The same invariant, one step further: a save or a delete writes the same isLoading/feedback the fetch
+// handlers do, and the two overlap in both directions — a row saved while a filter change is still
+// fetching, a list refreshed while a delete is in flight. They share one counter, so whichever call is
+// newest owns the shared state; each caller's own return value is delivered either way, because the list
+// mutation (handleSave/handleRemove) has to happen whatever else is on the wire.
+describe("saves and deletes settling against an in-flight fetch", () => {
+    test("a save that settles mid-search does not clear the spinner the search owns", async () => {
+        const service = deferredService("search", "save")
+        const { isLoading, applySave, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const save = applySave({ $id: "1", $title: "chair" })
+        const search = searchHandler()
+        service.resolveWith(0, { saved: { $id: "1" }, isNew: false }) // the save lands first
+        await save
+        expect(isLoading.value).toBe(true) // the search still owns it
+
+        service.resolveWith(1, { items: [{ $id: "1" }], count: 1 })
+        await search
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a superseded save still returns its result, so the row is applied to the list", async () => {
+        const service = deferredService("search", "save")
+        const { applySave, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const save = applySave({ $id: "1", $title: "chair" })
+        const search = searchHandler()
+        service.resolveWith(0, { saved: { $id: "1", $title: "chair" }, isNew: false })
+        service.resolveWith(1, { items: [], count: 0 })
+
+        expect(await save).toEqual({ saved: { $id: "1", $title: "chair" }, isNew: false })
+        await search
+    })
+
+    test("a superseded delete leaves no banner over the rows that did load", async () => {
+        // feedback.fail() does not auto-hide — a 409 landing after the list refreshed used to sit on top
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("list", "remove")
+        const { items, feedback, isLoading, applyRemove, listHandler } = useListView({ service, searchObject: {} })
+
+        const remove = applyRemove({ $id: "1", $title: "chair" })
+        const list = listHandler()
+        service.rejectWith(0, { response: { status: 409 } })
+        service.resolveWith(1, [{ $id: "1" }])
+        const removed = await remove
+        await list
+
+        expect(removed).toBe(false) // the caller still learns the delete failed, and keeps the row
+        expect(feedback.status).toBe(FeedbackStatus.none)
+        expect(items.value).toEqual([{ $id: "1" }])
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a lone failing delete still reports", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("remove")
+        const { feedback, isLoading, applyRemove } = useListView({ service, searchObject: {} })
+
+        const only = applyRemove({ $id: "1", $title: "chair" })
+        service.rejectWith(0, { response: { data: { errors: { id: "still referenced" } } } })
+
+        expect(await only).toBe(false)
+        expect(feedback.status).toBe(FeedbackStatus.failed)
+        expect(feedback.error).toEqual({ id: "still referenced" })
+        expect(isLoading.value).toBe(false)
+    })
+
+    test("a lone save reports success", async () => {
+        const service = deferredService("save")
+        const { feedback, applySave } = useListView({ service, searchObject: {} })
+
+        const only = applySave({ $id: "1", $title: "chair" })
+        service.resolveWith(0, { saved: { $id: "1" }, isNew: true })
+        await only
+
+        expect(feedback.status).toBe(FeedbackStatus.success)
+    })
+})

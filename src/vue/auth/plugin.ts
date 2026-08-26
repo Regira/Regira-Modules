@@ -24,6 +24,7 @@ export default {
         const {
             clientApp,
             loginUrl,
+            credentialUrls,
             tokenManager,
             authStore,
             axios,
@@ -39,6 +40,7 @@ export default {
             axios,
             clientApp,
             loginUrl,
+            credentialUrls,
         })
 
         const store = authStore ?? useAuthStore()

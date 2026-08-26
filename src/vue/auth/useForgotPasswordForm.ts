@@ -1,5 +1,6 @@
 import { ref, computed, watch } from "vue"
 import { useAuth } from "./auth"
+import { maskAxiosError } from "./error-logging"
 
 export interface ForgotPasswordFormEmits {
     (e: "success", username?: string): void
@@ -40,7 +41,8 @@ export function useForgotPasswordForm(
             isSuccess.value = true
         } catch (err: any) {
             isSuccess.value = false
-            console.error("Resetting password failed", { err })
+            // the error carries the request that produced it, Authorization header included
+            console.error("Resetting password failed", maskAxiosError(err))
             emit("fail", err)
         } finally {
             isLoading.value = false

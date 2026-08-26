@@ -18,8 +18,10 @@ flags generate what would otherwise be hand-written and are worth passing up fro
 | `--attachments`     | with an entity named, that entity owns files: the shared `entity-attachments` slice is scaffolded (once per app) and wired into the slice — the `attachments` field, the `insert`/`update` overrides, and the `prepareItem` filter that drops rows the user marked for deletion. Alone, it scaffolds the shared slice only. The form tab stays yours to place                                                                                                                                                                                                                                                                                                                                                                 |
 | `--overwrite-slice` | **re-scaffolds a slice that already exists**, customized `(c)` files included. `--force` deliberately does **not** apply to slices, so without this flag a re-run aborts with `already exists`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
-⚠️ `--overwrite-slice` is destructive: it replaces your filled-in `(c)` files. To add an owned sub-slice to an
-existing slice, pass `--owns <Child>` alone — only the sub-slice is generated.
+⚠️ `--overwrite-slice` is destructive: it replaces your filled-in `(c)` files. A nested **owned sub-slice**
+survives unless this run repeats its `--owns` (the run names the ones it kept); everything the template
+itself emits is replaced. To add an owned sub-slice to an existing slice, pass `--owns <Child>` alone —
+only the sub-slice is generated.
 
 > **Indicative, not prescriptive.** The templates fix the _functional wiring_ (service ↔ store ↔ composable ↔
 > `IConfig`, DI, routing) so a scaffolded slice is green out of the box — the **markup, columns, layout, and
@@ -162,6 +164,10 @@ export class Foo extends EntityBase {
     //    JSON key (a `get fullName()` mirroring a projected fullName) makes hydration throw at runtime;
     //    vue-tsc stays green
 
+    // the only two Date fields hydrated for you (EntityServiceBase.processItem) — every OTHER Date field
+    // arrives as an ISO string and needs a guarded lift in EntityService.toEntity, nested rows included,
+    // or `.getTime()`/a mask formatter throws at runtime while vue-tsc stays green
+    // (see entities.instructions.md → Item hydration)
     created?: Date
     lastModified?: Date
 

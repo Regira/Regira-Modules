@@ -28,7 +28,7 @@ function mountDetails(service) {
 
     return router.push("/things/7").then(() => {
         app.mount(document.createElement("div"))
-        return { app, details: () => details }
+        return { app, router, details: () => details }
     })
 }
 
@@ -52,9 +52,7 @@ describe("useDetails feedback", () => {
 
     test("a successful retry clears the previous failure", async () => {
         let fail = true
-        const { details } = await mountDetails(
-            makeService(() => (fail ? Promise.reject({ response: { status: 403 } }) : Promise.resolve({ id: 7 })))
-        )
+        const { details } = await mountDetails(makeService(() => (fail ? Promise.reject({ response: { status: 403 } }) : Promise.resolve({ id: 7 }))))
         await flush()
         expect(details().feedback.status).toBe(FeedbackStatus.failed)
 
@@ -71,5 +69,76 @@ describe("useDetails feedback", () => {
 
         expect(details().feedback.status).toBe(FeedbackStatus.failed)
         expect(details().feedback.message).toContain("Network Error")
+    })
+})
+
+/** a service whose loads you settle by hand, in whatever order the test needs */
+function deferredService() {
+    const pending = []
+    return {
+        details: () => new Promise((resolve, reject) => pending.push({ resolve, reject })),
+        newEntity: async () => ({ id: 0 }),
+        resolveWith: (index, result) => pending[index].resolve(result),
+        rejectWith: (index, error) => pending[index].reject(error),
+    }
+}
+
+// The retry above genuinely overlaps the load it retries whenever the first has not settled yet — the mount
+// load is still in flight while the restored token fires the reload hook. Whichever settles LAST used to
+// win, and the damaging ordering is the quiet one: the anonymous attempt's 401 lands after the retry
+// already succeeded.
+describe("useDetails overlapping loads", () => {
+    test("a superseded failure does not paint its banner over the newer result", async () => {
+        const service = deferredService()
+        const { details } = await mountDetails(service) // mount starts load #0
+        const d = details()
+
+        d.load() // the reload hook starts load #1
+        service.resolveWith(1, { id: 7 }) // newer succeeds…
+        service.rejectWith(0, { response: { status: 401 } }) // …and the older 401 lands after it
+        await flush()
+
+        expect(d.item.value).toEqual({ id: 7 })
+        expect(d.feedback.status).toBe(FeedbackStatus.none)
+    })
+
+    test("a superseded success does not overwrite the newer item", async () => {
+        const service = deferredService()
+        const { details } = await mountDetails(service)
+        const d = details()
+
+        d.load()
+        service.resolveWith(1, { id: "fresh" })
+        service.resolveWith(0, { id: "stale" })
+        await flush()
+
+        expect(d.item.value).toEqual({ id: "fresh" })
+    })
+
+    test("a superseded load leaves the spinner to the one that replaced it", async () => {
+        const service = deferredService()
+        const { details } = await mountDetails(service)
+        const d = details()
+
+        d.load()
+        service.rejectWith(0, { response: { status: 401 } }) // the older one settles first, and alone
+        await flush()
+
+        expect(d.isLoading.value).toBe(true) // load #1 is still in flight
+    })
+
+    test("switching to `/new` mid-fetch clears the spinner the superseded fetch raised", async () => {
+        const service = deferredService()
+        const { router, details } = await mountDetails(service) // mount starts load #0
+        const d = details()
+        expect(d.isLoading.value).toBe(true)
+
+        await router.push("/things/new") // the route watch starts load #1, down the isNew path
+        await flush()
+        service.rejectWith(0, { response: { status: 401 } }) // load #0 settles behind it, and skips its guarded finally
+        await flush()
+
+        expect(d.item.value).toEqual({ id: 0 })
+        expect(d.isLoading.value).toBe(false) // nothing is in flight any more
     })
 })

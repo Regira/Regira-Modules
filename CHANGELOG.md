@@ -5,6 +5,57 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.1.3 — 2026-08-26
+
+- `_template/scaffold.mjs`: `--overwrite-slice` no longer deletes owned sub-slices it does not regenerate.
+  The clean replace wiped the whole slice folder first, so re-running the flag without repeating the original
+  `--owns` destroyed the hand-authored child files and exited 0. The replace is now scoped to the template's
+  own entries, and everything that survives is named in the output — owned sub-slices to re-pass `--owns`
+  for, anything else to review by hand.
+- `vue/entities` guides + `_template/entity-slice`: the scaffolded `data/Entity.ts` names `created`/
+  `lastModified` as the only auto-hydrated dates — every other `Date`, nested rows included, arrives as a
+  string and needs a guarded lift in `EntityService.toEntity`. The rule was stated only where the field is
+  not being added, so one reached a template as a string and threw at runtime with `vue-tsc` green.
+- `vue/entities` guides: the `filter/FilterAdv.vue` example binds `minCreated`/`maxCreated` with `DateInput`
+  instead of a raw `<input type="date">`, which takes `yyyy-MM-dd` only and so never prefilled from a `Date`.
+- `vue/auth`: **no credential this module handles reaches the console any more.** An axios error carries the
+  request that produced it, and every `catch` used to log that error whole — the bearer header everywhere,
+  and the posted password or reset token on the auth calls; `validateToken` logged the raw JWT by name on a
+  path that runs on every app load. Everything now goes through one internal masking helper: the error field
+  by field, plus a copy of the request with the `Authorization` header and axios' `auth` field redacted and
+  the body, `params` and query string dropped for credential-bearing endpoints. The signed-in user is logged
+  by named field (`isAuthenticated`, `userId`, `name`, `role`), not as a spread of `authData` — which shipped
+  the whole decoded claim bag, since `_decodedToken` is private to TypeScript only. Nothing is mutated, so a
+  rejected error still holds the real header for a retry, and a request that failed before it was built (no
+  `config`) no longer throws out of the interceptor.
+- `vue/auth`: new **`registerCredentialUrls(...urls)`** export and matching **`credentialUrls`** plugin
+  option, so an app can name its OWN credential-bearing endpoints. The interceptor logs every failed request
+  the SPA makes, but only this module's endpoints are credential-bearing by construction — a consumer's
+  `users/*/password` or invite-accept had its body printed in full, with no way to add it to the list. A
+  `string` matches a whole path or its trailing segments, `*` standing for one segment; a `RegExp` is tested
+  against the lower-cased path. Unregistered endpoints still log their body, which is a real diagnostic.
+- `vue/entities`: `useSearchView`'s `searchHandler`, `useListView`'s `listHandler` and the core's `applySave`
+  and `applyRemove` share one "newest wins" gate — only the newest of them writes `items`, `itemsCount`,
+  `feedback` and `isLoading`. They genuinely overlap (a mount fetch racing the slice's login/refresh reload
+  hook, a filter change, a row saved mid-fetch) and the one that settled last used to win: a stale 401
+  painting `feedback.fail` (which does not auto-hide) over rows already on screen, or a save clearing the
+  spinner the fetch still owned. Only the shared state is gated — `applySave`/`applyRemove` still return what
+  the server said, so `handleSave`/`handleRemove` apply to the list either way.
+- `vue/entities`: `useDetails`' `load` lets only the newest call write `item`, `feedback` and `isLoading`,
+  matching the overview composables. A deep-linked details page fails once while anonymous and is retried
+  after sign-in, and the 401 landing after the retry succeeded painted its banner over the loaded item or
+  cleared the retry's spinner. Navigating to `/new` mid-fetch clears that spinner too, instead of leaving it
+  turning over a loaded form.
+- `vue/entities`: **`useListView` now sends the search object** it was given. It read `.value` off the
+  constructor argument — a plain search object, not the ref — so the spread was always empty and every
+  `service.list()` carried paging alone, dropping UI filters and anything `useRouteOverview` restored from
+  the URL. `ISearchObject` extends `Record<string, any>`, which typed the stray `.value` as `any`, so
+  `vue-tsc` never saw it. **Expect list requests to carry filter parameters they did not before** — a
+  back-end that rejects unknown query parameters will notice.
+- `vue/ui`: `DateInput` emits `undefined` when the field is cleared instead of `new Date("")`. An Invalid
+  Date is truthy, so a search-object field bound to it stayed "active" (`value != null` lights the filter
+  badge, the control renders `is-invalid`) while `createQueryString` dropped the value and nothing filtered.
+
 ## 6.1.2 — 2026-08-16
 
 - `vue/entities` guides: new **Contact data & address editors** blueprint — phone/email rows with

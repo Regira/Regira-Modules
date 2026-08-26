@@ -33,3 +33,25 @@ Install **after** the router and `initAxios`, passing that same axios instance. 
 relative to the axios `baseURL` (`auth`, `auth/validate`, `auth/refresh`, `auth/password*`). `logout()`
 is client-side (clears the token); unauthenticated navigation is allowed (the app shows a login popup),
 so provide a login view and a `forbidden` route.
+
+Failed requests are logged with every credential this module handles masked — the bearer header on every
+request, and the body, `params` and query string of a credential-bearing endpoint (the `auth` family plus a
+configured `loginUrl`). The signed-in user is logged by named field (`isAuthenticated`, `userId`, `name`,
+`role`), never as a spread of `authData`, which would ship the whole decoded claim bag.
+
+The response interceptor runs on the app's **shared** axios instance, so it logs every failed request the
+SPA makes — but only this module's endpoints carry a credential by construction. **Register the app's own
+credential-bearing endpoints** so their bodies are dropped too, either through the plugin's `credentialUrls`
+option or with `registerCredentialUrls(...)` after the plugin installed:
+
+```ts
+app.use(authPlugin, { axios, tokenManager, credentialUrls: ["users/*/password", "invitations/accept"] })
+```
+
+A `string` matches a whole path or its trailing segments (so a `baseURL` prefix is irrelevant), with `*`
+standing for exactly one segment; a `RegExp` is tested against the lower-cased path without its query
+string. Anything unregistered keeps its body — a failed request's body is a real diagnostic, so it is not
+thrown away everywhere.
+
+Since an axios error carries the request that produced it, log the error's own fields in your own `catch`
+blocks rather than `{ ex }`, and never log the token.
