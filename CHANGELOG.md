@@ -14,6 +14,34 @@ heading.
   `useAutocomplete` returns a `resultEl` ref for this and `Autocomplete` binds and exposes it — a
   replacement skin must put `ref="resultEl"` on its panel next to `:style="resultStyle"`, or the panel is
   never measured and keeps opening downwards.
+- `vue/auth`: new **`onAuthenticated(handler, { immediate?, store? })`** — runs a handler whenever an
+  authenticated token arrives: sign-in, a refresh (a tenant switch included), and a token restored from
+  storage on a hard reload. It replaces hand-rolled `authStore.$onAction(… "login" …)` hooks, which silently
+  never fired on a reload — the plugin restores a stored token through the **`validateToken`** action, and
+  views mount before it resolves, so a fetch guarded on `isAuthenticated` was skipped and never retried (a
+  blank panel, no error, no failed request). Watching the token also re-runs on a refresh that swaps
+  identity, which `isAuthenticated` alone cannot see, while staying quiet when the plugin re-validates the
+  same token. `$onAction` is unchanged and existing code keeps working. With the plugin installed disabled
+  (`enabled: false`) no token ever arrives, so it honours `immediate` once rather than waiting forever —
+  a slice keeps its hooks in that mode; an explicit `{ store }` still names the store to watch. Plugin
+  install order does not matter either way: the store is resolved per read, so a hook registered before
+  `app.use(authPlugin, …)` — from inside a pinia store, say — follows a custom `authStore`, and sees an
+  `enabled: false` install, as soon as the plugin lands. Installing **no** auth plugin at all is the one
+  state it cannot detect, being indistinguishable from "not installed yet", so a no-auth app leaves the
+  hooks out (`scaffold.mjs --no-auth`) rather than relying on them.
+- `vue/auth`: `IAuthData` exposes the raw **`token`** it was decoded from — the identity signal
+  `onAuthenticated` watches. It is defined **non-enumerable**, so it is absent from `{ ...authData }` and
+  `JSON.stringify(authData)` while `authData.token` still reads normally. The plugin hands `authData`
+  straight to `onAuthenticationChange` — whose documented use is welcoming the user and preloading, i.e.
+  exactly where an app calls its telemetry SDK — so a plain field would put a live bearer credential into
+  whatever that path serializes.
+- `vue/auth`: `useGlobalAuth()` (`$auth`, script-side) is reactive — reading it inside a computed or watcher
+  tracks the plugin install itself, so a reader that ran before `app.use(authPlugin, …)` re-evaluates when it
+  lands instead of being stuck with the `undefined` it first saw.
+- `_template/entity-slice`: the scaffolded `Overview.vue`/`Details.vue` reload hooks move to
+  `onAuthenticated(…, { immediate: false })`; `immediate: false` because `useRouteOverview`/`useDetails`
+  already own the mount fetch. `scaffold.mjs --no-auth` strips the hook together with its
+  `@regira/modules/vue/auth` import and the comment block describing it.
 
 ## 6.1.3 — 2026-08-26
 

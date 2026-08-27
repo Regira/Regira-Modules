@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { useAuthStore } from "@regira/modules/vue/auth"
+import { onAuthenticated } from "@regira/modules/vue/auth"
 import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
 import { useDetails } from "@regira/modules/vue/entities/details"
 import { FormStates } from "@regira/modules/vue/entities/form"
@@ -29,9 +29,9 @@ const { service } = useEntityStore()
 
 const { item, isLoading, overviewUrl, load, feedback } = useDetails(service)
 
-// trigger load when logging in (only load when item has not been loaded before) — no-auth app: delete these two lines and drop load from the useDetails destructure above (scaffold.mjs --no-auth does both)
-const authStore = useAuthStore()
-authStore.$onAction(({ name, after }) => name == "login" && after(() => item.value == null && authStore.isAuthenticated && load()))
+// load whenever a token arrives, unless something was loaded already. immediate: false — useDetails already
+// fetches on mount. No-auth app: delete this line AND its import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
+onAuthenticated(() => item.value == null && load(), { immediate: false })
 
 const router = useRouter()
 function handleRemove() {

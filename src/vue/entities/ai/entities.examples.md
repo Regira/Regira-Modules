@@ -655,7 +655,7 @@ const item = defineModel<Entity>({ required: true })
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { useAuthStore } from "@regira/modules/vue/auth"
+import { onAuthenticated } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -683,9 +683,10 @@ const { updateOverviewRoute } = useRouteOverview({
     defaultPageSize: config.defaultPageSize,
 })
 
-// trigger searchHandler when logging in or refreshing token — no-auth app: delete these two lines (scaffold.mjs --no-auth strips them; see entities.setup.md#running-without-authentication)
-const authStore = useAuthStore()
-authStore.$onAction(({ name, after }) => ["login", "refresh"].includes(name) && after(() => authStore.isAuthenticated && searchHandler(false)))
+// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload.
+// immediate: false — useRouteOverview already fetches on mount, and firing in setup would race it with an
+// unpopulated search object. No-auth app: delete this line AND its import above (scaffold.mjs --no-auth strips both; see entities.setup.md#running-without-authentication)
+onAuthenticated(() => searchHandler(false), { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)
@@ -726,7 +727,7 @@ async function handleRequestRemove(item: Entity) {
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { useAuthStore } from "@regira/modules/vue/auth"
+import { onAuthenticated } from "@regira/modules/vue/auth"
 import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
 import { useDetails } from "@regira/modules/vue/entities/details"
 import { FormStates } from "@regira/modules/vue/entities/form"
@@ -737,9 +738,9 @@ const { service } = useEntityStore()
 
 const { item, isLoading, overviewUrl, load, feedback } = useDetails(service)
 
-// trigger load when logging in (only load when item has not been loaded before) — no-auth app: delete these two lines and drop load from the useDetails destructure above (scaffold.mjs --no-auth does both)
-const authStore = useAuthStore()
-authStore.$onAction(({ name, after }) => name == "login" && after(() => item.value == null && authStore.isAuthenticated && load()))
+// load whenever a token arrives, unless something was loaded already. immediate: false — useDetails already
+// fetches on mount. No-auth app: delete this line AND its import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
+onAuthenticated(() => item.value == null && load(), { immediate: false })
 
 const router = useRouter()
 function handleRemove() {
@@ -2526,7 +2527,7 @@ const { fromPool: getFacet } = useFacetStore()
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { useAuthStore } from "@regira/modules/vue/auth"
+import { onAuthenticated } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -2558,9 +2559,10 @@ const { updateOverviewRoute } = useRouteOverview({
     defaultPageSize: config.defaultPageSize,
 })
 
-// trigger searchHandler when logging in or refreshing token — no-auth app: delete these two lines (scaffold.mjs --no-auth strips them; see entities.setup.md#running-without-authentication)
-const authStore = useAuthStore()
-authStore.$onAction(({ name, after }) => ["login", "refresh"].includes(name) && after(() => authStore.isAuthenticated && searchHandler(false)))
+// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload.
+// immediate: false — useRouteOverview already fetches on mount, and firing in setup would race it with an
+// unpopulated search object. No-auth app: delete this line AND its import above (scaffold.mjs --no-auth strips both; see entities.setup.md#running-without-authentication)
+onAuthenticated(() => searchHandler(false), { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)

@@ -10,6 +10,7 @@ import {
     getAccountName,
     useAuthStore,
     createStore,
+    onAuthenticated,
     routeGuard,
     AuthService,
     CookieTokenManager,
@@ -27,6 +28,7 @@ import {
     type ITokenManager,
     type IAuthStore,
     type IDefineAuthStore,
+    type OnAuthenticatedOptions,
 } from "@regira/modules/vue/auth"
 ```
 
@@ -36,6 +38,9 @@ import {
 export interface IAuthData {
     isAuthenticated: boolean
     expires: number
+    readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated.
+    // NON-ENUMERABLE: absent from { ...authData } and JSON.stringify(authData), so the credential cannot ride
+    // along into a log or a telemetry payload. Reading authData.token still works.
     userId?: string
     name?: string
     email?: string
@@ -53,6 +58,24 @@ export class AuthData implements IAuthData {
     constructor(token?: string, options?: { isAuthenticated: boolean })
     /* + IAuthData members */
 }
+```
+
+## Reacting to authentication
+
+```ts
+export type OnAuthenticatedOptions = {
+    immediate?: boolean // default true; pass FALSE when the view already fetches on mount (useRouteOverview / useDetails do)
+    store?: Pick<IAuthStore, "authData"> // defaults to the plugin's configured store, then the default pinia store
+}
+// Runs `handler` whenever an authenticated token arrives: sign-in, refresh (tenant switch included), and a
+// token restored from storage on reload. Re-validating the SAME token does not re-run it.
+// Auth disabled (plugin `enabled: false`): no token ever arrives, so it honours `immediate` once and stops
+// — unless an explicit `{ store }` names one to watch, which wins over the app-wide flag.
+// Order-independent: the plugin's store is resolved per read, so registering BEFORE app.use(authPlugin, …)
+// still follows a custom `authStore`. Installing NO plugin at all is indistinguishable from "not yet", so
+// the handler then waits forever — a no-auth app leaves the hook out or installs the plugin disabled.
+// Prefer this over authStore.$onAction(...) for anything that fetches on mount.
+export function onAuthenticated(handler: () => unknown, options?: OnAuthenticatedOptions): WatchStopHandle
 ```
 
 ## Auth service
@@ -110,7 +133,9 @@ export const useAuth: () => IAuth
 export type GlobalAuth = IGlobalAuth | { enabled: false; authData?: IAuthData }
 // the `$auth` object, script-side — wraps the store the auth plugin was CONFIGURED with (which may be a
 // custom `authStore`, not the module's default pinia store). Available after the plugin installed; its
-// authData getters read the reactive store, so computeds track.
+// authData getters read the reactive store, so computeds track. Reading it inside a computed or watcher
+// tracks the INSTALL too: a reader that ran before app.use(authPlugin, …) re-evaluates when it lands,
+// instead of being stuck with the undefined it first saw.
 export const useGlobalAuth: () => GlobalAuth
 // display label for the signed-in user (displayName ?? name ?? email) — not every JWT carries a
 // displayName claim; may be undefined, so give templates a `?? $t("account")`-style fallback
@@ -198,7 +223,7 @@ type Input<TStore extends IAuthStore, TTokenManager extends ITokenManager> = IAu
     axios: AxiosInstance
     enableRouteGuard?: boolean // default true
     enabled?: boolean // default true
-    onAuthenticationChange?(auth: IAuthData): void
+    onAuthenticationChange?(auth: IAuthData): void // receives the live IAuthData; its `token` is non-enumerable, so forwarding this object to telemetry does not leak the JWT
 }
 export const plugin: {
     install<TStore extends IAuthStore = IAuthStore, TTokenManager extends ITokenManager = ITokenManager>(

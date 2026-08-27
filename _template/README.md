@@ -10,7 +10,7 @@ files.
 # from your app root, with regira installed:
 node node_modules/@regira/modules/_template/scaffold.mjs Product
 # → creates src/entities/products/ with the names filled in
-# no-auth app? also strip the auth-store reload hooks:
+# no-auth app? also strip the `onAuthenticated` reload hooks:
 node node_modules/@regira/modules/_template/scaffold.mjs Product --no-auth
 # owns a collection (back-end e.Related)? scaffold its editable table too (repeat --owns per child):
 node node_modules/@regira/modules/_template/scaffold.mjs Order --owns OrderLine
@@ -55,11 +55,12 @@ Use `InputSelectorInline` chips instead when the rows link to another entity (se
 Files carrying real per-entity content are marked **(c)** in the entities template guide: `data/Entity.ts`,
 `config/config.ts`, `filter/SearchObject.ts`, `filter/FilterAdv.vue`, `overview/List.vue`,
 `overview/ListItem.vue`, `details/Form.vue`, `selecting/SelectorList.vue`. The rest is boilerplate — leave it
-as-is. Building without authentication? Scaffold with `--no-auth` — it strips the `useAuthStore` hooks in
-`overview/Overview.vue` and `details/Details.vue` (and `load` from `Details.vue`'s `useDetails` destructure,
-used only by that hook); for an existing slice, delete those commented lines and drop `load` from the
-destructure: the flag strips only what it emits, so it never touches a slice already on disk.
-`--overwrite-slice --no-auth` is the exception — it re-emits the whole slice from the current template, stripped.
+as-is. Building without authentication? Scaffold with `--no-auth` — it strips the `onAuthenticated` reload
+hooks **and their imports** in `overview/Overview.vue` and `details/Details.vue` (and `load` from
+`Details.vue`'s `useDetails` destructure, used only by that hook); for an existing slice, delete those
+commented lines together with the `@regira/modules/vue/auth` import and drop `load` from the destructure:
+the flag strips only what it emits, so it never touches a slice already on disk. `--overwrite-slice
+--no-auth` is the exception — it re-emits the whole slice from the current template, stripped.
 
 ## App shell (`--shell`)
 

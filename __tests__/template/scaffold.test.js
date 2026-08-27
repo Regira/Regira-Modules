@@ -327,7 +327,8 @@ describe("scaffold.mjs --no-auth", () => {
         for (const file of ["overview/Overview.vue", "details/Details.vue"]) {
             const src = readFileSync(app("src", "entities", "kiosks", ...file.split("/")), "utf8")
             expect(src, `${file} mentions auth`).not.toMatch(/auth/i)
-            expect(src, `${file} kept the marker comment`).not.toMatch(/no-auth app:/)
+            expect(src, `${file} kept the marker comment`).not.toMatch(/no-auth app:/i)
+            expect(src, `${file} kept the hook's comment block`).not.toMatch(/token arrives/i)
         }
     })
 
@@ -343,8 +344,8 @@ describe("scaffold.mjs --no-auth", () => {
         run("Terminus")
 
         const overview = readFileSync(app("src", "entities", "terminuses", "overview", "Overview.vue"), "utf8")
-        expect(overview).toContain("authStore.$onAction(")
-        expect(overview).toMatch(/no-auth app:/) // the marker the stripper keys on
+        expect(overview).toContain("onAuthenticated(")
+        expect(overview).toMatch(/no-auth app:/i) // the marker the stripper keys on
     })
 })
 
