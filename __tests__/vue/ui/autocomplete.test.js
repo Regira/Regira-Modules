@@ -4,17 +4,29 @@ import { useAutocomplete } from "../../../src/vue/ui/autocomplete/autocomplete"
 
 // jsdom has no layout engine: offsetParent/offsetWidth/getBoundingClientRect are stubbed with the numbers
 // measured live in the browser (control 232px, input 151px, row height 38px).
-const rect = (left, width) => ({ width, height: 38, top: 0, left, right: left + width, bottom: 38, x: left, y: 0, toJSON: () => ({}) })
+const rect = (left, width, top = 0) => ({ width, height: 38, top, left, right: left + width, bottom: top + 38, x: left, y: top, toJSON: () => ({}) })
 
 function setViewportWidth(width) {
     Object.defineProperty(window, "innerWidth", { value: width, configurable: true, writable: true })
 }
+function setViewportHeight(height) {
+    Object.defineProperty(window, "innerHeight", { value: height, configurable: true, writable: true })
+}
 // `controlLeft` is where the control sits IN THE VIEWPORT — what the right-edge guard measures against.
-function stubControl({ wrapInInputGroup = true, controlWidth = 232, inputWidth = 151, inputOffsetLeft = 81, controlLeft = 0 } = {}) {
+function stubControl({
+    wrapInInputGroup = true,
+    controlWidth = 232,
+    inputWidth = 151,
+    inputOffsetLeft = 81,
+    controlLeft = 0,
+    controlTop = 0,
+    inputOffsetTop = 0,
+} = {}) {
     const input = document.createElement("input")
     Object.defineProperty(input, "offsetWidth", { value: inputWidth, configurable: true })
     Object.defineProperty(input, "offsetLeft", { value: inputOffsetLeft, configurable: true }) // e.g. past a prepend button
-    input.getBoundingClientRect = () => rect(controlLeft + inputOffsetLeft, inputWidth)
+    Object.defineProperty(input, "offsetTop", { value: inputOffsetTop, configurable: true }) // e.g. below a label in a taller wrapper
+    input.getBoundingClientRect = () => rect(controlLeft + inputOffsetLeft, inputWidth, controlTop + inputOffsetTop)
 
     let parent
     if (wrapInInputGroup) {
@@ -25,7 +37,7 @@ function stubControl({ wrapInInputGroup = true, controlWidth = 232, inputWidth =
     }
     parent.appendChild(input)
     Object.defineProperty(parent, "offsetWidth", { value: controlWidth, configurable: true })
-    parent.getBoundingClientRect = () => rect(controlLeft, controlWidth)
+    parent.getBoundingClientRect = () => rect(controlLeft, controlWidth, controlTop)
     document.body.appendChild(parent)
     Object.defineProperty(input, "offsetParent", { value: parent, configurable: true })
     return input
@@ -46,15 +58,32 @@ function mountComposable(props = { data: [] }) {
     app.mount(host)
     return { app, get: () => out }
 }
-/** mount, attach a stubbed control, and hand back the resolved style */
-async function styleFor(options) {
+// The panel's own box, which the vertical guard measures: `height` is what it renders at, `contentHeight`
+// what its content wants — the two differ once the list scrolls inside its max-height.
+function stubPanel({ height = 208, contentHeight = height } = {}) {
+    const el = document.createElement("div")
+    Object.defineProperty(el, "offsetHeight", { value: height, configurable: true })
+    Object.defineProperty(el, "scrollHeight", { value: contentHeight, configurable: true })
+    document.body.appendChild(el)
+    return el
+}
+/** mount, attach a stubbed control (and panel), and hand back the resolved style */
+async function styleFor({ panel, ...control } = {}) {
     const { get } = mountComposable()
-    get().inputEl.value = stubControl(options)
+    get().inputEl.value = stubControl(control)
+    if (panel) {
+        get().resultEl.value = stubPanel(panel)
+        get().items.value = [] // results painting is what re-measures the panel
+    }
     await nextTick()
     return { style: get().resultStyle.value, out: get() }
 }
 
-beforeEach(() => setViewportWidth(1024)) // jsdom's own default, set explicitly so the guard's numbers are pinned
+// jsdom's own defaults, set explicitly so the guards' numbers are pinned
+beforeEach(() => {
+    setViewportWidth(1024)
+    setViewportHeight(768)
+})
 
 describe("autocomplete result panel sizing", () => {
     test("sizes to its content with the CONTROL as the floor, not the bare input", async () => {
@@ -142,5 +171,61 @@ describe("autocomplete result panel right-edge guard", () => {
 
         expect(style.maxWidth).toBe("min(90vw, 32rem)")
         expect(style.left).toBe("0px")
+    })
+})
+
+describe("autocomplete result panel bottom-edge guard", () => {
+    test("keeps the results below the control when they fit there", async () => {
+        const { style } = await styleFor({ panel: { height: 208 } })
+
+        expect(style.top).toBe("38px")
+        expect(style.bottom).toBe("auto")
+        expect(style.maxHeight).toBe("min(var(--rg-dropdown-max-height, 13rem), 722px)") // 768 − 38 − 8
+    })
+
+    test("flips above the control when the results would fall off the bottom", async () => {
+        // the reported case: an autocomplete near the foot of a modal rendered its results off screen
+        const { style } = await styleFor({ controlTop: 700, panel: { height: 208 } })
+
+        expect(style.top).toBe("auto")
+        expect(style.bottom).toBe("100%") // the panel's bottom edge on the control's top edge
+        expect(style.maxHeight).toBe("min(var(--rg-dropdown-max-height, 13rem), 692px)") // 700 − 8
+    })
+
+    test("a flipped panel insets to the input's own top edge inside a taller wrapper", async () => {
+        const { style } = await styleFor({ wrapInInputGroup: false, controlTop: 700, inputOffsetTop: 20, panel: { height: 208 } })
+
+        expect(style.bottom).toBe("calc(100% - 20px)")
+    })
+
+    test("stays below and scrolls when below is cramped but still the roomier side", async () => {
+        setViewportHeight(200)
+        const { style } = await styleFor({ controlTop: 40, panel: { height: 208 } })
+
+        expect(style.top).toBe("38px")
+        expect(style.maxHeight).toBe("min(var(--rg-dropdown-max-height, 13rem), 114px)") // 200 − 78 − 8
+    })
+
+    test("a panel already capped below still discovers the roomier side above it", async () => {
+        // it measures exactly the room it was granted, and only its scrolling content says it wants more
+        const { style } = await styleFor({ controlTop: 700, panel: { height: 22, contentHeight: 300 } })
+
+        expect(style.top).toBe("auto")
+        expect(style.bottom).toBe("100%")
+    })
+
+    test("leaves a panel that genuinely fits that cramped room below", async () => {
+        const { style } = await styleFor({ controlTop: 700, panel: { height: 22 } })
+
+        expect(style.top).toBe("38px")
+        expect(style.bottom).toBe("auto")
+    })
+
+    test("leaves the vertical guard off entirely when there is no window to measure", async () => {
+        setViewportHeight(0) // stands in for a non-DOM render: nothing to guard against
+        const { style } = await styleFor({ controlTop: 700, panel: { height: 208 } })
+
+        expect(style.top).toBe("38px")
+        expect(style.maxHeight).toBeUndefined()
     })
 })

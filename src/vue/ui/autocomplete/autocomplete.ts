@@ -8,12 +8,14 @@ type IOffset = { top: number; left: number }
 type IResultStyle = StyleValue & {
     visibility: string
     top?: string
+    bottom?: string
     left?: string
     right?: string
     transform?: string
     width?: string
     minWidth?: string
     maxWidth?: string
+    maxHeight?: string
 }
 
 // Breathing room kept between the result panel and the viewport edge it opens towards.
@@ -64,6 +66,8 @@ export type AutocompleteOut<T = any, TKey = IDefaultKey | T> = {
     isFocus: Ref<boolean>
     isLoading: Ref<boolean>
     inputEl: Ref<(HTMLElement & { value: string }) | undefined>
+    /** the result panel; bind it (`ref="resultEl"`) so the placement can measure the panel it positions */
+    resultEl: Ref<HTMLElement | undefined>
     resultOffset: Ref<IOffset>
     resultStyle: Ref<IResultStyle>
     displayItemFormatter(item?: T): string
@@ -102,6 +106,11 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     })
     const selectedId = computed<TKey | undefined>(() => idSelector(selectedItem.value))
     const inputEl = ref<(HTMLElement & { value: string }) | undefined>()
+    const resultEl = ref<HTMLElement | undefined>()
+    // the panel's measured box: `resultHeight` is what it renders at, `resultContentHeight` what its content
+    // wants — together they tell the placement below whether the panel is being cut off where it stands
+    const resultHeight = ref(0)
+    const resultContentHeight = ref(0)
     const containerOffset = ref<IOffset>({ top: 0, left: 0 })
     const resultOffset = ref<IOffset>({ top: 0, left: 0 })
     const scrollPosition = ref<IOffset>({ top: 0, left: 0 })
@@ -136,14 +145,34 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         // right-aligning insets the panel from the offsetParent's right edge to the anchor's own right edge
         const inputRight = (inputEl.value?.offsetLeft || 0) + (inputEl.value?.offsetWidth || 0)
         const rightInset = alignToControl ? 0 : Math.max(0, (offsetParent?.offsetWidth || 0) - inputRight)
+        // Bottom-edge guard, the vertical twin of the one above. The panel opens downwards, so a control near
+        // the bottom of the viewport — the everyday case for a form inside a modal — drops its results off
+        // screen. Two steps again: flip the panel above the control when the results do not fit below it and
+        // there is more room up there, and cap its height to the room on the side it opens to, so a list that
+        // still does not fit scrolls inside the viewport instead of running past its edge.
+        const viewportHeight = typeof window === "undefined" ? 0 : window.innerHeight || 0
+        const roomBelow = rect ? viewportHeight - rect.bottom - VIEWPORT_GUTTER : 0
+        const roomAbove = rect ? rect.top - VIEWPORT_GUTTER : 0
+        // A panel that scrolls its own content is only as tall as the room already granted to it, so "fits"
+        // has to be strict there: one capped to a cramped roomBelow measures exactly roomBelow, and a loose
+        // comparison would call that a fit and never let it discover the roomier side above.
+        const isScrolling = resultContentHeight.value > resultHeight.value
+        const fitsBelow = isScrolling ? resultHeight.value < roomBelow : resultHeight.value <= roomBelow
+        const flipUp = viewportHeight > 0 && !fitsBelow && roomAbove > roomBelow
+        const roomVertical = viewportHeight > 0 ? Math.max(0, Math.round(flipUp ? roomAbove : roomBelow)) : 0
+        // flipped, the panel's bottom edge lands on the input's own top edge: `100%` is the offsetParent's top,
+        // which is where the input sits in the same layouts the `top` branch below assumes
+        const inputTop = inputEl.value?.offsetTop || 0
         return {
             visibility: isOpen.value ? "visible" : "hidden",
-            top: `${height}px`,
+            top: flipUp ? "auto" : `${height}px`,
+            bottom: flipUp ? (inputTop ? `calc(100% - ${inputTop}px)` : "100%") : "auto",
             left: alignRight ? "auto" : `${alignToControl ? 0 : inputEl.value?.offsetLeft || 0}px`,
             right: alignRight ? `${rightInset}px` : "auto",
             minWidth: `${floor}px`,
             width: "max-content",
             maxWidth: room > 0 ? `min(90vw, 32rem, ${room}px)` : "min(90vw, 32rem)",
+            maxHeight: roomVertical > 0 ? `min(var(--rg-dropdown-max-height, 13rem), ${roomVertical}px)` : undefined,
         }
     })
 
@@ -245,7 +274,7 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         }
     }
     function openResults(): void {
-        updateContainerOffset()
+        updateMeasurements()
         isOpen.value = true
     }
     function closeResults(): void {
@@ -277,20 +306,26 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         term: string
     ) => Promise<Array<T>>
 
-    const updateContainerOffset = () => {
+    function measureResult(): void {
+        // the panel is visibility:hidden rather than display:none, so it measures while closed too
+        resultHeight.value = resultEl.value?.offsetHeight || 0
+        resultContentHeight.value = resultEl.value?.scrollHeight || 0
+    }
+    const updateMeasurements = () => {
         containerOffset.value = getAbsOffset(inputEl.value)
         scrollPosition.value = inputEl.value ? getAbsScrollPosition(inputEl.value) : { top: 0, left: 0 }
+        measureResult()
     }
-    const debouncedUpdateContainerOffset = debounceToPromise(updateContainerOffset, 50) as unknown as () => Promise<void>
+    const debouncedUpdateMeasurements = debounceToPromise(updateMeasurements, 50) as unknown as () => Promise<void>
 
-    useEventListener(window, "resize", debouncedUpdateContainerOffset)
+    useEventListener(window, "resize", debouncedUpdateMeasurements)
     onMounted(() => {
         q.value = displayItemFormatter(selectedItem.value)
-        updateContainerOffset()
-        document.addEventListener("scroll", debouncedUpdateContainerOffset, true)
+        updateMeasurements()
+        document.addEventListener("scroll", debouncedUpdateMeasurements, true)
     })
     onUnmounted(() => {
-        document.removeEventListener("scroll", debouncedUpdateContainerOffset, true)
+        document.removeEventListener("scroll", debouncedUpdateMeasurements, true)
     })
     watch(selectedItem, (newVal, oldVal) => {
         if (newVal != oldVal && newVal != selectedItem.value) {
@@ -300,6 +335,17 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
             q.value = displayItemFormatter(selectedItem.value)
         }
     })
+    watch(
+        items,
+        () => {
+            // a search in flight keeps the previous measurement: measuring the loading row instead would
+            // bounce the panel between above and below on every keystroke
+            if (items.value) {
+                measureResult()
+            }
+        },
+        { flush: "post" }
+    )
     watch(q, () => emit("qInput", q.value || ""))
 
     return {
@@ -312,6 +358,7 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         isFocus,
         isLoading,
         inputEl,
+        resultEl,
         resultOffset,
         resultStyle,
         displayItemFormatter,
