@@ -20,18 +20,35 @@ export class TreeList<T = any> extends Array<TreeNode<T>> {
     init(values: Array<T> = [], findParents: IFindParents<T> = (_value, _candidates) => []): TreeList<T> {
         this.length = 0
         this.roots = []
-        const addNode = (value: T) => {
-            const parents = findParents(value, values)
-            if (!parents.length) {
-                // Reuse an existing root instead of adding a duplicate: a parent may already have been
-                // synthesised as a root while visiting one of its children earlier in `values`.
-                return this.roots.find((x) => x.value === value) ?? this.addValue(value)
+        // Values whose parents are still being resolved further up the recursion; meeting one again closes a cycle.
+        const visiting = new Set<T>()
+        const addNode = (value: T): TreeNode<T> | undefined => {
+            // Reuse an existing node instead of adding a duplicate: a value may already have been synthesised
+            // while visiting one of its children earlier in `values`.
+            const existing = this.find((x) => x.value === value)
+            if (existing) {
+                return existing
             }
-            parents.forEach((parent) => {
-                const parentNode = this.find((x) => x.value === parent) || addNode(parent)
-                this.addValue(value, parentNode)
-            })
-            return undefined
+            if (visiting.has(value)) {
+                return undefined
+            }
+            visiting.add(value)
+            try {
+                const parents = findParents(value, values)
+                if (!parents.length) {
+                    return this.addValue(value)
+                }
+                let firstNode: TreeNode<T> | undefined
+                parents.forEach((parent) => {
+                    // An unresolvable parent (it closes a cycle) leaves the value as a root
+                    const parentNode = this.find((x) => x.value === parent) ?? addNode(parent)
+                    const node = this.addValue(value, parentNode)
+                    firstNode ??= node
+                })
+                return firstNode
+            } finally {
+                visiting.delete(value)
+            }
         }
         values.forEach(addNode)
 
@@ -155,7 +172,7 @@ export class TreeList<T = any> extends Array<TreeNode<T>> {
         nodes = this._ensureNodeList(nodes)
         const getChildren = (node: TreeNode<T>): Array<TreeNode<T>> =>
             node.children.length > 0 ? [...node.children, ...node.children.flatMap(getChildren)] : []
-        return nodes.flatMap(getChildren)
+        return distinct(nodes.flatMap(getChildren))
     }
     /**
      * Retrieves all (distinct) values from this TreeList
@@ -163,7 +180,7 @@ export class TreeList<T = any> extends Array<TreeNode<T>> {
      */
     getValues(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<T> {
         nodes = this._ensureNodeList(nodes)
-        return nodes.map((x) => x.value)
+        return distinct(nodes.map((x) => x.value))
     }
 
     _ensureNodeList(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>> {

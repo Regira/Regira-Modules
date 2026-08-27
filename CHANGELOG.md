@@ -42,6 +42,20 @@ heading.
   `onAuthenticated(…, { immediate: false })`; `immediate: false` because `useRouteOverview`/`useDetails`
   already own the mount fetch. `scaffold.mjs --no-auth` strips the hook together with its
   `@regira/modules/vue/auth` import and the comment block describing it.
+- `treelist`: `TreeList.init` builds correctly from values shuffled across more than one level. A parent
+  synthesised while visiting one of its children handed back `undefined` as soon as it had a parent of its
+  own, so the child was attached as a spurious root and the parent was created a second time when `init`
+  reached it in `values` — three rows could yield four nodes and two roots. `init` now resolves a value to
+  its existing node wherever it already sits in the tree, and tracks the values it is resolving, so cyclic
+  input terminates instead of recursing without bound: the edge that closes the cycle is skipped and its
+  child stays a root, mirroring what the .NET `TreeList` does with `ThrowOnError = false`.
+- `treelist`: **behaviour change:** `getOffspring` and `getValues` return distinct results, like `getRoots`
+  and `getAncestors` always have. Whole-tree `tree.getOffspring()` used to repeat a node once per ancestor
+  above it (an `R → A → B` chain reported three descendants: `A`, `B`, `B`), and `getValues()` repeated a value once per
+  parent it hangs under. Callers that counted on the repetition should read `node.children` per node.
+- `vue/entities`: `useTree`'s `init` drops the dedupe pass that pruned the duplicate nodes the `treelist`
+  fix removes at the source. It only ever handled one level of nesting, and against a correctly built tree
+  it removes legitimate nodes — a value that genuinely hangs under two parents in the same subtree.
 
 ## 6.1.3 — 2026-08-26
 
