@@ -49,13 +49,20 @@ heading.
   its existing node wherever it already sits in the tree, and tracks the values it is resolving, so cyclic
   input terminates instead of recursing without bound: the edge that closes the cycle is skipped and its
   child stays a root, mirroring what the .NET `TreeList` does with `ThrowOnError = false`.
-- `treelist`: **behaviour change:** `getOffspring` and `getValues` return distinct results, like `getRoots`
-  and `getAncestors` always have. Whole-tree `tree.getOffspring()` used to repeat a node once per ancestor
-  above it (an `R → A → B` chain reported three descendants: `A`, `B`, `B`), and `getValues()` repeated a value once per
-  parent it hangs under. Callers that counted on the repetition should read `node.children` per node.
+- `treelist`: **behaviour change, classed as a fix:** `getOffspring` and `getValues` return distinct
+  results, like `getRoots` and `getAncestors` always have. Whole-tree `tree.getOffspring()` used to repeat a
+  node once per ancestor above it (an `R → A → B` chain reported three descendants: `A`, `B`, `B`), and
+  `getValues()` repeated a value once per parent it hangs under. The old output was not a contract anyone
+  could have relied on deliberately — the repetition count was an artefact of tree depth, the method's own
+  doc comment already said "all (distinct) values", and the two sibling methods had always deduplicated —
+  which is why this ships as a minor rather than a major. A caller that did want a node per path should walk
+  `node.children` itself.
 - `vue/entities`: `useTree`'s `init` drops the dedupe pass that pruned the duplicate nodes the `treelist`
   fix removes at the source. It only ever handled one level of nesting, and against a correctly built tree
-  it removes legitimate nodes — a value that genuinely hangs under two parents in the same subtree.
+  it removes legitimate nodes. **Visible in a multi-parent dataset without any code change on your side:** a
+  value that genuinely hangs under two parents now renders as two nodes, where the pass used to delete one
+  of them — the correct shape for a tree the data says is a diamond, and the reason this is a fix rather
+  than a break, but check any view that renders `nodes` or `offspring` from such a dataset.
 
 ## 6.1.3 — 2026-08-26
 

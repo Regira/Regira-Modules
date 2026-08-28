@@ -23,10 +23,10 @@ export declare class TreeList<T = any> extends Array<TreeNode<T>> {
     remove(node: TreeNode<T>): boolean
     move(node: TreeNode<T>, parent?: TreeNode<T>): void
     getNodes(input?: T | Array<T>): Array<TreeNode<T>>
-    getRoots(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>>
-    getAncestors(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>>
-    getOffspring(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>>
-    getValues(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<T>
+    getRoots(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>> // distinct
+    getAncestors(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>> // distinct
+    getOffspring(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>> // distinct
+    getValues(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<T> // distinct
     _ensureNodeList(nodes?: TreeNode<T> | Array<TreeNode<T>>): Array<TreeNode<T>>
 }
 export default TreeList
