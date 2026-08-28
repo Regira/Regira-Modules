@@ -684,7 +684,10 @@ const stripAuth = (s) => {
         if (!authMarker.test(line)) return
         for (let j = i - 1; j >= 0 && /^\s*\/\//.test(lines[j]); j--) drop.add(j)
     })
-    return lines.filter((_, i) => !drop.has(i)).map(dropLoad).join("\n")
+    return lines
+        .filter((_, i) => !drop.has(i))
+        .map(dropLoad)
+        .join("\n")
 }
 
 function copyDir(from, to, rootFrom = from) {
