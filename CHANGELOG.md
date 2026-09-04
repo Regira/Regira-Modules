@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.2.0 — 2026-09-04
 
 - `vue/ui`: `Autocomplete`'s result panel flips **above** the control when the results do not fit below it
   and there is more room above — a field at the foot of a modal used to drop its options off screen. The
