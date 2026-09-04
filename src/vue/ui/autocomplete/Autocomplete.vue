@@ -15,7 +15,7 @@
         @keydown.enter.prevent="handleSelect(selectedItem!, selectedIndex)"
         ref="inputEl"
     />
-    <div class="autocomplete-items bg-white border" :class="resultClass" :style="resultStyle" v-click-outside="handleClickOutside">
+    <div class="autocomplete-items bg-white border" :class="resultClass" :style="resultStyle" v-click-outside="handleClickOutside" ref="resultEl">
         <div class="list-group" :class="itemsClass">
             <div class="loading list-group-item" v-show="isLoading">Loading...</div>
             <div
@@ -64,6 +64,7 @@ const {
     items,
     isFocus,
     inputEl,
+    resultEl,
     resultStyle,
     isLoading,
     displayItemFormatter,
@@ -125,6 +126,7 @@ function handleClickOutside(e: PointerEvent) {
 
 defineExpose({
     inputEl,
+    resultEl,
     q,
     selectedItem,
     search: handleSearch,

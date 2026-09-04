@@ -299,8 +299,9 @@ export interface IListViewIn<T, SO> extends OverviewCoreIn<T, SO> {
 }
 export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // Concurrent calls are safe: only the newest writes items/count/feedback/isLoading, so a slower earlier
-    // search cannot overwrite a newer result (the mount fetch racing the login/refresh reload hook). The
-    // same gate covers applySave/applyRemove, which write the same isLoading/feedback.
+    // search cannot overwrite a newer result (the mount fetch racing the `onAuthenticated` re-search on a
+    // hard reload, a filter change, fast paging). The same gate covers applySave/applyRemove, which write
+    // the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
 }

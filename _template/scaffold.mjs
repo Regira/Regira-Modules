@@ -662,17 +662,33 @@ const subst = (s) =>
         .replace(/__api__/g, api)
         .replace(/__entities__/g, plural)
         .replace(/__entity__/g, singular)
-// the auth-coupled lines in Overview.vue / Details.vue: the useAuthStore import + store, the
-// $onAction reload hook, and the "no-auth app: delete these two lines" marker comment
-const authLine = /useAuthStore|authStore\.\$onAction|no-auth app:/
+// the auth-coupled lines in Overview.vue / Details.vue: the onAuthenticated import + reload hook and the
+// comment block documenting them. Matched against the CURRENT template only — stripAuth runs as copyDir
+// emits template content, never over a slice on disk — so there is nothing to match for an older
+// generation's `$onAction` form. Case-insensitive: the marker reads "No-auth app:" when it opens a
+// sentence, and a case-sensitive test silently left the whole comment behind.
+const authLine = /onAuthenticated|no-auth app:/i
+// The marker sits on the LAST line of its comment, which may run to several lines. Dropping only the marked
+// line leaves the rest stranded, describing a hook that is no longer there — so walk back over the
+// contiguous `//` run it terminates. Anchored on the marker, never on the import or the call, so a comment
+// block above an unrelated import is never touched.
+const authMarker = /no-auth app:/i
 // Details.vue destructures `load` from useDetails only to feed that hook, so drop it too.
 const dropLoad = (line) => (line.includes("useDetails(") ? line.replace(/\bload\s*,\s*/, "").replace(/,\s*load\b/, "") : line)
-const stripAuth = (s) =>
-    s
-        .split("\n")
-        .filter((line) => !authLine.test(line))
+const stripAuth = (s) => {
+    const lines = s.split("\n")
+    const drop = new Set()
+    lines.forEach((line, i) => {
+        if (!authLine.test(line)) return
+        drop.add(i)
+        if (!authMarker.test(line)) return
+        for (let j = i - 1; j >= 0 && /^\s*\/\//.test(lines[j]); j--) drop.add(j)
+    })
+    return lines
+        .filter((_, i) => !drop.has(i))
         .map(dropLoad)
         .join("\n")
+}
 
 function copyDir(from, to, rootFrom = from) {
     mkdirSync(to, { recursive: true })

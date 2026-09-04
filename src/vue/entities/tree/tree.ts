@@ -29,14 +29,6 @@ export function useTree<T extends { $id: number | string }>(options?: TreeIn<T>)
             data.map((x) => toRaw(x)),
             findParents
         )
-        const itemsToRemove = tree.value.filter((n) => {
-            if (n.parent == null) {
-                return false
-            }
-            // ToDo: only works for 1 parent level deep for now
-            return n.parent.getOffspring().some((on) => on != n && on.value == n.value)
-        })
-        itemsToRemove.forEach((n) => tree.value!.remove(n))
     }
 
     return {

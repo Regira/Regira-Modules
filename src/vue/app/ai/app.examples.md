@@ -55,6 +55,10 @@ onMounted(async () => {
 
 ## Re-run work on ready (and on login/refresh)
 
+> Picking between the two: `onAppReady` waits for the app shell to finish booting; **`onAuthenticated`**
+> (`@regira/modules/vue/auth`) waits for a token and re-runs on every later one — sign-in, refresh, and a
+> token restored from storage on reload. Data fetching belongs on the latter.
+
 `onAppReady(func)` runs `func` now if already ready, otherwise once the app becomes ready (from a CRM
 sidebar component):
 

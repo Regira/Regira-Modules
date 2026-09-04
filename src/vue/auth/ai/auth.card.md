@@ -14,6 +14,11 @@
 - **Store surface** (`useAuthStore`): `isAuthenticated`, `authData`, `displayName`, `hasRole(r)`,
   `hasPermission(p)`, `hasClaim(type, value?)`, `getClaimValue(type)`; actions `login`, `validateToken`,
   `refresh`, `logout` (client-side only), `setClientApp`.
+- **⚠️ Anything that fetches on mount uses `onAuthenticated(() => load())`.** Views mount _before_ a stored
+  token is validated, so a fetch guarded on `isAuthenticated` never runs and never errors — a blank panel,
+  no failed request. Restoring a token is the `validateToken` action, not `login`, so a hand-rolled
+  `$onAction(… "login" …)` misses it. Pass `{ immediate: false }` where the view already fetches on mount
+  (`useRouteOverview` / `useDetails` — the scaffolded views do).
 - **⚠️ Role checks are `hasRole`, not `hasPermission`.** The SPA decodes the **raw** token; roles arrive as
   `role` (self-issued JWT), `roles` (Entra) or the `ClaimTypes.Role` URI (Identity default) — `hasRole`
   probes all three. `hasPermission` reads a **`permissions`** claim the standard Identity recipe never

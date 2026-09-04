@@ -13,6 +13,7 @@ a permission-aware route guard, and login UI. Install it **after** the IoC/http 
 import {
     plugin as authPlugin,
     useAuthStore,
+    onAuthenticated,
     useAuth,
     LocalStorageTokenManager,
     CookieTokenManager,
@@ -73,9 +74,34 @@ The Pinia store is the reactive source of truth for components:
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 
-`authData` (`IAuthData`) is decoded from the JWT: `userId`, `name`, `email`, `displayName`, `culture`,
-`role` (the first role found, for display), `expires`, plus `get(claim)`, `hasClaim`, `hasPermission`,
-`hasRole`.
+`authData` (`IAuthData`) is decoded from the JWT: `token` (the raw JWT), `userId`, `name`, `email`,
+`displayName`, `culture`, `role` (the first role found, for display), `expires`, plus `get(claim)`,
+`hasClaim`, `hasPermission`, `hasRole`.
+
+### Reacting to a token — `onAuthenticated`
+
+```ts
+onAuthenticated(() => load())
+```
+
+Runs the handler whenever an authenticated token arrives: sign-in, a refresh (a tenant switch included), a
+token restored from storage on reload, and immediately when one is already present. **Use it for anything
+that fetches on mount** — views mount _before_ a stored token is validated, so a fetch guarded on
+`isAuthenticated` is otherwise skipped and never retried, leaving a blank panel with no error and no failed
+request. Restoring a token dispatches `validateToken`, not `login`, which is why a hand-rolled
+`$onAction(… "login" …)` misses it.
+
+⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
+or the immediate run races their `onMounted` fetch during `setup`. With the plugin `enabled: false` no
+token ever arrives, so it honours `immediate` once and stops — nothing is gated in such an app. Pass
+`{ store }` only for a store the plugin knows nothing about; it names the store to watch and is honoured
+even with the plugin disabled. Registration order needs no `{ store }`: the plugin's store is resolved on
+every read, so a pinia store built before `app.use(authPlugin, …)` still follows a custom `authStore`.
+
+⚠️ **An app that installs no auth plugin at all cannot be detected.** `enabled: false` is a signal the
+plugin sets; never installing it leaves the same blank state as "not installed _yet_", so the hook waits
+for a token that never arrives. In a no-auth app leave the hooks out (`scaffold.mjs --no-auth`) or install
+the plugin disabled.
 
 ⚠️ **Role checks are `hasRole(r)`, not `hasPermission(r)`.** The store decodes the **raw** token, and role
 claims arrive under one of three spellings depending on the issuer — `role` (self-issued JWT), `roles`
@@ -134,7 +160,10 @@ logged by **named field** — `{ isAuthenticated, userId, name, role }`, never `
 `AuthData._decodedToken` is private to TypeScript only, so a spread ships the whole decoded claim bag
 (every custom claim the issuer put in the token) into telemetry. The **token itself is never logged** — not
 by `validateToken`, whose `catch` runs on every app load that restores a saved token, and not through a
-`tokenManager` that holds it.
+`tokenManager` that holds it. `AuthData.token` is **non-enumerable** as a second line of defence, so the JWT
+is absent from `{ ...authData }` and `JSON.stringify(authData)` — it cannot ride along into a log or a
+telemetry payload even where an app forwards the object whole (`onAuthenticationChange`). Reading
+`authData.token` still works; this hides it from serialization, not from callers.
 
 ### The application's own credential endpoints
 

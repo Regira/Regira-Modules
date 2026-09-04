@@ -1008,18 +1008,24 @@ disabled), make these four changes:
     ```
 
 4. **Entity slices — scaffold with `--no-auth`.** The boilerplate `overview/Overview.vue` and
-   `details/Details.vue` carry `authStore.$onAction` reload-on-login hooks.
+   `details/Details.vue` carry `onAuthenticated` reload hooks.
    `node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --no-auth` strips them (imports
    included, plus `load` from `Details.vue`'s `useDetails` destructure — used only by that hook); for an
    already-scaffolded slice, delete the marked lines in those two files and drop `load` from that
    destructure. If the app enables auth later, re-add the hooks (and `load`) per
-   [entities.patterns.md → Auth reload hooks](entities.patterns.md#auth-reload-hooks-login-driven-refresh).
+   [entities.patterns.md → Auth reload hooks](entities.patterns.md#auth-reload-hooks-onauthenticated).
 
 > **Keep the auth scaffolding dormant instead?** Install it with `app.use(authPlugin, { …, enabled: false })`.
 > Then `$auth` is `{ enabled: false }` and the bearer interceptor is off — but the auth **store** still
 > reports protected routes as "required", so either omit `LoginModal` (as above) or mark routes with
 > `meta: { allowAnonymous: true }`. In this mode advance to `Ready` from `onAuthenticationChange` (it
-> fires once at startup). For a pure no-auth app, removing the plugin (above) is simpler.
+> fires once at startup). Slices keep their `onAuthenticated` hooks — with the plugin disabled no token will
+> ever arrive, so instead of waiting for one the hook honours `immediate`: a view you wrote yourself, where
+> this is the only fetch, runs it once; the scaffolded views pass `{ immediate: false }` and simply idle,
+> since their composables fetch on mount regardless. Either way nothing hangs, so `--no-auth` is not needed
+> here. For a pure no-auth app, removing the plugin (above) is simpler — but then strip the hooks with
+> `--no-auth`: with no plugin installed at all there is no `enabled: false` to detect, so a hook left in
+> waits for a token that never comes.
 
 > Skip `infrastructure/user-plugin.ts` and the `components/users/` folder entirely for a no-auth app.
 

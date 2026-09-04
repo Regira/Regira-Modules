@@ -5,6 +5,65 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.2.0 — 2026-09-04
+
+- `vue/ui`: `Autocomplete`'s result panel flips **above** the control when the results do not fit below it
+  and there is more room above — a field at the foot of a modal used to drop its options off screen. The
+  panel also clamps its height to the room on the side it opens to, so a list that fits neither way scrolls
+  inside the viewport instead of running past its edge; `--rg-dropdown-max-height` stays the ceiling.
+  `useAutocomplete` returns a `resultEl` ref for this and `Autocomplete` binds and exposes it — a
+  replacement skin must put `ref="resultEl"` on its panel next to `:style="resultStyle"`, or the panel is
+  never measured and keeps opening downwards.
+- `vue/auth`: new **`onAuthenticated(handler, { immediate?, store? })`** — runs a handler whenever an
+  authenticated token arrives: sign-in, a refresh (a tenant switch included), and a token restored from
+  storage on a hard reload. It replaces hand-rolled `authStore.$onAction(… "login" …)` hooks, which silently
+  never fired on a reload — the plugin restores a stored token through the **`validateToken`** action, and
+  views mount before it resolves, so a fetch guarded on `isAuthenticated` was skipped and never retried (a
+  blank panel, no error, no failed request). Watching the token also re-runs on a refresh that swaps
+  identity, which `isAuthenticated` alone cannot see, while staying quiet when the plugin re-validates the
+  same token. `$onAction` is unchanged and existing code keeps working. With the plugin installed disabled
+  (`enabled: false`) no token ever arrives, so it honours `immediate` once rather than waiting forever —
+  a slice keeps its hooks in that mode; an explicit `{ store }` still names the store to watch. Plugin
+  install order does not matter either way: the store is resolved per read, so a hook registered before
+  `app.use(authPlugin, …)` — from inside a pinia store, say — follows a custom `authStore`, and sees an
+  `enabled: false` install, as soon as the plugin lands. Installing **no** auth plugin at all is the one
+  state it cannot detect, being indistinguishable from "not installed yet", so a no-auth app leaves the
+  hooks out (`scaffold.mjs --no-auth`) rather than relying on them.
+- `vue/auth`: `IAuthData` exposes the raw **`token`** it was decoded from — the identity signal
+  `onAuthenticated` watches. It is defined **non-enumerable**, so it is absent from `{ ...authData }` and
+  `JSON.stringify(authData)` while `authData.token` still reads normally. The plugin hands `authData`
+  straight to `onAuthenticationChange` — whose documented use is welcoming the user and preloading, i.e.
+  exactly where an app calls its telemetry SDK — so a plain field would put a live bearer credential into
+  whatever that path serializes.
+- `vue/auth`: `useGlobalAuth()` (`$auth`, script-side) is reactive — reading it inside a computed or watcher
+  tracks the plugin install itself, so a reader that ran before `app.use(authPlugin, …)` re-evaluates when it
+  lands instead of being stuck with the `undefined` it first saw.
+- `_template/entity-slice`: the scaffolded `Overview.vue`/`Details.vue` reload hooks move to
+  `onAuthenticated(…, { immediate: false })`; `immediate: false` because `useRouteOverview`/`useDetails`
+  already own the mount fetch. `scaffold.mjs --no-auth` strips the hook together with its
+  `@regira/modules/vue/auth` import and the comment block describing it.
+- `treelist`: `TreeList.init` builds correctly from values shuffled across more than one level. A parent
+  synthesised while visiting one of its children handed back `undefined` as soon as it had a parent of its
+  own, so the child was attached as a spurious root and the parent was created a second time when `init`
+  reached it in `values` — three rows could yield four nodes and two roots. `init` now resolves a value to
+  its existing node wherever it already sits in the tree, and tracks the values it is resolving, so cyclic
+  input terminates instead of recursing without bound: the edge that closes the cycle is skipped and its
+  child stays a root, mirroring what the .NET `TreeList` does with `ThrowOnError = false`.
+- `treelist`: **behaviour change, classed as a fix:** `getOffspring` and `getValues` return distinct
+  results, like `getRoots` and `getAncestors` always have. Whole-tree `tree.getOffspring()` used to repeat a
+  node once per ancestor above it (an `R → A → B` chain reported three descendants: `A`, `B`, `B`), and
+  `getValues()` repeated a value once per parent it hangs under. The old output was not a contract anyone
+  could have relied on deliberately — the repetition count was an artefact of tree depth, the method's own
+  doc comment already said "all (distinct) values", and the two sibling methods had always deduplicated —
+  which is why this ships as a minor rather than a major. A caller that did want a node per path should walk
+  `node.children` itself.
+- `vue/entities`: `useTree`'s `init` drops the dedupe pass that pruned the duplicate nodes the `treelist`
+  fix removes at the source. It only ever handled one level of nesting, and against a correctly built tree
+  it removes legitimate nodes. **Visible in a multi-parent dataset without any code change on your side:** a
+  value that genuinely hangs under two parents now renders as two nodes, where the pass used to delete one
+  of them — the correct shape for a tree the data says is a diamond, and the reason this is a fix rather
+  than a break, but check any view that renders `nodes` or `offspring` from such a dataset.
+
 ## 6.1.3 — 2026-08-26
 
 - `_template/scaffold.mjs`: `--overwrite-slice` no longer deletes owned sub-slices it does not regenerate.
