@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.2.1 — 2026-09-05
 
 - `vue/formatters`: `formatDate` no longer lets a bad culture abort the render. `toLocaleDateString` raises
   `RangeError` for a tag it cannot parse, and that fires *during render*, aborting the component subtree and
