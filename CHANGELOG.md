@@ -5,6 +5,29 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.2.1 — 2026-09-05
+
+- `vue/formatters`: `formatDate` no longer lets a bad culture abort the render. `toLocaleDateString` raises
+  `RangeError` for a tag it cannot parse, and that fires *during render*, aborting the component subtree and
+  blanking a region of the page — while `vue-tsc` and `npm run build` stay green, because `formatDate(date,
+  culture)` and `formatDateTime(date, mask)` are both `(Date, string)`. The tag is now reported on the console
+  (naming the mask-taking sibling, the usual cause) and the browser's default locale is used instead. Which of
+  the two arguments was meant is deliberately **not** inferred: `"dd-MM"`, `"MM-dd"` and `"yy"` are well-formed
+  BCP-47 tags while `"en_US"` — the underscore form .NET `CultureInfo`, Java `Locale` and POSIX `LANG` use —
+  is not, so a validity test misreads a real mask *and* a real culture.
+- `vue/entities`: `importNavbar` drops a navigation group once `hasAccess` has filtered every child out. The
+  group was emitted regardless, so a role that may see none of a group's entities got a dropdown that opened
+  onto nothing; `importDashboard` already filtered this way.
+- `vue/entities`, `vue/auth`: declaration comments correct four contracts an agent otherwise infers wrongly.
+  `useSearchView`/`useListView` fetch **nothing** on mount — the scaffolded overview's first search comes from
+  `useRouteOverview`, and a hand-written view owns its own (`onAuthenticated(() => searchHandler(true))`, and
+  nothing on mount beside it, which `onAuthenticated`'s `immediate` option had wrongly named `useSearchView`
+  for). `searchObject` goes in as a plain instance and comes back as a `Ref` — a ref passed in is only a
+  compile error when the type arguments are written out. `fromPool` is read-through: for an id already cached
+  it returns the cached ref and discards its argument, so `set()`/`setMany()` are what land a custom
+  endpoint's response. `onAuthenticated` inside a composable is scoped to the first component that calls it,
+  so app-lifetime state registers once from `main.ts`.
+
 ## 6.2.0 — 2026-09-04
 
 - `vue/ui`: `Autocomplete`'s result panel flips **above** the control when the results do not fit below it

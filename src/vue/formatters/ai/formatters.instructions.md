@@ -30,10 +30,18 @@ There are no granular subpaths — everything lives under `@regira/modules/vue/f
   no zone suffix: that input rejects a trailing `Z` and renders blank.
 - **`formatTime(date?)`** — wraps `formatDateTime(date, "hh:mm")`.
 
-⚠️ **Mask or culture — the two families are not interchangeable.** `formatDateTime` / `formatTime` take a
-token **mask**; `formatDate` / `formatShortDate` take a **culture**. Passing a locale tag as a mask
-silently token-substitutes it instead of failing: `formatDateTime(d, "en-GB")` → `"e<ms>-GB"`, where
-`<ms>` is the date's milliseconds (`n` is the millisecond token).
+⚠️ **Mask or culture — name the one you mean; neither function guesses.** `formatDateTime` / `formatTime`
+take a token **mask**; `formatDate` / `formatShortDate` take a **culture**. Both signatures are
+`(Date, string)`, so the type-checker never sees the mix-up, and it cannot be detected at runtime either:
+`"dd-MM"`, `"MM-dd"` and `"yy"` are well-formed BCP-47 tags while `"en_US"` — the underscore form .NET
+`CultureInfo` and POSIX `LANG` use — is not, so a validity test misreads both directions.
+
+- A locale tag handed to `formatDateTime` is token-substituted, not rejected: `"en-GB"` → `"e<ms>-GB"`,
+  `<ms>` being the date's milliseconds (`n` is the millisecond token).
+- A mask handed to `formatDate` cannot render: `toLocaleDateString` raises `RangeError` for a tag it cannot
+  parse. Because that happens **during render** — aborting the component subtree and blanking a region of
+  the page — `formatDate` catches it, logs the confusion to the console and falls back to the browser's
+  default locale. A short mask that *is* a valid tag (`"dd-MM"`) renders a localised date with no warning.
 
 ## Numbers, currency, percentage
 

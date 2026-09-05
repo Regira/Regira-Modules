@@ -25,10 +25,16 @@ export type OverviewError = { response: { data?: { errors: FeedbackError } } }
 
 export type OverviewCoreIn<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
     service: IEntityService<T>
+    /**
+     * A plain INSTANCE (`new SearchObject()`), not a ref — the composable wraps it and hands back `Ref<SO>`.
+     * A ref is rejected (TS2559) only when the type arguments are written out; left to inference, `SO` binds
+     * to the ref itself and the mistake type-checks.
+     */
     searchObject: SO
     defaultPageSize?: number
 }
 export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
+    /** The ref the view mutates — filters bind to this, not to the instance passed in. */
     searchObject: Ref<SO>
     pagingInfo: Ref<IPagingInfo>
     items: Ref<Array<T> | undefined>
@@ -60,11 +66,17 @@ export interface IListViewIn<T extends IEntity, SO extends ISearchObject = ISear
     debounceDelay?: number
 }
 export interface IListViewOut<T extends IEntity, SO extends ISearchObject = ISearchObject> extends OverviewCoreOut<T, SO> {
+    /** ⚠️ Nothing fetches on mount — see `ISearchViewOut.searchHandler`. */
     listHandler(): Promise<void>
     debouncedListHandler(): Promise<void>
 }
 
 export interface ISearchViewOut<T extends IEntity, SO extends ISearchObject = ISearchObject> extends OverviewCoreOut<T, SO> {
+    /**
+     * ⚠️ **Nothing fetches on mount.** The scaffolded overview's first search comes from `useRouteOverview`,
+     * a separate composable; a hand-written view owns its own — `onAuthenticated(() => searchHandler(true))`,
+     * which also handles views mounting before a stored token is validated.
+     */
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
 }

@@ -36,6 +36,10 @@ until the next fetch.
 destructure `{ items }` from it). Both send the current search object merged with the paging info, and
 `useListView` derives `itemsCount` from the rows it got back rather than from a server total.
 
+> **Neither fetches on mount.** The scaffolded overview's first search comes from `useRouteOverview`, a
+> separate composable; take either of these on its own and the initial fetch is the view's to make —
+> `onAuthenticated(() => searchHandler(true))` in an authenticated app, which is also the right token timing.
+
 > **Guard the lazy refs.** `items` / `itemsCount` are `undefined` until the first fetch, so bind
 > `v-for="x in items ?? []"` and `:count="itemsCount ?? 0"`.
 

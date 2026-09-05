@@ -57,6 +57,18 @@ export const dateInputString = (date?: Date) => formatDateTime(date, "yyyy-MM-dd
 export const dateTimeInputString = (date?: Date) => formatDateTime(date, "yyyy-MM-ddThh:mm")
 export const formatTime = (date?: Date) => formatDateTime(date, "hh:mm")
 
+/**
+ * Formats a date for a CULTURE — `formatDateTime` is the mask-taking sibling, and the usual reason this one
+ * is handed a bad tag: every other date library spells it `format(date, mask)`.
+ *
+ * An unusable tag is reported and falls back to the browser's default rather than propagating the
+ * `RangeError` `toLocaleDateString` raises for one — that throw happens *during render*, which aborts the
+ * component subtree and blanks a whole region of the page. Which of the two arguments was meant is
+ * deliberately **not** guessed: `"dd-MM"` is a well-formed language-region tag and `"en_US"` is not, so a
+ * validity test decides it wrongly in both directions.
+ * @param date the date to format — null yields `""`
+ * @param culture a BCP-47 tag (`"en-GB"`); the browser's default when omitted or unusable
+ */
 export const formatDate = (date?: Date | string, culture?: string) => {
     if (date == null) {
         return ""
@@ -65,7 +77,15 @@ export const formatDate = (date?: Date | string, culture?: string) => {
         date = new Date(date)
     }
 
-    return date.toLocaleDateString(culture) //?.replace(/-/g, '/')
+    try {
+        return date.toLocaleDateString(culture) //?.replace(/-/g, '/')
+    } catch {
+        console.error(
+            `[regira] formatDate: "${culture}" is not a usable culture — it must be a BCP-47 tag ("en-GB", not "en_US"). ` +
+                `For a token mask ("dd/MM/yyyy") call formatDateTime. Falling back to the browser default.`
+        )
+        return date.toLocaleDateString()
+    }
 }
 export const formatShortDate = (date?: Date | string, culture?: string) => {
     if (date == null) {

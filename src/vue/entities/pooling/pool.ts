@@ -8,6 +8,14 @@ export interface IPoolHandler<T extends IEntity> extends IPoolService<T> {
     cache: IPoolCache
     set(item: T): Ref<T>
     setMany(items: Array<T>): Array<Ref<T>>
+    /**
+     * The pooled instance for each input's id — a rehydrated entity with `$id`/`$title`, shared by every view.
+     * ⚠️ **Read-through, not write-through.** For an id already cached it returns the cached ref and discards
+     * `input`, so it is the wrong call for landing an update: `Object.assign(item, fromPool(updated))` on a
+     * form bound to that row is a no-op (`item` already *is* that instance), and passing a fresher object
+     * does not refresh the pool either. `set(item)` / `setMany(items)` are the writes — use those after a
+     * custom endpoint returns an updated entity.
+     */
     fromPool<P = Array<T> | T>(input: P): P
     fromCache(id?: string | number): Ref<T> | undefined | Array<Ref<T>>
 }
