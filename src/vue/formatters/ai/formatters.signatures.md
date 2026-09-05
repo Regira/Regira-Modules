@@ -36,9 +36,13 @@ export declare const formatDate: (date?: Date | string, culture?: string) => str
 export declare const formatShortDate: (date?: Date | string, culture?: string) => string
 ```
 
-⚠️ **`formatDateTime`/`formatTime` take a MASK; `formatDate`/`formatShortDate` take a CULTURE.** A locale tag
-handed to `formatDateTime` is treated as a mask and token-substituted, not rejected — `"en-GB"` renders
-`"e<ms>-GB"`, `<ms>` being the date's milliseconds (`n` is the millisecond token).
+⚠️ **`formatDateTime`/`formatTime` take a MASK; `formatDate`/`formatShortDate` take a CULTURE**, and neither
+guesses which you meant — both signatures are `(Date, string)`, and no runtime test separates them (`"dd-MM"`
+and `"yy"` are well-formed BCP-47 tags; `"en_US"`, the .NET `CultureInfo` spelling, is not). A locale tag
+handed to `formatDateTime` is token-substituted, not rejected — `"en-GB"` renders `"e<ms>-GB"`, `<ms>` being
+the date's milliseconds (`n` is the millisecond token). A mask handed to `formatDate` makes
+`toLocaleDateString` raise `RangeError`; since that fires **during render** and would abort the component
+subtree, `formatDate` catches it, logs to the console and falls back to the browser's default locale.
 
 ## Numbers, currency, percentage
 

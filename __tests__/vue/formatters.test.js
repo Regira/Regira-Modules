@@ -1,4 +1,4 @@
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { dateInputString, dateTimeInputString, formatDate, formatDateTime, formatShortDate, formatTime } from "../../src/vue/formatters"
 
 // local-time constructor + local-time getters, so these are timezone independent
@@ -47,10 +47,10 @@ describe("formatDateTime masks", () => {
         expect(formatDateTime(new Date("nonsense"), "dd-MM-yyyy")).toBe("")
     })
 
-    test("a mask is NOT a culture — the documented trap stays reproducible", () => {
+    test("a culture is NOT a mask — the documented trap stays reproducible", () => {
         // formatDate/formatShortDate take a culture; formatDateTime takes a mask. The `n` of "en" is
-        // milliseconds. Documented on the @param, deliberately not auto-detected: "dd-MM" is itself a
-        // plausible locale-tag shape, so detection would misfire on real masks.
+        // milliseconds. Documented on the @param and deliberately not auto-detected — see
+        // "which argument was meant is NOT guessed" below for why neither direction can be sniffed.
         expect(formatDateTime(evening, "en-GB")).toBe("e7-GB")
     })
 })
@@ -87,6 +87,29 @@ describe("culture-taking formatters", () => {
     test("formatDate takes a CULTURE, unlike formatDateTime", () => {
         expect(formatDate(morning, "en-GB")).toBe("05/07/2026")
         expect(formatDate(undefined)).toBe("")
+    })
+
+    test("an unusable culture is reported and falls back, rather than throwing mid-render", () => {
+        // toLocaleDateString raises RangeError for a tag it cannot parse, and this runs during render —
+        // an uncaught one aborts the component subtree and blanks a region of the page.
+        const error = vi.spyOn(console, "error").mockImplementation(() => {})
+        try {
+            // a mask, the usual cause: every other date library spells this `format(date, mask)`
+            expect(formatDate(morning, "dd/MM/yyyy")).toBe(formatDate(morning))
+            // the underscore form .NET CultureInfo / Java Locale / POSIX LANG use
+            expect(formatDate(morning, "en_US")).toBe(formatDate(morning))
+            expect(error).toHaveBeenCalledTimes(2)
+        } finally {
+            error.mockRestore()
+        }
+    })
+
+    test("which argument was meant is NOT guessed — a validity test decides it wrongly both ways", () => {
+        // `Intl.getCanonicalLocales` accepts "dd-MM", "MM-dd", "hh-mm", "dd" and "yy" as well-formed tags
+        // (MM-dd canonicalises to mm-DE) and rejects "en_US"/"nl_BE". So sniffing a mask by tag validity
+        // would render a localised date for a real mask AND mangled tokens for a real culture.
+        expect(formatDate(evening, "dd-MM")).toBe(evening.toLocaleDateString("dd-MM"))
+        expect(formatDate(evening, "yy")).toBe(evening.toLocaleDateString("yy"))
     })
 
     test("formatShortDate flips day/month for US cultures", () => {

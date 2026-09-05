@@ -13,10 +13,15 @@ export type OnAuthenticatedOptions = {
     /**
      * Run the handler straight away when an authenticated token is already present (default `true`).
      *
-     * Pass `false` in a view whose data is *already* fetched on mount by `useSearchView`/`useRouteOverview`
-     * or `useDetails` — those register their own `onMounted` fetch, and an immediate run would fire a
-     * second, unsequenced request during `setup`, before the search object and paging are populated from
-     * the route.
+     * Pass `false` in a view whose data is *already* fetched on mount by `useRouteOverview` or `useDetails`
+     * — those two register their own `onMounted` fetch, and an immediate run would fire a second,
+     * unsequenced request during `setup`, before the search object and paging are populated from the route.
+     * That is why the scaffolded views pass it. `useSearchView` and `useListView` fetch nothing themselves,
+     * so a hand-written view built on either owns its first fetch: keep the default `immediate` and do
+     * **not** add an `onMounted` fetch beside it — that one runs before the stored token is validated and
+     * 401s, wasting a request. `useSearchView`/`useListView` discard a superseded fetch's feedback, but a
+     * view driving its own `useFeedback` does not: there the 401's banner stays on screen over the data the
+     * hook then loads.
      */
     immediate?: boolean
     /**
@@ -36,7 +41,10 @@ export type OnAuthenticatedOptions = {
  * it resolves), and re-validating the *same* token — what the plugin's periodic check does — leaves the
  * token equal, so the handler does not re-run.
  *
- * Returns the watch stop handle. Registering inside `setup` scopes it to the component automatically.
+ * Returns the watch stop handle. Registering inside `setup` scopes it to the component automatically — which
+ * makes it the wrong shape for app-lifetime state: a registration inside a composable belongs to whichever
+ * component happened to call it first and dies with that component. Call it once from `main.ts`, after the
+ * auth plugin, and let the composable be a pure reader.
  *
  * ```ts
  * onAuthenticated(() => load())

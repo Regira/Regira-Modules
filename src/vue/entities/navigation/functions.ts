@@ -65,7 +65,9 @@ export function importNavbar(input: IImportNavbarInput): Array<INavCore> {
             const navItems = resolveEntityConfigs(x[1], input.configs)
                 .filter((config) => input.hasAccess(config))
                 .map((config) => createNavItem(config, group.id))
-            return [group, ...navItems]
+            // Drop the group once `hasAccess` has filtered every child out — an emitted parent with no
+            // children renders as a dropdown that opens onto nothing. `importDashboard` filters the same way.
+            return navItems.length ? [group, ...navItems] : []
         }
         // else
         const [config] = resolveEntityConfigs([x as string], input.configs)

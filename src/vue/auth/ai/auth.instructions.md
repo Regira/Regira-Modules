@@ -92,11 +92,23 @@ request. Restoring a token dispatches `validateToken`, not `login`, which is why
 `$onAction(… "login" …)` misses it.
 
 ⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
-or the immediate run races their `onMounted` fetch during `setup`. With the plugin `enabled: false` no
-token ever arrives, so it honours `immediate` once and stops — nothing is gated in such an app. Pass
+or the immediate run races their `onMounted` fetch during `setup` — that is the only reason the scaffolded
+views pass it. `useSearchView`/`useListView` fetch nothing themselves, so a hand-written view built on either
+keeps the default `immediate` and adds **no** `onMounted` fetch beside it: one there runs before the stored
+token is validated and 401s, wasting a request. Those two composables discard a superseded fetch's feedback;
+a view driving its own `useFeedback` does not, so there the 401's banner stays on screen over the data the
+hook then loads.
+
+With the plugin `enabled: false` no token ever arrives, so it honours `immediate` once and stops — nothing
+is gated in such an app. Pass
 `{ store }` only for a store the plugin knows nothing about; it names the store to watch and is honoured
 even with the plugin disabled. Registration order needs no `{ store }`: the plugin's store is resolved on
 every read, so a pinia store built before `app.use(authPlugin, …)` still follows a custom `authStore`.
+
+⚠️ **App-lifetime state registers once, from `main.ts`.** Registering inside `setup` scopes the watcher to
+that component — right for a view, wrong for shared state such as *the signed-in user's domain row*: the
+watcher belongs to whichever component called the composable first and dies with it. Split the composable —
+`initCurrentPerson()` called once after the auth plugin, `useCurrentPerson()` a pure reader.
 
 ⚠️ **An app that installs no auth plugin at all cannot be detected.** `enabled: false` is a signal the
 plugin sets; never installing it leaves the same blank state as "not installed _yet_", so the hook waits

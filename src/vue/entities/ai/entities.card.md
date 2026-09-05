@@ -151,6 +151,13 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       `ISearchObject & IPagingInfo & Partial<ISortByInfo>`, and `ISearchObject extends Record<string, any>`, so
       any other key you add reaches the query string too (arrays as repeated keys). `new PagingInfo(pageSize?,
 page?)` is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
+    - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
+      signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
+      `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"`; give it a locale tag instead and it
+      token-substitutes it into nonsense (`"en-GB"` → `"e7-GB"`, the `n` being milliseconds). Most masks given
+      to `formatDate` are reported on the console and fall back to the browser's default date, since they
+      would otherwise throw mid-render and blank the subtree — but a short one (`"dd-MM"`, `"yy"`) _is_ a
+      well-formed locale tag and renders a localised date with no warning at all.
     - `Tab.create("form", { title: translate("form"), icon })` — with `const { translate } = useLang()` from
       **`@regira/modules/vue/lang`** (there is no `useTranslate`/`useLangTranslate`; every import specifier is in
       `entities.namespaces`). The first argument is the **key** (it lands in
@@ -169,7 +176,9 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
 ## Paging, feedback & pooling
 
 - **Counted paging comes from `/search`:** `useSearchView` + `useRouteOverview` → `{ items, count }` —
-  on simple and complex entities alike; `list()` has no count. `pageSize: 0` returns all rows capped by
+  on simple and complex entities alike; `list()` has no count. ⚠️ **`useSearchView`/`useListView` do not fetch
+  on mount** — the scaffolded overview's first search comes from `useRouteOverview`; a hand-written view owns
+  it (`onAuthenticated(() => searchHandler(true))`, and nothing on mount beside it). `pageSize: 0` returns all rows capped by
   the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
   `*Url` defaults off `api`, and `saveUrl` must stay the resource base or updates 404 while inserts pass.
 - **Forms show state through feedback.** `useForm` drives it, but only a rendered

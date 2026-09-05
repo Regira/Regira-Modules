@@ -64,7 +64,8 @@ export class AuthData implements IAuthData {
 
 ```ts
 export type OnAuthenticatedOptions = {
-    immediate?: boolean // default true; pass FALSE when the view already fetches on mount (useRouteOverview / useDetails do)
+    immediate?: boolean // default true; pass FALSE only when the view already fetches on mount — useRouteOverview
+                        // and useDetails do, useSearchView / useListView do NOT
     store?: Pick<IAuthStore, "authData"> // defaults to the plugin's configured store, then the default pinia store
 }
 // Runs `handler` whenever an authenticated token arrives: sign-in, refresh (tenant switch included), and a
@@ -75,6 +76,9 @@ export type OnAuthenticatedOptions = {
 // still follows a custom `authStore`. Installing NO plugin at all is indistinguishable from "not yet", so
 // the handler then waits forever — a no-auth app leaves the hook out or installs the plugin disabled.
 // Prefer this over authStore.$onAction(...) for anything that fetches on mount.
+// Registering inside setup() scopes the watcher to that component, so app-lifetime state (the signed-in
+// user's domain row) registers ONCE from main.ts after the auth plugin — not inside a composable, where it
+// would belong to whichever component called first and die with it.
 export function onAuthenticated(handler: () => unknown, options?: OnAuthenticatedOptions): WatchStopHandle
 ```
 

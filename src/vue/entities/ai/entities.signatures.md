@@ -275,11 +275,11 @@ export const DEFAULT_DEBOUNCE = 250 // internal — NOT re-exported from the bar
 
 export type OverviewCoreIn<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
     service: IEntityService<T>
-    searchObject: SO
+    searchObject: SO // a plain INSTANCE (new SearchObject()); a ref is TS2559 only with explicit type args
     defaultPageSize?: number
 }
 export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
-    searchObject: Ref<SO>
+    searchObject: Ref<SO> // the same object as a ref: what the view binds and mutates
     pagingInfo: Ref<IPagingInfo>
     items: Ref<Array<T> | undefined> // undefined until the first fetch resolves
     itemsCount: Ref<number | undefined>
@@ -298,15 +298,18 @@ export interface IListViewIn<T, SO> extends OverviewCoreIn<T, SO> {
     debounceDelay?: number
 }
 export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
+    // ⚠️ NOTHING FETCHES ON MOUNT. The scaffolded Overview.vue gets its first search from useRouteOverview,
+    // a separate composable — a hand-written view owns it: onAuthenticated(() => searchHandler(true)).
     // Concurrent calls are safe: only the newest writes items/count/feedback/isLoading, so a slower earlier
-    // search cannot overwrite a newer result (the mount fetch racing the `onAuthenticated` re-search on a
-    // hard reload, a filter change, fast paging). The same gate covers applySave/applyRemove, which write
-    // the same isLoading/feedback.
+    // search cannot overwrite a newer result (useRouteOverview's mount fetch racing the `onAuthenticated`
+    // re-search on a hard reload, a filter change, fast paging). The same gate covers applySave/applyRemove,
+    // which write the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
 }
 export interface IListViewOut<T, SO> extends OverviewCoreOut<T, SO> {
-    // Sends the current searchObject + pagingInfo to service.list(); same concurrency guarantee as searchHandler
+    // Sends the current searchObject + pagingInfo to service.list(); same concurrency guarantee as
+    // searchHandler, and the same ⚠️ — no fetch on mount, the first one is yours
     listHandler(): Promise<void>
     debouncedListHandler(): Promise<void>
 }
@@ -639,7 +642,12 @@ export interface IPoolHandler<T extends IEntity> extends IPoolService<T> {
     cache: IPoolCache
     set(item: T): Ref<T>
     setMany(items: Array<T>): Array<Ref<T>>
-    fromPool<P = Array<T> | T>(input: P): P // entity/relation (or array) → its shared pooled instance; runs toEntity, dedups by $id, caches on first sight (unsaved inputs pass through)
+    // entity/relation (or array) → its shared pooled instance; runs toEntity, dedups by $id, caches on first
+    // sight (unsaved inputs pass through). ⚠️ READ-through, not write-through: for an id already cached it
+    // returns the cached ref and DISCARDS `input`. So Object.assign(item, fromPool(updated)) on a form bound
+    // to that row is a no-op (item already is that instance), and it does not refresh the pool either.
+    // set(item) / setMany(items) are the writes — use those after a custom endpoint returns an entity.
+    fromPool<P = Array<T> | T>(input: P): P
     fromCache(id?: string | number): Ref<T> | undefined | Array<Ref<T>> // read-only: id → that cached Ref (or undefined); no arg → all cached refs of the type; never fetches
 }
 export interface IPoolCache {

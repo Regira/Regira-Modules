@@ -1548,6 +1548,9 @@ function handleSelect(item?: Entity) {
     selected.value = item
 }
 
+// `useSearchView` fetches nothing on mount, so the first search is this component's to make. `onMounted` is
+// right HERE and nowhere else: a selector mounts when the user opens it, long after the stored token was
+// validated. A route-level view mounts before that, and uses `onAuthenticated(() => searchHandler(true))`.
 onMounted(searchHandler)
 </script>
 ```
