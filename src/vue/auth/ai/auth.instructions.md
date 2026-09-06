@@ -268,6 +268,12 @@ When enabled the plugin sets `app.config.globalProperties.$auth` (`IGlobalAuth`:
 (`enabled`, `clientApp`, `tokenManager`, `service` — no `authData`/`isAuthenticated`/`isRequired`).
 Prefer the store in components.
 
+⚠️ **`$auth` is a discriminated union**, `IGlobalAuth | { enabled: false }` — every member beyond `enabled`
+and `authData` lives on the enabled arm only. So `v-if="$auth.isAuthenticated"` is a **TS2339 build failure**;
+narrow first, exactly as the scaffolded shell does: `$auth.enabled && $auth.isAuthenticated` (or
+`!$auth.enabled || $auth.isAuthenticated` for "ready unless auth is pending"). In script, prefer the already-
+resolved `authStore.isAuthenticated` — it needs no guard.
+
 ## Gotchas
 
 - **Install order:** after the router is on `app` (the plugin reads `$router`) and after `initAxios` —

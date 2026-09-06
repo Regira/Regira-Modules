@@ -621,8 +621,8 @@ function applyAttachments(relPath, text) {
             text = text.replace(
                 ATTACHMENT_ANCHORS.prepareDoc,
                 `    // Files are staged in memory until the owner has an id, so both write paths flush them. The helpers\n` +
-                    `    // upload through useAxios(); adding getAttachments/addAttachment of your own instead means typing the\n` +
-                    `    // constructor's axios as AxiosWithFilesInstance and resolving it as one in setup.ts.\n` +
+                    `    // upload through useAxios(); call useAxios() in endpoints of your own too, for upload/getFile -\n` +
+                    `    // this.axios stays a plain AxiosInstance (the base declares it), whatever the ctor takes.\n` +
                     `    override async insert(item: Entity): Promise<Entity | undefined> {\n` +
                     `        return await insertWithAttachments(this.config.api, item, () => super.insert(item), (saved) => super.update(saved))\n` +
                     `    }\n` +
@@ -972,7 +972,7 @@ function attachmentsTodo() {
     )
     console.log(`    back-end: register the owner's files (WithAttachments + HasAttachments<>).`)
     console.log(
-        `    Adding getAttachments/addAttachment of your own? Those call this.axios.upload/getFile, so type the ctor as AxiosWithFilesInstance and resolve it as one in setup.ts.`
+        `    Adding getAttachments/addAttachment of your own? upload/getFile live on AxiosWithFilesInstance - call useAxios() inside the method; this.axios stays a plain AxiosInstance.`
     )
 }
 

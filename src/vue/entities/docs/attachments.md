@@ -50,10 +50,11 @@ export class EntityService extends EntityServiceBase<Entity> {
 }
 ```
 
-It is only when you add file endpoints of your own — e.g. the advanced example's optional
-`getAttachments(so?)` (`GET {api}/attachments`) and `addAttachment(itemId, file)` (`POST {api}/{id}/files`),
-which call `this.axios.upload` / `getFile` — that the constructor takes an `AxiosWithFilesInstance` (the
-file-aware axios from [`vue/http`](../../http/README.md)) and `setup.ts` has to resolve one.
+A method that moves the bytes itself — posting a file with `upload`, fetching one with `getFile` — needs the
+file-aware `AxiosWithFilesInstance` from [`vue/http`](../../http/README.md). (Endpoints that only read or write
+JSON, like the advanced example's `getAttachments(so?)`, do not: `this.axios.get` is enough.)
+Call `useAxios()` inside the method to reach them: `EntityServiceBase` declares `protected axios:
+AxiosInstance`, so `this.axios` stays narrow in the subclass whatever the constructor takes.
 
 The base `prepareItem` only strips **top-level** `_`-prefixed keys — it does not filter soft-deleted
 children, so override it to drop `_deleted` attachments (and other owned rows) before save — see

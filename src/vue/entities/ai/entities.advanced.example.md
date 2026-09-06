@@ -20,7 +20,7 @@ cover the per-entity set (config, model, plain service, search object, form, lis
 
 | Delta                             | Where, in this file                                                                             | Mechanism                                                                                                                                    |
 | --------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Attachments** (upload/download) | §4 service (`getAttachments`/`addAttachment`, `insert`/`update` overrides), §5 form `files` tab | `EntityService` round-trips files via the app-local `entity-attachments` helpers; service constructed with an `AxiosWithFilesInstance` (§13) |
+| **Attachments** (upload/download) | §4 service (`getAttachments`/`addAttachment`, `insert`/`update` overrides), §5 form `files` tab | `EntityService` round-trips files via the app-local `entity-attachments` helpers; service constructed with an `AxiosWithFilesInstance` (§13 — a choice, not a requirement) |
 | **Many-to-many link model**       | §3 `VehicleInterventionType`, §5 form (`InputSelectorInline` chips)                             | a join entity with `_deleted` + `create()`; the form edits links inline as marked-deletable chips (no flatten/rebuild bridge)                |
 | **Owned child collection**        | §6 `vehicle-interventions/Overview.vue` (embedded `interventions` tab)                          | a child list resolved from the IoC container and (re)loaded on save                                                                          |
 | **Hierarchical tree**             | _not in the Vehicle slice_ — see redirect below                                                 | `useTree` / `useDragDrop` — recipe in [entities.patterns.md — Hierarchical (tree) entities](entities.patterns.md)                            |
@@ -159,7 +159,8 @@ export class VehicleInterventionType extends EntityBase {
 The "with attachments" variant of the boilerplate service: it overrides `insert`/`update` to round-trip files via
 `insertWithAttachments`/`updateWithAttachments`, exposes `getAttachments`/`addAttachment` endpoints built off
 `this.config.api`, and `prepareItem` drops soft-deleted children before save. The constructor takes an
-`AxiosWithFilesInstance` (not a plain `AxiosInstance`) — see `setup.ts` (§13).
+`AxiosWithFilesInstance`, which `setup.ts` (§13) resolves — this example's choice, not a requirement:
+neither method below needs more than a plain `AxiosInstance`.
 
 > **API check (CONTRACT §6).** `AxiosWithFilesInstance` and `createQueryString` are verified
 > `@regira/modules/vue/http` exports — see [entities.signatures.md §10](entities.signatures.md#10-wiring-ioc--http)
@@ -908,8 +909,10 @@ export { default as plugin } from "./setup"
 
 ## 13. Plugin — `setup.ts`
 
-The vehicle service needs file uploads, so `addServices` resolves `axios` as an `AxiosWithFilesInstance`
-and the route key is taken from `Entity.name`.
+`addServices` resolves `axios` as an `AxiosWithFilesInstance` and takes the route key from `Entity.name`.
+The narrower type is this example's choice, not a requirement: the attachment helpers upload through
+`useAxios()`, and a subclass method reaching `upload` / `getFile` calls `useAxios()` too, because
+`EntityServiceBase` declares `protected axios: AxiosInstance` whatever the constructor takes.
 
 ```ts
 import type { App } from "vue"

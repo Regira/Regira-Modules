@@ -15,6 +15,7 @@ Edits are **bidirectional**: change one layer, update its counterparts in the sa
 | `src/<m>/docs/*.md` | the module's `ai/*.md` and `README.md` |
 | Root `README.md` index | the module set on disk (and vice-versa) |
 | A public signature/behavior in `src/**` | every doc layer that documents it — `…signatures.md` must match the built `dist/**/*.d.ts` (`npm run build`) |
+| A `src/vue/ui` component `_template/ui/manifest.json` lists | its ejectable copy — run `npm run build` in the same change. `_template/**` is committed build output, and the manifest tells apps to import their ejected copy, so a stale one ships the bug the release says it fixed |
 | Any user-visible change | `CHANGELOG.md` (bullet under *Unreleased*) + the `package.json` version (§7) |
 
 If a counterpart edit is out of scope, say so explicitly rather than leaving layers inconsistent.

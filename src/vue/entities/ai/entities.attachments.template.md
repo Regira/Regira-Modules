@@ -364,10 +364,11 @@ export { default as Attachment } from "./attachments/Entity"
 Three edits in the owner's slice: the join field, the service overrides, and the form tab.
 
 ⚠️ **`setup.ts` needs nothing.** The helpers upload through `useAxios()`, so the service keeps its plain
-`AxiosInstance` constructor and the default registration stands. It is only when you add endpoints of your
-own — `getAttachments` / `addAttachment` calling `this.axios.upload` / `getFile`, as the Vehicle service in
-[entities.advanced.example.md](entities.advanced.example.md) §13 does — that the constructor takes an
-`AxiosWithFilesInstance` and `setup.ts` has to resolve one.
+`AxiosInstance` constructor and the default registration stands. A method of your own that moves the bytes
+itself — posting a file with `upload`, fetching one with `getFile` — needs `AxiosWithFilesInstance`:
+call **`useAxios()`** inside the method to reach them. Typing the constructor parameter does not help:
+`EntityServiceBase` declares `protected axios: AxiosInstance`, so `this.axios` stays narrow in the subclass
+whatever you pass it (`protected declare axios: AxiosWithFilesInstance` re-declares it, if you prefer that).
 
 The helper signatures (they live in **your** scaffolded slice, not in `@regira/modules`):
 
@@ -411,13 +412,6 @@ protected override prepareItem(item: Owner): Owner {
 <!-- details/Form.vue — attachments get their own tab -->
 <template #files><EntityAttachments v-model="item.attachments" :readonly="readonly" /></template>
 <!-- import { Overview as EntityAttachments } from "../../entity-attachments" -->
-```
-
-```ts
-// setup.ts — ONLY if the service gained getAttachments/addAttachment of its own (they call this.axios
-// .upload/.getFile). With just the overrides above, leave setup.ts and the constructor as generated.
-import type { AxiosWithFilesInstance } from "@regira/modules/vue/http"
-serviceProvider.add(Entity.name, (sp) => new EntityService(sp.get<AxiosWithFilesInstance>("axios")!, config))
 ```
 
 > **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`); order the

@@ -768,7 +768,7 @@ helpers re-wrap each blob under its edited name and `POST` it to `{api}/{id}/fil
 `_deleted` drop from the payload and are deleted by omission.
 
 **Wire it into each file-owning entity** — the join field, the flush overrides + `_deleted` filter, and a
-tab. The owner's service takes an `AxiosWithFilesInstance` (see [advanced example §13](entities.advanced.example.md)):
+tab. The service needs no change beyond the overrides: the helpers upload through `useAxios()`.
 
 ```ts
 // data/Entity.ts
@@ -1055,6 +1055,51 @@ when that entity is already pooled — loaded by its own overview, or warmed by 
 `fromCache(id?)` is the read-only counterpart: with an id it returns the cached `Ref<T>` (or `undefined`); with no
 argument, every cached `Ref<T>` of the type (`Array<Ref<T>>`). It never fetches — it reports only what
 pooling has already seen.
+
+## Permission-gated UI
+
+<!-- how_to: key=permission-gated-ui aliases=permission,permissions,authorization,authorisation,canwrite,can-write,gating,gate,hide,hide-actions,forbidden,403,role-gated,write-tier -->
+
+The API's write tiers are invisible to the client: a role-gated write filter or a row-scoping filter answers
+**403** for a caller the scaffold offered a "New" button to. Mirror the server's allow-list once,
+then gate three affordances per slice — nothing else changes.
+
+```ts
+// src/access.ts — the SPA's single mirror of the API's write tiers; keep it next to the filter it mirrors.
+import { useAuthStore } from "@regira/modules/vue/auth"
+
+const WRITERS: Record<string, Array<string>> = {
+    departments: ["Administrator"],
+    employees: ["Administrator", "Manager"],
+    // an entity the API only ever writes itself (notifications, audit rows) is simply absent → nobody writes it
+}
+
+export function useAccess() {
+    const store = useAuthStore()
+    // hasRole probes "role" / "roles" / the ClaimTypes.Role URI — see auth.instructions
+    return { canWrite: (key: string) => (WRITERS[key] ?? []).some((r) => store.hasRole(r)) }
+}
+```
+
+| File | Edit |
+| --- | --- |
+| `overview/Overview.vue` | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
+| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye) |
+| `details/Details.vue` | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form |
+
+⚠️ **Gating is not authorization.** It removes a button, not a capability; the server filter stays the only
+enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it
+secures anything.
+
+⚠️ **A `readonly` form still renders one button.** `FormButtonsRow` hides Save and disables Delete and
+Restore on `readonly`, but Cancel always renders — it is the way out of a locked form, not a save affordance. When
+nothing on the form is writable, render the reason instead of the row ("Read-only: approved requests cannot
+be edited"); a lone Cancel reads as a broken toolbar.
+
+**Row-level locks** (an owner may edit their own draft; nobody may edit it once approved) are the same shape
+with the item in hand — compute the flag from `item` + the store in the view that owns the item, and thread
+the same `readonly`. Mirror it on the server in a prepper: a read scope wide enough to *show* a row grants
+`PATCH` on it as well (`Regira.Entities` → `entities.instructions` → *Security & Authorization*).
 
 ## Auth reload hooks (`onAuthenticated`)
 

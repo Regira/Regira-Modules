@@ -5,6 +5,39 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/ui` + `vue/entities`: **behaviour change, classed as a fix — `readonly` now gates Restore.** `FormButtonsRow` disabled Save and Delete on
+  `readonly` and left the Restore button live, and `useForm`'s `handleRestore` was the one write handler that
+  never called `checkReadonly()` — so a read-only form on an archived row offered an enabled button that
+  un-archived it. Both layers now answer to the prop, matching `handleSubmit` / `handleRemove`, and the
+  ejectable copy under `_template/ui` carries the same fix — an app that ejected `FormButtonsRow` before this
+  release keeps its own copy and must apply it there. An app that rendered a form `readonly` *in order to*
+  offer Restore alone must now render its own button.
+- Docs: **Permission-gated UI** — a new pattern (and `how_to` recipe) in `vue/entities`, the gap that made an
+  otherwise correct application offer "New", edit and delete to every signed-in user and let the API answer
+  403 for the click. It carries the `useAccess()` mirror of the server's write tiers, the three affordances to
+  gate per slice, row-level locks, and the reason a `readonly` form should render why it is locked rather than
+  a lone Cancel button. The *Functionality contract* gains the matching capability row, so a custom design is
+  held to it like the others.
+- Docs: `vue/auth` states that `$auth` is a **discriminated union** (`IGlobalAuth | { enabled: false }`).
+  The templates all narrow it with `$auth.enabled &&`, but nothing said so, and a hand-written
+  `v-if="$auth.isAuthenticated"` is a TS2339 build failure.
+- Docs: `vue/ui` — `FormLabel` renders **below** its input, which makes `align-items: flex-end` the wrong
+  choice for a row mixing labelled fields with buttons (it lines the button up with the caption, ~20px low)
+  and misaligns a `.form-check` whose label is a badge rather than plain text. `FormButtonsRow`'s signature
+  states what `readonly` suppresses: Save hidden, Delete and Restore disabled, **Cancel always rendered**. The icon-key
+  gotcha points at the declarations the package actually ships
+  (`dist/vue/ui/icons/bootstrap-icons.d.ts`, 124 keys) instead of a source path absent from the published
+  package.
+- Docs: attachments — `useAxios()` is how a service reaches `upload` / `getFile`. Typing the constructor
+  parameter as `AxiosWithFilesInstance` does not narrow `this.axios`, which `EntityServiceBase` declares as a
+  plain `AxiosInstance`; the guide and the scaffolder's hints said otherwise.
+- `_template`: `readonly` reaches the whole overview row. The generated `ListItem.vue` honours the prop it
+  already declares (and `List.vue` already passes) — it drops its delete button and opens its
+  `FormModalButton` read-only, so a modal-form entity is gated like a page one — and `List.vue` drops the
+  header's matching delete spacer, whose `.btn` box would otherwise leave the trailing columns misaligned.
+
 ## 6.2.1 — 2026-09-05
 
 - `vue/formatters`: `formatDate` no longer lets a bad culture abort the render. `toLocaleDateString` raises

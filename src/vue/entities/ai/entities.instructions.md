@@ -319,6 +319,7 @@ these capabilities stay available however you render them:
 | **Feedback & loading**             | every save, error and busy state is visible — a `useForm` feedback object that nothing renders shows the user nothing                                                          | `<Feedback>` · `LoadingContainer`                                                    |
 | **Auth (when requested)**          | the **full** account surface — sign in, forgot password, reset password, change password, sign out — and the login prompt shown to anonymous users instead of an unusable page | `vue/auth` (`auth.instructions` → _Account UI_)                                      |
 | **Attachments**                    | upload, download and remove files on entities that own them                                                                                                                    | the `entity-attachments` slice + `FileDropZone`                                      |
+| **Actions match the caller**       | when the API gates writes by role or row ownership, the UI offers only what that identity may do — an affordance whose 403 was predictable is a defect                         | `useAccess()` allow-list + `readonly` threaded through the slice                     |
 | **i18n (when multilanguage)**      | a visible language selector, and translations for every `langs` entry                                                                                                          | `LangSelector` (`vue/lang`)                                                          |
 | **Error routes**                   | 401 / 403 / 404 land on real views                                                                                                                                             | the shell's error views                                                              |
 | **Responsive**                     | the main views stay usable at a mobile viewport                                                                                                                                | Bootstrap grid + `useScreen`                                                         |
@@ -586,6 +587,7 @@ Load [entities.patterns.md](entities.patterns.md) when implementing one of these
 - **Hierarchical (tree) entities** — `useTree` + `useDragDrop`.
 - **Static / lookup data** — `JSONService`.
 - **Pooling & the shared cache** — `createStore` / `PoolService` / `PoolCache`.
+- **Permission-gated UI** — mirror the API's write tiers so the SPA offers only what the caller may do: a `useAccess()` allow-list, `readonly` threaded through the slice, and a locked form that says why.
 - **Navigation from the config map** — `importDashboard` / `importNavbar` / `buildNavigationTree`.
 - **Custom query params (the `$` rule)** — `$`-prefixed keys are stripped before the request.
 - **Type the client from the API's OpenAPI** — generate DTO types and feed them into the models.

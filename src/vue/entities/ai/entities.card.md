@@ -13,13 +13,13 @@
 > **⚠️ Three sections are not summarised here, and their headings are listed so you can fetch _one_ by
 > name rather than gamble on the file size:**
 >
-> `"patterns"` (~65k chars) — Soft delete / archived rows · State toggle · Date hydration · Transient
-> client-only fields · Paging · Overview list layout · Two presentations of one entity · Union search ·
-> Custom endpoints on a service · Feedback for custom saves · Entity selector (relation picker) · Owned
-> (child) collections · Attachments · Form validation & error handling · Tabbed forms · Restyling &
-> overriding the built-ins · Hierarchical (tree) entities · Static / lookup data · Pooling & the shared
-> cache · Auth reload hooks · Navigation from the config map · Custom query params · Type the client from
-> OpenAPI · Debug panel
+> `"patterns"` (~74k chars) — Soft delete / archived rows · State toggle · Date hydration · Transient
+> client-only fields · Paging · Overview list layout · Two presentations of one entity · Union search · Custom
+> endpoints on a service · Feedback for custom saves · Entity selector (relation picker) · Owned (child)
+> collections · Attachments · Form validation & error handling · Tabbed forms · Restyling & overriding the
+> built-ins · Hierarchical (tree) entities · Static / lookup data · Pooling & the shared cache ·
+> Permission-gated UI · Auth reload hooks · Navigation from the config map · Custom query params · Type the
+> client from OpenAPI · Debug panel
 >
 > `"blueprints"` (~26k chars) — Labels editor · Tenant switcher · Family tree view · Polymorphic entity · Contact data & address editors
 >
