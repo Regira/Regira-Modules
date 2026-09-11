@@ -91,6 +91,11 @@ export class TreeList<T = any> extends Array<TreeNode<T>> {
         return false
     }
     move(node: TreeNode<T>, parent?: TreeNode<T>) {
+        for (let p = parent; p != null; p = p.parent) {
+            if (p === node) {
+                throw new Error("Cannot move a node under itself or one of its descendants")
+            }
+        }
         if (node.parent != null) {
             const childIndex = node.parent.children.findIndex((n) => n === node)
             if (childIndex !== -1) {
@@ -114,6 +119,12 @@ export class TreeList<T = any> extends Array<TreeNode<T>> {
         }
 
         node._parentNode = parent
+        // Depth is stored per node, so the whole moved subtree takes its level from the new parent
+        const setLevel = (n: TreeNode<T>, level: number) => {
+            n._level = level
+            n.children.forEach((c) => setLevel(c, level + 1))
+        }
+        setLevel(node, parent != null ? parent.level + 1 : 0)
     }
 
     /**

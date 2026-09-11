@@ -56,12 +56,11 @@ From a `TreeNode<T>`: `value`, `parent`, `level` (0 for roots), `children` (read
 - `remove(node)` — removes the node **and all its descendants** from the tree and from its parent's
   children (or from `roots`); returns whether the node was found.
 - `move(node, parent)` — detaches `node` from its current parent/roots and re-parents it under `parent`
-  (pass a falsy `parent` to make it a root again). Used by the entities tree drag-and-drop.
+  (pass a falsy `parent` to make it a root again), re-deriving `level` for `node` and all its descendants.
+  Moving a node under itself or one of its descendants throws. Used by the entities tree drag-and-drop.
 
 ## Gotchas
 
-- **`level` is not recomputed on `move`.** `_level` is set at construction (`parent.level + 1`, or 0 for
-  roots) and is not updated when a node is moved, so a moved node's `level` can be stale.
 - **Array methods return a plain `Array`, not a `TreeList`.** `TreeList` overrides `Symbol.species` to
   `Array`, so `tree.filter(...)`, `tree.map(...)`, etc. yield a plain `Array<TreeNode<T>>`.
 - **`getNodes` matches by value equality.** It filters on `node.value === input`, so it relies on

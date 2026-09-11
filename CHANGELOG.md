@@ -7,6 +7,10 @@ heading.
 
 ## Unreleased
 
+- `treelist`: `TreeList.move` recomputes `level` for the moved node and all its descendants. It kept the
+  depth set at construction, so indentation driven by `node.level` was wrong after a drag-move until the
+  tree was rebuilt. Moving a node under itself or one of its descendants now throws, instead of leaving a
+  detached cycle that hung `getRoots` and overflowed the stack in `getAncestors` / `getOffspring`.
 - `vue/ui` + `vue/entities`: **behaviour change, classed as a fix — `readonly` now gates Restore.** `FormButtonsRow` disabled Save and Delete on
   `readonly` and left the Restore button live, and `useForm`'s `handleRestore` was the one write handler that
   never called `checkReadonly()` — so a read-only form on an archived row offered an enabled button that

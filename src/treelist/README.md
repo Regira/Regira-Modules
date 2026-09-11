@@ -15,7 +15,8 @@ are both built on it.
 
 Build from a flat list with `new TreeList<T>().init(values, findParents)`, or imperatively via the
 constructor / `addValue` / `addValues`. Navigate with `getRoots`, `getAncestors`, `getOffspring`,
-`getNodes`, `getValues`; mutate with `remove` (cascades to descendants) and `move` (re-parent).
+`getNodes`, `getValues`; mutate with `remove` (cascades to descendants) and `move` (re-parent; the
+moved subtree's `level` follows its new parent, and moving a node under its own descendant throws).
 
 `init` accepts the values in any order and at any depth — a parent met through one of its children is
 created once and reused — and terminates on cyclic input by skipping the edge that closes the cycle.
