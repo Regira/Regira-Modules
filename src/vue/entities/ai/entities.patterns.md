@@ -768,7 +768,10 @@ helpers re-wrap each blob under its edited name and `POST` it to `{api}/{id}/fil
 `_deleted` drop from the payload and are deleted by omission.
 
 **Wire it into each file-owning entity** — the join field, the flush overrides + `_deleted` filter, and a
-tab. The service needs no change beyond the overrides: the helpers upload through `useAxios()`.
+tab. The service needs no change beyond the overrides: the helpers upload through `useAxios()`. The slice
+exports no single-file save helper; a service method that adds one file calls
+``useAxios().upload(`${api}/${id}/files`, [file])`` itself and maps `data.item` (see §4 of
+[entities.advanced.example.md](entities.advanced.example.md)).
 
 ```ts
 // data/Entity.ts
@@ -1081,11 +1084,11 @@ export function useAccess() {
 }
 ```
 
-| File | Edit |
-| --- | --- |
-| `overview/Overview.vue` | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
-| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye) |
-| `details/Details.vue` | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form |
+| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
+| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
+| `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
 
 ⚠️ **Gating is not authorization.** It removes a button, not a capability; the server filter stays the only
 enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it
@@ -1098,8 +1101,8 @@ be edited"); a lone Cancel reads as a broken toolbar.
 
 **Row-level locks** (an owner may edit their own draft; nobody may edit it once approved) are the same shape
 with the item in hand — compute the flag from `item` + the store in the view that owns the item, and thread
-the same `readonly`. Mirror it on the server in a prepper: a read scope wide enough to *show* a row grants
-`PATCH` on it as well (`Regira.Entities` → `entities.instructions` → *Security & Authorization*).
+the same `readonly`. Mirror it on the server in a prepper: a read scope wide enough to _show_ a row grants
+`PATCH` on it as well (`Regira.Entities` → `entities.instructions` → _Security & Authorization_).
 
 ## Auth reload hooks (`onAuthenticated`)
 

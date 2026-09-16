@@ -438,7 +438,7 @@ export interface FormOut<T> {
     handleCancel(): void
     handleSubmit(): Promise<void>
     handleRemove(): Promise<void> // ⚠ takes NO args — removes item.value
-    handleRestore(): Promise<void> // unarchive: sets the entity's isArchived=false then saves (write path needs no query param)
+    handleRestore(): Promise<void> // unarchive: sets the entity's isArchived=false then saves (write path needs no query param); no-op when readonly, like handleSubmit/handleRemove
 }
 ```
 

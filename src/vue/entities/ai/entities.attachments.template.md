@@ -368,7 +368,9 @@ Three edits in the owner's slice: the join field, the service overrides, and the
 itself — posting a file with `upload`, fetching one with `getFile` — needs `AxiosWithFilesInstance`:
 call **`useAxios()`** inside the method to reach them. Typing the constructor parameter does not help:
 `EntityServiceBase` declares `protected axios: AxiosInstance`, so `this.axios` stays narrow in the subclass
-whatever you pass it (`protected declare axios: AxiosWithFilesInstance` re-declares it, if you prefer that).
+whatever you pass it. The slice exports no single-file save helper — an `addAttachment(itemId, file)` of
+your own posts with ``useAxios().upload(`${this.config.api}/${itemId}/files`, [file])`` and maps the
+response's `data.item` with `Entity.create` (the call `saveAll` makes).
 
 The helper signatures (they live in **your** scaffolded slice, not in `@regira/modules`):
 

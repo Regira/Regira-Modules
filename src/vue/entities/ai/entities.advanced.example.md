@@ -18,15 +18,20 @@ The simple (`UnitType`) and standard (`Product`) slices in [entities.examples.md
 cover the per-entity set (config, model, plain service, search object, form, list, selectors, setup).
 `Vehicle` layers on the things they don't have:
 
-| Delta                             | Where, in this file                                                                             | Mechanism                                                                                                                                    |
-| --------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delta                             | Where, in this file                                                                             | Mechanism                                                                                                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Attachments** (upload/download) | §4 service (`getAttachments`/`addAttachment`, `insert`/`update` overrides), §5 form `files` tab | `EntityService` round-trips files via the app-local `entity-attachments` helpers; service constructed with an `AxiosWithFilesInstance` (§13 — a choice, not a requirement) |
-| **Many-to-many link model**       | §3 `VehicleInterventionType`, §5 form (`InputSelectorInline` chips)                             | a join entity with `_deleted` + `create()`; the form edits links inline as marked-deletable chips (no flatten/rebuild bridge)                |
-| **Owned child collection**        | §6 `vehicle-interventions/Overview.vue` (embedded `interventions` tab)                          | a child list resolved from the IoC container and (re)loaded on save                                                                          |
-| **Hierarchical tree**             | _not in the Vehicle slice_ — see redirect below                                                 | `useTree` / `useDragDrop` — recipe in [entities.patterns.md — Hierarchical (tree) entities](entities.patterns.md)                            |
+| **Many-to-many link model**       | §3 `VehicleInterventionType`, §5 form (`InputSelectorInline` chips)                             | a join entity with `_deleted` + `create()`; the form edits links inline as marked-deletable chips (no flatten/rebuild bridge)                                              |
+| **Owned child collection**        | §6 `vehicle-interventions/Overview.vue` (embedded `interventions` tab)                          | a child list resolved from the IoC container and (re)loaded on save                                                                                                        |
+| **Hierarchical tree**             | _not in the Vehicle slice_ — see redirect below                                                 | `useTree` / `useDragDrop` — recipe in [entities.patterns.md — Hierarchical (tree) entities](entities.patterns.md)                                                          |
 
 > **Fidelity note (CONTRACT §6).** Every code block below is reproduced **verbatim** from the reference
-> app — templates included — so both markup and `<script setup>` wiring are normative. Two scope caveats:
+> app — templates included — so both markup and `<script setup>` wiring are normative, with one
+> exception and two scope caveats:
+>
+> - The §4 service is written against the shipped `entity-attachments` slice, which exports no
+>   single-file save helper: `addAttachment` posts through `useAxios().upload` (see
+>   [entities.attachments.template.md](entities.attachments.template.md) for the slice's exports).
 >
 > - The Vehicle child collection (§6) is a **hand-rolled** read-mostly list (resolve service from IoC →
 >   load on mount/after-save). It is the owned-collection pattern as the reference app ships it; it does
@@ -160,26 +165,23 @@ The "with attachments" variant of the boilerplate service: it overrides `insert`
 `insertWithAttachments`/`updateWithAttachments`, exposes `getAttachments`/`addAttachment` endpoints built off
 `this.config.api`, and `prepareItem` drops soft-deleted children before save. The constructor takes an
 `AxiosWithFilesInstance`, which `setup.ts` (§13) resolves — this example's choice, not a requirement:
-neither method below needs more than a plain `AxiosInstance`.
+neither method below needs more than a plain `AxiosInstance` from the constructor. `getAttachments` reads
+JSON through `this.axios`; `addAttachment` posts the file through `useAxios().upload` — the same call the
+slice's own save flush makes — and maps the returned `{ data: { item } }` to an attachment row.
 
-> **API check (CONTRACT §6).** `AxiosWithFilesInstance` and `createQueryString` are verified
+> **API check (CONTRACT §6).** `AxiosWithFilesInstance`, `useAxios` and `createQueryString` are verified
 > `@regira/modules/vue/http` exports — see [entities.signatures.md §10](entities.signatures.md#10-wiring-ioc--http)
-> (`AxiosWithFilesInstance` adds `getFile`/`upload`; `createQueryString(o): URLSearchParams`). The
-> `insertWithAttachments` / `updateWithAttachments` / `createEntity` helpers live in **your own
+> (`AxiosWithFilesInstance` adds `getFile`/`upload`; `useAxios(): AxiosWithFilesInstance`;
+> `createQueryString(o): URLSearchParams`). The `Entity` model and the
+> `insertWithAttachments` / `updateWithAttachments` helpers live in **your own
 > `entity-attachments` slice** — build it once from the copy-paste recipe in
 > [entities.patterns.md → Attachments (files)](entities.patterns.md#attachments-files--offline-add--rename--remove-confirm-on-save)
 > (offline add/rename/remove + drop zone), not the `@regira/modules` reference.
 
 ```ts
-import { type AxiosWithFilesInstance, createQueryString } from "@regira/modules/vue/http"
+import { type AxiosWithFilesInstance, createQueryString, useAxios } from "@regira/modules/vue/http"
 import { EntityServiceBase, type ListResult, type IConfig } from "@regira/modules/vue/entities"
-import {
-    Entity as EntityAttachment,
-    insertWithAttachments,
-    updateWithAttachments,
-    createEntity,
-    save as saveAttachments,
-} from "../../entity-attachments"
+import { Entity as EntityAttachment, insertWithAttachments, updateWithAttachments } from "../../entity-attachments"
 import Entity from "./Entity"
 
 export class EntityService extends EntityServiceBase<Entity> {
@@ -199,9 +201,11 @@ export class EntityService extends EntityServiceBase<Entity> {
     }
     async addAttachment(itemId: number, file: Blob): Promise<EntityAttachment> {
         const url = `${this.config.api}/${itemId}/files`
-        const attachment = createEntity(file)
-        await saveAttachments(url, [attachment])
-        return attachment
+        // upload lives on useAxios(): this.axios is typed as a plain AxiosInstance by EntityServiceBase
+        const {
+            data: { item },
+        } = await useAxios().upload(url, [file]) // field name "file"; baseURL-relative
+        return EntityAttachment.create(item)
     }
 
     override async insert(item: Entity): Promise<Entity | undefined> {

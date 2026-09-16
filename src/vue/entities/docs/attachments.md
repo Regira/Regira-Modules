@@ -54,7 +54,17 @@ A method that moves the bytes itself — posting a file with `upload`, fetching 
 file-aware `AxiosWithFilesInstance` from [`vue/http`](../../http/README.md). (Endpoints that only read or write
 JSON, like the advanced example's `getAttachments(so?)`, do not: `this.axios.get` is enough.)
 Call `useAxios()` inside the method to reach them: `EntityServiceBase` declares `protected axios:
-AxiosInstance`, so `this.axios` stays narrow in the subclass whatever the constructor takes.
+AxiosInstance`, so `this.axios` stays narrow in the subclass whatever the constructor takes. The slice has
+no single-file save helper, so an endpoint that adds one file posts it directly and maps the response:
+
+```ts
+async addAttachment(itemId: number, file: Blob): Promise<EntityAttachment> {
+    const {
+        data: { item },
+    } = await useAxios().upload(`${this.config.api}/${itemId}/files`, [file]) // field name "file"
+    return EntityAttachment.create(item)
+}
+```
 
 The base `prepareItem` only strips **top-level** `_`-prefixed keys — it does not filter soft-deleted
 children, so override it to drop `_deleted` attachments (and other owned rows) before save — see

@@ -37,6 +37,9 @@ heading.
 - Docs: attachments — `useAxios()` is how a service reaches `upload` / `getFile`. Typing the constructor
   parameter as `AxiosWithFilesInstance` does not narrow `this.axios`, which `EntityServiceBase` declares as a
   plain `AxiosInstance`; the guide and the scaffolder's hints said otherwise.
+- Docs: the advanced (Vehicle) example's `EntityService.addAttachment` compiles against the shipped
+  `entity-attachments` slice. It imported a `save` helper the slice never exported; it now posts the file with
+  `useAxios().upload` and maps the returned `data.item`, and the attachments guide and recipes show that call.
 - `_template`: `readonly` reaches the whole overview row. The generated `ListItem.vue` honours the prop it
   already declares (and `List.vue` already passes) — it drops its delete button and opens its
   `FormModalButton` read-only, so a modal-form entity is gated like a page one — and `List.vue` drops the

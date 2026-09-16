@@ -105,6 +105,9 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   `getWindowSize` are not, and there is no `@regira/modules/vue/ui/screen` sub-path, so they cannot be
   imported from the published package. `feedback`, `icons`, and `modal` do have dedicated sub-paths
   for extra exports (e.g. `FeedbackError`/`FeedbackIn`, the modal `style.scss`).
+- `FormLabel` renders **below** its input (a muted caption, not a `<label>` above it), so align a row that
+  mixes labelled fields with buttons to `flex-start`.
+- `FormButtonsRow` with `readonly` hides Save and disables Delete and Restore; Cancel always renders.
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module.
