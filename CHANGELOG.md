@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.2.2 — 2026-09-16
 
 - `treelist`: `TreeList.move` recomputes `level` for the moved node and all its descendants. It kept the
   depth set at construction, so indentation driven by `node.level` was wrong after a drag-move until the
