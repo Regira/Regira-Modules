@@ -5,13 +5,13 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## 6.2.2 — 2026-09-16
+## 6.3.0 — 2026-09-16
 
 - `treelist`: `TreeList.move` recomputes `level` for the moved node and all its descendants. It kept the
   depth set at construction, so indentation driven by `node.level` was wrong after a drag-move until the
   tree was rebuilt. Moving a node under itself or one of its descendants now throws, instead of leaving a
   detached cycle that hung `getRoots` and overflowed the stack in `getAncestors` / `getOffspring`.
-- `vue/ui` + `vue/entities`: **behaviour change, classed as a fix — `readonly` now gates Restore.** `FormButtonsRow` disabled Save and Delete on
+- `vue/ui` + `vue/entities`: **behaviour change — `readonly` now gates Restore** (hence the minor version). `FormButtonsRow` disabled Save and Delete on
   `readonly` and left the Restore button live, and `useForm`'s `handleRestore` was the one write handler that
   never called `checkReadonly()` — so a read-only form on an archived row offered an enabled button that
   un-archived it. Both layers now answer to the prop, matching `handleSubmit` / `handleRemove`, and the
