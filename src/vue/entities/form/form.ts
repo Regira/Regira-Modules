@@ -164,6 +164,11 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
     }
 
     async function handleRestore(): Promise<void> {
+        // un-archiving is a write, so it answers to `readonly` exactly like submit and remove
+        if (!checkReadonly()) {
+            return
+        }
+
         const restoringItem = entityService.toEntity(deepCopy(item.value)) as unknown as IArchivable
         restoringItem.isArchived = false
 

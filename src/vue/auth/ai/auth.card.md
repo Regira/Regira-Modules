@@ -19,6 +19,9 @@
   no failed request. Restoring a token is the `validateToken` action, not `login`, so a hand-rolled
   `$onAction(… "login" …)` misses it. Pass `{ immediate: false }` where the view already fetches on mount
   (`useRouteOverview` / `useDetails` — the scaffolded views do).
+- **⚠️ `$auth` is a union** (`IGlobalAuth | { enabled: false }`), so `$auth.isAuthenticated` alone is a
+  TS2339 build failure — narrow with `$auth.enabled && …`, as the scaffolded shell does, or read the
+  already-resolved `authStore.isAuthenticated`.
 - **⚠️ Role checks are `hasRole`, not `hasPermission`.** The SPA decodes the **raw** token; roles arrive as
   `role` (self-issued JWT), `roles` (Entra) or the `ClaimTypes.Role` URI (Identity default) — `hasRole`
   probes all three. `hasPermission` reads a **`permissions`** claim the standard Identity recipe never

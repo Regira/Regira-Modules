@@ -106,3 +106,54 @@ describe("TreeList navigation", () => {
         expect(tree.getValues()).toEqual([p1, c, p2])
     })
 })
+
+describe("TreeList.move", () => {
+    /** R → A → B, plus a second root C. */
+    const build = () => {
+        const tree = new TreeList().init([row("R"), row("A", "R"), row("B", "A"), row("C")], byParentId)
+        const [R, A, B, C] = ["R", "A", "B", "C"].map((id) => tree.find((n) => n.value.id === id))
+        return { tree, R, A, B, C }
+    }
+
+    test("re-derives level for the moved node and its descendants", () => {
+        const { tree, R, A, B, C } = build()
+
+        tree.move(A, C)
+        expect([A.level, B.level]).toEqual([1, 2])
+        expect(A.parent).toBe(C)
+        expect(names(C.children)).toEqual(["A"])
+        expect(names(R.children)).toEqual([])
+
+        tree.move(A)
+        expect([A.level, B.level]).toEqual([0, 1])
+        expect(tree.roots).toContain(A)
+
+        // A root moved deep takes its depth from the new parent
+        tree.move(C, B)
+        expect(C.level).toBe(2)
+        expect(tree.getAncestors(C)).toEqual([B, A])
+    })
+
+    test("moves a node up under an ancestor other than its parent", () => {
+        const { tree, R, B } = build()
+
+        tree.move(B, R)
+
+        expect(B.level).toBe(1)
+        expect(names(R.children)).toEqual(["A", "B"])
+    })
+
+    test("throws on a move under the node itself or a descendant, leaving the tree untouched", () => {
+        const { tree, R, A, B } = build()
+
+        expect(() => tree.move(R, R)).toThrow()
+        expect(() => tree.move(R, B)).toThrow()
+        expect(() => tree.move(A, B)).toThrow()
+
+        expect(names(tree.roots)).toEqual(["R", "C"])
+        expect(names(R.children)).toEqual(["A"])
+        expect(A.parent).toBe(R)
+        expect([R.level, A.level, B.level]).toEqual([0, 1, 2])
+        expect(tree.getRoots(B)).toEqual([R])
+    })
+})

@@ -28,6 +28,9 @@ A single axios instance (`initAxios`) is shared across all services; the auth pl
 token via an interceptor, so every entity request is authenticated. **Auth is optional.** Services are
 registered in a small IoC container keyed by `Entity.name` and resolved with `get()`.
 
+Signing in does not hide write actions the API would refuse. Mirror the API's write rules in the app and
+pass `readonly` through the slice — see [Views → Form](docs/views.md#form--useform-and-usemodal).
+
 ## Quick start
 
 Starting a new app? A running app wires `main.ts`, `App.vue`, the router, the plugin install order

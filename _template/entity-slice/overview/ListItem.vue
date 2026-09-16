@@ -7,7 +7,7 @@
             <RouterLink v-if="config.isComplex" :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
                 <Icon name="edit" />
             </RouterLink>
-            <FormModalButton v-else v-model="item" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
+            <FormModalButton v-else v-model="item" :readonly="readonly" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
         </div>
 
         <div class="col text-truncate">{{ item.$title }}</div>
@@ -22,7 +22,8 @@
         <div class="col-2 d-none d-lg-block text-truncate">{{ formatDate(item.created) }}</div>
 
         <div class="col-auto">
-            <ConfirmButton icon="delete" :modal-type="ModalType.danger" @confirm="$emit('request-remove', item)">
+            <!-- readonly comes from List.vue; it is the hook for permission-gating (entities.patterns.md -> Permission-gated UI) -->
+            <ConfirmButton v-if="!readonly" icon="delete" :modal-type="ModalType.danger" @confirm="$emit('request-remove', item)">
                 {{ $t("deleteItem", { title: item?.$title }) }}
             </ConfirmButton>
         </div>

@@ -48,8 +48,8 @@ const descendants = node.getOffspring() // everything below it
 
 ## Re-parent a node
 
-`move` detaches the node from its current parent and re-attaches it under another; omitting `parent`
-(or passing `undefined`) re-attaches it as a root:
+`move` detaches the node from its current parent and re-attaches it under another, and the `level` of the
+node and its descendants follows; omitting `parent` (or passing `undefined`) re-attaches it as a root:
 
 ```ts
 tree.move(child, parent) // child and parent are TreeNode<T>

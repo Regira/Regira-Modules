@@ -67,6 +67,13 @@ passing `item`. `item` is `undefined` until the `onMounted` load resolves — ga
 …>(), { ...formDefaults })` and emits via `FormEmits<T>`; `FormStates` enumerates pending/saved/removed/
 error. `useModal` is the in-modal variant for editing without leaving the page.
 
+`readonly` is the form's write gate: on a `readonly` form, `handleSubmit`, `handleRemove` and
+`handleRestore` return without calling the service, and `FormButtonsRow` hides Save and disables Delete and
+Restore (Cancel stays). When the API gates writes by role or row ownership, derive `readonly` from the
+signed-in user and pass it down the slice — the overview's `List` / `ListItem` and the details form all take
+it — so the UI offers only what that user may do. This hides buttons; the API remains the only place writes
+are authorized.
+
 For child/owned collections inside a form, render the rows with **`InputSelectorInline`** — chips that
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`
 override), remove rows added this session outright (nothing to undo; override the detection via the

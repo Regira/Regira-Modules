@@ -20,7 +20,7 @@
             </template>
             <slot name="delete">Delete {{ title }}?</slot>
         </ConfirmButton>
-        <IconButton v-if="isArchived" type="button" icon="restore" class="btn-warning" :disabled="busy" @click="emit('restore')">
+        <IconButton v-if="isArchived" type="button" icon="restore" class="btn-warning" :disabled="readonly || busy" @click="emit('restore')">
             <span class="d-none d-md-inline ms-1">{{ labels?.restore ?? "Restore" }}</span>
         </IconButton>
     </div>

@@ -124,12 +124,21 @@ it before writing a new component.
   `icon`-typed prop in the kit (`IconButton`, `Tab.create({ icon })`, the nav config), so the rules below hold
   everywhere one is accepted.
 - **The registered keys are a fixed list — an unregistered one renders nothing** (with a console warning,
-  easily lost in a busy log). The two seed maps are the source of truth: `icons/bootstrap-icons.ts` (~124 keys)
-  and `icons/fontawesome-icons.ts` (~57). Read the map rather than guessing a plausible name, or pass the raw
+  easily lost in a busy log). The published type declarations are the source of truth and list every key by name:
+  `node_modules/@regira/modules/dist/vue/ui/icons/bootstrap-icons.d.ts` (124) and
+  `fontawesome-icons.d.ts` (57) — read one rather than guessing a plausible name, or pass the raw
   class. The `fa` set is a **subset with different coverage**, not a mirror — `admin`, `calendar`, `settings`,
   `tag`, `list` and ~60 more exist only under `bs`, and `iconPlugin({ source: "fa" })` re-seeds the shared map,
   so switching source silently blanks every key the `fa` set does not define. Register your own with
   `iconPlugin`'s `icons` option instead of adding a raw class per call site.
+- **`FormLabel` renders BELOW its input** — it is a `<small class="form-text text-muted">` caption, not a
+  `<label>` above the field, and the scaffolded forms follow that order. Two consequences for rows you write
+  yourself: a row mixing labelled fields with buttons aligns **`flex-start`**, never `flex-end` (which lines
+  the button up with the caption's baseline, ~20px below the input it belongs to), and a labelled field group
+  is taller than a bare `.form-control`, so match top edges rather than heights. Same trap on checkboxes:
+  Bootstrap's `.form-check` floats the box and baseline-aligns the label, which only looks right for plain
+  text — a label that is a badge, chip or any taller element needs the `.form-check` laid out as a centred flex
+  line instead.
 - **Modal is a component, not a composable.** There is no `openModal()` here — use `DefaultModal` with
   `:is-visible` (one-way; it has no `update:isVisible` emit) plus `@close`/`@cancel` to flip your own state
   (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from
