@@ -324,12 +324,20 @@ describe("scaffold.mjs --no-auth", () => {
     test("leaves no trace of the auth hook in an entity slice", () => {
         run("Kiosk", "--no-auth")
 
-        for (const file of ["overview/Overview.vue", "details/Details.vue"]) {
+        for (const file of ["overview/Overview.vue", "details/Details.vue", "selecting/SelectorDropdown.vue"]) {
             const src = readFileSync(app("src", "entities", "kiosks", ...file.split("/")), "utf8")
             expect(src, `${file} mentions auth`).not.toMatch(/auth/i)
             expect(src, `${file} kept the marker comment`).not.toMatch(/no-auth app:/i)
             expect(src, `${file} kept the hook's comment block`).not.toMatch(/token arrives/i)
         }
+    })
+
+    test("keeps SelectorDropdown loading on mount without the hook", () => {
+        run("Beacon", "--no-auth")
+
+        const src = readFileSync(app("src", "entities", "beacons", "selecting", "SelectorDropdown.vue"), "utf8")
+        expect(src).toContain("onMounted(load)")
+        expect(src).not.toContain("onAuthenticated")
     })
 
     test("drops `load` from Details' useDetails destructure — it exists only to feed the hook", () => {

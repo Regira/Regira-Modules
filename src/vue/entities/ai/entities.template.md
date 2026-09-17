@@ -772,7 +772,7 @@ below) rather than hand-stubbing them here, so there is one source of truth:
 | `selecting/Autocomplete.vue`        | type-ahead search input                                                                                                                | [entities.examples.md](entities.examples.md) Part 1 §15 |
 | `selecting/InputSelector.vue`       | single-item picker                                                                                                                     | [entities.examples.md](entities.examples.md) Part 1 §16 |
 | `selecting/Selector.vue`            | multi-item picker (chips)                                                                                                              | [entities.examples.md](entities.examples.md) Part 1 §17 |
-| `selecting/SelectorDropdown.vue`    | simple `<select>` from the cache                                                                                                       | [entities.examples.md](entities.examples.md) Part 1 §18 |
+| `selecting/SelectorDropdown.vue`    | simple `<select>` that loads every row                                                                                                 | [entities.examples.md](entities.examples.md) Part 1 §18 |
 | `selecting/SelectorModalButton.vue` | opens the search/select modal                                                                                                          | [entities.examples.md](entities.examples.md) Part 1 §20 |
 | `selecting/SelectorSearch.vue`      | search UI inside the selector modal                                                                                                    | [entities.examples.md](entities.examples.md) Part 1 §21 |
 

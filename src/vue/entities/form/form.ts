@@ -1,7 +1,7 @@
 import { ref, watch, onMounted, type Ref } from "vue"
 import { useRouter, type RouteLocationRaw } from "vue-router"
 import { deepCopy } from "../../../utilities/object-utility"
-import useFeedback, { type FeedbackOut } from "../../ui/feedback"
+import useFeedback, { toFeedbackError, type FeedbackOut } from "../../ui/feedback"
 import type { IEntity } from "../abstractions/IEntity"
 import type { IEntityService, SaveResult } from "../abstractions/IEntityService"
 
@@ -54,7 +54,9 @@ export interface FormOut<T extends IEntity> {
 export function useForm<T extends IEntity>({ entityService, props, emit, feedback = useFeedback() }: FormIn<T>): FormOut<T> {
     type IArchivable = T & { isArchived: boolean }
 
-    const { readonly, isPopup } = props
+    // `readonly` and `isPopup` are read when a handler runs, never destructured: a permission-gated form mounts
+    // before the stored token is restored, and a snapshot would keep it locked after access resolves
+
     // use ref instead of computed|useVModelField to preserve value when (re)loading from pool somewhere else
     //const item = ref(props.modelValue)
     const item = ref(props.modelValue) as Ref<T>
@@ -72,11 +74,17 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
     // the unhandled rejection `@submit.prevent="handleSubmit"` used to log — a throw before the first
     // `await` is still a rejected promise, never a synchronous throw.
     function checkReadonly(): boolean {
-        if (readonly) {
+        if (props.readonly) {
             feedback.fail("Readonly")
             return false
         }
         return true
+    }
+
+    // the text a non-field failure carries: a plain `{ message }` body, or a ProblemDetails `detail` (409)
+    const serverMessage = (error: any): string => {
+        const text = toFeedbackError(error)
+        return typeof text === "string" ? text : error.message
     }
 
     const router = useRouter()
@@ -94,7 +102,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             item.value = entityService.toEntity(deepCopy(saved))
             original.value = entityService.toEntity(deepCopy(saved))
             emit("update:modelValue", item.value)
-            if (isNew && !isPopup) {
+            if (isNew && !props.isPopup) {
                 const currentRoute = router.currentRoute.value
                 delete currentRoute.query.src
                 const newRoute: RouteLocationRaw = {
@@ -115,11 +123,11 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             const error = ex as any
             const status = error.response?.status
             if (status == 400) {
-                feedback.fail("Saving failed", error.response?.data?.errors)
+                feedback.fail("Saving failed", toFeedbackError(error))
             } else if (status == 404) {
-                feedback.fail("Item not found", error.response?.data?.message || error.message)
+                feedback.fail("Item not found", serverMessage(error))
             } else {
-                feedback.fail("Server error", error.response?.data?.message || error.message)
+                feedback.fail("Server error", serverMessage(error))
             }
             emit("changeState", FormStates.error)
             // no re-throw: feedback surfaces the error, and `save` only emits on success (above), so a
@@ -147,12 +155,12 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             const error = ex as any
             const status = error.response?.status
             if (status == 400) {
-                feedback.fail("Deleting failed", error.response?.data?.errors)
+                feedback.fail("Deleting failed", toFeedbackError(error))
             } else if (status == 404) {
-                feedback.fail("Item not found", error.response?.data?.message || error.message)
+                feedback.fail("Item not found", serverMessage(error))
             } else {
                 // 409/500 etc. — surface the server's message (e.g. an FK-constraint "still referenced" reason)
-                feedback.fail("Deleting failed", error.response?.data?.message || error.message)
+                feedback.fail("Deleting failed", serverMessage(error))
             }
             emit("changeState", FormStates.error)
             // no re-throw: feedback surfaces the error, and `remove` only emits on success (above), so a
@@ -185,7 +193,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         } catch (ex) {
             console.error("Restoring failed", { item, ex })
             const error = ex as any
-            feedback.fail("Restoring failed", error.response?.data?.errors)
+            feedback.fail("Restoring failed", toFeedbackError(error))
             emit("changeState", FormStates.error)
             // no re-throw — same reasoning as handleSubmit/handleRemove above
         } finally {

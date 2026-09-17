@@ -1,5 +1,5 @@
 import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../abstractions"
-import type { FeedbackOut, FeedbackError } from "../../ui/feedback"
+import type { FeedbackOut } from "../../ui/feedback"
 import type { Ref } from "vue"
 
 export const DEFAULT_DEBOUNCE = 250
@@ -20,8 +20,6 @@ export interface OverviewProps<T extends IEntity> {
     title: string
     service: IEntityService<T>
 }
-
-export type OverviewError = { response: { data?: { errors: FeedbackError } } }
 
 export type OverviewCoreIn<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
     service: IEntityService<T>

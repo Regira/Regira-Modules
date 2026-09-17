@@ -10,7 +10,7 @@ Look the name up here, then fetch its heading, e.g.
 | Heading                      | Exports                                                                                                                                                                                                                  |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Plugins`                    | `feedbackPlugin`, `iconPlugin`, `loadingPlugin`, `pagingPlugin`, `modalPlugin`, `screenPlugin`                                                                                                                           |
-| `Feedback`                   | `useFeedback`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                                                                              |
+| `Feedback`                   | `useFeedback`, `toFeedbackError`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                                                           |
 | `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`                                                                                                                                                                     |
 | `Loading`                    | `Loading`, `LoadingButton`, `LoadingContainer`, `injectLoading`                                                                                                                                                          |
 | `Modal`                      | `DefaultModal`, `ModalType`, `injectModal`                                                                                                                                                                               |
@@ -57,7 +57,15 @@ library `Icon`, whose glyphs you re-map via `icons`/`source` and restyle via the
 ## Feedback
 
 ```ts
-import { useFeedback, FeedbackStatus, Feedback, type FeedbackOut, type FeedbackProps, type FeedbackSlots } from "@regira/modules/vue/ui"
+import {
+    useFeedback,
+    toFeedbackError,
+    FeedbackStatus,
+    Feedback,
+    type FeedbackOut,
+    type FeedbackProps,
+    type FeedbackSlots,
+} from "@regira/modules/vue/ui"
 import { type FeedbackError, type FeedbackIn } from "@regira/modules/vue/ui/feedback"
 
 export enum FeedbackStatus {
@@ -67,9 +75,14 @@ export enum FeedbackStatus {
     failed = "Failed",
 }
 export type FeedbackIn = { autoHideDelay?: number }
-// ⚠️ A FIELD-ERROR MAP ({ title: "Required" } — the 400 body an EntityInputException's InputErrors produces),
-// or a plain string. NOT an Error: log the exception yourself and pass error.response?.data?.errors.
-export type FeedbackError = string | Record<string, string>
+// ⚠️ A FIELD-ERROR MAP (the server sends { title: ["Required"] }; a client-side map may use plain strings),
+// or a plain string. NOT an Error: log the exception yourself and pass toFeedbackError(ex).
+export type FeedbackError = string | Record<string, string | Array<string>>
+// A failed request's field map, else the server's detail/message (or plain-text 400) text, else undefined.
+// Reads both 400 bodies the API sends — the flat map of an EntityInputException ({ CategoryId: [...] }) and
+// model binding's ProblemDetails ({ title, status, errors }) — and starts every key lower-case to match the
+// model's field name ("categoryId"). "" = an error that belongs to no field.
+export function toFeedbackError(ex: unknown): FeedbackError | undefined
 // reactive(), not a bag of refs: read the fields directly in script and template — :disabled="f.isPending".
 // Destructuring it snapshots the values, as with any reactive object — pass the object, or toRefs() it.
 export interface FeedbackOut {
@@ -219,6 +232,12 @@ export type TabsEmits = { (e: "select", tab: string): void }
 export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
 // TabContainer renders one named slot per tab key; `useRouteNav` syncs the active tab with the route
 // hash (deep-linkable, back-button friendly) — disable it inside popups (`:use-route-nav="!isPopup"`).
+// The tab shown is the first of these that names a visible, enabled tab, else the default tab — with route nav:
+// the hash, then `active` (so Back to a hash-less URL shows `active` again); without: the last selection, then
+// `active`. `active` is read once, at setup: changing it later has no effect. A click on a disabled tab is
+// ignored. With route nav a click writes the hash and mounting never navigates, so a container mounted while a
+// navigation is pending (useForm's post-insert replace) leaves it alone. `select` fires on mount and whenever
+// the tab shown changes: a click, Back/Forward, a tab turning enabled or hidden.
 ```
 
 ## Icons

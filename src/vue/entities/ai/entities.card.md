@@ -142,9 +142,10 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       `<Feedback :feedback="feedback" />`. Not `const { feedback } = …`: that is `useForm()`'s shape, and the
       asymmetry is the trap. Members: `pending(msg)` / `success(msg)` / `fail(msg, errors?)` / `reset()` — **the
       message is required**, `pending()` does not compile — plus an `isPending` computed. There is no `loading()`.
-      ⚠️ `fail`'s second argument is a **field-error map** (`FeedbackError = string | Record<string, string>` —
-      the 400 response shape), **not an `Error`**: `feedback.fail("Saving failed", ex.response?.data?.errors)`,
-      and log the exception yourself. Passing the caught exception is the misremembering this warning exists for.
+      ⚠️ `fail`'s second argument is a **field-error map** (`FeedbackError = string | Record<string, string | string[]>`),
+      **not an `Error`**: `feedback.fail("Saving failed", toFeedbackError(ex))` — that helper reads both 400
+      shapes the API sends (a flat `EntityInputException` map, or ProblemDetails `errors`) and falls back to the
+      server's `detail` text; `ex.response.data.errors` alone misses the first. Log the exception yourself.
     - `service.search(so?)` / `list(so?)` — **paging and sorting ride the argument, flat**, not your
       `SearchObject` class: `search({ ...so, pageSize: 0, sortBy: ["TitleDesc"] })`. Assigning `so.pageSize = 25`
       to a scaffolded `SearchObject` instance does not type-check; the param is

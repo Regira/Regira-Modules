@@ -5,6 +5,56 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.3.1 — 2026-09-17
+
+- `vue/ui` + `vue/entities`: **new `toFeedbackError(ex)`** — field errors from an `EntityInputException` reach
+  the form. The API answers that 400 with a flat field map (`{ "CategoryId": ["…"] }`), while every failure
+  path read only the ProblemDetails `errors` of model binding, so a prepper's rule breach showed as a bare
+  "Saving failed". `toFeedbackError` reads both shapes, starts each key lower-case to match the model's field
+  names, and falls back to the server's `detail` / `message` text (or a plain-text 400 body) when there is no
+  field map; `useForm` and the overview composables use it. `fail()` takes the text of an
+  `Error` passed in place of a map, and keeps a map whose field is named `message`. A 409's ProblemDetails
+  `detail` is now shown.
+- `vue/ui`: **type change** — `FeedbackError`'s map values are `string | string[]`, which is what the server
+  sends. Code that reads a field as a plain string (`const m: string = feedback.error?.[k]`) no longer
+  compiles; take the first message (`[feedback.error[k]].flat()[0]`). The keys `toFeedbackError` returns start
+  lower-case for model-binding errors too, so a lookup by the C# name (`feedback.error?.Price`) finds nothing — use
+  the model's field name (`price`).
+- `vue/entities`: `useForm` reads `readonly` and `isPopup` when a handler runs instead of once at setup, so a
+  permission-gated form whose access resolves after mount (`:readonly="!canWrite(…)"` before the stored token
+  is restored) no longer stays locked.
+- `vue/entities`: `useRouteOverview` keeps the view's search object on the first search when the URL carries no
+  search parameters, so defaults passed to `useSearchView` apply, and a hash-only navigation (a tab selection)
+  no longer re-runs the search. A `Date` filter is written to the route as ISO-8601 with its offset;
+  vue-router's `String()` coercion sent `Date.prototype.toString()`, which the API rejects with a 400.
+- `vue/ui`: `TabContainer` (the ejectable copy under `_template/ui` carries the same changes):
+  - With `useRouteNav` it no longer navigates on mount and writes the hash only on a select. The mount-time
+    route write cancelled a navigation still pending, which left a form that switches to tabs after an insert
+    on `/new`.
+  - With `useRouteNav` a URL without a hash shows the `active` tab. It showed the default tab, so a tabbed form
+    passing `:active="initialTab"` with `:use-route-nav="!isPopup"` ignored `initialTab` outside a popup.
+  - A hash or `active` naming a disabled, hidden or unknown tab is skipped (a hash falls back to `active`, then
+    to the default tab) instead of showing an empty area or a disabled tab's content, and a click on a disabled
+    tab is ignored. A tab the hash names shows once it turns enabled, such as a gated tab after the first save.
+  - `select` fires on mount and whenever the tab on screen changes, Back/Forward included, in both modes. It
+    fired on a click only, plus on mount with `useRouteNav` and no `active`.
+  - A click is compared with the tab on screen, so after Back the previously selected tab can be selected again.
+- Scaffold: `SelectorDropdown` loads its own rows (on mount and when a token arrives), sharing one request
+  between the dropdowns of a slice that load at the same moment, and logs any failure other than a 401. It read
+  the pool cache, which is not reactive to new ids, so it stayed empty after a hard reload unless something
+  else had listed the entity first.
+- `vue/entities`: `FormModalIn` / `FormModalOut` are exported, with `FormIn` / `FormOut` listed in the
+  namespaces.
+- Docs:
+  - `entities.signatures` gives `useForm`'s side effects (the post-insert `router.replace` and when it is
+    skipped), expands `FormIn`, and types `FeedbackOut` with `FeedbackError`. It states that
+    `useRouteOverview` owns the search object (restored values are strings) and that pooled reads return copies
+    to pass through `fromPool`.
+  - *Permission-gated UI* covers upload rights without edit rights, which the attachments flush turns into a
+    403 on the owner's `PUT`.
+  - The dev-proxy example forwards the SPA's origin (`xfwd`, plus `UseForwardedHeaders` after the HTTPS
+    redirect), so the absolute attachment URIs the API builds stay same-origin.
+
 ## 6.3.0 — 2026-09-16
 
 - `treelist`: `TreeList.move` recomputes `level` for the moved node and all its descendants. It kept the

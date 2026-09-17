@@ -15,6 +15,7 @@ export * from "./input"
 export * from "./gis"
 export {
     useFeedback,
+    toFeedbackError,
     Feedback,
     Pending,
     Success,

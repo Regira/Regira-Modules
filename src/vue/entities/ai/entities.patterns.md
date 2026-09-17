@@ -277,7 +277,7 @@ checkout that calls `service.save()` / `remove()` directly — gets none of the 
 own so the user sees the result; a bare `await service.save()` reads as a no-op (and swallows the error path):
 
 ```ts
-import { useFeedback } from "@regira/modules/vue/ui" // useFeedback, Feedback, FeedbackStatus all live here
+import { useFeedback, toFeedbackError } from "@regira/modules/vue/ui" // Feedback, FeedbackStatus live here too
 const feedback = useFeedback()
 
 async function toggleActive(row: Row) {
@@ -287,7 +287,7 @@ async function toggleActive(row: Row) {
         await service.save(row)
         feedback.success("Saved")
     } catch (ex: any) {
-        feedback.fail("Save failed", ex.response?.data?.errors ?? ex.response?.data?.message ?? ex.message)
+        feedback.fail("Save failed", toFeedbackError(ex) ?? ex.message)
     }
 }
 ```
@@ -816,11 +816,11 @@ directly — branch on `feedback` when you need the outcome. (On a **readonly** 
 `fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
 fixed:
 
-| HTTP status | `feedback.message` | `feedback.error`                                                 |
-| ----------- | ------------------ | ---------------------------------------------------------------- |
-| `400`       | `"Saving failed"`  | the server's **`response.data.errors`** `{ field: message }` map |
-| `404`       | `"Item not found"` | a string (`response.data.message` ‖ `error.message`)             |
-| other       | `"Server error"`   | a string                                                         |
+| HTTP status | `feedback.message`                                                          | `feedback.error`                                                        |
+| ----------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `400`       | `"Saving failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
+| `404`       | `"Item not found: …"`                                                       | —                                                                       |
+| other       | `"Server error: …"` (409: the ProblemDetails `detail`)                      | —                                                                       |
 
 So only a `400` puts a per-field map on `feedback.error`. Combine **client-side** guards (validate before
 saving) with that **server-side** map; render the summary with `<Feedback>` and the field map per input:
@@ -857,8 +857,8 @@ async function submit() {
     await handleSubmit()
 }
 
-// client errors first, then the server's 400 field map (a Record) on feedback.error
-const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.error === "object" ? feedback.error?.[name] : undefined)
+// client errors first, then the server's 400 field map on feedback.error (each field holds an array of messages)
+const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.error === "object" ? [feedback.error[name]].flat()[0] : undefined)
 </script>
 
 <template>
@@ -879,11 +879,14 @@ const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.erro
 </template>
 ```
 
-> For the per-field map to populate, the API must answer a `400` with body `{ errors: { Field: "message" } }`
-> — Regira's `EntityControllerBase` produces exactly that from an `EntityInputException`'s `InputErrors`. On
-> `404`/`500`, `feedback.error` is a plain string, so lean on the `<Feedback>` summary (`feedback.message`)
-> instead. `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `@regira/modules/vue/ui`;
-> gating the button on `FeedbackStatus.pending` prevents double-submits.
+> A Regira API answers a `400` in two shapes: the flat map an `EntityInputException` produces
+> (`{ "Price": ["…"] }`) and model binding's ProblemDetails (`{ title, status, errors: { … } }`).
+> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads both and starts every key lower-case, so it matches the
+> model's field name; a body without field errors yields its `detail` (or `message`) text instead. The form
+> handlers use it, and a custom save should pass it to `feedback.fail` too. On `404`/`409`/`500` the server's text
+> is appended to `feedback.message` and `feedback.error` stays empty, so lean on the `<Feedback>` summary instead.
+> `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `@regira/modules/vue/ui`; gating the button on
+> `FeedbackStatus.pending` prevents double-submits.
 
 ## Tabbed forms
 
@@ -1103,6 +1106,14 @@ be edited"); a lone Cancel reads as a broken toolbar.
 with the item in hand — compute the flag from `item` + the store in the view that owns the item, and thread
 the same `readonly`. Mirror it on the server in a prepper: a read scope wide enough to _show_ a row grants
 `PATCH` on it as well (`Regira.Entities` → `entities.instructions` → _Security & Authorization_).
+
+⚠️ **Upload rights without edit rights** (a user who may attach files to an owner but not edit the owner). The
+attachments flush always ends with the owner's `PUT`, so the uploads land and the save then answers 403. Keep
+that user's owner form `readonly` (its drop zone hides with it) and give them an upload control of their own:
+post each file with ``useAxios().upload(`${config.api}/${id}/files`, [file])``, then re-read
+`{id}/attachments`. The upload is its own route on the server, so the write filter gates it separately from
+the owner — and it needs the owner-scope check the global filters never apply to it
+(`Regira.Entities` → `entities.instructions` → _Security & Authorization_).
 
 ## Auth reload hooks (`onAuthenticated`)
 

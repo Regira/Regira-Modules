@@ -6,19 +6,19 @@ form inputs, and responsive layout.
 
 ## Areas
 
-| Area         | Components                                                                                                                                                            | Programmatic                                                        |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`         |
-| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                     |
-| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `useAppFeedback`, `FeedbackStatus`, `feedbackPlugin` |
-| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                           |
-| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                      |
-| icons        | `Icon`, `BsIcon`, `FaIcon`, `IconButton`                                                                                                                              | `iconPlugin`, `loadIcons`                                           |
-| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                         |
-| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`                                                   |
-| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                   |
-| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                   |
-| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                   |
+| Area         | Components                                                                                                                                                            | Programmatic                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                            |
+| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                        |
+| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `useAppFeedback`, `toFeedbackError`, `FeedbackStatus`, `feedbackPlugin` |
+| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                              |
+| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                                         |
+| icons        | `Icon`, `BsIcon`, `FaIcon`, `IconButton`                                                                                                                              | `iconPlugin`, `loadIcons`                                                              |
+| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                                            |
+| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`                                                                      |
+| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                                      |
+| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                                      |
+| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                                      |
 
 ## Plugins & imports
 
@@ -108,6 +108,11 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 - `FormLabel` renders **below** its input (a muted caption, not a `<label>` above it), so align a row that
   mixes labelled fields with buttons to `flex-start`.
 - `FormButtonsRow` with `readonly` hides Save and disables Delete and Restore; Cancel always renders.
+- `TabContainer` shows the first visible, enabled tab among the URL hash (with `use-route-nav`) or the last
+  selection (without), then `active`, and otherwise the default tab. `active` is read once, when the container
+  is created. With `use-route-nav` the hash is written only when a tab is selected — mounting never navigates.
+  `select` fires on mount and whenever the tab on screen changes, Back/Forward included; a click on a disabled
+  tab is ignored.
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module.
