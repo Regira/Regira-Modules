@@ -5,14 +5,14 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.3.1 — 2026-09-17
 
-- `vue/ui` + `vue/entities`: **new `toFeedbackError(ex)`** (hence the minor version) — field errors from an
-  `EntityInputException` reach the form. The API answers that 400 with a flat field map
-  (`{ "CategoryId": ["…"] }`), while every failure path read only the ProblemDetails `errors` of model binding,
-  so a prepper's rule breach showed as a bare "Saving failed". `toFeedbackError` reads both shapes, starts each
-  key lower-case to match the model's field names, and falls back to the server's `detail` / `message` text
-  when there is no field map; `useForm` and the overview composables use it. `fail()` takes the text of an
+- `vue/ui` + `vue/entities`: **new `toFeedbackError(ex)`** — field errors from an `EntityInputException` reach
+  the form. The API answers that 400 with a flat field map (`{ "CategoryId": ["…"] }`), while every failure
+  path read only the ProblemDetails `errors` of model binding, so a prepper's rule breach showed as a bare
+  "Saving failed". `toFeedbackError` reads both shapes, starts each key lower-case to match the model's field
+  names, and falls back to the server's `detail` / `message` text (or a plain-text 400 body) when there is no
+  field map; `useForm` and the overview composables use it. `fail()` takes the text of an
   `Error` passed in place of a map, and keeps a map whose field is named `message`. A 409's ProblemDetails
   `detail` is now shown.
 - `vue/ui`: **type change** — `FeedbackError`'s map values are `string | string[]`, which is what the server
