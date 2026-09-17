@@ -1,7 +1,7 @@
-import { useFeedback } from "../../ui"
+import { toFeedbackError, useFeedback } from "../../ui"
 import { ref, type Ref } from "vue"
 import { DEFAULT_PAGESIZE, PagingInfo, type IEntity, type IPagingInfo, type ISearchObject, type SaveResult } from "../abstractions"
-import type { OverviewCoreIn, OverviewCoreInternals, OverviewCoreOut, OverviewError } from "./overview"
+import type { OverviewCoreIn, OverviewCoreInternals, OverviewCoreOut } from "./overview"
 
 export function useOverviewCore<T extends IEntity, SO extends ISearchObject = ISearchObject>({
     service,
@@ -39,8 +39,7 @@ export function useOverviewCore<T extends IEntity, SO extends ISearchObject = IS
             console.error("saving failed", { ex, item })
             // a superseded save still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                const error = ex as OverviewError
-                feedback.fail(`Saving ${item.$title} failed`, error.response?.data?.errors)
+                feedback.fail(`Saving ${item.$title} failed`, toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
             }
         } finally {
             // a superseded save leaves the spinner to the call that replaced it
@@ -62,8 +61,7 @@ export function useOverviewCore<T extends IEntity, SO extends ISearchObject = IS
             console.error("removing failed", { ex, item })
             // a superseded delete still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                const error = ex as OverviewError
-                feedback.fail(`Removing ${item.$title} failed`, error.response?.data?.errors)
+                feedback.fail(`Removing ${item.$title} failed`, toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
             }
         } finally {
             // a superseded delete leaves the spinner to the call that replaced it

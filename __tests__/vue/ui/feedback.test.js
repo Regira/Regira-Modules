@@ -49,3 +49,21 @@ describe("useFeedback busy flag", () => {
         expect(feedback.isPending).toBe(false)
     })
 })
+
+describe("useFeedback fail", () => {
+    test("an exception passed instead of a field map shows its text", () => {
+        const feedback = useFeedback({ autoHideDelay: 0 })
+
+        feedback.fail("Save failed", new Error("Network Error"))
+
+        expect(feedback.error).toBe("Network Error")
+    })
+
+    test("a field map with a field named message stays a field map", () => {
+        const feedback = useFeedback({ autoHideDelay: 0 })
+
+        feedback.fail("Save failed", { message: ["Required"] })
+
+        expect(feedback.error).toEqual({ message: ["Required"] })
+    })
+})

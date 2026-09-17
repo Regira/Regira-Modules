@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { Tab, type ITab } from "./Tab"
 import { tabContainerDefaults, type TabContainerProps, type TabsEmits } from "./tabs"
@@ -23,42 +23,41 @@ const router = useRouter()
 const items = computed<Array<ITab>>(() => props.tabs.filter((x) => x != null).map((x) => (x instanceof Tab ? x : new Tab(x as string))))
 
 const defaultTab = computed(() => (items.value.find((tab) => tab.isDefault) || items.value[0]!).key)
-const _activeTab = ref<string>(props.active!)
+const isSelectable = (key?: string) =>
+    items.value.some((tab) => tab.key === key && !tab.isDisabled && (typeof tab.isVisible == "function" ? tab.isVisible() : tab.isVisible))
+// with route nav, the tab a hash-less URL shows — read once, so Back to that URL shows it again whatever was selected since
+const initialTab = props.active
+const _activeTab = ref(props.active)
 
+// the first of these that names a visible, enabled tab — else the default tab
 const activeTab = computed<string>({
     get: () => {
-        return (props.useRouteNav ? router.currentRoute.value.hash?.substring(1) : _activeTab.value) || defaultTab.value
+        const candidates = props.useRouteNav ? [router.currentRoute.value.hash?.substring(1), initialTab] : [_activeTab.value, initialTab]
+        return candidates.find(isSelectable) ?? defaultTab.value
     },
     set: (value) => {
-        const hasActiveTab = _activeTab.value != null
-        _activeTab.value = value
         if (props.useRouteNav) {
-            const newRoute = { ...router.currentRoute.value, hash: "#" + value }
-            if (hasActiveTab) {
-                router.push(newRoute)
-            } else {
-                // replace route to avoid having to go back twice
-                router.replace(newRoute)
-            }
+            // a selection is a history entry: Back returns to the previous tab
+            router.push({ ...router.currentRoute.value, hash: "#" + value })
+        } else {
+            _activeTab.value = value
         }
-        emit("select", value)
     },
 })
 
 function handleSelect(tab: string) {
-    if (_activeTab.value !== tab) {
+    // compared with the tab on screen, which the hash may have changed since the last selection (Back)
+    if (activeTab.value !== tab && isSelectable(tab)) {
         activeTab.value = tab
     }
 }
 
-onMounted(() => {
-    if (_activeTab.value != null) {
-        return
-    }
+// `select` reports the tab on screen whenever it changes: a click, Back/Forward, or a tab turning (un)available
+watch(activeTab, (tab) => emit("select", tab))
 
-    if (props.useRouteNav) {
-        let tab = (props.useRouteNav ? router.currentRoute.value.hash?.substring(1) : undefined) || defaultTab.value
-        handleSelect(tab)
-    }
+onMounted(() => {
+    // Report the tab taken from the URL, `active` or the default without navigating: a route write here would cancel
+    // whatever navigation is still pending as the container mounts — useForm's replace to a new item's id among them.
+    emit("select", activeTab.value)
 })
 </script>

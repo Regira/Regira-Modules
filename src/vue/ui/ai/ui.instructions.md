@@ -62,19 +62,19 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 ## Areas
 
-| Area         | Key components                                                                                                                                                        | Programmatic                                                     |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`      |
-| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                  |
-| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut` |
-| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                        |
-| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                   |
-| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`, `IIconProvider`                       |
-| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                      |
-| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`, `autocompleteDefaults`                        |
-| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                |
-| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                |
-| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                |
+| Area         | Key components                                                                                                                                                        | Programmatic                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                         |
+| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                     |
+| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut` |
+| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                           |
+| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                                      |
+| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`, `IIconProvider`                                          |
+| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                                         |
+| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`, `autocompleteDefaults`                                           |
+| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                                   |
+| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                                   |
+| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                                   |
 
 ## What the entity views use
 
@@ -95,6 +95,10 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
   buttons against double-submits; the message argument is **required** — `pending()` does not compile.
   The result is `reactive()`, so bind the fields straight (`:disabled="feedback.isPending"`) — and, as with
   any reactive object, destructuring it snapshots the values.
+- `toFeedbackError(ex)` → what `fail()` should show for a failed request: its field map, else the server's
+  `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads both 400 bodies an Entities API sends (the flat
+  `EntityInputException` map and model binding's ProblemDetails `errors`) and starts every key lower-case to match
+  the model's field names.
 - `useAppFeedback()` → the **app-wide** `FeedbackOut` the feedback plugin installs — the panel the shell
   renders, as opposed to the per-form instance `useFeedback()` mints. Use it to report from a handler that
   owns no panel of its own (an add-to-cart button); it throws if the plugin was never installed.

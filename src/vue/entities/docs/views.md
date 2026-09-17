@@ -19,6 +19,11 @@ Each view is a thin Vue component that delegates to a composable.
 handler, defaultPageSize })` keeps those in sync with the URL query and re-searches on navigation,
 returning `updateOverviewRoute`. (`useOverviewCore` is the shared base.)
 
+The URL owns the filters: each search replaces the search object with the parsed query, so restored values
+are strings. Only the first search on a URL without search parameters keeps the search object the view passed
+in — that is where default filter values go. `Date` filters are written to the URL as ISO-8601 with the local
+offset.
+
 `applySave` and `applyRemove` raise failures through `feedback` rather than throwing, and report them in
 their return value — `SaveResult<T> | undefined` and `boolean`. Guard the list mutation on it:
 
@@ -67,9 +72,14 @@ passing `item`. `item` is `undefined` until the `onMounted` load resolves — ga
 …>(), { ...formDefaults })` and emits via `FormEmits<T>`; `FormStates` enumerates pending/saved/removed/
 error. `useModal` is the in-modal variant for editing without leaving the page.
 
-`readonly` is the form's write gate: on a `readonly` form, `handleSubmit`, `handleRemove` and
-`handleRestore` return without calling the service, and `FormButtonsRow` hides Save and disables Delete and
-Restore (Cancel stays). When the API gates writes by role or row ownership, derive `readonly` from the
+After an insert, `handleSubmit` replaces the current route with one carrying the new id (skipped when
+`isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (both the flat
+map a rule breach produces and model binding's `errors`, read with `toFeedbackError` from `vue/ui`), otherwise the
+server's text on `feedback.message`.
+
+`readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
+`handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` hides Save and
+disables Delete and Restore (Cancel stays). When the API gates writes by role or row ownership, derive `readonly` from the
 signed-in user and pass it down the slice — the overview's `List` / `ListItem` and the details form all take
 it — so the UI offers only what that user may do. This hides buttons; the API remains the only place writes
 are authorized.

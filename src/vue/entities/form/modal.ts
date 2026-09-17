@@ -19,7 +19,7 @@ export const formModalDefaults = {
     closeOnDelete: true,
 }
 
-interface FormModalIn<T extends IEntity> {
+export interface FormModalIn<T extends IEntity> {
     entityService: IEntityService<T>
     model: Ref<T | undefined>
     itemDefaults?: Ref<Record<string, unknown>> | Record<string, unknown> | Ref<object> | ((item: T) => Promise<T>)
@@ -29,7 +29,7 @@ interface FormModalIn<T extends IEntity> {
     emit: FormModalEmits<T>
     feedback?: FeedbackOut
 }
-interface FormModalOut<T extends IEntity> {
+export interface FormModalOut<T extends IEntity> {
     item: Ref<T>
     isOpen: Ref<boolean>
     feedback?: FeedbackOut

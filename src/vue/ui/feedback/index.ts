@@ -6,6 +6,7 @@ export { default as plugin, useAppFeedback } from "./plugin"
 export {
     useFeedback,
     useFeedback as default,
+    toFeedbackError,
     FeedbackStatus,
     feedbackDefaults,
     type FeedbackError,

@@ -1,6 +1,7 @@
 import { debounceToPromise } from "../../../utilities/promise-utility"
 import { DEFAULT_PAGESIZE, type IEntity, type ISearchObject } from "../abstractions"
-import { DEFAULT_DEBOUNCE, type IListViewIn, type ISearchViewOut, type OverviewError } from "./overview"
+import { DEFAULT_DEBOUNCE, type IListViewIn, type ISearchViewOut } from "./overview"
+import { toFeedbackError } from "../../ui/feedback"
 import useOverviewCore from "./overview-core"
 
 export function useSearchView<T extends IEntity, SO extends ISearchObject = ISearchObject>({
@@ -48,8 +49,7 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
             console.error("fetching failed", { ex })
             // a superseded search still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                const error = ex as OverviewError
-                feedback.fail("fetching data failed", error.response?.data?.errors)
+                feedback.fail("fetching data failed", toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
             }
         } finally {
             // a superseded search leaves the spinner to the one that replaced it

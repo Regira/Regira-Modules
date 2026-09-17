@@ -407,7 +407,7 @@ src/entities/<name>/             # one entity slice — copy this folder set for
         Autocomplete.vue         # type-ahead search input
         InputSelector.vue        # single-item picker
         Selector.vue             # multi-item picker (chips) — relation picker for this entity
-        SelectorDropdown.vue     # simple <select> from cache
+        SelectorDropdown.vue     # simple <select>, loads every row
         SelectorList.vue (c)     # selectable results list
         SelectorModalButton.vue  # opens the search / select modal
         SelectorSearch.vue       # search UI inside the selector modal
@@ -522,8 +522,14 @@ The `BasicApi` server template calls `app.UseHttpsRedirection()`, so a request t
 - **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`:
     ```ts
     // vite.config.ts → server.proxy
-    server: { proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false } } }
+    server: { proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } } }
     ```
+    ⚠️ The API builds absolute URLs (an attachment's `uri`) from the scheme and host **it** received — behind
+    the proxy that is the target, so a download leaves the SPA's origin and fails without CORS. `xfwd: true`
+    forwards the SPA's origin; have the API honour it in Development, **after** `app.UseHttpsRedirection()`
+    (placed first, the forwarded `http` scheme triggers the redirect):
+    `app.UseForwardedHeaders(new() { ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto })`
+    (`using Microsoft.AspNetCore.HttpOverrides;`).
 - **Skip the redirect in Development** on the API: `if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();`.
 
 ### Simplest dev setup — direct origin + CORS

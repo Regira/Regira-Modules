@@ -82,6 +82,20 @@ describe("useSearchView overlapping searches", () => {
     })
 })
 
+describe("useSearchView failure text", () => {
+    test("a network failure reports the exception's own text", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const service = deferredService("search")
+        const { feedback, searchHandler } = useSearchView({ service, searchObject: {} })
+
+        const only = searchHandler()
+        service.rejectWith(0, new Error("Network Error"))
+        await only
+
+        expect(feedback.message).toBe("fetching data failed: Network Error")
+    })
+})
+
 // The two composables are a fetch-shape choice and nothing else — same inputs, same overview surface — so
 // useListView has to send the same search object and settle overlapping fetches the same way.
 describe("useListView", () => {

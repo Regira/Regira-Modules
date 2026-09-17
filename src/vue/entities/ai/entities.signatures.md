@@ -356,6 +356,14 @@ export type RouteOverviewOut = {
 export function useRouteOverview({ pagingInfo, searchObject, defaultPageSize, handler }: RouteOverviewIn): RouteOverviewOut
 ```
 
+⚠️ **`useRouteOverview` owns the search object.** Every search it runs first replaces `searchObject.value` with a
+plain object parsed from the route query, so the values come back as **strings** (`"true"`, `"5"`, ISO dates —
+the API binds them; a strict `=== true` in the view does not match) and the instance is no longer your
+`SearchObject` class. The one exception is the first search on mount: a URL with no search parameters keeps
+the search object the view passed to `useSearchView`, so its defaults apply. Once the user filters,
+`updateOverviewRoute` writes the whole search object — defaults included — to the URL (a `Date` as ISO-8601
+with its offset), which is also what a reload restores.
+
 `updateOverviewRoute` pushes onto the **current** route — it spreads `router.currentRoute` and replaces only
 `query`, never naming a slice route. So a slice's `Overview` can be embedded in any app-owned view (a saved-
 queue rail, a split view, a dashboard with a live list) and its filters and paging sync to that view's URL
@@ -430,6 +438,12 @@ export enum FormStates {
     error = "Error",
 }
 export const formDefaults: { readonly: boolean; isPopup: boolean }
+export interface FormIn<T extends IEntity> {
+    entityService: IEntityService<T>
+    props: { modelValue: T; readonly?: boolean; isPopup?: boolean } // pass the component's props object itself
+    emit: FormEmits<T>
+    feedback?: FeedbackOut // defaults to a fresh useFeedback()
+}
 export function useForm<T extends IEntity>({ entityService, props, emit, feedback }: FormIn<T>): FormOut<T>
 export interface FormOut<T> {
     item: Ref<T>
@@ -441,6 +455,13 @@ export interface FormOut<T> {
     handleRestore(): Promise<void> // unarchive: sets the entity's isArchived=false then saves (write path needs no query param); no-op when readonly, like handleSubmit/handleRemove
 }
 ```
+
+**What `handleSubmit` does besides saving**, in order: `feedback.pending` → `entityService.save` → emits `save` →
+`feedback.success` → replaces `item` and `original` with copies of the saved entity → emits `update:modelValue` →
+on an **insert**, unless `props.isPopup`, `router.replace`s the current route with `params.id` set to the new id
+(query and hash kept, `src` dropped). That replace is not awaited, so a component that navigates in the same tick —
+a route write of its own — cancels it and leaves the URL on `/new`. `props.readonly` and `props.isPopup` are read
+each time a handler runs, so a form whose access resolves after mount (a permission-gated `:readonly`) follows it.
 
 > **`handleRemove` arity differs by composable.** The **form**'s `handleRemove()` takes **no arguments**
 > (it removes the bound `item.value`); the **overview**'s `handleRemove(item: T)` takes the row. Don't
@@ -459,6 +480,26 @@ export interface FormModalEmits<T> extends FormEmits<T> {
     (e: "close", item?: T): void
 }
 export const formModalDefaults: { closeOnSave: boolean; closeOnDelete: boolean }
+export interface FormModalIn<T extends IEntity> {
+    entityService: IEntityService<T>
+    model: Ref<T | undefined>
+    itemDefaults?: Ref<Record<string, unknown>> | Record<string, unknown> | Ref<object> | ((item: T) => Promise<T>)
+    closeOnSave?: boolean
+    closeOnCancel?: boolean
+    closeOnDelete?: boolean
+    emit: FormModalEmits<T>
+    feedback?: FeedbackOut
+}
+export interface FormModalOut<T extends IEntity> {
+    item: Ref<T>
+    isOpen: Ref<boolean>
+    feedback?: FeedbackOut
+    close(): void
+    open(): void
+    handleSave({ saved, isNew }: SaveResult<T>): void
+    handleRemove(): void
+    handleCancel(e: { canceled: T; original?: T }): void
+}
 // declared as useModalForm; the barrels re-export ONLY the useModal alias — always import useModal
 export const useModal: typeof useModalForm
 declare function useModalForm<T extends IEntity>({
@@ -517,15 +558,16 @@ object — that refetches on every keystroke.
 
 ```ts
 import type { FeedbackOut } from "@regira/modules/vue/ui"
+import type { FeedbackError } from "@regira/modules/vue/ui/feedback" // string | Record<string, string | string[]>
 // reactive(): read the fields directly, no .value — :disabled="feedback.isPending"
 export interface FeedbackOut {
     status: FeedbackStatus // "" | "Pending" | "Success" | "Failed"
     message: string
-    error: string | Record<string, string> | undefined
+    error: FeedbackError | undefined
     readonly isPending: boolean // busy flag — gate submit buttons on it
     pending(msg: string): void // every setter REQUIRES a message
     success(msg: string): void
-    fail(msg: string, ex?: string | Record<string, string>): void
+    fail(msg: string, errors?: FeedbackError): void // a field map or text — toFeedbackError(ex) reads a failed request
     reset(): void
 }
 ```
@@ -666,6 +708,11 @@ export class PoolService<T extends IEntity> implements IPoolService<T> {
     constructor(service: IEntityService<T>, cache: IPoolCache, type: string) /* + IEntityService + get/getMany/set/setMany */
 }
 ```
+
+The pooled `details` / `list` / `search` write every row they receive into the cache (refreshing a cached row in
+place) but **return plain copies** — run them through `fromPool` to get the shared instances. The cache is a
+plain `Map`, so `fromCache()` read inside a `computed` does not see ids added after it first ran: a component
+that lists a type loads the rows itself rather than reading the cache.
 
 ---
 
