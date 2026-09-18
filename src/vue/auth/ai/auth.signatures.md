@@ -304,8 +304,9 @@ export function useResetPasswordForm(
 // Components (default exports): LoginForm, LoginModal, LogoutForm, ForgotPasswordModal,
 //                                ChangePasswordForm, ResetPasswordForm
 // LoginForm props: LoginFormProps { username?: string } ; emits: LoginFormEmits
-// LoginModal props: LoginModalProps { username?; title?; isVisible? } ; slots: default{ username } (replace the form)
-// ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: default{ username }
+// LoginModal props: LoginModalProps { username?; title?; isVisible? } ; slots: LoginModalSlots = default{ username } (replace the form)
+// ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
+// Both slot types are exported from the barrel — import them when you type a wrapper that forwards the slot
 // ChangePasswordForm props: ChangePasswordFormProps { username?: string }, emits: ChangePasswordFormEmits
 // ResetPasswordForm props: ResetPasswordFormProps, emits: ResetPasswordFormEmits
 // Both password forms render a visually-hidden `autocomplete="username"` input (NOT display:none — that

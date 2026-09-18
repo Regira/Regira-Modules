@@ -27,6 +27,30 @@ heading.
   `col-auto` left, so a fourth proportional column starves the flexible title; past three, give every column
   an explicit width class. `toFeedbackError` is named with its `vue/ui` specifier where the entities card
   teaches it.
+- `extensions`: the guides send you to the utilities module's own guides for the signatures behind the
+  wrapped helpers — `utilities.instructions` from the opening description, and `utilities.signatures` →
+  *arrayUtility* from the list of methods injected onto `Array.prototype`. Both had pointed at a bare
+  source path that resolved to no file.
+- `vue/ui`, `vue/auth`: six exports the barrels carry reach `*.signatures.md`. `vue/ui` gains the two
+  injection keys (`LOADING_COMPONENT_KEY`, `MODAL_COMPONENT_KEY`), each noted as the lower-level form of
+  `injectLoading()` / `injectModal()` — those fall back to the built-in component where a bare `inject`
+  of the key yields `undefined` if the plugin was never installed — plus `LoadingInput` (loadingPlugin's
+  option type), `IconsConfig` (what iconPlugin provides under `"icons.config"`, which a replacement `Icon`
+  injects to resolve glyph names the same way), and `ErrorSummary`'s props and slots, declared in the SFC
+  and so not importable as types. `vue/auth` names `LoginModalSlots` and `ForgotPasswordModalSlots`, for
+  typing a wrapper that forwards the slot.
+- `events`: the guides describe the mixin on its own terms — inject it into a service or manager that
+  broadcasts state changes, with a session manager's `login`/`refresh`/`logoff` as the illustration.
+  They had pointed at `src/identity` as the worked consumer, which is legacy and marked don't-use, and
+  the *See also* entry for the entities client pointed at the dormant `src/entities` rather than
+  `vue/entities`.
+- Docs site: the root `README.md` links [the published site](https://regira.github.io/Regira-Modules/),
+  and `AGENTS.md` documents it — §7 for how `sync-modules.mjs` copies each module's `README.md` +
+  `docs/*.md` into the generated, `.gitignore`d `docs/reference/`, §2 and §3 for the layout and the
+  `docs:dev`/`docs:build` commands that run from `docs/` against its own dependencies, §1 for the fact
+  that a module doc edit publishes itself on the next push to `main`, and §5 for the hand-maintained
+  `MODULES` array a new module has to be added to — the sync skips an unknown module with a warning, so
+  omitting it drops the module from the site on a green build.
 
 ## 6.3.1 — 2026-09-17
 

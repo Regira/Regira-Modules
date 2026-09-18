@@ -5,6 +5,9 @@ http, ioc, auth, ui, formatters, …) that pair with the Regira back-end package
 
 ## Documentation
 
+**[regira.github.io/Regira-Modules](https://regira.github.io/Regira-Modules/)** publishes all of the
+below as a searchable site — the same markdown, cross-linked, with a module sidebar.
+
 Each module ships a developer README (linked below) with deeper guides under its `docs/` folder where
 present. Building a Vue 3 SPA against a Regira.Entities API? Start with the
 [entities client](src/vue/entities/README.md); otherwise pick a module from the tables.
@@ -60,7 +63,9 @@ Publishing to the npm registry runs through [`.github/workflows/publish-npm.yml`
     ```bash
     npm version patch --no-git-tag-version
     ```
-    (`minor`/`major` for feature/breaking releases — see `AGENTS.md` §7.)
+    (`patch` covers fixes and doc-only changes, `minor` backward-compatible features, `major` breaking
+    changes. Published npm versions are immutable, so the new version must exceed the last release —
+    if it was already bumped since the last publish, reuse that bump rather than adding another.)
 2. In `CHANGELOG.md`, turn the **Unreleased** block into a `## <version> — <date>` heading.
 3. Commit, then tag and push:
     ```bash
