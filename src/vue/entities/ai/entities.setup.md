@@ -164,6 +164,10 @@ export default defineConfig({
 > `--force`, and hand-authored files routinely omit the host. After scaffolding, confirm `#modals` (and
 > `#loginModal` when auth is on) exist, then verify a modal actually opens.
 
+> **`.fixed-top` on the host is a z-index ceiling for everything teleported into it.**
+> `@regira/modules/style.css` lifts both hosts above that band (`#modals` → `--rg-modal-z`, `#loginModal` one
+> above), so app chrome cannot cover a modal — one more reason the library stylesheet must stay imported.
+
 > **You do not install a plugin to get modals.** `injectModal()` falls back to `DefaultModal`, so every
 > generated dialog works with the `#modals` host alone. `modalPlugin` exists only to swap that component
 > app-wide — including the library's own `injectModal()` call sites — for a custom skin; see

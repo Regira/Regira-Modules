@@ -143,7 +143,8 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       asymmetry is the trap. Members: `pending(msg)` / `success(msg)` / `fail(msg, errors?)` / `reset()` — **the
       message is required**, `pending()` does not compile — plus an `isPending` computed. There is no `loading()`.
       ⚠️ `fail`'s second argument is a **field-error map** (`FeedbackError = string | Record<string, string | string[]>`),
-      **not an `Error`**: `feedback.fail("Saving failed", toFeedbackError(ex))` — that helper reads both 400
+      **not an `Error`**: `feedback.fail("Saving failed", toFeedbackError(ex))` — `toFeedbackError` ships from
+      **`@regira/modules/vue/ui`**, not `vue/entities`, like `useFeedback` beside it. That helper reads both 400
       shapes the API sends (a flat `EntityInputException` map, or ProblemDetails `errors`) and falls back to the
       server's `detail` text; `ex.response.data.errors` alone misses the first. Log the exception yourself.
     - `service.search(so?)` / `list(so?)` — **paging and sorting ride the argument, flat**, not your
@@ -195,7 +196,10 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
   `<BrandSelector v-model="item.brand" v-model:idValue="item.brandId" />` — and needs no `fromPool` round
   trip, no local `ref` and no `watch`. `Object.assign(new Category(), dto)` also rehydrates but yields a
   **detached copy that goes stale** — use it only when a snapshot is what you want. Custom endpoints live on
-  the raw `get<EntityService>(Entity.name)`, not the pooled store.
+  the raw `get<EntityService>(Entity.name)`, not the pooled store. ⚠️ `fromPool` is **read-through**: for an
+  id already cached it returns the cached instance and **discards its input**, so landing the payload of a
+  custom endpoint with it silently keeps the stale row — 200, no error, unchanged UI. `set(dto)` /
+  `setMany(dtos)` are the writes (`entities.patterns` → *Resolving relations with `fromPool`*).
 - **A displayed relation is a component, not text**: the related entity's `FormModalButton` beside its
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK

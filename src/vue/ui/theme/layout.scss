@@ -36,3 +36,17 @@
     margin-left: 0.35rem;
     cursor: pointer;
 }
+
+// The teleport hosts every modal renders into. They carry `.fixed-top`, which is `position: fixed` AND
+// `z-index: 1030` — and a positioned, z-indexed element is its own stacking context, so without these rules
+// `.modal-mask`'s 9998 is clamped to 1030 relative to everything outside the host. Any app chrome above that
+// (a sticky footer, a bottom tab bar, a FAB, a toast host) then paints over a modal that opened correctly:
+// the dialog is visible but partly unreachable, which reads as a mistake in the app's own stylesheet.
+// Lifting the hosts to the same token the mask uses keeps one variable in charge of the whole band.
+#modals {
+    z-index: var(--rg-modal-z, 9998);
+}
+// One above, so a re-authentication prompt covers whatever modal was open when the token expired.
+#loginModal {
+    z-index: calc(var(--rg-modal-z, 9998) + 1);
+}

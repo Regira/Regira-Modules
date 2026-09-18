@@ -5,6 +5,29 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/auth`: **a 403 from `auth/validate` now clears the stored token**, as 401 already did. The endpoint
+  answers 403 for a token whose signature is valid but whose user no longer exists — deleted, deactivated, or
+  the database reseeded under it — and keeping that token made the failure permanent: every reload replayed
+  it, the app rendered unauthenticated with no sign-in gate, and only clearing site data by hand recovered.
+  Scoped to the validate call: a 403 from an ordinary resource still means "signed in, not allowed here" and
+  does not sign the user out.
+- `vue/ui`: the modal teleport hosts are lifted out of Bootstrap's fixed band in the shipped stylesheet —
+  `#modals` to `--rg-modal-z`, `#loginModal` one above. `.fixed-top` on those hosts is `position: fixed` **and**
+  `z-index: 1030`, which makes each host its own stacking context and clamps every teleported modal to 1030
+  however high the mask's own z-index is. An app with fixed chrome above that — a sticky footer, a bottom tab
+  bar, a FAB, a toast host — painted over modals that had opened correctly.
+- Guides: `fromPool` is documented as read-through — for an id already cached it returns the cached instance
+  and discards its input, so landing a custom endpoint's payload with it keeps the stale row behind a 200 and
+  an unchanged UI; `set` / `setMany` are the writes. `ui.customize` lists which built-ins hide their own text
+  below which breakpoint (`FormButtonsRow` labels under `md`, `TabNavigation` titles under `lg` when the tab
+  has an icon, `FormLabel` with `auto-hide`) — a functional decision for a phone-first app, not a cosmetic
+  one. The overview column budget states its arithmetic: `col-N` is a fraction of the whole row, not of what
+  `col-auto` left, so a fourth proportional column starves the flexible title; past three, give every column
+  an explicit width class. `toFeedbackError` is named with its `vue/ui` specifier where the entities card
+  teaches it.
+
 ## 6.3.1 — 2026-09-17
 
 - `vue/ui` + `vue/entities`: **new `toFeedbackError(ex)`** — field errors from an `EntityInputException` reach

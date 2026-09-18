@@ -1062,6 +1062,20 @@ when that entity is already pooled — loaded by its own overview, or warmed by 
 argument, every cached `Ref<T>` of the type (`Array<Ref<T>>`). It never fetches — it reports only what
 pooling has already seen.
 
+> ⚠️ **`fromPool` is read-through — `set` is the write.** For an id already cached it returns the cached
+> instance and **discards its input**, so it cannot land a fresher payload: `cart.value = fromPool(data)`
+> after a custom endpoint keeps the stale row behind a 200 and an unchanged UI, and `Object.assign(item,
+> fromPool(updated))` is a no-op (`item` already *is* that instance).
+>
+> ```ts
+> const { set } = useCartStore()                                   // setMany(rows) for a batch
+> const { data } = await useAxios().post(`carts/${id}/discount`, { code })
+> cart.value = set(data).value   // set runs toEntity itself — DTO in, the shared Ref<T> out
+> ```
+>
+> **`fromPool` to render, `set`/`setMany` to land a payload.** `save()`/`details()`/`search()` already write
+> through; only a hand-written endpoint has to do it itself.
+
 ## Permission-gated UI
 
 <!-- how_to: key=permission-gated-ui aliases=permission,permissions,authorization,authorisation,canwrite,can-write,gating,gate,hide,hide-actions,forbidden,403,role-gated,write-tier -->
