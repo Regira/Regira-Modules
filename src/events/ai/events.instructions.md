@@ -1,9 +1,10 @@
 # Regira Events — AI Agent Instructions
 
 A tiny event mixin (`@regira/modules/events`): an `Event` value object and an `EventHandler` whose
-`injectInto(target)` adds a `trigger` / `on` / `once` / `off` API to any object. Regira managers use it
-to broadcast state changes — e.g. the [identity manager](../../identity) injects it and fires
-`trigger("login" | "refresh" | "logoff", …)` so the app can react.
+`injectInto(target)` adds a `trigger` / `on` / `once` / `off` API to any object or prototype. Inject it
+into a service or manager that has to broadcast state changes — a session manager firing
+`trigger("login" | "refresh" | "logoff", …)` so the app can react — without the listeners holding a
+reference to it.
 
 > **Never guess** a signature — verify in [events.signatures.md](events.signatures.md). The injected
 > methods (`on`/`once`/`off`/`trigger`/`listeners`) are added at runtime and do **not** appear in the
@@ -86,5 +87,4 @@ event, and `data` keys are copied onto the event (without overwriting existing p
 
 - [events.examples.md](events.examples.md) — copy-paste snippets for the basics
 - [events.signatures.md](events.signatures.md) — verbatim signatures
-- [Identity](../../identity) — a real consumer (`login`/`refresh`/`logoff` events)
-- [HTTP](../../vue/http/ai/http.instructions.md) · [Entities](../../entities)
+- [HTTP](../../vue/http/ai/http.instructions.md) · [Entities](../../vue/entities/ai/entities.instructions.md)

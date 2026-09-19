@@ -52,7 +52,7 @@ Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 | `--rg-accent-bg`           | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                             |
 | `--rg-deleted-bg`          | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                       |
 | `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                      |
-| `--rg-modal-z`             | `9998`                       | modal mask z-index                                                                                              |
+| `--rg-modal-z`             | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
 | `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index                                                                                    |
 | `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control             |
 | `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                  |
@@ -125,6 +125,18 @@ of `theme.scss`.
 `auto` on **both** axes, turning the list into a scroll container that clips absolutely-positioned
 descendants (an inline-edit row's autocomplete panel) and breaks `position: sticky` inside it. The
 library rule omits it deliberately; `entity-list--scroll-x` is the per-list opt-in.
+
+**Built-ins that hide their own text below a breakpoint.** The defaults suit a desktop admin UI; on a
+phone-first app they are a functional decision, and they show up at 375 px, never in a type-check:
+
+| Component        | What disappears                   | Below | Condition                                       |
+| ---------------- | --------------------------------- | ----- | ----------------------------------------------- |
+| `FormButtonsRow` | save/cancel/delete/restore labels | `md`  | always — the icons remain                       |
+| `TabNavigation`  | the tab title                     | `lg`  | only when the tab has an `icon`                 |
+| `FormLabel`      | the label                         | `md`  | only with `auto-hide` (default `false`)         |
+
+To keep a tab's title, omit its `icon` in `Tab.create`. Otherwise override `.rg-tab-nav .nav-link span` /
+`.form-buttons .btn span` — one of the cases where `!important` is required (see L0).
 
 ## L2 — Recompose with slots
 

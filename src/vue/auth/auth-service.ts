@@ -83,16 +83,30 @@ export class AuthService implements IAuthService {
                     // session-replay telemetry. This path runs on every app load that restores a saved token,
                     // so its logs are routine. `tokenManager` is not logged either — it holds the same token.
                     console.warn("validateToken: invalid statusCode", response.status)
+                    this.discardRejectedToken(response.status)
                 }
             } catch (ex: any) {
                 // the error carries the request that produced it, Authorization header included
                 console.error("validating token failed", maskAxiosError(ex))
-                if (ex.response && ex.response.status === 401) {
-                    this.tokenManager.token = undefined
-                }
+                this.discardRejectedToken(ex.response?.status)
             }
         }
         return emptyAuthData()
+    }
+    /**
+     * Drops the stored token when `auth/validate` has rejected it outright. **403 is as terminal as 401
+     * here:** the endpoint answers 403 for a token whose signature is valid but whose user no longer exists
+     * (deleted, deactivated, or the database reseeded under it). Keeping such a token makes the failure
+     * permanent — every reload replays it, the app renders unauthenticated with no sign-in gate to re-open,
+     * and only clearing site data by hand recovers.
+     *
+     * Scoped to this call on purpose: a 403 from an ordinary resource means "signed in, not allowed here"
+     * and must not sign the user out, which is why the response interceptor acts on 401 alone.
+     */
+    private discardRejectedToken(status?: number): void {
+        if (status === 401 || status === 403) {
+            this.tokenManager.token = undefined
+        }
     }
     logout(): void {
         this.tokenManager.token = undefined

@@ -12,7 +12,9 @@
             <div class="col">{{ $t("name") }}</div>
             <!-- TODO: the 1–3 most important OTHER fields, in this reveal order (`scaffold.mjs --rel <Related>`
                  already wrote a header above for each relation). Uncomment what you use, rename the keys and
-                 add them to translations.json, delete the rest — no fourth slot, and never an inline `width`.
+                 add them to translations.json, delete the rest. A fourth `col-N` starves the flexible title
+                 down to one character — need more columns? Give EVERY column an explicit width class
+                 (not an inline `width`: it cannot carry a media query).
             <div class="col d-none d-md-block">{{ $t("code") }}</div>
             <div class="col d-none d-lg-block">{{ $t("status") }}</div>
             <div class="col d-none d-xl-block">{{ $t("owner") }}</div>

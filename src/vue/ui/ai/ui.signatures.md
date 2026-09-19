@@ -107,6 +107,13 @@ export interface FeedbackEmits {
     (e: "close", arg: { status: FeedbackStatus; error?: FeedbackError }): void
 }
 export type FeedbackSlots = { "close-button"?(): any; pending?(): any; success?(): any; error?(): any }
+
+// ErrorSummary: renders one FeedbackError on its own, for a form showing field errors without a full
+// Feedback panel. Props and slots are declared in the SFC — there are no exported types to import.
+// props: { msg: string; error: FeedbackError | undefined; enablePopup?: boolean }
+//   msg and error are declared required but carry withDefaults values — msg falls back to
+//   "Unfortunately, an error has occurred." and error to {}, so both can be omitted in practice.
+// slots: { message?(): any; summary?(): any }
 ```
 
 ## Paging
@@ -151,8 +158,8 @@ export type ResultSummarySlots = { default?(props: { visibleCount?: number; tota
 ## Loading
 
 ```ts
-import { Loading, LoadingButton, LoadingContainer, injectLoading } from "@regira/modules/vue/ui"
-import { type LoadingComponent, type LoadingContainerProps, type LoadingContainerSlots, type LoadingButtonProps, type LoadingButtonSlots } from "@regira/modules/vue/ui"
+import { Loading, LoadingButton, LoadingContainer, injectLoading, LOADING_COMPONENT_KEY } from "@regira/modules/vue/ui"
+import { type LoadingComponent, type LoadingContainerProps, type LoadingContainerSlots, type LoadingButtonProps, type LoadingButtonSlots, type LoadingInput } from "@regira/modules/vue/ui"
 // Loading: no props — renders the img provided by loadingPlugin ({ img }); without one it falls back to a
 // built-in Bootstrap spinner labelled by the injectable `loadingLabel` (default "Loading…")
 export type LoadingContainerProps = { isLoading: boolean }
@@ -161,15 +168,25 @@ export type LoadingButtonProps = { isLoading: boolean; disabled?: boolean }
 export type LoadingButtonSlots = { loading?(): any; default?(): any }
 export type LoadingComponent // any component usable as the loading indicator — loadingPlugin's Loading option type (compile-checked)
 
+export type LoadingInput = {
+    img?: string // custom loading image; the built-in spinner is used when omitted
+    Loading?: LoadingComponent // swaps the indicator app-wide, incl. inside LoadingContainer/LoadingButton
+    LoadingButton?: LoadingButtonComponent
+    LoadingContainer?: LoadingContainerComponent
+} // loadingPlugin.install(app, options?: LoadingInput)
+
 // resolves the app-wide loading indicator (the loadingPlugin swap-in, Loading otherwise); call in setup:
 export function injectLoading(): LoadingComponent
 // LoadingContainer/LoadingButton render their indicator through it, so a swapped Loading propagates
+export const LOADING_COMPONENT_KEY: InjectionKey<LoadingComponent>
+// the key injectLoading() reads and loadingPlugin provides. Prefer injectLoading() — it falls back to
+// Loading when the plugin was never installed, where a bare inject(LOADING_COMPONENT_KEY) yields undefined.
 ```
 
 ## Modal
 
 ```ts
-import { DefaultModal, ModalType, injectModal, modalDefaults } from "@regira/modules/vue/ui"
+import { DefaultModal, ModalType, injectModal, modalDefaults, MODAL_COMPONENT_KEY } from "@regira/modules/vue/ui"
 import { type ModalProps, type ModalEmits, type ModalSlots, type ModalComponent } from "@regira/modules/vue/ui"
 export enum ModalType {
     normal = "Normal",
@@ -202,6 +219,9 @@ export type ModalComponent // any component implementing ModalProps — modalPlu
 
 // resolves the app-wide modal (the modalPlugin swap-in, DefaultModal otherwise); call in setup:
 export function injectModal(): ModalComponent
+export const MODAL_COMPONENT_KEY: InjectionKey<ModalComponent>
+// the key injectModal() reads and modalPlugin provides. Prefer injectModal() — it falls back to
+// DefaultModal when the plugin was never installed, where a bare inject(MODAL_COMPONENT_KEY) yields undefined.
 // usage in a component:  const Modal = injectModal()  →  <component :is="Modal" :is-visible="..." @close="...">
 ```
 
@@ -244,7 +264,7 @@ export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
 
 ```ts
 import { Icon, BsIcon, FaIcon, IconButton, loadIcons, iconPlugin, iconDefaults, iconButtonDefaults } from "@regira/modules/vue/ui"
-import { type IIconProvider, type IconProps, type IconSize, type IconButtonProps, type IconButtonSlots } from "@regira/modules/vue/ui"
+import { type IIconProvider, type IconProps, type IconSize, type IconButtonProps, type IconButtonSlots, type IconsConfig } from "@regira/modules/vue/ui"
 export type IconSize = "sm" | "md" | "lg" | "xl"
 export type IconProps = { name: string; size?: IconSize }
 export const iconDefaults: { size: IconSize } // "md"
@@ -253,6 +273,9 @@ export const iconButtonDefaults: { type: "button" }
 export type IconButtonSlots = { default?(): any }
 export type IconComponent // any component implementing IconProps — iconPlugin's Icon option type (compile-checked); IconButtonComponent likewise
 export type IIconProvider = { add: (key: string, icon: string) => void; source: "bs" | "fa"; map: Map<string, string> }
+export type IconsConfig = { source: string; icons: Map<string, string> }
+// what iconPlugin provides under the "icons.config" injection key and Icon reads to resolve a glyph.
+// A replacement Icon that must resolve names the same way injects it: inject<IconsConfig | undefined>("icons.config", undefined)
 export function load(icons: Record<string, string> | Array<Array<string>>): void // exported as loadIcons
 // BsIcon / FaIcon props: IconProps
 ```

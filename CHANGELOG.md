@@ -5,6 +5,53 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.3.2 — 2026-09-19
+
+- `vue/auth`: **a 403 from `auth/validate` now clears the stored token**, as 401 already did. The endpoint
+  answers 403 for a token whose signature is valid but whose user no longer exists — deleted, deactivated, or
+  the database reseeded under it — and keeping that token made the failure permanent: every reload replayed
+  it, the app rendered unauthenticated with no sign-in gate, and only clearing site data by hand recovered.
+  Scoped to the validate call: a 403 from an ordinary resource still means "signed in, not allowed here" and
+  does not sign the user out.
+- `vue/ui`: the modal teleport hosts are lifted out of Bootstrap's fixed band in the shipped stylesheet —
+  `#modals` to `--rg-modal-z`, `#loginModal` one above. `.fixed-top` on those hosts is `position: fixed` **and**
+  `z-index: 1030`, which makes each host its own stacking context and clamps every teleported modal to 1030
+  however high the mask's own z-index is. An app with fixed chrome above that — a sticky footer, a bottom tab
+  bar, a FAB, a toast host — painted over modals that had opened correctly.
+- Guides: `fromPool` is documented as read-through — for an id already cached it returns the cached instance
+  and discards its input, so landing a custom endpoint's payload with it keeps the stale row behind a 200 and
+  an unchanged UI; `set` / `setMany` are the writes. `ui.customize` lists which built-ins hide their own text
+  below which breakpoint (`FormButtonsRow` labels under `md`, `TabNavigation` titles under `lg` when the tab
+  has an icon, `FormLabel` with `auto-hide`) — a functional decision for a phone-first app, not a cosmetic
+  one. The overview column budget states its arithmetic: `col-N` is a fraction of the whole row, not of what
+  `col-auto` left, so a fourth proportional column starves the flexible title; past three, give every column
+  an explicit width class. `toFeedbackError` is named with its `vue/ui` specifier where the entities card
+  teaches it.
+- `extensions`: the guides send you to the utilities module's own guides for the signatures behind the
+  wrapped helpers — `utilities.instructions` from the opening description, and `utilities.signatures` →
+  *arrayUtility* from the list of methods injected onto `Array.prototype`. Both had pointed at a bare
+  source path that resolved to no file.
+- `vue/ui`, `vue/auth`: six exports the barrels carry reach `*.signatures.md`. `vue/ui` gains the two
+  injection keys (`LOADING_COMPONENT_KEY`, `MODAL_COMPONENT_KEY`), each noted as the lower-level form of
+  `injectLoading()` / `injectModal()` — those fall back to the built-in component where a bare `inject`
+  of the key yields `undefined` if the plugin was never installed — plus `LoadingInput` (loadingPlugin's
+  option type), `IconsConfig` (what iconPlugin provides under `"icons.config"`, which a replacement `Icon`
+  injects to resolve glyph names the same way), and `ErrorSummary`'s props and slots, declared in the SFC
+  and so not importable as types. `vue/auth` names `LoginModalSlots` and `ForgotPasswordModalSlots`, for
+  typing a wrapper that forwards the slot.
+- `events`: the guides describe the mixin on its own terms — inject it into a service or manager that
+  broadcasts state changes, with a session manager's `login`/`refresh`/`logoff` as the illustration.
+  They had pointed at `src/identity` as the worked consumer, which is legacy and marked don't-use, and
+  the *See also* entry for the entities client pointed at the dormant `src/entities` rather than
+  `vue/entities`.
+- Docs site: the root `README.md` links [the published site](https://regira.github.io/Regira-Modules/),
+  and `AGENTS.md` documents it — §7 for how `sync-modules.mjs` copies each module's `README.md` +
+  `docs/*.md` into the generated, `.gitignore`d `docs/reference/`, §2 and §3 for the layout and the
+  `docs:dev`/`docs:build` commands that run from `docs/` against its own dependencies, §1 for the fact
+  that a module doc edit publishes itself on the next push to `main`, and §5 for the hand-maintained
+  `MODULES` array a new module has to be added to — the sync skips an unknown module with a warning, so
+  omitting it drops the module from the site on a green build.
+
 ## 6.3.1 — 2026-09-17
 
 - `vue/ui` + `vue/entities`: **new `toFeedbackError(ex)`** — field errors from an `EntityInputException` reach

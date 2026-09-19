@@ -3,8 +3,8 @@
 Opt-in prototype extensions for `Array`, `Date`, and `Promise` (`@regira/modules/extensions`). Nothing is
 patched on import — each extension is applied **explicitly** by calling a `use()` method, so the app
 controls when (and whether) globals are touched. The array and promise helpers are thin wrappers over
-[`@regira/modules/utilities`](../../utilities/array-utility) (`array-utility`, `promise-utility`,
-`datetime-utility`).
+[`@regira/modules/utilities`](../../utilities/ai/utilities.instructions.md) (`array-utility`,
+`promise-utility`, `datetime-utility`).
 
 > **Never guess** a signature — verify in [extensions.signatures.md](extensions.signatures.md).
 

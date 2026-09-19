@@ -1,8 +1,8 @@
 # Regira Events (front-end)
 
 `@regira/modules/events` — a lightweight event mixin: an `Event` value object and an `EventHandler` whose
-`injectInto(target)` adds a `trigger` / `on` / `once` / `off` API to any object. Regira managers (e.g. the
-[identity manager](../identity)) inject it to broadcast state changes.
+`injectInto(target)` adds a `trigger` / `on` / `once` / `off` API to any object or prototype — for a
+service or manager that has to broadcast state changes to code holding no reference to it.
 
 ## What it provides
 
