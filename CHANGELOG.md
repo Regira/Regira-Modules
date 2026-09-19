@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.3.2 — 2026-09-19
 
 - `vue/auth`: **a 403 from `auth/validate` now clears the stored token**, as 401 already did. The endpoint
   answers 403 for a token whose signature is valid but whose user no longer exists — deleted, deactivated, or
