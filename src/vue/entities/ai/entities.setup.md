@@ -371,9 +371,10 @@ src/
     input/        index.ts       #   (+) app-specific inputs (common FormButtonsRow/DescriptionInput ship in vue/ui)
     layout/                      #   TheHeader / TheFooter / Main · AppModal / LangSelector / Offline (+)
     users/                       #   ForgotPasswordForm (auth-on) · (+) the rest of the account UI
-  infrastructure/                # small app-wide plugins/helpers — see App shell (keep it basic)
+  infrastructure/                # small app-wide glue (permissions, plugins) — see App shell (keep it basic)
     permissions.ts               #   permission constants
     user-plugin.ts               #   $isAdmin + persists chosen language
+  utilities/                     # (+) larger apps: helpers that import no entity — formatting, date math
   entities/
     index.ts                     # aggregates every entity plugin + collects routes — see Add entities
     products/                    # full slice — anatomy below, code in entities.examples.md
@@ -1162,7 +1163,8 @@ and each `node.value` is an `INavItem` (`routeName` / `initialQuery` / `icon` / 
 ### `src/infrastructure/` (keep it basic)
 
 App-wide glue only — the role/permission names and a small plugin that exposes `$isAdmin` from the auth
-store and persists the chosen language. Skip both for a no-auth app.
+store and persists the chosen language. Skip both for a no-auth app. In a larger app, helpers that import no entity
+(formatting, date math) go in `src/utilities/`, not here.
 
 ```ts
 // src/infrastructure/permissions.ts — erasableSyntaxOnly-safe const maps (not enums)

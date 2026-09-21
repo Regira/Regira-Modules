@@ -107,7 +107,8 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   for extra exports (e.g. `FeedbackError`/`FeedbackIn`, the modal `style.scss`).
 - `FormLabel` renders **below** its input (a muted caption, not a `<label>` above it), so align a row that
   mixes labelled fields with buttons to `flex-start`.
-- `FormButtonsRow` with `readonly` hides Save and disables Delete and Restore; Cancel always renders.
+- `FormButtonsRow` with `readonly` renders no buttons: nothing can be saved, deleted or restored, and there
+  are no edits for Cancel to discard. The way back is the page's navigation or the modal's close button.
 - `TabContainer` shows the first visible, enabled tab among the URL hash (with `use-route-nav`) or the last
   selection (without), then `active`, and otherwise the default tab. `active` is read once, when the container
   is created. With `use-route-nav` the hash is written only when a tab is selected — mounting never navigates.

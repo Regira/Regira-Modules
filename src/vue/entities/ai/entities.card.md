@@ -113,7 +113,8 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
 - **Editable child/join collections are owned, not independent.** Back-end `e.Related()` ⇒ edit the rows
   inside the parent form — **`InputSelectorInline`** chips when a row only points at another entity (a
   join/link row), a table driven by **`useOwnedCollection`** when it carries its own fields (an order line, a
-  per-year policy). Either way removals of _persisted_ rows are marked `_deleted`
+  per-year policy). The row shape follows: a chip row may be a plain interface, a table row extends
+  `EntityBase` (`useOwnedCollection<T extends IEntity & { id: number }>`). Either way removals of _persisted_ rows are marked `_deleted`
   (visible, tinted, undoable until save), a `prepareItem` override drops them so `Related()` deletes by
   omission — never flush per-row `DELETE`s. A row _added this session_ is removed outright — nothing to
   undo. The multi-`Selector` **hard-removes** and cannot deliver this UX. New rows
@@ -164,7 +165,8 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
       **`@regira/modules/vue/lang`** (there is no `useTranslate`/`useLangTranslate`; every import specifier is in
       `entities.namespaces`). The first argument is the **key** (it lands in
       the route hash, so keep it stable); it also seeds the title, which `values.title` then overrides. Tab
-      titles render untranslated unless you pass one.
+      titles render untranslated unless you pass one. `icon` is a registered key (all listed in `ui.signatures`
+      → _Icons_) or a raw `bi bi-*` class — any other name renders nothing.
 - **Anything that fetches on mount must go through `onAuthenticated(() => load())`** (from
   `@regira/modules/vue/auth`). Views mount _before_ a stored token is validated, so a fetch guarded on
   `isAuthenticated` leaves a blank panel with no error and no failed request; `onAuthenticated` covers
@@ -203,8 +205,8 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
 - **A displayed relation is a component, not text**: the related entity's `FormModalButton` beside its
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK
-  it saves). Bind only `idValue` and a populated form renders the control blank; it resolves the id on
-  mount and emits `update:modelValue` into nothing. Dev builds warn.
+  it saves). Bind only `idValue` and a populated form renders the control blank: it resolves the entity from the id
+  (at setup, and whenever the id changes) and emits `update:modelValue` into nothing. Dev builds warn.
 
 ## The URL & includes contract
 
