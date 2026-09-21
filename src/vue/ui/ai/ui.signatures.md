@@ -352,7 +352,10 @@ import {
 //   Clearing the field emits `undefined` — so a search-object field bound to it goes back to inactive
 //   (`value != null` is what marks a filter active), and an unparseable value emits nothing at all.
 // NullableCheckBox contract (NullableCheckBoxProps/Emits): { modelValue?: boolean | string | number; label?: string }
-//   (v-model: true → false → undefined, rendered indeterminate). `label` renders a clickable <label> beside the
+//   (v-model: true → false → undefined, rendered indeterminate). `modelValue` is a live binding, normalised on
+//   the way in (`"true"`/`"false"` and numbers included): a parent-driven change after mount — a filter's Clear,
+//   a programmatic reset, a form re-filled from the server — moves the box. Bound without a listener it keeps
+//   its own state, since it syncs on a prop change. `label` renders a clickable <label> beside the
 //   box — pass `id` too and it is associated via `for`:
 //     <NullableCheckBox v-model="so.isActive" id="isActive" :label="$t('isActive')" />
 //   Omit `label` and the component renders as the bare <input> (fallthrough attrs land on it either way), for a

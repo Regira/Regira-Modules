@@ -5,6 +5,16 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/ui`: **`NullableCheckBox` now follows `modelValue` after mount.** The prop seeded the internal
+  value once and was never re-read, so the box reflected its own clicks and the value it mounted with, and
+  nothing else — a filter's Clear, a programmatic reset or a form re-filled from the server updated the bound
+  model while `checked`, `indeterminate` and the dimmed `opacity` all stayed on the previous state. A deep
+  link rendered correctly, because the value was already right at setup, which is what made it easy to miss.
+  Standalone use without `v-model` still keeps its own state: the control syncs on a prop *change*, so a
+  prop that never moves never overrides a click.
+
 ## 6.3.2 — 2026-09-19
 
 - `vue/auth`: **a 403 from `auth/validate` now clears the stored token**, as 401 already did. The endpoint

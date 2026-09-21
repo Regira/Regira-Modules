@@ -89,4 +89,62 @@ describe("NullableCheckBox", () => {
             expect(model.value).toBe(false)
         }
     })
+
+    test("a parent-driven change after mount reaches the box", async () => {
+        // `modelValue` is a binding, not an initial value: a filter's Clear, a programmatic reset or a form
+        // re-filled from the server all move the model without a click, and the box has to follow.
+        const { model, input } = mount({ modelValue: true })
+
+        expect(input().checked).toBe(true)
+        expect(input().indeterminate).toBe(false)
+
+        model.value = undefined
+        await nextTick()
+        expect(input().checked).toBe(false)
+        expect(input().indeterminate).toBe(true)
+        expect(input().style.opacity).toBe("0.5")
+
+        model.value = false
+        await nextTick()
+        expect(input().checked).toBe(false)
+        expect(input().indeterminate).toBe(false)
+        expect(input().style.opacity).toBe("1")
+    })
+
+    test("a parent that normalises the value on write does not echo back into a loop", async () => {
+        // A query-string-backed filter hands the value back as a string. Syncing the prop must not re-emit,
+        // and the normalised round-trip must land on the same logical value.
+        const host = document.createElement("div")
+        document.body.appendChild(host)
+        const model = ref(undefined)
+        const emitted = []
+        createApp(
+            defineComponent({
+                setup: () => () =>
+                    h(NullableCheckBox, {
+                        modelValue: model.value,
+                        "onUpdate:modelValue": (v) => {
+                            emitted.push(v)
+                            model.value = v == null ? undefined : String(v)
+                        },
+                    }),
+            })
+        ).mount(host)
+        const input = host.querySelector("input")
+
+        input.click()
+        await nextTick()
+        await nextTick()
+
+        expect(emitted).toEqual([true])
+        expect(input.checked).toBe(true)
+        expect(input.indeterminate).toBe(false)
+    })
+
+    test("a string or numeric modelValue is normalised on the way in", async () => {
+        const { input } = mount({ modelValue: "false" })
+
+        expect(input().checked).toBe(false)
+        expect(input().indeterminate).toBe(false)
+    })
 })

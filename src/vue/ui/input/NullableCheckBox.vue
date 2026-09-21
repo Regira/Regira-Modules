@@ -20,7 +20,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect, useAttrs } from "vue"
+import { ref, computed, watch, watchEffect, useAttrs } from "vue"
 import type { NullableCheckBoxProps, NullableCheckBoxEmits } from "./inputs"
 
 type ValueType = boolean | undefined
@@ -51,6 +51,21 @@ const cbValue = computed<ValueType>({
     },
 })
 const style = computed(() => ({ opacity: cbValue.value == null ? 0.5 : 1 }))
+
+// `modelValue` is a binding, not an initial value: a filter's Clear, a programmatic reset or a form re-filled
+// after mount all move the model without a click, and the box has to follow. Assign `_value` rather than the
+// writable computed — its setter emits `update:modelValue`, which would echo back and loop against a parent
+// that normalises on write. The equality guard makes that round-trip a no-op: a parent handing the value back
+// as the string "true" normalises to the boolean already held.
+watch(
+    () => props.modelValue,
+    (v) => {
+        const value = getValue(v)
+        if (value !== _value.value) {
+            _value.value = value
+        }
+    }
+)
 
 function handleChange() {
     cbValue.value = (cbValue.value == null ? true : cbValue.value ? false : undefined) as ValueType
