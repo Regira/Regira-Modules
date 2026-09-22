@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.3.3 — 2026-09-22
 
 - `vue/ui`: **`NullableCheckBox` now follows `modelValue` after mount.** The prop seeded the internal
   value once and was never re-read, so the box reflected its own clicks and the value it mounted with, and
