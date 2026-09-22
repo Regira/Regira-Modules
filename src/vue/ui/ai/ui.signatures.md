@@ -278,6 +278,19 @@ export type IconsConfig = { source: string; icons: Map<string, string> }
 // A replacement Icon that must resolve names the same way injects it: inject<IconsConfig | undefined>("icons.config", undefined)
 export function load(icons: Record<string, string> | Array<Array<string>>): void // exported as loadIcons
 // BsIcon / FaIcon props: IconProps
+// Every icon-typed input (Icon name, IconButton icon, Tab.create({ icon }), config.icon) takes a registered key
+// or a raw class ("bi bi-rocket", rendered as given). An unregistered key renders NOTHING (a console warning).
+// Registered keys, source "bs" (the default; "fa" defines a smaller subset):
+//   address, admin, alert, attachment, ban, bank, birthday, box, boxes, building, calendar, cancel, car, chat,
+//   chatLeft, chatRight, check, checked, clear, client, clone, close, closeSq, code, collapse, collection,
+//   columns, connect, contact, copy, country, csv, dashboard, date, delete, details, docTable, docx, down,
+//   download, edit, email, error, euro, exit, expand, export, fiche, file, filter, folder, form, from, git, globe,
+//   home, import, info, internet, invoice, ip, key, language, list, locked, look, mail, manage, map, markdown,
+//   maximize, message, minimize, minus, mobilePhone, move, multiline, new, notes, noUser, pay, pdf, people,
+//   peppol, phone, popOut, question, receipt, report, restore, save, search, security, select, selected, settings,
+//   sidebarLeft, sidebarRight, singleline, statistics, submit, tag, tenant, times, timespan, title, to, today,
+//   tools, transport, tree, truck, unchecked, unlocked, up, upload, user, vCard, warning, website, wrench, xlsx,
+//   xml, zip
 ```
 
 ## Screen
@@ -352,7 +365,10 @@ import {
 //   Clearing the field emits `undefined` — so a search-object field bound to it goes back to inactive
 //   (`value != null` is what marks a filter active), and an unparseable value emits nothing at all.
 // NullableCheckBox contract (NullableCheckBoxProps/Emits): { modelValue?: boolean | string | number; label?: string }
-//   (v-model: true → false → undefined, rendered indeterminate). `label` renders a clickable <label> beside the
+//   (v-model: true → false → undefined, rendered indeterminate). `modelValue` is a live binding, normalised on
+//   the way in (`"true"`/`"false"` and numbers included): a parent-driven change after mount — a filter's Clear,
+//   a programmatic reset, a form re-filled from the server — moves the box. Bound without a listener it keeps
+//   its own state, since it syncs on a prop change. `label` renders a clickable <label> beside the
 //   box — pass `id` too and it is associated via `for`:
 //     <NullableCheckBox v-model="so.isActive" id="isActive" :label="$t('isActive')" />
 //   Omit `label` and the component renders as the bare <input> (fallthrough attrs land on it either way), for a
@@ -362,7 +378,7 @@ import {
 //   <label class="form-check-label" for> there, and use the `label` prop everywhere else.
 // DescriptionInput contract (DescriptionInputProps): { label?: string; readonly?: boolean }   (v-model: string)
 // FileDropZone contract (FileDropZoneEmits/Slots): emits "drop-files" (files: Array<Blob>) ; default slot scoped { isDropping }
-// FormButtonsRow contract (FormButtonsRowProps/Emits/Slots): { item?: unknown; readonly?: boolean; feedback?: FeedbackOut; showDelete?: boolean; labels?: { save?: string; cancel?: string; delete?: string; restore?: string }; modalTitle?: string } (reads item.isArchived — truthy, 0/1 ok — to gate Restore, item.$title for the delete prompt; feedback busy-gates Save/Delete/Restore against double-submits; labels/modalTitle override the English defaults for i18n; `readonly` hides Save and disables Delete and Restore, but Cancel ALWAYS renders — it is the way out of a locked form, so a form with nothing to save should render the reason instead of this row) ; emits: cancel | remove | restore ; slots: delete (delete-confirm body; defaults to "Delete {$title}?")
+// FormButtonsRow contract (FormButtonsRowProps/Emits/Slots): { item?: unknown; readonly?: boolean; feedback?: FeedbackOut; showDelete?: boolean; labels?: { save?: string; cancel?: string; delete?: string; restore?: string }; modalTitle?: string } (reads item.isArchived — truthy, 0/1 ok — to gate Restore, item.$title for the delete prompt; feedback busy-gates Save/Delete/Restore against double-submits; labels/modalTitle override the English defaults for i18n; `readonly` renders NO buttons — nothing to save, delete or restore, and no edits for Cancel to discard; the way back is the page's navigation or the modal's close button) ; emits: cancel | remove | restore ; slots: delete (delete-confirm body; defaults to "Delete {$title}?")
 ```
 
 The remaining input widgets export contract types too (`FormLabelProps` + `formLabelDefaults`,

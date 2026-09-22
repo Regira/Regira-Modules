@@ -387,15 +387,15 @@ sync the URL yourself while keeping the fetch, paging, loading and feedback plum
 gain.
 
 ⚠️ **Neither fetches on mount.** The scaffolded `Overview.vue` gets its first search from `useRouteOverview`,
-a *separate* composable — take `useSearchView` alone and the initial fetch is yours. Trigger it with
+a _separate_ composable — take `useSearchView` alone and the initial fetch is yours. Trigger it with
 `onAuthenticated(() => searchHandler(true))`, which is also the correct token timing (views mount before a
 stored token is validated), and do **not** add an `onMounted` fetch beside it. A hand-written view that only
 watches its filters renders its empty state forever, against data that is plainly there.
 
 > `searchObject` goes **in** as a plain instance (`new SearchObject()`) and comes back **out** as a `Ref<SO>`
 > — the ref is what the view binds and mutates. Passing a ref in is only caught when you write the type
-> arguments (`useSearchView<Product, SearchObject>({ … })` → *TS2559: has no properties in common with type
-> 'SearchObject'*); let them infer and `SO` binds to the ref itself, so it compiles and hands back a
+> arguments (`useSearchView<Product, SearchObject>({ … })` → _TS2559: has no properties in common with type
+> 'SearchObject'_); let them infer and `SO` binds to the ref itself, so it compiles and hands back a
 > `searchObject` a level deeper than the view expects.
 
 > **→ See:** [entities.signatures.md](entities.signatures.md#5-overview-composables) — exact composable signatures.

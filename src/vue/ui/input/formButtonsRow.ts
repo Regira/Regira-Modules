@@ -3,6 +3,7 @@ import type { FeedbackOut } from "../feedback/feedback"
 export type FormButtonsRowProps = {
     /** only `isArchived` (gates Restore) and `$title` (delete prompt) are read; typed `unknown` so any entity binds */
     item?: unknown
+    /** renders no buttons — nothing to save, delete or restore, and no edits for Cancel to discard */
     readonly?: boolean
     feedback?: FeedbackOut
     showDelete?: boolean

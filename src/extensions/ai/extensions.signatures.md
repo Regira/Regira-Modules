@@ -36,7 +36,7 @@ the first argument): `orderBy`, `orderByDesc`, `naturalSort`, `shuffle`, `innerJ
 `groupJoin`, `count`, `first`, `last`, `distinctBy`, `distinct`, `union`, `take`, `skip`,
 `page`, `countPages`, `min`, `max`, `sum`, `average`, `toMap`, `sameContent`, `query`, `getEnumerator`,
 `move`, `reFill`. (Not injected: `isArray`, `isIterable`, `toArray`, `newArray`.) See
-[`utilities.signatures.md`](../../utilities/ai/utilities.signatures.md) — *arrayUtility* — for each signature.
+[`utilities.signatures.md`](../../utilities/ai/utilities.signatures.md) — _arrayUtility_ — for each signature.
 
 ## dateExtensions (date-extensions.d.ts)
 

@@ -155,6 +155,14 @@ describe("scaffold.mjs --rel", () => {
         expect(out).toContain("which does not exist yet")
     })
 
+    test("the relation button renders only when the relation is set", () => {
+        // bound to nothing, FormModalButton is a "create new" button — an optional FK put one on every row
+        run("Expense", "--rel", "Project", "--no-auth")
+        const listItem = readFileSync(app("src", "entities", "expenses", "overview", "ListItem.vue"), "utf8")
+
+        expect(listItem).toContain('<ProjectButton v-if="item.project" :model-value="getProject(item.project)" />')
+    })
+
     test("--dir is honoured by the lookup as well as by the output", () => {
         run("Country", "--plural", "countries", "--no-auth", "--dir", "src/modules")
         run("City", "--rel", "Country", "--no-auth", "--dir", "src/modules")

@@ -5,6 +5,34 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.3.3 — 2026-09-22
+
+- `vue/ui`: **`NullableCheckBox` now follows `modelValue` after mount.** The prop seeded the internal
+  value once and was never re-read, so the box reflected its own clicks and the value it mounted with, and
+  nothing else — a filter's Clear, a programmatic reset or a form re-filled from the server updated the bound
+  model while `checked`, `indeterminate` and the dimmed `opacity` all stayed on the previous state. A deep
+  link rendered correctly, because the value was already right at setup, which is what made it easy to miss.
+  Standalone use without `v-model` still keeps its own state: the control syncs on a prop _change_, so a
+  prop that never moves never overrides a click.
+- `vue/ui`: **`FormButtonsRow` renders no buttons on a `readonly` form.** It hid Save but kept Cancel and showed
+  Delete and Restore disabled, so every read-only form — every scaffolded one included — carried a toolbar that
+  could do nothing: Cancel only discards unsaved edits (`useForm`), which a read-only form cannot have. The way
+  back is the page's overview link or the modal's close button, both of which were already there. A custom form
+  whose `@cancel` navigates away needs its own link on a read-only form now. The ejectable copy
+  (`scaffold.mjs --ui FormButtonsRow`) follows.
+- Scaffold: **the generated `InputSelector` follows `idValue` whenever it changes**, not only on mount. A
+  parent that assigned, reassigned or cleared the FK after the control mounted — a deep-link prefill in its own
+  `onMounted`, a programmatic reset — left the control blank or showing a stale row, with no warning. A response
+  for an FK that has since moved on is dropped, and a control bound with `v-model` alone is never cleared. Existing slices: copy `_template/entity-slice/selecting/InputSelector.vue`
+  over the slice's own — it is boilerplate with no entity tokens, not one of the `(c)` files.
+- Scaffold: a `--rel` overview cell renders the related entity's `FormModalButton` only when the relation is
+  set. Bound to nothing the button is a "create new" button, so an optional FK put one on every row without it.
+- Guides: `ui.signatures` → _Icons_ lists every registered `bs` key (a test keeps it equal to the icon map);
+  owned rows edited through `useOwnedCollection` extend `EntityBase` while chip rows may stay interfaces;
+  `DateOnly`/`TimeOnly` fields stay strings bound to native date/time inputs; a count is
+  `formatNumber(n, culture, 0)`; a larger app keeps entity-free helpers in `src/utilities/`, leaving
+  `src/infrastructure/` to app-wide glue.
+
 ## 6.3.2 — 2026-09-19
 
 - `vue/auth`: **a 403 from `auth/validate` now clears the stored token**, as 401 already did. The endpoint

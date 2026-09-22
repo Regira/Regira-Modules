@@ -82,6 +82,12 @@ override toEntity(item: object): Entity {
 }
 ```
 
+**A `DateOnly`/`TimeOnly` field stays a string** (`"2026-09-21"`, `"09:30:00"`) — never hydrate it:
+`new Date("2026-09-21")` is UTC midnight, which renders as the previous day west of UTC, and the API reads a
+`DateOnly` only as `yyyy-MM-dd`, so a `Date` sent back answers 400. Bind a native
+`<input type="date" v-model="item.day" class="form-control">` (`type="time"` emits `"09:30"`, which the API also
+reads) — `DateInput` emits a `Date`, so it is for `DateTime` fields.
+
 ⚠️ The `typeof … === "string"` guard is mandatory, not style. `toEntity` runs inside computeds
 (`fromPool`, the library `FormModalButton.modalTitle`), so an unconditional `new Date(x)` mutates the
 computed's own dependency and throws `Maximum recursive updates exceeded` **against the library
@@ -321,7 +327,7 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 >
 > Bind `item.brand` **straight off the entity**. The generated control runs `modelValue` through its own
 > slice's `fromPool`, which rehydrates the plain nested DTO and returns the shared instance, and it back-fills
-> from `idValue` on mount when the relation was not included. A local `ref` fed by a `watch`, or a writable
+> from `idValue` whenever the FK names another row (the relation was not included, or the FK was assigned later). A local `ref` fed by a `watch`, or a writable
 > computed wrapping `fromPool`, is redundant here — pool by hand only for relations you render yourself.
 
 > **⚠️ Delete semantics differ.** The multi-`Selector` **hard-removes** on its delete icon — the row leaves
@@ -479,7 +485,9 @@ emits — read them when hand-writing the recipe or adapting the generated files
     for nothing else, and `Related()` inserts rows that arrive without an id — so a row minted by `add(...)`
     needs no `id`, no `$id` and no `$title`. Reaching for the model class instead is what makes the `add({…})`
     in step 2 fail with _"missing the following properties: id, $id, $title"_. A join row that also carries a
-    scalar of its own is not a pure join — edit it as a table (previous section) instead.
+    scalar of its own is not a pure join — edit it as a table (previous section) instead, and there the row
+    **is** an `EntityBase` subclass: `useOwnedCollection` constrains `T` to `IEntity & { id: number }` (TS2344
+    on an interface).
 
 2. **Render** — `InputSelectorInline` (`@regira/modules/vue/entities`) renders each row as a chip with a
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
@@ -1064,13 +1072,13 @@ pooling has already seen.
 
 > ⚠️ **`fromPool` is read-through — `set` is the write.** For an id already cached it returns the cached
 > instance and **discards its input**, so it cannot land a fresher payload: `cart.value = fromPool(data)`
-> after a custom endpoint keeps the stale row behind a 200 and an unchanged UI, and `Object.assign(item,
-> fromPool(updated))` is a no-op (`item` already *is* that instance).
+> after a custom endpoint keeps the stale row behind a 200 and an unchanged UI, and
+> `Object.assign(item, fromPool(updated))` is a no-op (`item` already _is_ that instance).
 >
 > ```ts
-> const { set } = useCartStore()                                   // setMany(rows) for a batch
+> const { set } = useCartStore() // setMany(rows) for a batch
 > const { data } = await useAxios().post(`carts/${id}/discount`, { code })
-> cart.value = set(data).value   // set runs toEntity itself — DTO in, the shared Ref<T> out
+> cart.value = set(data).value // set runs toEntity itself — DTO in, the shared Ref<T> out
 > ```
 >
 > **`fromPool` to render, `set`/`setMany` to land a payload.** `save()`/`details()`/`search()` already write
@@ -1111,10 +1119,9 @@ export function useAccess() {
 enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it
 secures anything.
 
-⚠️ **A `readonly` form still renders one button.** `FormButtonsRow` hides Save and disables Delete and
-Restore on `readonly`, but Cancel always renders — it is the way out of a locked form, not a save affordance. When
-nothing on the form is writable, render the reason instead of the row ("Read-only: approved requests cannot
-be edited"); a lone Cancel reads as a broken toolbar.
+**A `readonly` form renders no buttons.** `FormButtonsRow` drops Save, Cancel, Delete and Restore on
+`readonly`; the way back is the page's overview link or the modal's close button. When the lock needs
+explaining, render the reason beside the toolbar ("Read-only: approved requests cannot be edited").
 
 **Row-level locks** (an owner may edit their own draft; nobody may edit it once approved) are the same shape
 with the item in hand — compute the flag from `item` + the store in the view that owns the item, and thread

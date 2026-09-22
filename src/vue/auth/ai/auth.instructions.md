@@ -106,7 +106,7 @@ even with the plugin disabled. Registration order needs no `{ store }`: the plug
 every read, so a pinia store built before `app.use(authPlugin, …)` still follows a custom `authStore`.
 
 ⚠️ **App-lifetime state registers once, from `main.ts`.** Registering inside `setup` scopes the watcher to
-that component — right for a view, wrong for shared state such as *the signed-in user's domain row*: the
+that component — right for a view, wrong for shared state such as _the signed-in user's domain row_: the
 watcher belongs to whichever component called the composable first and dies with it. Split the composable —
 `initCurrentPerson()` called once after the auth plugin, `useCurrentPerson()` a pure reader.
 

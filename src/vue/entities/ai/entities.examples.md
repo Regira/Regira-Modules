@@ -1072,7 +1072,7 @@ const displayItemFormatter = (item?: Entity) => item?.$title as string
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, onMounted, type Ref } from "vue"
+import { computed, getCurrentInstance, onMounted, watch, type Ref } from "vue"
 import { Icon } from "@regira/modules/vue/ui"
 import config from "../config/config"
 import Entity from "../data/Entity"
@@ -1118,19 +1118,33 @@ function handleSelect(selected?: Entity) {
     }
 }
 
-onMounted(async () => {
-    // Two v-models: `idValue` is the FK that gets saved, `modelValue` is the entity that gets displayed. With
-    // only `idValue` bound the resolution below emits into nothing and the control renders blank on a
+// Two v-models: `idValue` is the FK that gets saved (or filtered on), `modelValue` is the entity that gets
+// displayed. Keep the entity in step with the FK whenever it changes — at setup, where an overview filter
+// restored from the query string carries the id alone, and again when the parent assigns or clears the FK later
+// (Back/Forward re-deriving that filter, a deep-link prefill, a programmatic reset), which would otherwise show a
+// stale row or nothing.
+watch(
+    () => props.idValue,
+    async (id, previous) => {
+        if (!id) {
+            // cleared by the parent — only a real change: bound without `idValue`, it never moves
+            if (previous && props.modelValue) emit("update:modelValue", undefined)
+            return
+        }
+        if (props.modelValue?.id == id) return
+        const model = await list({ id })
+        if (props.idValue == id) emit("update:modelValue", model[0]) // a newer FK arrived meanwhile: drop this answer
+    },
+    { immediate: true }
+)
+
+onMounted(() => {
+    // With only `idValue` bound the resolution above emits into nothing and the control renders blank on a
     // populated form — it fails silently, so say so.
     if (import.meta.env.DEV && props.idValue !== undefined && !("onUpdate:modelValue" in (getCurrentInstance()?.vnode.props ?? {}))) {
         console.warn(
             `[${config.key}InputSelector] v-model:idValue is bound without v-model — the resolved entity has nowhere to go, so the control renders blank. Bind both.`
         )
-    }
-
-    if (props.idValue && !props.modelValue?.id) {
-        const model = await list({ id: props.idValue })
-        emit("update:modelValue", model[0])
     }
 })
 </script>

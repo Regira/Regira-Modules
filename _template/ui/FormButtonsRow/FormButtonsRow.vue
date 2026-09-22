@@ -1,28 +1,32 @@
 <template>
+    <!-- `readonly` renders no buttons: nothing can be saved, deleted or restored, and Cancel only discards edits a
+         readonly form cannot have — the way back is the page's own navigation or the modal's close button -->
     <div class="form-buttons d-flex flex-wrap gap-2">
-        <IconButton v-if="!readonly" type="submit" icon="save" class="btn-primary" :disabled="busy">
-            <span class="d-none d-md-inline ms-1">{{ labels?.save ?? "Save" }}</span>
-        </IconButton>
-        <IconButton type="button" icon="cancel" class="btn-secondary" @click="emit('cancel')">
-            <span class="d-none d-md-inline ms-1">{{ labels?.cancel ?? "Cancel" }}</span>
-        </IconButton>
-        <ConfirmButton
-            v-if="showDelete && !isArchived"
-            :modal-title="modalTitle ?? 'Delete?'"
-            :modal-type="ModalType.danger"
-            class="btn-danger"
-            :disabled="readonly || busy"
-            @confirm="emit('remove')"
-        >
-            <template #button-content>
-                <Icon name="delete" />
-                <span class="d-none d-md-inline ms-1">{{ labels?.delete ?? "Delete" }}</span>
-            </template>
-            <slot name="delete">Delete {{ title }}?</slot>
-        </ConfirmButton>
-        <IconButton v-if="isArchived" type="button" icon="restore" class="btn-warning" :disabled="readonly || busy" @click="emit('restore')">
-            <span class="d-none d-md-inline ms-1">{{ labels?.restore ?? "Restore" }}</span>
-        </IconButton>
+        <template v-if="!readonly">
+            <IconButton type="submit" icon="save" class="btn-primary" :disabled="busy">
+                <span class="d-none d-md-inline ms-1">{{ labels?.save ?? "Save" }}</span>
+            </IconButton>
+            <IconButton type="button" icon="cancel" class="btn-secondary" @click="emit('cancel')">
+                <span class="d-none d-md-inline ms-1">{{ labels?.cancel ?? "Cancel" }}</span>
+            </IconButton>
+            <ConfirmButton
+                v-if="showDelete && !isArchived"
+                :modal-title="modalTitle ?? 'Delete?'"
+                :modal-type="ModalType.danger"
+                class="btn-danger"
+                :disabled="busy"
+                @confirm="emit('remove')"
+            >
+                <template #button-content>
+                    <Icon name="delete" />
+                    <span class="d-none d-md-inline ms-1">{{ labels?.delete ?? "Delete" }}</span>
+                </template>
+                <slot name="delete">Delete {{ title }}?</slot>
+            </ConfirmButton>
+            <IconButton v-if="isArchived" type="button" icon="restore" class="btn-warning" :disabled="busy" @click="emit('restore')">
+                <span class="d-none d-md-inline ms-1">{{ labels?.restore ?? "Restore" }}</span>
+            </IconButton>
+        </template>
     </div>
 </template>
 

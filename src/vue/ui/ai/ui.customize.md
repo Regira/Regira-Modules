@@ -46,16 +46,16 @@ import "@/assets/theme.scss" // the app's theme — always give the app one, eve
 
 Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 
-| Token                      | Default                      | Used by                                                                                                         |
-| -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--rg-accent`              | `var(--bs-primary, #0d6efd)` | the library's accent token — **override** it to re-accent the app; it is not a spare slot to invent siblings of |
-| `--rg-accent-bg`           | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                             |
-| `--rg-deleted-bg`          | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                       |
-| `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                      |
+| Token                      | Default                      | Used by                                                                                                                                                                    |
+| -------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--rg-accent`              | `var(--bs-primary, #0d6efd)` | the library's accent token — **override** it to re-accent the app; it is not a spare slot to invent siblings of                                                            |
+| `--rg-accent-bg`           | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                                                                                        |
+| `--rg-deleted-bg`          | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                                                                                  |
+| `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                                                                                 |
 | `--rg-modal-z`             | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
-| `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index                                                                                    |
-| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control             |
-| `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                  |
+| `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index                                                                                                                                               |
+| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control                                                                        |
+| `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                                                                             |
 
 **The Bootstrap nuance an agent must not get wrong:** apps import _precompiled_ Bootstrap 5.3, whose
 component styles read **component-level** vars baked at compile time (`.btn-primary { --bs-btn-bg: #0d6efd }`).
@@ -129,11 +129,11 @@ library rule omits it deliberately; `entity-list--scroll-x` is the per-list opt-
 **Built-ins that hide their own text below a breakpoint.** The defaults suit a desktop admin UI; on a
 phone-first app they are a functional decision, and they show up at 375 px, never in a type-check:
 
-| Component        | What disappears                   | Below | Condition                                       |
-| ---------------- | --------------------------------- | ----- | ----------------------------------------------- |
-| `FormButtonsRow` | save/cancel/delete/restore labels | `md`  | always — the icons remain                       |
-| `TabNavigation`  | the tab title                     | `lg`  | only when the tab has an `icon`                 |
-| `FormLabel`      | the label                         | `md`  | only with `auto-hide` (default `false`)         |
+| Component        | What disappears                   | Below | Condition                               |
+| ---------------- | --------------------------------- | ----- | --------------------------------------- |
+| `FormButtonsRow` | save/cancel/delete/restore labels | `md`  | always — the icons remain               |
+| `TabNavigation`  | the tab title                     | `lg`  | only when the tab has an `icon`         |
+| `FormLabel`      | the label                         | `md`  | only with `auto-hide` (default `false`) |
 
 To keep a tab's title, omit its `icon` in `Tab.create`. Otherwise override `.rg-tab-nav .nav-link span` /
 `.form-buttons .btn span` — one of the cases where `!important` is required (see L0).

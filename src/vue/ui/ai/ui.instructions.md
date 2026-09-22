@@ -128,9 +128,9 @@ it before writing a new component.
   `icon`-typed prop in the kit (`IconButton`, `Tab.create({ icon })`, the nav config), so the rules below hold
   everywhere one is accepted.
 - **The registered keys are a fixed list — an unregistered one renders nothing** (with a console warning,
-  easily lost in a busy log). The published type declarations are the source of truth and list every key by name:
-  `node_modules/@regira/modules/dist/vue/ui/icons/bootstrap-icons.d.ts` (124) and
-  `fontawesome-icons.d.ts` (57) — read one rather than guessing a plausible name, or pass the raw
+  easily lost in a busy log). Every `bs` key is listed in `ui.signatures` → _Icons_; the installed type
+  declarations carry both sets (`node_modules/@regira/modules/dist/vue/ui/icons/bootstrap-icons.d.ts`, 124, and
+  `fontawesome-icons.d.ts`, 57) — pick from a list rather than guessing a plausible name, or pass the raw
   class. The `fa` set is a **subset with different coverage**, not a mirror — `admin`, `calendar`, `settings`,
   `tag`, `list` and ~60 more exist only under `bs`, and `iconPlugin({ source: "fa" })` re-seeds the shared map,
   so switching source silently blanks every key the `fa` set does not define. Register your own with

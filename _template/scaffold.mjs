@@ -449,10 +449,11 @@ const relationBlocks = {
     // overview/ListItem.vue
     cells: relations
         // both the button and the label take the pooled instance — a raw nested DTO has no $title, and an
-        // edit made through the button's own modal must relabel this cell without a reload
+        // edit made through the button's own modal must relabel this cell without a reload. The button is
+        // guarded: bound to nothing it is a "create new" button, which an optional FK would put on every row
         .map(
             (r, i) =>
-                `        <div class="col ${relationBreakpoint(i)} text-truncate">\n            <${r.name}Button :model-value="get${r.name}(item.${r.field})" /> {{ get${r.name}(item.${r.field})?.$title }}\n        </div>`
+                `        <div class="col ${relationBreakpoint(i)} text-truncate">\n            <${r.name}Button v-if="item.${r.field}" :model-value="get${r.name}(item.${r.field})" /> {{ get${r.name}(item.${r.field})?.$title }}\n        </div>`
         )
         .join("\n"),
     imports: relEntities

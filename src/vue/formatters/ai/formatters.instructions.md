@@ -41,7 +41,7 @@ take a token **mask**; `formatDate` / `formatShortDate` take a **culture**. Both
 - A mask handed to `formatDate` cannot render: `toLocaleDateString` raises `RangeError` for a tag it cannot
   parse. Because that happens **during render** — aborting the component subtree and blanking a region of
   the page — `formatDate` catches it, logs the confusion to the console and falls back to the browser's
-  default locale. A short mask that *is* a valid tag (`"dd-MM"`) renders a localised date with no warning.
+  default locale. A short mask that _is_ a valid tag (`"dd-MM"`) renders a localised date with no warning.
 
 ## Numbers, currency, percentage
 

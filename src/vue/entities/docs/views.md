@@ -78,11 +78,10 @@ map a rule breach produces and model binding's `errors`, read with `toFeedbackEr
 server's text on `feedback.message`.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
-`handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` hides Save and
-disables Delete and Restore (Cancel stays). When the API gates writes by role or row ownership, derive `readonly` from the
-signed-in user and pass it down the slice — the overview's `List` / `ListItem` and the details form all take
-it — so the UI offers only what that user may do. This hides buttons; the API remains the only place writes
-are authorized.
+`handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.
+When the API gates writes by role or row ownership, derive `readonly` from the signed-in user and pass it down
+the slice — the overview's `List` / `ListItem` and the details form all take it — so the UI offers only what
+that user may do. This hides buttons; the API remains the only place writes are authorized.
 
 For child/owned collections inside a form, render the rows with **`InputSelectorInline`** — chips that
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`
