@@ -8,7 +8,7 @@
 //    title widens the row instead of letting `text-truncate` clip it.
 // NOTE: no `overflow-x: auto` here, on purpose. `overflow-x: auto` with a `visible` overflow-y computes to
 // `auto` on BOTH axes, turning the list into a scroll container that clips absolutely-positioned descendants
-// (the autocomplete panel of an inline-edit row) and breaks `position: sticky` inside it. Opt in per list
+// (a dropdown menu in a row) and breaks `position: sticky` inside it. Opt in per list
 // with `.entity-list--scroll-x` where a row genuinely cannot fit (an unbreakable token, a very narrow phone).
 .entity-list {
     > .row {

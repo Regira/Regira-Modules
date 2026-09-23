@@ -95,7 +95,7 @@ wear, rather than hooks you restyle. Put them on your own elements; they need no
 
 `.entity-list` sets no `overflow` on purpose — don't add one. `overflow-x: auto` next to a `visible`
 `overflow-y` computes to `auto` on **both** axes, so the list becomes a scroll container that clips
-absolutely-positioned descendants (an inline-edit row's autocomplete panel) and breaks `position: sticky`
+absolutely-positioned descendants (a dropdown menu in a row) and breaks `position: sticky`
 inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that cannot fit.
 
 ## Notes
@@ -117,7 +117,12 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module.
-- `Autocomplete` places its result panel against the viewport itself: it opens below the control, flips
-  **above** it when the results do not fit below and there is more room up there (the field at the foot
-  of a modal), and caps its height to the room on the side it opens to, so a long list scrolls instead of
-  running off screen. Nothing to configure — `--rg-dropdown-max-height` stays the ceiling.
+- `Autocomplete` renders its result panel on `<body>` (a `Teleport`) with `position: fixed`, so no
+  ancestor's `overflow` — a scrollable modal body, an `overflow: hidden` card — clips it. It places the panel
+  against the viewport itself: it opens below the control, flips **above** it when the results do not fit
+  below and there is more room up there (the field at the foot of a modal), and caps its height to the room
+  on the side it opens to, so a long list scrolls instead of running off screen. It follows the control while
+  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of view inside its scroll container.
+  Nothing to configure — `--rg-dropdown-max-height` stays the ceiling. Because the panel is no longer inside
+  your markup, style it through `resultClass` / `itemsClass` / `itemClass` or a global `.autocomplete-items`
+  rule; a selector scoped to an ancestor (`.my-form .autocomplete-items`) does not reach it.

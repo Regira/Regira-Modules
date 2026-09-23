@@ -177,7 +177,7 @@ The library's own `.entity-list` rule (in `@regira/modules/style.css`) backs thi
 gutter margins and sets `min-width: 0` on the cells so `text-truncate` can actually clip. Do not redeclare
 it in `theme.scss`. It deliberately sets **no** `overflow-x`: with `overflow-y` left at `visible` an
 `overflow-x: auto` computes to `auto` on both axes, turning the list into a scroll container that clips
-absolutely-positioned descendants (an autocomplete dropdown in an inline-edit row) and disables
+absolutely-positioned descendants (a dropdown menu in a row) and disables
 `position: sticky` inside it. A row that still doesn't fit has too many columns — cut one, or opt that one
 list in with the shipped `.entity-list--scroll-x` class.
 

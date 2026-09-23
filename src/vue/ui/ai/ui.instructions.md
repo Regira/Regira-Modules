@@ -149,11 +149,18 @@ it before writing a new component.
   the [entities](../../entities/ai/entities.signatures.md) module.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an
   overview/form composable), not a string.
-- **`Autocomplete`'s result panel places itself.** It opens below the control, flips **above** it when the
-  results do not fit below and there is more room above (a field at the foot of a modal), and clamps its
-  height to the room on the side it opens to — `--rg-dropdown-max-height` is the ceiling, not the height.
+- **`Autocomplete`'s result panel places itself.** It is teleported to `<body>` and `position: fixed`, so a
+  scrollable modal body or an `overflow: hidden` card never clips it — don't add `overflow: visible`
+  workarounds. It opens below the control, flips **above** it when the results do not fit below and there is
+  more room above (a field at the foot of a modal), and clamps its height to the room on the side it opens
+  to — `--rg-dropdown-max-height` is the ceiling, not the height. It follows the control while open (scroll, resize, a
+  layout shift) and hides while the control is scrolled out of its scroll container.
+  Style it with `resultClass`/`itemsClass`/`itemClass` or a global `.autocomplete-items` rule: a selector
+  scoped to an ancestor of the input does not reach a panel that lives on `<body>`.
   A replacement skin gets this from `useAutocomplete` only if it binds **both** `:style="resultStyle"` and
-  `ref="resultEl"` on the panel; without the element ref the panel cannot be measured and always opens down.
+  `ref="resultEl"` on the panel, and renders it in `<Teleport to="body">`; without the element ref the panel
+  cannot be measured and always opens down, and without the teleport a `transform`ed ancestor would become
+  the fixed panel's containing block.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns

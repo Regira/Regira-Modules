@@ -5,6 +5,22 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/ui`: **`Autocomplete`'s result panel is no longer clipped inside a modal or any scroll container.**
+  The panel was absolutely positioned inside the form, so `DefaultModal`'s scrollable body — or any card or
+  list with `overflow` other than `visible` — cut off every result below its edge, and the viewport guards
+  could not help because they saw room the clipping box did not grant. The panel now renders on `<body>`
+  (a `Teleport`) with `position: fixed`, placed from the control's viewport box: it keeps opening below,
+  flipping above and capping its height against the viewport as before, follows the control every frame while
+  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of its scroll container. `overflow: visible`
+  workarounds on a modal can go. A style rule scoped to an ancestor of the input
+  (`.my-form .autocomplete-items`) no longer reaches the panel — use `resultClass` / `itemsClass` /
+  `itemClass` or a global `.autocomplete-items` rule; and a `v-click-outside` on an ancestor now sees a click
+  on a result as outside. A replacement skin built on `useAutocomplete` should render its panel in
+  `<Teleport to="body">` too; `resultStyle` sets `position: fixed` inline, so an ejected copy that does not
+  yet teleport still escapes the clipping. The ejectable copy (`scaffold.mjs --ui Autocomplete`) follows.
+
 ## 6.3.3 — 2026-09-22
 
 - `vue/ui`: **`NullableCheckBox` now follows `modelValue` after mount.** The prop seeded the internal

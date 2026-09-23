@@ -15,27 +15,30 @@
         @keydown.enter.prevent="handleSelect(selectedItem!, selectedIndex)"
         ref="inputEl"
     />
-    <div class="autocomplete-items bg-white border" :class="resultClass" :style="resultStyle" v-click-outside="handleClickOutside" ref="resultEl">
-        <div class="list-group" :class="itemsClass">
-            <div class="loading list-group-item" v-show="isLoading">Loading...</div>
-            <div
-                v-for="(item, i) in items"
-                :key="i"
-                @click="handleSelect(item, i)"
-                class="autocomplete-item list-group-item list-group-item-action"
-                :class="[itemClass, { 'bg-light': i == selectedIndex }]"
-            >
-                <slot :item="item" :q="q">
-                    <div>
-                        <template v-for="(part, pi) in highlightParts(item)" :key="pi">
-                            <strong v-if="part.match">{{ part.text }}</strong>
-                            <template v-else>{{ part.text }}</template>
-                        </template>
-                    </div>
-                </slot>
+    <!-- on <body>, so a scrollable modal body or an overflow:hidden card cannot clip the results -->
+    <Teleport to="body">
+        <div class="autocomplete-items bg-white border" :class="resultClass" :style="resultStyle" v-click-outside="handleClickOutside" ref="resultEl">
+            <div class="list-group" :class="itemsClass">
+                <div class="loading list-group-item" v-show="isLoading">Loading...</div>
+                <div
+                    v-for="(item, i) in items"
+                    :key="i"
+                    @click="handleSelect(item, i)"
+                    class="autocomplete-item list-group-item list-group-item-action"
+                    :class="[itemClass, { 'bg-light': i == selectedIndex }]"
+                >
+                    <slot :item="item" :q="q">
+                        <div>
+                            <template v-for="(part, pi) in highlightParts(item)" :key="pi">
+                                <strong v-if="part.match">{{ part.text }}</strong>
+                                <template v-else>{{ part.text }}</template>
+                            </template>
+                        </div>
+                    </slot>
+                </div>
             </div>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <script lang="ts">

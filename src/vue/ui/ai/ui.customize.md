@@ -123,7 +123,7 @@ of `theme.scss`.
 
 ⚠️ **Never put `overflow-x` on `.entity-list` yourself.** With a `visible` `overflow-y` it computes to
 `auto` on **both** axes, turning the list into a scroll container that clips absolutely-positioned
-descendants (an inline-edit row's autocomplete panel) and breaks `position: sticky` inside it. The
+descendants (a dropdown menu in a row) and breaks `position: sticky` inside it. The
 library rule omits it deliberately; `entity-list--scroll-x` is the per-list opt-in.
 
 **Built-ins that hide their own text below a breakpoint.** The defaults suit a desktop admin UI; on a
@@ -238,7 +238,9 @@ slots. Every replacement/ejected skin MUST:
     - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default
       slot for items — all provided by `useAutocomplete`; keep them wired. The result panel also needs
       `:style="resultStyle"` **and** `ref="resultEl"`: the composable measures that element to decide
-      whether the results open below the control or flip above it, and how tall they may get.
+      whether the results open below the control or flip above it, and how tall they may get. Render the
+      panel in `<Teleport to="body">`: `resultStyle` places it `position: fixed` against the viewport, which
+      is what lets it escape a modal body's `overflow`.
     - **Feedback**: render the pending/success/error regions per `FeedbackStatus`; keep the close
       button emitting `close` and resetting.
     - **EntityOverview**: reload on mount; expose `reload`/`setPage`.
