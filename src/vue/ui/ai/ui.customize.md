@@ -232,7 +232,7 @@ slots. Every replacement/ejected skin MUST:
    screens, `$screen` for JS-side switches.
 4. Render every slot and fire every emit of the contract, per component:
     - **Modal**: render the default slot when `isVisible`; emit `close` on Esc and the header close;
-      emit `cancel`/`submit` from the footer actions; honor `showHeader`/`showFooter`/`size`/`fullWidth`/`type`.
+      emit `cancel`/`submit` from the footer actions; honor `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
     - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default

@@ -142,7 +142,8 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
     - `useFeedback()` **returns the feedback object itself** — `const feedback = useFeedback()`, then bind
       `<Feedback :feedback="feedback" />`. Not `const { feedback } = …`: that is `useForm()`'s shape, and the
       asymmetry is the trap. Members: `pending(msg)` / `success(msg)` / `fail(msg, errors?)` / `reset()` — **the
-      message is required**, `pending()` does not compile — plus an `isPending` computed. There is no `loading()`.
+      message is required**, `pending()` does not compile — plus `isPending`, a plain reactive field
+      (`:disabled="feedback.isPending"`, no `.value`). There is no `loading()`.
       ⚠️ `fail`'s second argument is a **field-error map** (`FeedbackError = string | Record<string, string | string[]>`),
       **not an `Error`**: `feedback.fail("Saving failed", toFeedbackError(ex))` — `toFeedbackError` ships from
       **`@regira/modules/vue/ui`**, not `vue/entities`, like `useFeedback` beside it. That helper reads both 400

@@ -15,6 +15,8 @@ export type ModalProps = {
     fullWidth?: boolean
     size?: "sm" | "md" | "lg" | "xl"
     type?: ModalType
+    /** footer button-label overrides (i18n); defaults are English */
+    labels?: { cancel?: string; submit?: string }
 }
 export type ModalEmits = {
     (e: "submit"): void

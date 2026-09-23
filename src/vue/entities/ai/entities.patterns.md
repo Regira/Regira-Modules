@@ -251,7 +251,7 @@ export class EntityService extends EntityServiceBase<Entity> {
 
     async getFamily(ids: Array<number>): Promise<Array<Entity>> {
         const { data } = await this.axios.get(`${this.config.api}/family`, { params: { ids } })
-        return data.items.map((x: object) => this.toEntity(x))
+        return data.items.map((x: Entity) => this.processItem(x)!) // toEntity + created/lastModified → Date
     }
 }
 ```

@@ -515,9 +515,15 @@ const items = computed<Array<Entity>>({
             {{ item.$title }}
         </div>
         <div class="col-auto">
-            <ConfirmButton icon="delete" class="m-0 p-1" :modal-type="ModalType.danger" @confirm="$emit('request-remove', item)">{{
-                $t("deleteItem", { title: item?.$title })
-            }}</ConfirmButton>
+            <ConfirmButton
+                icon="delete"
+                class="m-0 p-1"
+                :modal-type="ModalType.danger"
+                :modal-title="$t('delete')"
+                :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"
+                @confirm="$emit('request-remove', item)"
+                >{{ $t("deleteItem", { title: item?.$title }) }}</ConfirmButton
+            >
         </div>
     </div>
 </template>
@@ -765,10 +771,14 @@ function handleRemove() {
                     :readonly="readonly"
                     :feedback="feedback"
                     :show-delete="item?.id > 0"
+                    :labels="{ save: $t('save'), cancel: $t('cancel'), delete: $t('delete'), restore: $t('restore') }"
+                    :modal-title="$t('delete')"
                     @cancel="handleCancel"
                     @remove="handleRemove"
                     @restore="handleRestore"
-                />
+                >
+                    <template #delete>{{ $t("deleteItem", { title: item?.$title }) }}</template>
+                </FormButtonsRow>
             </div>
             <div class="col-auto order-2 order-md-3">
                 <RouterLink
@@ -2412,9 +2422,15 @@ const items = computed<Array<Entity>>({
                 <UnitTypeButton :model-value="item.unitType" />{{ getUnitType(item.unitType)?.$title }}
             </div>
             <div class="col-auto">
-                <ConfirmButton icon="delete" class="m-0 p-1" :modal-type="ModalType.danger" @confirm="$emit('request-remove', item)">{{
-                    $t("deleteItem", { title: item?.$title })
-                }}</ConfirmButton>
+                <ConfirmButton
+                    icon="delete"
+                    class="m-0 p-1"
+                    :modal-type="ModalType.danger"
+                    :modal-title="$t('delete')"
+                    :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"
+                    @confirm="$emit('request-remove', item)"
+                    >{{ $t("deleteItem", { title: item?.$title }) }}</ConfirmButton
+                >
             </div>
         </div>
     </div>
@@ -2635,10 +2651,14 @@ async function handleRequestRemove(item: Entity) {
                     :readonly="readonly"
                     :feedback="feedback"
                     :show-delete="item?.id > 0"
+                    :labels="{ save: $t('save'), cancel: $t('cancel'), delete: $t('delete'), restore: $t('restore') }"
+                    :modal-title="$t('delete')"
                     @cancel="handleCancel"
                     @remove="handleRemove"
                     @restore="handleRestore"
-                />
+                >
+                    <template #delete>{{ $t("deleteItem", { title: item?.$title }) }}</template>
+                </FormButtonsRow>
             </div>
             <div class="col-auto order-2 order-md-3">
                 <RouterLink
