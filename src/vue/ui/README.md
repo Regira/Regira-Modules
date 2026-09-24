@@ -122,7 +122,14 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   against the viewport itself: it opens below the control, flips **above** it when the results do not fit
   below and there is more room up there (the field at the foot of a modal), and caps its height to the room
   on the side it opens to, so a long list scrolls instead of running off screen. It follows the control while
-  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of view inside its scroll container.
-  Nothing to configure — `--rg-dropdown-max-height` stays the ceiling. Because the panel is no longer inside
-  your markup, style it through `resultClass` / `itemsClass` / `itemClass` or a global `.autocomplete-items`
-  rule; a selector scoped to an ancestor (`.my-form .autocomplete-items`) does not reach it.
+  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of
+  view inside its scroll container. Nothing to configure — `--rg-dropdown-max-height` stays the ceiling.
+  The panel lives on `<body>`, outside your markup, so style it through `resultClass` / `itemsClass` /
+  `itemClass` or a global `.autocomplete-items` rule; a selector scoped to an ancestor
+  (`.my-form .autocomplete-items`) does not reach it. Neither does anything it would inherit from one: set
+  `--rg-dropdown-max-height` / `--rg-dropdown-z` on `:root` or `.autocomplete-items` rather than on a
+  container, and a font size, colour or `data-bs-theme` on a region around the form leaves the panel on the
+  page's own — give it a `resultClass` that matches the region. For assistive technology the input is a
+  `combobox` whose `aria-controls` names the panel's `listbox` and whose `aria-activedescendant` follows the
+  arrow-key selection, so screen readers keep the two together even though the panel sits elsewhere in
+  the DOM. Label the input as usual (`<label for>` or `aria-label`).

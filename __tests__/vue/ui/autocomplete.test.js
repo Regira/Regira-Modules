@@ -7,6 +7,7 @@ import Autocomplete from "../../../src/vue/ui/autocomplete/Autocomplete.vue"
 // (control 232px, input 151px, row height 38px). The panel is `position: fixed`, so every expected offset
 // below is in viewport coordinates.
 const rect = (left, width, top = 0) => ({ width, height: 38, top, left, right: left + width, bottom: top + 38, x: left, y: top, toJSON: () => ({}) })
+const box = ({ top, left, width, height }) => ({ top, left, width, height, right: left + width, bottom: top + height })
 
 function setViewportWidth(width) {
     Object.defineProperty(window, "innerWidth", { value: width, configurable: true, writable: true })
@@ -16,7 +17,8 @@ function setViewportHeight(height) {
 }
 // `controlLeft`/`controlTop` are where the control sits IN THE VIEWPORT; the input sits `inputOffsetLeft`/
 // `inputOffsetTop` into it (e.g. past a prepend button). `clip` wraps the control in a scroll container with
-// that viewport box — a scrollable modal body.
+// that viewport box — a scrollable modal body. `fixed` puts a `position: fixed` layer between the two — a modal
+// rendered in place — and `fixed.clip` makes that layer a scroll container of its own.
 function stubControl({
     wrapInInputGroup = true,
     controlWidth = 232,
@@ -26,6 +28,7 @@ function stubControl({
     controlTop = 0,
     inputOffsetTop = 0,
     clip,
+    fixed,
 } = {}) {
     const input = document.createElement("input")
     input.getBoundingClientRect = () => rect(controlLeft + inputOffsetLeft, inputWidth, controlTop + inputOffsetTop)
@@ -36,14 +39,25 @@ function stubControl({
     } // else: a plain wrapper, not the control
     parent.appendChild(input)
     parent.getBoundingClientRect = () => rect(controlLeft, controlWidth, controlTop)
+    let outer = parent
+    if (fixed) {
+        const layer = document.createElement("div")
+        layer.style.position = "fixed"
+        if (fixed.clip) {
+            layer.style.overflowY = "auto"
+            layer.getBoundingClientRect = () => box(fixed.clip)
+        }
+        layer.appendChild(outer)
+        outer = layer
+    }
     if (clip) {
         const scroller = document.createElement("div")
         scroller.style.overflowY = "auto"
-        scroller.getBoundingClientRect = () => ({ ...clip, right: clip.left + clip.width, bottom: clip.top + clip.height })
-        scroller.appendChild(parent)
+        scroller.getBoundingClientRect = () => box(clip)
+        scroller.appendChild(outer)
         document.body.appendChild(scroller)
     } else {
-        document.body.appendChild(parent)
+        document.body.appendChild(outer)
     }
     return input
 }
@@ -281,6 +295,38 @@ describe("autocomplete result panel inside a scroll container", () => {
         await new Promise((resolve) => setTimeout(resolve, 50)) // a few animation frames
         expect(get().resultStyle.value.top).toBe("238px")
     })
+
+    test("shows inside a fixed modal rendered in place, whatever scroll container the modal sits in", async () => {
+        // a DefaultModal rendered inside a card or a scrollable list lower on the page: the modal is fixed, so
+        // that container never clips it — the control is on screen although it lies outside the container's box
+        const listBelow = { top: 500, left: 0, width: 600, height: 200 }
+        const { out } = await styleFor({ controlTop: 200, clip: listBelow, fixed: {} })
+        out.openResults()
+        await nextTick()
+
+        expect(out.resultStyle.value.visibility).toBe("visible")
+    })
+
+    test("still hides while its control is scrolled out of a fixed modal that scrolls its own content", async () => {
+        // a Bootstrap `.modal` is both: fixed, and the scroll container for its dialog
+        const listBelow = { top: 500, left: 0, width: 600, height: 200 }
+        const { out } = await styleFor({ controlTop: 420, clip: listBelow, fixed: { clip: modalBody } })
+        out.openResults()
+        await nextTick()
+
+        expect(out.resultStyle.value.visibility).toBe("hidden")
+    })
+
+    test("shows when the control itself is fixed, whatever scroll container it sits in", async () => {
+        const { get } = mountComposable()
+        const input = stubControl({ controlTop: 200, clip: { top: 500, left: 0, width: 600, height: 200 } })
+        input.parentElement.style.position = "fixed" // a toolbar search pinned to the viewport
+        get().inputEl.value = input
+        get().openResults()
+        await nextTick()
+
+        expect(get().resultStyle.value.visibility).toBe("visible")
+    })
 })
 
 describe("Autocomplete component", () => {
@@ -296,5 +342,69 @@ describe("Autocomplete component", () => {
         expect(host.querySelector("input.rg-autocomplete")).not.toBeNull()
         expect(host.querySelector(".autocomplete-items")).toBeNull()
         expect(document.body.querySelector(":scope > .autocomplete-items")).not.toBeNull()
+    })
+
+    test("ties the input to its teleported results for assistive technology", async () => {
+        const host = document.createElement("div")
+        document.body.appendChild(host)
+        const exposed = {}
+        createApp({ render: () => h(Autocomplete, { data: ["alpha", "beta"], debounceTime: 0, ref: (r) => (exposed.ac = r) }) })
+            .directive("clickOutside", {})
+            .mount(host)
+        await nextTick()
+        const input = host.querySelector("input")
+        const listbox = document.getElementById(input.getAttribute("aria-controls"))
+
+        expect(input.getAttribute("role")).toBe("combobox")
+        expect(input.getAttribute("aria-autocomplete")).toBe("list")
+        expect(input.getAttribute("aria-expanded")).toBe("false")
+        expect(listbox.getAttribute("role")).toBe("listbox")
+        expect(listbox.closest(".autocomplete-items").parentElement).toBe(document.body)
+
+        await exposed.ac.search("") // the default search matches on "starts with"; an empty term lists both
+        await new Promise((resolve) => setTimeout(resolve, 10))
+        const options = listbox.querySelectorAll('[role="option"]')
+        expect(input.getAttribute("aria-expanded")).toBe("true")
+        expect(options.length).toBe(2)
+        expect(input.hasAttribute("aria-activedescendant")).toBe(false)
+
+        input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }))
+        await nextTick()
+        expect(input.getAttribute("aria-activedescendant")).toBe(options[0].id)
+        expect(options[0].getAttribute("aria-selected")).toBe("true")
+        expect(options[1].getAttribute("aria-selected")).toBe("false")
+    })
+
+    test("gives every instance its own listbox id, across apps too", async () => {
+        // two instances in one app, and a second app on the same page (an embedded widget)
+        const mountApp = (count) => {
+            const host = document.createElement("div")
+            document.body.appendChild(host)
+            createApp({ render: () => Array.from({ length: count }, () => h(Autocomplete, { data: [] })) })
+                .directive("clickOutside", {})
+                .mount(host)
+            return host
+        }
+        const hosts = [mountApp(2), mountApp(1)]
+        await nextTick()
+        const ids = hosts.flatMap((host) => [...host.querySelectorAll("input")].map((input) => input.getAttribute("aria-controls")))
+
+        expect(ids).toHaveLength(3)
+        expect(new Set(ids).size).toBe(3)
+        ids.forEach((id) => expect(document.querySelectorAll(`#${id}`)).toHaveLength(1))
+    })
+
+    test("shares its id sequence with every skin built on useAutocomplete, an ejected copy included", async () => {
+        // an app that ejected Autocomplete still renders the library's own through scaffolded slices
+        const skin = mountComposable().get()
+        const host = document.createElement("div")
+        document.body.appendChild(host)
+        createApp({ render: () => h(Autocomplete, { data: [] }) })
+            .directive("clickOutside", {})
+            .mount(host)
+        await nextTick()
+
+        expect(host.querySelector("input").getAttribute("aria-controls")).not.toBe(skin.listboxId)
+        expect(skin.optionId(2)).toBe(`${skin.listboxId}-2`)
     })
 })

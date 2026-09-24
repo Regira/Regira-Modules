@@ -813,7 +813,9 @@ function missingChromeKeys() {
         )
     }
     if (translations.deleteItem && !JSON.stringify(translations.deleteItem).includes("{title}")) {
-        console.log(`! "deleteItem" in public/data/translations.json has no {title} placeholder, so the delete dialog never names the row — "Delete {title}?".`)
+        console.log(
+            `! "deleteItem" in public/data/translations.json has no {title} placeholder, so the delete dialog never names the row — "Delete {title}?".`
+        )
     }
 }
 

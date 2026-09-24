@@ -38,7 +38,9 @@
                                     <div class="d-flex justify-content-between w-100">
                                         <slot name="footer-close-button" :handleCancel="handleCancel">
                                             <div>
-                                                <IconButton icon="cancel" class="btn-outline-secondary" @click="handleCancel">{{ labels?.cancel ?? "Cancel" }}</IconButton>
+                                                <IconButton icon="cancel" class="btn-outline-secondary" @click="handleCancel">{{
+                                                    labels?.cancel ?? "Cancel"
+                                                }}</IconButton>
                                             </div>
                                         </slot>
                                         <slot name="footer-submit-button" :handleClose="handleSubmit">

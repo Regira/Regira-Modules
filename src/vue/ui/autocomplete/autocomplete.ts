@@ -20,6 +20,10 @@ type IResultStyle = StyleValue & {
 
 // Breathing room kept between the result panel and the viewport edge it opens towards.
 const VIEWPORT_GUTTER = 8
+// Numbers every useAutocomplete on the page, whatever skin calls it: the library's Autocomplete and an ejected
+// copy both import this module, so their listbox ids cannot collide. (useId() numbers per app, and two apps on
+// one page would share its ids.)
+let instanceCount = 0
 
 /** the box the panel aligns to: the whole `.input-group` when the input sits in one, else the input */
 function getAnchor(input?: HTMLElement): HTMLElement | undefined {
@@ -33,16 +37,26 @@ function getViewport(): { width: number; height: number } {
     const root = document.documentElement
     return { width: root?.clientWidth || window.innerWidth || 0, height: root?.clientHeight || window.innerHeight || 0 }
 }
-/** whether any part of `rect` is still shown by every scroll container (overflow other than visible) around `el` */
+/**
+ * whether any part of `rect` is still shown by every scroll container (overflow other than visible) around `el`.
+ * The walk ends at a `position: fixed` ancestor: nothing above it in the tree clips it (a modal rendered in
+ * place inside a card or a scrollable list), though it can still clip its own content. A fixed `el` has no
+ * clipping ancestor at all.
+ */
 function isVisibleInScrollParents(el: HTMLElement, rect: IRect): boolean {
+    if (getComputedStyle(el).position === "fixed") {
+        return true
+    }
     for (let parent = el.parentElement; parent && parent !== document.body && parent !== document.documentElement; parent = parent.parentElement) {
-        const { overflowX, overflowY } = getComputedStyle(parent)
-        if (overflowX === "visible" && overflowY === "visible") {
-            continue
+        const { overflowX, overflowY, position } = getComputedStyle(parent)
+        if (overflowX !== "visible" || overflowY !== "visible") {
+            const clip = parent.getBoundingClientRect()
+            if (rect.bottom <= clip.top || rect.top >= clip.bottom || rect.right <= clip.left || rect.left >= clip.right) {
+                return false
+            }
         }
-        const clip = parent.getBoundingClientRect()
-        if (rect.bottom <= clip.top || rect.top >= clip.bottom || rect.right <= clip.left || rect.left >= clip.right) {
-            return false
+        if (position === "fixed") {
+            break
         }
     }
     return true
@@ -95,8 +109,13 @@ export type AutocompleteOut<T = any, TKey = IDefaultKey | T> = {
     inputEl: Ref<(HTMLElement & { value: string }) | undefined>
     /** the result panel; bind it (`ref="resultEl"`) so the placement can measure the panel it positions */
     resultEl: Ref<HTMLElement | undefined>
+    /** @deprecated always `{ top: 0, left: 0 }` — `resultStyle` places the panel. Removed in the next major version. */
     resultOffset: Ref<IOffset>
     resultStyle: Ref<IResultStyle>
+    /** id for the results `listbox`, unique on the page — the input's `aria-controls` */
+    listboxId: string
+    /** id for the result at `index` — the input's `aria-activedescendant` while that result is highlighted */
+    optionId(index: number): string
     displayItemFormatter(item?: T): string
     handleInput(): void
     handleChange(): void
@@ -121,6 +140,9 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     const isOpen = ref(false)
     const isFocus = ref(false)
     const isLoading = ref(false)
+    // the combobox → listbox wiring: the panel lives on <body>, so these ids are what tie it to the input
+    const listboxId = `rg-autocomplete-${++instanceCount}`
+    const optionId = (index: number): string => `${listboxId}-${index}`
     const selectedItem = computed({
         get: () => props.modelValue,
         set: (value) => {
@@ -398,6 +420,8 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         resultEl,
         resultOffset,
         resultStyle,
+        listboxId,
+        optionId,
         displayItemFormatter,
         handleInput,
         handleChange,

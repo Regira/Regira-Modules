@@ -336,6 +336,9 @@ export function useAutocomplete<T = any, TKey = number | string | T>(props, { em
 // height to the room there. `resultStyle` is `position: fixed` in viewport coordinates, so render the panel
 // in <Teleport to="body"> (Autocomplete does). Autocomplete exposes both elements: { inputEl, resultEl, q,
 // selectedItem, search(term?), reset(), resetQ() }
+// AutocompleteOut.listboxId: string — the results listbox's id, unique on the page across every skin (the
+// input's aria-controls); AutocompleteOut.optionId(index): string — that result's id (aria-activedescendant)
+// AutocompleteOut.resultOffset is @deprecated — always { top: 0, left: 0 }; read the placement from resultStyle
 ```
 
 ## Buttons & input components

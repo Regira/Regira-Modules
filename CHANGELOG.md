@@ -13,13 +13,25 @@ heading.
   could not help because they saw room the clipping box did not grant. The panel now renders on `<body>`
   (a `Teleport`) with `position: fixed`, placed from the control's viewport box: it keeps opening below,
   flipping above and capping its height against the viewport as before, follows the control every frame while
-  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of its scroll container. `overflow: visible`
-  workarounds on a modal can go. A style rule scoped to an ancestor of the input
-  (`.my-form .autocomplete-items`) no longer reaches the panel — use `resultClass` / `itemsClass` /
-  `itemClass` or a global `.autocomplete-items` rule; and a `v-click-outside` on an ancestor now sees a click
-  on a result as outside. A replacement skin built on `useAutocomplete` should render its panel in
-  `<Teleport to="body">` too; `resultStyle` sets `position: fixed` inline, so an ejected copy that does not
-  yet teleport still escapes the clipping. The ejectable copy (`scaffold.mjs --ui Autocomplete`) follows.
+  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of
+  its scroll container. `overflow: visible` workarounds on a modal can go. A style rule scoped to an ancestor
+  of the input (`.my-form .autocomplete-items`) no longer reaches the panel — use `resultClass` /
+  `itemsClass` / `itemClass` or a global `.autocomplete-items` rule. Nor does anything the panel inherited
+  from an ancestor: a `--rg-dropdown-max-height` / `--rg-dropdown-z` override set on a container instead of
+  `:root`, or a font size, colour or `data-bs-theme` from a themed region around the form. And a
+  `v-click-outside` on an ancestor now sees a click on a result as outside. A replacement skin built on
+  `useAutocomplete` should render its panel in `<Teleport to="body">` too; `resultStyle` sets
+  `position: fixed` inline, so an ejected copy that does not yet teleport still escapes the clipping. The
+  ejectable copy (`scaffold.mjs --ui Autocomplete`) follows.
+- `vue/ui`: **`Autocomplete` is an ARIA combobox.** The input carries `role="combobox"`, `aria-expanded`,
+  `aria-controls` and `aria-activedescendant`; the results are a `listbox` of `option`s (`aria-busy` while
+  loading). Screen readers announce the list and the arrow-key selection, and the input stays tied to its
+  results now that the panel lives on `<body>`. Attributes passed to `Autocomplete` still win, so an app's own
+  `aria-*` overrides these. `useAutocomplete` returns the ids — `listboxId` and `optionId(index)`, unique
+  across every skin on the page — so a replacement skin wires the same pattern and an ejected copy never
+  shares an id with the library's own `Autocomplete`. The ejectable copy follows.
+- `vue/ui`: **`useAutocomplete().resultOffset` is deprecated.** Nothing ever updated it — it always reads
+  `{ top: 0, left: 0 }`; the panel's placement is `resultStyle`. It will be removed in the next major version.
 - `vue/ui`: **confirm dialogs can be translated.** `DefaultModal`'s footer buttons were hard-coded English
   ("Cancel" / "Submit"), so a translated app still asked every delete question in English. `ModalProps` gains
   `labels: { cancel?, submit? }` and `ConfirmButton` a `modalLabels` it forwards; `FormButtonsRow`'s delete
@@ -43,7 +55,8 @@ heading.
   `.value` — instead of "a computed". The custom-endpoint example maps through `processItem`, so
   `created`/`lastModified` arrive as `Date` like every built-in read, rather than `toEntity`, which left them
   strings. The front-end bootstrap describes `scaffold.mjs <Entity> --attachments` as it works now (it writes
-  and wires the shared file slice itself), `entities.template` lists the slice's real tokens, and the worked-example list rows and forms translate their delete dialogs like the scaffold does.
+  and wires the shared file slice itself), `entities.template` lists the slice's real tokens, and the
+  worked-example list rows and forms translate their delete dialogs like the scaffold does.
 
 ## 6.3.3 — 2026-09-22
 

@@ -153,14 +153,22 @@ it before writing a new component.
   scrollable modal body or an `overflow: hidden` card never clips it — don't add `overflow: visible`
   workarounds. It opens below the control, flips **above** it when the results do not fit below and there is
   more room above (a field at the foot of a modal), and clamps its height to the room on the side it opens
-  to — `--rg-dropdown-max-height` is the ceiling, not the height. It follows the control while open (scroll, resize, a
-  layout shift) and hides while the control is scrolled out of its scroll container.
+  to — `--rg-dropdown-max-height` is the ceiling, not the height. It follows the control while open (scroll,
+  resize, a layout shift) and hides while the control is scrolled out of its scroll container.
   Style it with `resultClass`/`itemsClass`/`itemClass` or a global `.autocomplete-items` rule: a selector
-  scoped to an ancestor of the input does not reach a panel that lives on `<body>`.
+  scoped to an ancestor of the input does not reach a panel that lives on `<body>`, and neither does anything
+  inherited from one — set `--rg-dropdown-max-height`/`--rg-dropdown-z` on `:root` or `.autocomplete-items`,
+  not on a container, and give the panel a `resultClass` of its own when the form sits in a region with its
+  own font size, colour or `data-bs-theme`.
   A replacement skin gets this from `useAutocomplete` only if it binds **both** `:style="resultStyle"` and
   `ref="resultEl"` on the panel, and renders it in `<Teleport to="body">`; without the element ref the panel
   cannot be measured and always opens down, and without the teleport a `transform`ed ancestor would become
-  the fixed panel's containing block.
+  the fixed panel's containing block. It should also keep the ARIA wiring `Autocomplete` renders — the input
+  as `role="combobox"` with `aria-expanded` (`isOpen`), `aria-controls` (`listboxId`) and
+  `aria-activedescendant` (`optionId(selectedIndex)` while open), the list as `role="listbox"` with
+  `:id="listboxId"`, each result as `role="option"` with `:id="optionId(i)"` — because the teleported panel
+  is otherwise unrelated to the input in DOM order. Take both ids from `useAutocomplete`: they are unique
+  across every skin on the page, so an ejected copy and the library's own never share one.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns
