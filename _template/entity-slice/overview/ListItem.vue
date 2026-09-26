@@ -23,7 +23,14 @@
 
         <div class="col-auto">
             <!-- readonly comes from List.vue; it is the hook for permission-gating (entities.patterns.md -> Permission-gated UI) -->
-            <ConfirmButton v-if="!readonly" icon="delete" :modal-type="ModalType.danger" @confirm="$emit('request-remove', item)">
+            <ConfirmButton
+                v-if="!readonly"
+                icon="delete"
+                :modal-type="ModalType.danger"
+                :modal-title="$t('delete')"
+                :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"
+                @confirm="$emit('request-remove', item)"
+            >
                 {{ $t("deleteItem", { title: item?.$title }) }}
             </ConfirmButton>
         </div>

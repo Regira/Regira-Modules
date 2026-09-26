@@ -11,10 +11,14 @@
                     :readonly="readonly"
                     :feedback="feedback"
                     :show-delete="item?.id > 0"
+                    :labels="{ save: $t('save'), cancel: $t('cancel'), delete: $t('delete'), restore: $t('restore') }"
+                    :modal-title="$t('delete')"
                     @cancel="handleCancel"
                     @remove="handleRemove"
                     @restore="handleRestore"
-                />
+                >
+                    <template #delete>{{ $t("deleteItem", { title: item?.$title }) }}</template>
+                </FormButtonsRow>
             </div>
             <div class="col-auto order-2 order-md-3">
                 <!-- In a modal (isPopup) there is no overview to return to — offer a pop-out to the full page instead. -->

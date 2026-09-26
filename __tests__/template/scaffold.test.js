@@ -121,6 +121,47 @@ describe("scaffold.mjs derived paths", () => {
         expect(out.indexOf("--as <fieldName>")).toBeLessThan(out.indexOf("✓ Owned collection OrderLine"))
     })
 
+    test("i18n keys are camelCase and follow --plural / --singular", () => {
+        run("ShoppingList", "--plural", "baskets", "--no-auth")
+        run("Human", "--plural", "folks", "--singular", "contact-person", "--no-auth")
+        run("InterventionType", "--no-auth")
+        const config = (folder) => readFileSync(app("src", "entities", folder, "config", "config.ts"), "utf8")
+
+        expect(config("baskets")).toContain('overviewTitle: "baskets"')
+        expect(config("baskets")).toContain('detailsTitle: "shoppingList"')
+        expect(config("folks")).toContain('overviewTitle: "folks"')
+        expect(config("folks")).toContain('detailsTitle: "contactPerson"')
+        expect(config("folks")).toContain('description: "contactPerson.description"')
+        expect(config("intervention-types")).toContain('overviewTitle: "interventionTypes"')
+        expect(config("intervention-types")).toContain('detailsTitle: "interventionType"')
+    })
+
+    test("names the chrome translation keys an older shell's translations.json lacks", () => {
+        // A shell scaffolded before the slice chrome translated its buttons has none of these keys, and $t renders a
+        // missing key raw — the new slice's buttons would read "save" / "delete".
+        const appRoot = mkdtempSync(join(tmpdir(), "regira-scaffold-keys-"))
+        try {
+            mkdirSync(join(appRoot, "public", "data"), { recursive: true })
+            writeFileSync(join(appRoot, "public", "data", "translations.json"), JSON.stringify({ deleteItem: { en: "Delete" }, cancel: { en: "Cancel" } }))
+            const runIn = (...args) => execFileSync(process.execPath, [scaffold, ...args], { cwd: appRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+
+            const stale = runIn("Invoice", "--no-auth")
+            expect(stale).toContain('"save", "delete", "restore"')
+            expect(stale).not.toContain('"cancel"')
+            expect(stale).toContain("no {title} placeholder")
+
+            writeFileSync(
+                join(appRoot, "public", "data", "translations.json"),
+                JSON.stringify({ save: 1, cancel: 1, delete: 1, restore: 1, deleteItem: { en: "Delete {title}?" } })
+            )
+            const current = runIn("Receipt", "--no-auth")
+            expect(current).not.toContain("translations.json has no")
+            expect(current).not.toContain("no {title} placeholder")
+        } finally {
+            rmSync(appRoot, { recursive: true, force: true })
+        }
+    })
+
     test("--as after --owns overrides the JSON key without moving the folder", () => {
         run("Invoice", "--owns", "InvoiceRow", "--as", "lines", "--no-auth")
 

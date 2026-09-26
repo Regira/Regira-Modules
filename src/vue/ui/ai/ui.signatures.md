@@ -204,6 +204,7 @@ export type ModalProps = {
     fullWidth?: boolean
     size?: "sm" | "md" | "lg" | "xl"
     type?: ModalType
+    labels?: { cancel?: string; submit?: string } // footer button labels (i18n); defaults "Cancel" / "Submit"
 }
 export type ModalEmits = { (e: "submit"): void; (e: "cancel"): void; (e: "close"): void }
 export type ModalSlots = {
@@ -332,8 +333,12 @@ export const autocompleteDefaults: { data: () => []; maxResults: 10; debounceTim
 export function useAutocomplete<T = any, TKey = number | string | T>(props, { emit }): AutocompleteOut<T, TKey>
 // AutocompleteOut carries the two bindings the result panel needs: `resultStyle` (:style) and `resultEl`
 // (ref) — the element it measures to place the panel below the control or flip it above, and to cap its
-// height to the room there. Autocomplete exposes both elements: { inputEl, resultEl, q, selectedItem,
-// search(term?), reset(), resetQ() }
+// height to the room there. `resultStyle` is `position: fixed` in viewport coordinates, so render the panel
+// in <Teleport to="body"> (Autocomplete does). Autocomplete exposes both elements: { inputEl, resultEl, q,
+// selectedItem, search(term?), reset(), resetQ() }
+// AutocompleteOut.listboxId: string — the results listbox's id, unique on the page across every skin (the
+// input's aria-controls); AutocompleteOut.optionId(index): string — that result's id (aria-activedescendant)
+// AutocompleteOut.resultOffset is @deprecated — always { top: 0, left: 0 }; read the placement from resultStyle
 ```
 
 ## Buttons & input components
@@ -353,7 +358,8 @@ import {
     CopyToClipboardButton,
 } from "@regira/modules/vue/ui"
 // ConfirmButton contract (ConfirmButtonProps/Emits/Slots + confirmButtonDefaults):
-//   props: { icon?: string; buttonLabel?: string; modalTitle?: string; modalType?: ModalType }
+//   props: { icon?: string; buttonLabel?: string; modalTitle?: string; modalType?: ModalType;
+//            modalLabels?: { cancel?: string; submit?: string } }   (modal title/labels default to English "Sure?" / "Cancel" / "Submit")
 //   emits: confirm | cancel | open | close ; slots: button-content, modal, default (confirm-modal body)
 //   exposes: open() / close() — `open` is BOTH an emit (fired on click) and an exposed method. To raise the
 //   same confirmation from another affordance (a swipe, a context menu, a shortcut), keep the button in the
@@ -378,7 +384,7 @@ import {
 //   <label class="form-check-label" for> there, and use the `label` prop everywhere else.
 // DescriptionInput contract (DescriptionInputProps): { label?: string; readonly?: boolean }   (v-model: string)
 // FileDropZone contract (FileDropZoneEmits/Slots): emits "drop-files" (files: Array<Blob>) ; default slot scoped { isDropping }
-// FormButtonsRow contract (FormButtonsRowProps/Emits/Slots): { item?: unknown; readonly?: boolean; feedback?: FeedbackOut; showDelete?: boolean; labels?: { save?: string; cancel?: string; delete?: string; restore?: string }; modalTitle?: string } (reads item.isArchived — truthy, 0/1 ok — to gate Restore, item.$title for the delete prompt; feedback busy-gates Save/Delete/Restore against double-submits; labels/modalTitle override the English defaults for i18n; `readonly` renders NO buttons — nothing to save, delete or restore, and no edits for Cancel to discard; the way back is the page's navigation or the modal's close button) ; emits: cancel | remove | restore ; slots: delete (delete-confirm body; defaults to "Delete {$title}?")
+// FormButtonsRow contract (FormButtonsRowProps/Emits/Slots): { item?: unknown; readonly?: boolean; feedback?: FeedbackOut; showDelete?: boolean; labels?: { save?: string; cancel?: string; delete?: string; restore?: string }; modalTitle?: string } (reads item.isArchived — truthy, 0/1 ok — to gate Restore, item.$title for the delete prompt; feedback busy-gates Save/Delete/Restore against double-submits; labels/modalTitle override the English defaults for i18n — `labels.cancel`/`labels.delete` also label the confirm dialog's buttons; `readonly` renders NO buttons — nothing to save, delete or restore, and no edits for Cancel to discard; the way back is the page's navigation or the modal's close button) ; emits: cancel | remove | restore ; slots: delete (delete-confirm body; defaults to "Delete {$title}?")
 ```
 
 The remaining input widgets export contract types too (`FormLabelProps` + `formLabelDefaults`,

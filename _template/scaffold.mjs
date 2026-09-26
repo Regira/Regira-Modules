@@ -9,13 +9,14 @@
 //   node node_modules/@regira/modules/_template/scaffold.mjs --attachments        # the shared offline file/attachments slice only
 //
 //   <Entity>            PascalCase class name, e.g. Product
-//   --plural <name>     slice folder + client route prefix (default: kebab-cased plural — Category →
-//                       categories, Box → boxes, InterventionType → intervention-types)
+//   --plural <name>     slice folder + client route prefix, and (camelCased) the plural i18n key (default:
+//                       kebab-cased plural — Category → categories, Box → boxes, InterventionType →
+//                       intervention-types; i18n key interventionTypes)
 //   --api <path>        API resource path, relative to the axios baseURL (default: /<plural>). Must equal the
 //                       server's [Route(...)] exactly; pass it when the two differ, e.g. a
 //                       party-relationship-types slice served under --api relationship-types. The leading
 //                       slash is optional — omit it under Git Bash, which rewrites /foo into a file path.
-//   --singular <name>   singular i18n key (default: kebab-cased Entity)
+//   --singular <name>   singular i18n key, camelCased (default: the camelCased Entity)
 //   --rel <Entity>      generate an overview column for a to-one relation: the related entity's
 //                       FormModalButton + a label resolved through its pool (never the raw nested DTO, which
 //                       has no $title, nor item.rel.title, which goes stale). Repeatable. The related slice
@@ -222,7 +223,6 @@ const kebab = (s) =>
         .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
         .toLowerCase()
 const plural = lowerFirst(opt("--plural", kebab(pluralize(name))))
-const singular = lowerFirst(opt("--singular", kebab(name)))
 // The API resource path defaults to the folder name, but the two are separable: the server may expose a
 // resource under a different name than the slice is filed under (--api /relationship-types).
 const api = opt("--api", `/${plural}`).replace(/^\/*/, "/")
@@ -237,8 +237,11 @@ if (/^\/[A-Za-z]:\//.test(api)) {
 // i18n keys are camelCase (derived from the PascalCase name), unlike the kebab-case route/folder/api
 // identifiers above: ShoppingList → route "shopping-lists" but i18n keys "shoppingLists" / "shoppingList".
 // A lowercase i18n key silently renders raw (only a console warning), so keep the word boundaries.
-const camelPlural = lowerFirst(pluralize(name))
+// --plural/--singular name the i18n keys too, so `Person --plural people` titles its nav "people", not "persons".
+const camel = (s) => lowerFirst(s.replace(/[-_\s]+([A-Za-z0-9])/g, (_, c) => c.toUpperCase()))
+const camelPlural = camel(opt("--plural", pluralize(name)))
 const camelSingular = lowerFirst(name)
+const singularKey = camel(opt("--singular", name))
 const baseDir = opt("--dir", "src/entities")
 
 const srcRoot = resolve(here, "entity-slice")
@@ -659,10 +662,9 @@ const subst = (s) =>
     s
         .replace(/__Entity__/g, name)
         .replace(/__entitiesKey__/g, camelPlural)
-        .replace(/__entityKey__/g, camelSingular)
+        .replace(/__entityKey__/g, singularKey)
         .replace(/__api__/g, api)
         .replace(/__entities__/g, plural)
-        .replace(/__entity__/g, singular)
 // the auth-coupled lines in Overview.vue / Details.vue: the onAuthenticated import + reload hook and the
 // comment block documenting them. Matched against the CURRENT template only — stripAuth runs as copyDir
 // emits template content, never over a slice on disk — so there is nothing to match for an older
@@ -763,6 +765,7 @@ if (sliceGenerated) {
     console.log(
         `  Confirm api "${api}" equals the server route — [Route("${api.slice(1)}")] on ${name}Controller. A mismatch 404s every call; re-run with --api <path> to change it.`
     )
+    missingChromeKeys()
     if (attachmentsOwner) {
         console.log(`  Files: the attachments field, the insert/update overrides and the prepareItem filter are written in.`)
         attachmentsTodo()
@@ -788,6 +791,32 @@ if (sliceGenerated) {
 } else {
     const adding = [owns.length ? "owned sub-slice(s)" : null, attachmentsOwner ? "the attachments wiring" : null].filter(Boolean).join(" + ")
     console.log(`· ${join(baseDir, plural)} exists — leaving the slice as-is, adding ${adding} only.`)
+}
+
+// The keys a slice's chrome translates (form buttons, the delete dialog). `scaffold.mjs --shell` seeds them, but a
+// shell scaffolded by an older version lacks the newer ones, and $t renders a missing key raw — so name the ones this
+// app's translations do not have instead of leaving buttons reading "save" / "delete".
+function missingChromeKeys() {
+    const file = resolve(process.cwd(), "public", "data", "translations.json")
+    if (!existsSync(file)) return
+    let translations
+    try {
+        translations = JSON.parse(readFileSync(file, "utf8"))
+    } catch {
+        return // unreadable — nothing to compare against
+    }
+    const seeds = { save: "Save", cancel: "Cancel", delete: "Delete", restore: "Restore", deleteItem: "Delete {title}?" }
+    const missing = Object.keys(seeds).filter((key) => !(key in translations))
+    if (missing.length) {
+        console.log(
+            `! public/data/translations.json has no ${missing.map((k) => `"${k}"`).join(", ")} — the slice's form buttons and delete dialog would render ${missing.length === 1 ? "it" : "them"} raw. Add: ${missing.map((k) => `"${k}": { "en": "${seeds[k]}" }`).join(", ")}`
+        )
+    }
+    if (translations.deleteItem && !JSON.stringify(translations.deleteItem).includes("{title}")) {
+        console.log(
+            `! "deleteItem" in public/data/translations.json has no {title} placeholder, so the delete dialog never names the row — "Delete {title}?".`
+        )
+    }
 }
 
 // ------------------------------------------------------------- owned sub-slices
@@ -1103,8 +1132,9 @@ Usage:
 
 Entity slice:
   <Entity>            PascalCase class name, e.g. Product
-  --plural <name>     slice folder + client route prefix (default: kebab-cased plural — Category → categories)
-  --singular <name>   singular i18n key (default: kebab-cased Entity)
+  --plural <name>     slice folder + client route prefix, and (camelCased) the plural i18n key
+                      (default: kebab-cased plural — Category → categories)
+  --singular <name>   singular i18n key, camelCased (default: the camelCased Entity)
   --api <path>        API resource path relative to the axios baseURL (default: /<plural>). Must equal the
                       server's [Route(...)] exactly; leading slash optional (omit it under Git Bash)
   --rel <Entity>      overview column for a to-one relation (the related entity's FormModalButton + a label

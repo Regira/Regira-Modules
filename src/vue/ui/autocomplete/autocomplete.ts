@@ -1,11 +1,11 @@
 import { ref, computed, watch, onMounted, onUnmounted, type Ref, type StyleValue } from "vue"
-import { useEventListener } from "../../vue-helper"
 import { debounceToPromise } from "../../../utilities/promise-utility"
-import { getAbsScrollPosition } from "../../../utilities/html-utility"
 
 type IDefaultKey = number | string
 type IOffset = { top: number; left: number }
+type IRect = { top: number; bottom: number; left: number; right: number }
 type IResultStyle = StyleValue & {
+    position: string
     visibility: string
     top?: string
     bottom?: string
@@ -20,6 +20,47 @@ type IResultStyle = StyleValue & {
 
 // Breathing room kept between the result panel and the viewport edge it opens towards.
 const VIEWPORT_GUTTER = 8
+// Numbers every useAutocomplete on the page, whatever skin calls it: the library's Autocomplete and an ejected
+// copy both import this module, so their listbox ids cannot collide. (useId() numbers per app, and two apps on
+// one page would share its ids.)
+let instanceCount = 0
+
+/** the box the panel aligns to: the whole `.input-group` when the input sits in one, else the input */
+function getAnchor(input?: HTMLElement): HTMLElement | undefined {
+    return (input?.closest?.(".input-group") as HTMLElement | null) || input
+}
+/** the fixed panel's containing block: the viewport without its scrollbars */
+function getViewport(): { width: number; height: number } {
+    if (typeof window === "undefined") {
+        return { width: 0, height: 0 }
+    }
+    const root = document.documentElement
+    return { width: root?.clientWidth || window.innerWidth || 0, height: root?.clientHeight || window.innerHeight || 0 }
+}
+/**
+ * whether any part of `rect` is still shown by every scroll container (overflow other than visible) around `el`.
+ * The walk ends at a `position: fixed` ancestor: nothing above it in the tree clips it (a modal rendered in
+ * place inside a card or a scrollable list), though it can still clip its own content. A fixed `el` has no
+ * clipping ancestor at all.
+ */
+function isVisibleInScrollParents(el: HTMLElement, rect: IRect): boolean {
+    if (getComputedStyle(el).position === "fixed") {
+        return true
+    }
+    for (let parent = el.parentElement; parent && parent !== document.body && parent !== document.documentElement; parent = parent.parentElement) {
+        const { overflowX, overflowY, position } = getComputedStyle(parent)
+        if (overflowX !== "visible" || overflowY !== "visible") {
+            const clip = parent.getBoundingClientRect()
+            if (rect.bottom <= clip.top || rect.top >= clip.bottom || rect.right <= clip.left || rect.left >= clip.right) {
+                return false
+            }
+        }
+        if (position === "fixed") {
+            break
+        }
+    }
+    return true
+}
 
 export interface AutocompleteEmits<T = any, TKey = IDefaultKey | T> {
     (e: "update:modelValue", args: T | undefined): void
@@ -68,8 +109,13 @@ export type AutocompleteOut<T = any, TKey = IDefaultKey | T> = {
     inputEl: Ref<(HTMLElement & { value: string }) | undefined>
     /** the result panel; bind it (`ref="resultEl"`) so the placement can measure the panel it positions */
     resultEl: Ref<HTMLElement | undefined>
+    /** @deprecated always `{ top: 0, left: 0 }` — `resultStyle` places the panel. Removed in the next major version. */
     resultOffset: Ref<IOffset>
     resultStyle: Ref<IResultStyle>
+    /** id for the results `listbox`, unique on the page — the input's `aria-controls` */
+    listboxId: string
+    /** id for the result at `index` — the input's `aria-activedescendant` while that result is highlighted */
+    optionId(index: number): string
     displayItemFormatter(item?: T): string
     handleInput(): void
     handleChange(): void
@@ -94,6 +140,9 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     const isOpen = ref(false)
     const isFocus = ref(false)
     const isLoading = ref(false)
+    // the combobox → listbox wiring: the panel lives on <body>, so these ids are what tie it to the input
+    const listboxId = `rg-autocomplete-${++instanceCount}`
+    const optionId = (index: number): string => `${listboxId}-${index}`
     const selectedItem = computed({
         get: () => props.modelValue,
         set: (value) => {
@@ -111,46 +160,40 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     // wants — together they tell the placement below whether the panel is being cut off where it stands
     const resultHeight = ref(0)
     const resultContentHeight = ref(0)
-    const containerOffset = ref<IOffset>({ top: 0, left: 0 })
     const resultOffset = ref<IOffset>({ top: 0, left: 0 })
-    const scrollPosition = ref<IOffset>({ top: 0, left: 0 })
+    // The panel is `position: fixed` (Autocomplete also teleports it to <body>), so no ancestor with
+    // `overflow: hidden/auto` — a scrollable modal body, a card, a list — can clip it. It is placed from the
+    // anchor's viewport box; the anchor is the `.input-group` when there is one (InputSelector's prepend
+    // button + input + append buttons), so the panel aligns and sizes to the control rather than to the bare
+    // input, the narrowest part of it.
+    // getBoundingClientRect()/clientWidth are plain reads, not reactive sources — bumping `layoutTick` is what
+    // re-runs this measurement when the anchor moved or a new result list painted (see followAnchor below).
+    const layoutTick = ref(0)
     const resultStyle = computed<IResultStyle>(() => {
-        // getBoundingClientRect()/offsetWidth/innerWidth are plain reads, not reactive sources — touching the
-        // tracked offset is what re-runs this measurement after a resize or a scroll (see the listeners below).
-        void containerOffset.value
-        const { height } = inputEl.value?.getBoundingClientRect() || { height: 0 }
-        // The panel is absolutely positioned against the input's offsetParent. Inside an InputSelector that
-        // parent is the whole `.input-group` (prepend button + input + append buttons), so align and size to
-        // the control rather than to the bare input — the input is the narrowest part of it.
-        const offsetParent = inputEl.value?.offsetParent as HTMLElement | null | undefined
-        const control = inputEl.value?.closest?.(".input-group") as HTMLElement | null | undefined
-        const alignToControl = !!control && control === offsetParent
-        const anchor = alignToControl ? control! : inputEl.value
+        void layoutTick.value
+        const anchor = getAnchor(inputEl.value)
+        const rect = anchor?.getBoundingClientRect?.()
+        // hidden while the anchor is scrolled out of view inside one of its scroll containers — a fixed panel
+        // would otherwise float over whatever now covers that spot (a modal's header or footer)
+        const anchorVisible = !anchor || !rect || isVisibleInScrollParents(anchor, rect)
         // size to the results, never narrower than the control they belong to — a fixed input width made
         // every item wrap onto two lines
-        const floor = (alignToControl ? control!.offsetWidth : inputEl.value?.offsetWidth) || 0
+        const floor = rect ? Math.round(rect.width) : 0
         // Right-edge guard. `width: max-content` grows rightwards from `left`, so a control sitting near the
-        // right edge of a narrow viewport would push the panel past it — and an absolutely positioned box
-        // still extends the document's scrollable area, so that overflows the PAGE even while the panel is
-        // closed (it is visibility:hidden, not display:none). Hence the guard is independent of isOpen.
-        // Two steps: cap the width to the room actually left on the side the panel opens to, and — only when
-        // even `floor` cannot fit to the right — flip to right-alignment so it grows leftwards from the
-        // control's right edge instead. minWidth beats maxWidth in CSS, so the floor above survives both.
-        const viewport = typeof window === "undefined" ? 0 : window.innerWidth || 0
-        const rect = anchor?.getBoundingClientRect?.()
+        // right edge of a narrow viewport would push the panel past it. Two steps: cap the width to the room
+        // actually left on the side the panel opens to, and — only when even `floor` cannot fit to the right —
+        // flip to right-alignment so it grows leftwards from the control's right edge instead. minWidth beats
+        // maxWidth in CSS, so the floor above survives both.
+        const { width: viewport, height: viewportHeight } = getViewport()
         const roomRight = rect ? viewport - rect.left - VIEWPORT_GUTTER : 0
         const roomLeft = rect ? rect.right - VIEWPORT_GUTTER : 0
         const alignRight = viewport > 0 && roomRight < floor && roomLeft > roomRight
         const room = viewport > 0 ? Math.max(0, Math.round(alignRight ? roomLeft : roomRight)) : 0
-        // right-aligning insets the panel from the offsetParent's right edge to the anchor's own right edge
-        const inputRight = (inputEl.value?.offsetLeft || 0) + (inputEl.value?.offsetWidth || 0)
-        const rightInset = alignToControl ? 0 : Math.max(0, (offsetParent?.offsetWidth || 0) - inputRight)
         // Bottom-edge guard, the vertical twin of the one above. The panel opens downwards, so a control near
         // the bottom of the viewport — the everyday case for a form inside a modal — drops its results off
         // screen. Two steps again: flip the panel above the control when the results do not fit below it and
         // there is more room up there, and cap its height to the room on the side it opens to, so a list that
         // still does not fit scrolls inside the viewport instead of running past its edge.
-        const viewportHeight = typeof window === "undefined" ? 0 : window.innerHeight || 0
         const roomBelow = rect ? viewportHeight - rect.bottom - VIEWPORT_GUTTER : 0
         const roomAbove = rect ? rect.top - VIEWPORT_GUTTER : 0
         // A panel that scrolls its own content is only as tall as the room already granted to it, so "fits"
@@ -160,15 +203,14 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         const fitsBelow = isScrolling ? resultHeight.value < roomBelow : resultHeight.value <= roomBelow
         const flipUp = viewportHeight > 0 && !fitsBelow && roomAbove > roomBelow
         const roomVertical = viewportHeight > 0 ? Math.max(0, Math.round(flipUp ? roomAbove : roomBelow)) : 0
-        // flipped, the panel's bottom edge lands on the input's own top edge: `100%` is the offsetParent's top,
-        // which is where the input sits in the same layouts the `top` branch below assumes
-        const inputTop = inputEl.value?.offsetTop || 0
         return {
-            visibility: isOpen.value ? "visible" : "hidden",
-            top: flipUp ? "auto" : `${height}px`,
-            bottom: flipUp ? (inputTop ? `calc(100% - ${inputTop}px)` : "100%") : "auto",
-            left: alignRight ? "auto" : `${alignToControl ? 0 : inputEl.value?.offsetLeft || 0}px`,
-            right: alignRight ? `${rightInset}px` : "auto",
+            // set inline too, so a skin whose stylesheet still says `absolute` places the panel correctly
+            position: "fixed",
+            visibility: isOpen.value && anchorVisible ? "visible" : "hidden",
+            top: flipUp ? "auto" : `${Math.round(rect?.bottom || 0)}px`,
+            bottom: flipUp ? `${Math.round(viewportHeight - (rect?.top || 0))}px` : "auto",
+            left: alignRight ? "auto" : `${Math.round(rect?.left || 0)}px`,
+            right: alignRight ? `${Math.round(viewport - (rect?.right || 0))}px` : "auto",
             minWidth: `${floor}px`,
             width: "max-content",
             maxWidth: room > 0 ? `min(90vw, 32rem, ${room}px)` : "min(90vw, 32rem)",
@@ -258,21 +300,6 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         clearSelection()
         closeResults()
     }
-    function getAbsOffset(element?: HTMLElement): IOffset {
-        let top = 0,
-            left = 0
-
-        do {
-            top += element?.offsetTop || 0
-            left += element?.offsetLeft || 0
-            element = element?.offsetParent as HTMLElement
-        } while (element)
-
-        return {
-            top: top,
-            left: left,
-        }
-    }
     function openResults(): void {
         updateMeasurements()
         isOpen.value = true
@@ -312,20 +339,50 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         resultContentHeight.value = resultEl.value?.scrollHeight || 0
     }
     const updateMeasurements = () => {
-        containerOffset.value = getAbsOffset(inputEl.value)
-        scrollPosition.value = inputEl.value ? getAbsScrollPosition(inputEl.value) : { top: 0, left: 0 }
+        layoutTick.value++
         measureResult()
     }
-    const debouncedUpdateMeasurements = debounceToPromise(updateMeasurements, 50) as unknown as () => Promise<void>
+    // A fixed panel does not travel with the page: whatever moves the control — a scroll, a resize, a message
+    // appearing above it, a section expanding, an image loading — has to be followed by hand. So while the
+    // panel is open it checks the anchor's box once per frame and re-places itself only when that box (or the
+    // viewport) actually moved. A closed panel costs nothing; openResults() measures it afresh.
+    const nextFrame = (cb: () => void): number =>
+        typeof requestAnimationFrame === "function" ? requestAnimationFrame(cb) : (setTimeout(cb, 16) as unknown as number)
+    const cancelFrame = (id: number): void => (typeof cancelAnimationFrame === "function" ? cancelAnimationFrame(id) : clearTimeout(id))
+    let frame = 0
+    let lastLayout = ""
+    function followAnchor(): void {
+        frame = 0
+        if (!isOpen.value) {
+            return
+        }
+        const rect = getAnchor(inputEl.value)?.getBoundingClientRect?.()
+        const { width, height } = getViewport()
+        const layout = rect ? `${rect.top},${rect.left},${rect.width},${rect.height},${width},${height}` : ""
+        if (layout !== lastLayout) {
+            lastLayout = layout
+            layoutTick.value++
+        }
+        frame = nextFrame(followAnchor)
+    }
+    watch(isOpen, (open) => {
+        if (open && !frame) {
+            lastLayout = ""
+            frame = nextFrame(followAnchor)
+        } else if (!open && frame) {
+            cancelFrame(frame)
+            frame = 0
+        }
+    })
 
-    useEventListener(window, "resize", debouncedUpdateMeasurements)
     onMounted(() => {
         q.value = displayItemFormatter(selectedItem.value)
         updateMeasurements()
-        document.addEventListener("scroll", debouncedUpdateMeasurements, true)
     })
     onUnmounted(() => {
-        document.removeEventListener("scroll", debouncedUpdateMeasurements, true)
+        if (frame) {
+            cancelFrame(frame)
+        }
     })
     watch(selectedItem, (newVal, oldVal) => {
         if (newVal != oldVal && newVal != selectedItem.value) {
@@ -340,8 +397,10 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         () => {
             // a search in flight keeps the previous measurement: measuring the loading row instead would
             // bounce the panel between above and below on every keystroke
+            // (re-anchoring too: the form may have shifted since the panel opened — a message above it, a
+            // section that expanded — without a scroll or resize to report it)
             if (items.value) {
-                measureResult()
+                updateMeasurements()
             }
         },
         { flush: "post" }
@@ -361,6 +420,8 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         resultEl,
         resultOffset,
         resultStyle,
+        listboxId,
+        optionId,
         displayItemFormatter,
         handleInput,
         handleChange,

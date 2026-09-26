@@ -5,6 +5,8 @@ export type ConfirmButtonProps = {
     buttonLabel?: string
     modalTitle?: string
     modalType?: ModalType
+    /** confirm-modal footer labels (i18n); defaults are English "Cancel" / "Submit" */
+    modalLabels?: { cancel?: string; submit?: string }
 }
 export type ConfirmButtonEmits = {
     (e: "confirm"): void

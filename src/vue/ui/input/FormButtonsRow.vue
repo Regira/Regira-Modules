@@ -13,6 +13,7 @@
                 v-if="showDelete && !isArchived"
                 :modal-title="modalTitle ?? 'Delete?'"
                 :modal-type="ModalType.danger"
+                :modal-labels="{ cancel: labels?.cancel ?? 'Cancel', submit: labels?.delete ?? 'Delete' }"
                 class="btn-danger"
                 :disabled="busy"
                 @confirm="emit('remove')"

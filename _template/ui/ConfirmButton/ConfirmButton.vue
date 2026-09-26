@@ -11,6 +11,7 @@
                     :is-visible="showModal"
                     :type="modalType"
                     :title="modalTitle"
+                    :labels="modalLabels"
                     @submit="handleConfirm"
                     @cancel="handleCancel"
                     @close="handleClose"

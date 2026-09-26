@@ -77,8 +77,8 @@ node node_modules/@regira/modules/_template/scaffold.mjs Product             # �
 node node_modules/@regira/modules/_template/scaffold.mjs Product --no-auth   # no-auth app: also strips the auth-store hooks
 ```
 
-(or copy `node_modules/@regira/modules/_template/entity-slice` and replace the `__Entity__` / `__entities__`
-/ `__entity__` tokens.) Then:
+(or copy `node_modules/@regira/modules/_template/entity-slice` and replace the tokens: `__Entity__` class name,
+`__entities__` folder/route, `__api__` resource path, `__entitiesKey__` / `__entityKey__` camelCase i18n keys.) Then:
 
 1. Customize the **`(c)`** files (§ below) — the only ones tailored to your entity; leave the rest as-is.
 2. Register the slice's `plugin` in `src/entities/index.ts` — see
@@ -421,7 +421,14 @@ const items = computed<Array<Entity>>({
 
         <div class="col-auto">
             <!-- readonly comes from List.vue; it is the hook for permission-gating (entities.patterns.md -> Permission-gated UI) -->
-            <ConfirmButton v-if="!readonly" icon="delete" :modal-type="ModalType.danger" @confirm="$emit('request-remove', item)">
+            <ConfirmButton
+                v-if="!readonly"
+                icon="delete"
+                :modal-type="ModalType.danger"
+                :modal-title="$t('delete')"
+                :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"
+                @confirm="$emit('request-remove', item)"
+            >
                 {{ $t("deleteItem", { title: item?.$title }) }}
             </ConfirmButton>
         </div>
@@ -466,10 +473,14 @@ const item = defineModel<Entity>({ required: true })
                     :readonly="readonly"
                     :feedback="feedback"
                     :show-delete="item?.id > 0"
+                    :labels="{ save: $t('save'), cancel: $t('cancel'), delete: $t('delete'), restore: $t('restore') }"
+                    :modal-title="$t('delete')"
                     @cancel="handleCancel"
                     @remove="handleRemove"
                     @restore="handleRestore"
-                />
+                >
+                    <template #delete>{{ $t("deleteItem", { title: item?.$title }) }}</template>
+                </FormButtonsRow>
             </div>
             <div class="col-auto order-2 order-md-3">
                 <!-- In a modal (isPopup) there is no overview to return to — offer a pop-out to the full page instead. -->

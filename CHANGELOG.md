@@ -5,6 +5,59 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.4.0 — 2026-09-26
+
+- `vue/ui`: **`Autocomplete`'s result panel is no longer clipped inside a modal or any scroll container.**
+  The panel was absolutely positioned inside the form, so `DefaultModal`'s scrollable body — or any card or
+  list with `overflow` other than `visible` — cut off every result below its edge, and the viewport guards
+  could not help because they saw room the clipping box did not grant. The panel now renders on `<body>`
+  (a `Teleport`) with `position: fixed`, placed from the control's viewport box: it keeps opening below,
+  flipping above and capping its height against the viewport as before, follows the control every frame while
+  open — a scroll, a resize, or the form shifting around it — and hides while the control is scrolled out of
+  its scroll container. `overflow: visible` workarounds on a modal can go. A style rule scoped to an ancestor
+  of the input (`.my-form .autocomplete-items`) no longer reaches the panel — use `resultClass` /
+  `itemsClass` / `itemClass` or a global `.autocomplete-items` rule. Nor does anything the panel inherited
+  from an ancestor: a `--rg-dropdown-max-height` / `--rg-dropdown-z` override set on a container instead of
+  `:root`, or a font size, colour or `data-bs-theme` from a themed region around the form. And a
+  `v-click-outside` on an ancestor now sees a click on a result as outside. A replacement skin built on
+  `useAutocomplete` should render its panel in `<Teleport to="body">` too; `resultStyle` sets
+  `position: fixed` inline, so an ejected copy that does not yet teleport still escapes the clipping. The
+  ejectable copy (`scaffold.mjs --ui Autocomplete`) follows.
+- `vue/ui`: **`Autocomplete` is an ARIA combobox.** The input carries `role="combobox"`, `aria-expanded`,
+  `aria-controls` and `aria-activedescendant`; the results are a `listbox` of `option`s (`aria-busy` while
+  loading). Screen readers announce the list and the arrow-key selection, and the input stays tied to its
+  results now that the panel lives on `<body>`. Attributes passed to `Autocomplete` still win, so an app's own
+  `aria-*` overrides these. `useAutocomplete` returns the ids — `listboxId` and `optionId(index)`, unique
+  across every skin on the page — so a replacement skin wires the same pattern and an ejected copy never
+  shares an id with the library's own `Autocomplete`. The ejectable copy follows.
+- `vue/ui`: **`useAutocomplete().resultOffset` is deprecated.** Nothing ever updated it — it always reads
+  `{ top: 0, left: 0 }`; the panel's placement is `resultStyle`. It will be removed in the next major version.
+- `vue/ui`: **confirm dialogs can be translated.** `DefaultModal`'s footer buttons were hard-coded English
+  ("Cancel" / "Submit"), so a translated app still asked every delete question in English. `ModalProps` gains
+  `labels: { cancel?, submit? }` and `ConfirmButton` a `modalLabels` it forwards; `FormButtonsRow`'s delete
+  dialog answers with its own `labels.cancel` / `labels.delete` (default "Cancel" / "Delete" instead of
+  "Submit"). A branded modal registered through `modalPlugin` should honour `labels` too. The ejectable
+  `DefaultModal`, `ConfirmButton` and `FormButtonsRow` copies follow.
+- `_template`: **`scaffold.mjs --plural` / `--singular` name the i18n keys too.** `Person --plural people` put
+  the slice under `people` but still titled it `persons` (`overviewTitle`), and `--singular` changed nothing
+  at all. Both now set the camelCase keys in `config.ts` (`--plural intervention-types` → `interventionTypes`).
+- `_template`: **the scaffolded delete confirmation shows the row's title and translates.** The shell's
+  `deleteItem` translation read "Delete" although `ListItem` passes `{ title }`, so the dialog never named the
+  row; it is now `"Delete {title}?"`, and the dialog takes its title and buttons from the new `delete` /
+  `cancel` keys. The scaffolded `Form.vue` passes the same keys (plus `save` / `restore`) to `FormButtonsRow`,
+  so a slice confirms a delete in the app's language from the form as well as from the list.
+  ⚠️ **Upgrade:** a slice scaffolded into an app whose shell predates this release uses keys its
+  `public/data/translations.json` lacks — `save`, `cancel`, `delete`, `restore` — and `$t` renders a
+  missing key raw, so its buttons would read `save` / `delete`. Add them (`"Save"`, `"Cancel"`, `"Delete"`,
+  `"Restore"`) and change `deleteItem` to `"Delete {title}?"`; `scaffold.mjs` names the missing keys when it
+  generates a slice.
+- Guides: the entities card calls `useFeedback().isPending` what it is — a plain reactive field read without
+  `.value` — instead of "a computed". The custom-endpoint example maps through `processItem`, so
+  `created`/`lastModified` arrive as `Date` like every built-in read, rather than `toEntity`, which left them
+  strings. The front-end bootstrap describes `scaffold.mjs <Entity> --attachments` as it works now (it writes
+  and wires the shared file slice itself), `entities.template` lists the slice's real tokens, and the
+  worked-example list rows and forms translate their delete dialogs like the scaffold does.
+
 ## 6.3.3 — 2026-09-22
 
 - `vue/ui`: **`NullableCheckBox` now follows `modelValue` after mount.** The prop seeded the internal

@@ -1,5 +1,6 @@
+// teleported to <body> and placed against the viewport by useAutocomplete (which sets the position inline too)
 .autocomplete-items {
-    position: absolute;
+    position: fixed;
     inset: 0 auto auto 0;
     z-index: var(--rg-dropdown-z, 99999);
     visibility: hidden;

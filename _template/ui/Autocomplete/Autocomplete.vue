@@ -3,6 +3,11 @@
         class="rg-autocomplete"
         autocomplete="__away"
         type="text"
+        role="combobox"
+        aria-autocomplete="list"
+        :aria-expanded="isOpen"
+        :aria-controls="listboxId"
+        :aria-activedescendant="isOpen && selectedIndex >= 0 ? optionId(selectedIndex) : undefined"
         v-bind="$attrs"
         v-model="q"
         @input="handleInput"
@@ -15,27 +20,34 @@
         @keydown.enter.prevent="handleSelect(selectedItem!, selectedIndex)"
         ref="inputEl"
     />
-    <div class="autocomplete-items bg-white border" :class="resultClass" :style="resultStyle" v-click-outside="handleClickOutside" ref="resultEl">
-        <div class="list-group" :class="itemsClass">
-            <div class="loading list-group-item" v-show="isLoading">Loading...</div>
-            <div
-                v-for="(item, i) in items"
-                :key="i"
-                @click="handleSelect(item, i)"
-                class="autocomplete-item list-group-item list-group-item-action"
-                :class="[itemClass, { 'bg-light': i == selectedIndex }]"
-            >
-                <slot :item="item" :q="q">
-                    <div>
-                        <template v-for="(part, pi) in highlightParts(item)" :key="pi">
-                            <strong v-if="part.match">{{ part.text }}</strong>
-                            <template v-else>{{ part.text }}</template>
-                        </template>
-                    </div>
-                </slot>
+    <!-- on <body>, so a scrollable modal body or an overflow:hidden card cannot clip the results; the input's
+         aria-controls / aria-activedescendant tie the listbox back to it, whatever the DOM order -->
+    <Teleport to="body">
+        <div class="autocomplete-items bg-white border" :class="resultClass" :style="resultStyle" v-click-outside="handleClickOutside" ref="resultEl">
+            <div class="list-group" :class="itemsClass" role="listbox" :id="listboxId" :aria-busy="isLoading">
+                <div class="loading list-group-item" v-show="isLoading" aria-hidden="true">Loading...</div>
+                <div
+                    v-for="(item, i) in items"
+                    :key="i"
+                    :id="optionId(i)"
+                    role="option"
+                    :aria-selected="i == selectedIndex"
+                    @click="handleSelect(item, i)"
+                    class="autocomplete-item list-group-item list-group-item-action"
+                    :class="[itemClass, { 'bg-light': i == selectedIndex }]"
+                >
+                    <slot :item="item" :q="q">
+                        <div>
+                            <template v-for="(part, pi) in highlightParts(item)" :key="pi">
+                                <strong v-if="part.match">{{ part.text }}</strong>
+                                <template v-else>{{ part.text }}</template>
+                            </template>
+                        </div>
+                    </slot>
+                </div>
             </div>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <script lang="ts">
@@ -62,10 +74,13 @@ const {
     selectedItem,
     selectedIndex,
     items,
+    isOpen,
     isFocus,
     inputEl,
     resultEl,
     resultStyle,
+    listboxId,
+    optionId,
     isLoading,
     displayItemFormatter,
     closeGently,

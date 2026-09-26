@@ -53,8 +53,8 @@ Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 | `--rg-deleted-bg`          | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                                                                                  |
 | `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                                                                                 |
 | `--rg-modal-z`             | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
-| `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index                                                                                                                                               |
-| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control                                                                        |
+| `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index — set it on `:root` or `.autocomplete-items`: the panel lives on `<body>`, so a container's value never reaches it                            |
+| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control; like `--rg-dropdown-z`, set it on `:root` or `.autocomplete-items`    |
 | `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                                                                             |
 
 **The Bootstrap nuance an agent must not get wrong:** apps import _precompiled_ Bootstrap 5.3, whose
@@ -123,7 +123,7 @@ of `theme.scss`.
 
 ⚠️ **Never put `overflow-x` on `.entity-list` yourself.** With a `visible` `overflow-y` it computes to
 `auto` on **both** axes, turning the list into a scroll container that clips absolutely-positioned
-descendants (an inline-edit row's autocomplete panel) and breaks `position: sticky` inside it. The
+descendants (a dropdown menu in a row) and breaks `position: sticky` inside it. The
 library rule omits it deliberately; `entity-list--scroll-x` is the per-list opt-in.
 
 **Built-ins that hide their own text below a breakpoint.** The defaults suit a desktop admin UI; on a
@@ -232,13 +232,18 @@ slots. Every replacement/ejected skin MUST:
    screens, `$screen` for JS-side switches.
 4. Render every slot and fire every emit of the contract, per component:
     - **Modal**: render the default slot when `isVisible`; emit `close` on Esc and the header close;
-      emit `cancel`/`submit` from the footer actions; honor `showHeader`/`showFooter`/`size`/`fullWidth`/`type`.
+      emit `cancel`/`submit` from the footer actions; honor `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
     - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default
       slot for items — all provided by `useAutocomplete`; keep them wired. The result panel also needs
       `:style="resultStyle"` **and** `ref="resultEl"`: the composable measures that element to decide
-      whether the results open below the control or flip above it, and how tall they may get.
+      whether the results open below the control or flip above it, and how tall they may get. Render the
+      panel in `<Teleport to="body">`: `resultStyle` places it `position: fixed` against the viewport, which
+      is what lets it escape a modal body's `overflow`. Keep the combobox wiring the reference skin renders,
+      with the ids `useAutocomplete` hands out: `:aria-controls="listboxId"` on the input and
+      `:id="listboxId"` on the `role="listbox"` list, `:id="optionId(i)"` on each `role="option"` result, and
+      `aria-activedescendant` set to `optionId(selectedIndex)` while the panel is open.
     - **Feedback**: render the pending/success/error regions per `FeedbackStatus`; keep the close
       button emitting `close` and resetting.
     - **EntityOverview**: reload on mount; expose `reload`/`setPage`.

@@ -241,9 +241,9 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
 6. Scaffold each entity slice with `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`
    (add `--no-auth` for a no-auth app), then customize the `(c)` files; consult `entities.namespaces` / `entities.signatures` for exact
    imports/signatures and `entities.patterns` for recipes. Re-running the scaffold over an existing slice
-   needs `--overwrite-slice` (`--force` deliberately excludes slices). For entities that own files/pictures,
-   scaffold the shared offline file slice once with `scaffold.mjs --attachments` and wire it into each
-   (a tab + the model/service/`setup.ts` edits).
+   needs `--overwrite-slice` (`--force` deliberately excludes slices). For an entity that owns files/pictures,
+   `scaffold.mjs <Entity> --attachments` also writes the shared file slice and wires it into the model and
+   service; you add the tab.
 7. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
    compilation only. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
    empty/new-row paths) and check the main views at a mobile viewport before calling anything responsive.
