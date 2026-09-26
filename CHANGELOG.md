@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.4.0 — 2026-09-26
 
 - `vue/ui`: **`Autocomplete`'s result panel is no longer clipped inside a modal or any scroll container.**
   The panel was absolutely positioned inside the form, so `DefaultModal`'s scrollable body — or any card or
