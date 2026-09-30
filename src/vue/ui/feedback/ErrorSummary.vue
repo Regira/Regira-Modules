@@ -3,22 +3,22 @@
         <slot name="message">
             <div class="row gy-0 gx-1">
                 <div class="col-auto">
-                    <button type="button" class="btn btn-default p-0 m-0 text-light" :disabled="!error" @click="showSummary = !showSummary">
+                    <button type="button" class="btn btn-default p-0 m-0 text-light" :disabled="!hasError" @click="showSummary = !showSummary">
                         <Icon name="warning" />
                     </button>
                 </div>
                 <div class="col-auto pt-1">
                     {{ msg }}
                 </div>
-                <div v-if="enablePopup && error" class="col-auto">
-                    <button type="button" class="btn btn-link p-0 m-0 text-light" :disabled="!error" @click="showSummary = !showSummary">
+                <div v-if="enablePopup && hasError" class="col-auto">
+                    <button type="button" class="btn btn-link p-0 m-0 text-light" :disabled="!hasError" @click="showSummary = !showSummary">
                         <Icon name="info" />
                     </button>
                 </div>
             </div>
         </slot>
         <slot name="summary">
-            <template v-if="error">
+            <template v-if="hasError">
                 <div v-if="typeof error == 'string'" class="mt-2">{{ error }}</div>
                 <ul v-else class="list-unstyled mt-2" v-for="(msgs, code) in error" :key="code">
                     <li>
@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import type { FeedbackError } from "./feedback"
 import Icon from "../icons/Icon.vue"
 import { ModalType, injectModal } from "../modal"
@@ -79,6 +79,16 @@ const props = withDefaults(
         error: () => ({}),
     }
 )
+
+// Vue gives an `undefined` error — what Feedback passes for a failure without a field map — the `{}` default, so
+// whether there is anything to show is read from the content, not from the prop being set
+const hasError = computed(() => {
+    const error = props.error as FeedbackError | null | undefined
+    if (error == null) {
+        return false
+    }
+    return typeof error === "string" ? error.trim() !== "" : Object.keys(error).length > 0
+})
 
 const Modal = injectModal()
 const showSummary = ref(false)

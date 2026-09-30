@@ -88,7 +88,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
     // the text a non-field failure carries: a plain `{ message }` body, or a ProblemDetails `detail` (409)
     const serverMessage = (error: any): string => {
         const text = toFeedbackError(error)
-        return typeof text === "string" ? text : error.message
+        return typeof text === "string" ? text : error?.message
     }
 
     const router = useRouter()
@@ -126,7 +126,8 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         } catch (ex) {
             console.error("Saving failed", { ex })
             const error = ex as any
-            const status = error.response?.status
+            // a rejection may carry no reason at all
+            const status = error?.response?.status
             if (status == 400) {
                 feedback.fail("Saving failed", toFeedbackError(error))
             } else if (status == 404) {
@@ -157,7 +158,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         } catch (ex) {
             console.error("Deleting failed", { item, ex })
             const error = ex as any
-            const status = error.response?.status
+            const status = error?.response?.status
             if (status == 400) {
                 feedback.fail("Deleting failed", toFeedbackError(error))
             } else if (status == 404) {

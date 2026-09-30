@@ -149,6 +149,18 @@ describe("useForm state", () => {
         expect(states(failed)).toEqual([FormStates.pending, FormStates.error])
         expect(names(failed)).not.toContain(event)
     })
+
+    test.each(["handleSubmit", "handleRemove", "handleRestore"])("%s ends in error when the rejection carries no reason", async (handler) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        const reasonless = () => Promise.reject()
+        const form = mountForm({ modelValue: new Model() }, reasonless, { remove: reasonless, events })
+
+        await form()[handler]()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.error])
+        expect(form().feedback.status).toBe(FeedbackStatus.failed)
+    })
 })
 
 describe("useForm readonly follows the props", () => {

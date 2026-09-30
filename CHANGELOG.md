@@ -7,17 +7,20 @@ heading.
 
 ## Unreleased
 
-- `vue/ui`: `ErrorSummary` keys each message of a field by its position, so a field whose messages repeat one
-  text no longer trips Vue's duplicate-key warning, and its summary buttons are disabled while there is no error.
-  `vue/entities` guides: a refused delete can be a validator's `400` with an error map, beside a `409` or `403`.
-  The failure table in `entities.patterns` covers the delete handlers, and its `fieldError` example shows every
-  message of a field.
 - `vue/entities`: **`useForm`'s `changeState` ends a refused write in `error`, and only there.** Every write
   emitted its success state from a `finally`, so a delete the server refused — a validator's `400`, a `409` while
   the row is still referenced — reported `error` and then `removed`, and a failed save or restore `error` and then
   `saved`. A consumer keyed on the last state read the refused write as done. A write now emits `pending`, then
   `saved` or `removed` when it succeeded and `error` when it did not. The scaffold's
-  `isLoading = $event == FormStates.pending` binding behaves as before.
+  `isLoading = $event == FormStates.pending` binding behaves as before. A save or delete whose promise rejects
+  without a reason ends in `error` too, where it threw from its own error handler and left the feedback pending.
+- `vue/ui`: `ErrorSummary` keys each message of a field by its position, so a field whose messages repeat one
+  text no longer trips Vue's duplicate-key warning. Its summary buttons are disabled, and the popup button hidden,
+  while there is no error to show — none, an empty map or an empty string — as for every failure `Feedback` shows
+  without a field map (a `404`, `409` or `500`).
+- Guides (`vue/entities`): a refused delete can be a validator's `400` with an error map, beside a `409` or `403`.
+  The failure table in `entities.patterns` covers the delete handlers, and its `fieldError` example shows every
+  message of a field.
 
 ## 6.4.0 — 2026-09-26
 
