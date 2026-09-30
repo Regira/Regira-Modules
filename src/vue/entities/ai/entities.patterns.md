@@ -822,14 +822,16 @@ directly, without `.value` (`status`/`message`/`error`/`isPending` +
 or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
 directly — branch on `feedback` when you need the outcome. (On a **readonly** form it reports
 `fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
-fixed:
+fixed, for a save and for a delete alike:
 
-| HTTP status | `feedback.message`                                                          | `feedback.error`                                                        |
-| ----------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `400`       | `"Saving failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
-| `404`       | `"Item not found: …"`                                                       | —                                                                       |
-| other       | `"Server error: …"` (409: the ProblemDetails `detail`)                      | —                                                                       |
+| HTTP status | `feedback.message`                                                                                | `feedback.error`                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `400`       | `"Saving failed"` / `"Deleting failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
+| `404`       | `"Item not found: …"`                                                                             | —                                                                       |
+| other       | `"Server error: …"` / `"Deleting failed: …"` (409: the ProblemDetails `detail`)                   | —                                                                       |
 
+A delete answers `400` when a validator refuses it; a rule on the whole entity arrives under the `""` key. The
+overview's `applyRemove` fills its `feedback` the same way under `Removing <title> failed`, and returns `false`.
 So only a `400` puts a per-field map on `feedback.error`. Combine **client-side** guards (validate before
 saving) with that **server-side** map; render the summary with `<Feedback>` and the field map per input:
 
@@ -865,8 +867,12 @@ async function submit() {
     await handleSubmit()
 }
 
-// client errors first, then the server's 400 field map on feedback.error (each field holds an array of messages)
-const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.error === "object" ? [feedback.error[name]].flat()[0] : undefined)
+// client errors first, then the server's 400 field map on feedback.error — a field may hold several messages
+function fieldError(name: string): string | undefined {
+    if (errors.value[name]) return errors.value[name]
+    const server = typeof feedback.error === "object" ? feedback.error[name] : undefined
+    return server == null ? undefined : [server].flat().join(" ")
+}
 </script>
 
 <template>

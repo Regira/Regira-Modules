@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
 import { createApp, defineComponent, h, reactive } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
-import { useForm } from "../../../src/vue/entities/form"
+import { useForm, FormStates } from "../../../src/vue/entities/form"
 import { FeedbackStatus, toFeedbackError } from "../../../src/vue/ui/feedback"
 
 // An Entities API answers a rule breach (EntityInputException) with a flat field map and model binding with a
@@ -19,18 +19,19 @@ class Model {
     }
 }
 
-function mountForm(props, save) {
+// `events` collects every emit as [name, arg]
+function mountForm(props, save, { remove = async () => true, events = [] } = {}) {
     const entityService = {
         toEntity: (item) => Object.assign(new Model(), item),
         save,
-        remove: async () => true,
+        remove,
     }
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/", component: { render: () => null } }] })
     let form = null
     const app = createApp(
         defineComponent({
             setup() {
-                form = useForm({ entityService, props, emit: () => {} })
+                form = useForm({ entityService, props, emit: (name, arg) => events.push([name, arg]) })
                 return () => h("div")
             },
         })
@@ -86,6 +87,67 @@ describe("useForm failure mapping", () => {
         await form().handleSubmit()
 
         expect(form().feedback.message).toBe("Server error: A database constraint rejected the change.")
+    })
+})
+
+// A write emits `pending`, then one final state: a consumer keyed on changeState must not read a refused write as done.
+describe("useForm state", () => {
+    const states = (events) => events.filter(([name]) => name === "changeState").map(([, state]) => state)
+    const names = (events) => events.map(([name]) => name)
+    const saving = async (item) => ({ saved: item, isNew: false })
+
+    test("a delete a validator refuses ends in error, not removed", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        const form = mountForm({ modelValue: new Model() }, saving, {
+            remove: rejecting(400, { "": ["A shipped order cannot be deleted."] }),
+            events,
+        })
+
+        await form().handleRemove()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.error])
+        expect(names(events)).not.toContain("remove")
+        expect(form().feedback.error).toEqual({ "": ["A shipped order cannot be deleted."] })
+    })
+
+    test("a delete refused with a 409 ends in error", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        const form = mountForm({ modelValue: new Model() }, saving, {
+            remove: rejecting(409, { title: "Conflict", status: 409, detail: "A database constraint rejected the change." }),
+            events,
+        })
+
+        await form().handleRemove()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.error])
+    })
+
+    test("a delete that succeeds ends in removed", async () => {
+        const events = []
+        const form = mountForm({ modelValue: new Model() }, saving, { events })
+
+        await form().handleRemove()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.removed])
+        expect(names(events)).toContain("remove")
+    })
+
+    test.each([
+        ["handleSubmit", "save"],
+        ["handleRestore", "restore"],
+    ])("%s ends in saved when it succeeds and in error when it fails", async (handler, event) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const succeeded = []
+        const failed = []
+
+        await mountForm({ modelValue: new Model() }, saving, { events: succeeded })()[handler]()
+        await mountForm({ modelValue: new Model() }, rejecting(400, { Price: ["Price cannot be negative"] }), { events: failed })()[handler]()
+
+        expect(states(succeeded)).toEqual([FormStates.pending, FormStates.saved])
+        expect(states(failed)).toEqual([FormStates.pending, FormStates.error])
+        expect(names(failed)).not.toContain(event)
     })
 })
 

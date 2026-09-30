@@ -32,8 +32,8 @@ if (await applyRemove(item)) handleRemove(item)
 ```
 
 Calling `handleRemove(item)` unconditionally removes the row even when the server refused the delete
-(a 409 while the row is still referenced), so the list and the failure message contradict each other
-until the next fetch.
+(a validator's 400, or a 409 while the row is still referenced), so the list and the failure message
+contradict each other until the next fetch.
 
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
@@ -69,8 +69,10 @@ passing `item`. `item` is `undefined` until the `onMounted` load resolves — ga
 `useForm({ entityService, props, emit })` returns `item` plus `handleSubmit`, `handleCancel`,
 `handleRemove`, `handleRestore`, and `feedback`. Note the form's `handleRemove()` takes **no arguments**
 (it removes the bound `item.value`) — unlike the overview's `handleRemove(item)`. Define props with `withDefaults(defineProps<FormProps &
-…>(), { ...formDefaults })` and emits via `FormEmits<T>`; `FormStates` enumerates pending/saved/removed/
-error. `useModal` is the in-modal variant for editing without leaving the page.
+…>(), { ...formDefaults })` and emits via `FormEmits<T>`. Its `changeState` event reports a write as
+`FormStates.pending`, then one final state: `saved` or `removed` when the write succeeded, `error` when the server
+refused it or it failed — a refused delete never reports `removed`. `useModal` is the in-modal variant for editing
+without leaving the page.
 
 After an insert, `handleSubmit` replaces the current route with one carrying the new id (skipped when
 `isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (both the flat

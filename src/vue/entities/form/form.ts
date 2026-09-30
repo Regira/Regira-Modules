@@ -5,6 +5,10 @@ import useFeedback, { toFeedbackError, type FeedbackOut } from "../../ui/feedbac
 import type { IEntity } from "../abstractions/IEntity"
 import type { IEntityService, SaveResult } from "../abstractions/IEntityService"
 
+/**
+ * What `changeState` reports: a write emits `pending`, then one final state — `saved` for a save or restore that
+ * succeeded, `removed` for a delete that succeeded, `error` for any write the server refused or that failed.
+ */
 export enum FormStates {
     pending = "Pending",
     saved = "Saved",
@@ -118,6 +122,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
                 }
                 router.replace(newRoute)
             }
+            emit("changeState", FormStates.saved)
         } catch (ex) {
             console.error("Saving failed", { ex })
             const error = ex as any
@@ -134,8 +139,6 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             // consumer that navigates/closes on @save correctly does nothing on failure. Re-throwing left
             // `@submit.prevent="handleSubmit"` — the binding the scaffold generates — logging an unhandled
             // rejection on every failed save. Validate before calling it; branch on `feedback` after.
-        } finally {
-            emit("changeState", FormStates.saved)
         }
     }
 
@@ -150,6 +153,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             await entityService.remove(item.value as T)
             feedback.success("Deleted")
             emit("remove", item.value as T)
+            emit("changeState", FormStates.removed)
         } catch (ex) {
             console.error("Deleting failed", { item, ex })
             const error = ex as any
@@ -166,8 +170,6 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             // no re-throw: feedback surfaces the error, and `remove` only emits on success (above), so a
             // consumer that navigates/closes on @remove correctly does nothing on failure. Re-throwing here
             // only produced an unhandled-rejection warning from the delete button's event handler.
-        } finally {
-            emit("changeState", FormStates.removed)
         }
     }
 
@@ -190,14 +192,13 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             item.value = entityService.toEntity(deepCopy(saved))
             original.value = entityService.toEntity(deepCopy(saved))
             emit("update:modelValue", item.value)
+            emit("changeState", FormStates.saved)
         } catch (ex) {
             console.error("Restoring failed", { item, ex })
             const error = ex as any
             feedback.fail("Restoring failed", toFeedbackError(error))
             emit("changeState", FormStates.error)
             // no re-throw — same reasoning as handleSubmit/handleRemove above
-        } finally {
-            emit("changeState", FormStates.saved)
         }
     }
 

@@ -5,6 +5,20 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/ui`: `ErrorSummary` keys each message of a field by its position, so a field whose messages repeat one
+  text no longer trips Vue's duplicate-key warning, and its summary buttons are disabled while there is no error.
+  `vue/entities` guides: a refused delete can be a validator's `400` with an error map, beside a `409` or `403`.
+  The failure table in `entities.patterns` covers the delete handlers, and its `fieldError` example shows every
+  message of a field.
+- `vue/entities`: **`useForm`'s `changeState` ends a refused write in `error`, and only there.** Every write
+  emitted its success state from a `finally`, so a delete the server refused — a validator's `400`, a `409` while
+  the row is still referenced — reported `error` and then `removed`, and a failed save or restore `error` and then
+  `saved`. A consumer keyed on the last state read the refused write as done. A write now emits `pending`, then
+  `saved` or `removed` when it succeeded and `error` when it did not. The scaffold's
+  `isLoading = $event == FormStates.pending` binding behaves as before.
+
 ## 6.4.0 — 2026-09-26
 
 - `vue/ui`: **`Autocomplete`'s result panel is no longer clipped inside a modal or any scroll container.**

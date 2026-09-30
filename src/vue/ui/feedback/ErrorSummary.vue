@@ -3,7 +3,7 @@
         <slot name="message">
             <div class="row gy-0 gx-1">
                 <div class="col-auto">
-                    <button type="button" class="btn btn-default p-0 m-0 text-light" :diabled="!error" @click="showSummary = !showSummary">
+                    <button type="button" class="btn btn-default p-0 m-0 text-light" :disabled="!error" @click="showSummary = !showSummary">
                         <Icon name="warning" />
                     </button>
                 </div>
@@ -11,7 +11,7 @@
                     {{ msg }}
                 </div>
                 <div v-if="enablePopup && error" class="col-auto">
-                    <button type="button" class="btn btn-link p-0 m-0 text-light" :diabled="!error" @click="showSummary = !showSummary">
+                    <button type="button" class="btn btn-link p-0 m-0 text-light" :disabled="!error" @click="showSummary = !showSummary">
                         <Icon name="info" />
                     </button>
                 </div>
@@ -25,7 +25,7 @@
                         <b>{{ code }}</b>
                         <div v-if="typeof msgs == 'string'" class="mt-2">{{ msgs }}</div>
                         <ul v-else>
-                            <li v-for="err in msgs" :key="err">
+                            <li v-for="(err, index) in msgs" :key="index">
                                 {{ err }}
                             </li>
                         </ul>
@@ -51,7 +51,7 @@
                         <b>{{ code }}</b>
                         <div v-if="typeof msgs == 'string'" class="mt-2">{{ msgs }}</div>
                         <ul v-else>
-                            <li v-for="err in msgs" :key="err">
+                            <li v-for="(err, index) in msgs" :key="index">
                                 {{ err }}
                             </li>
                         </ul>
