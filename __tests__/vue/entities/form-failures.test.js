@@ -294,6 +294,19 @@ describe("toFeedbackError pairs messages with translation keys", () => {
         })
     })
 
+    test("keeps a field named like a member every object has", () => {
+        expect(
+            toFeedbackError(
+                refusal([
+                    { key: "Constructor", message: "Required" },
+                    { key: "ToString", message: "Too long" },
+                    { key: "ToString", message: "Upper case only" },
+                ])
+            )
+        ).toEqual({ constructor: ["Required"], toString: ["Too long", "Upper case only"] })
+        expect(Object.hasOwn(toFeedbackError(refusal([{ key: "__proto__", message: "Required" }])), "__proto__")).toBe(true)
+    })
+
     test("keeps the empty key of an error that belongs to no field", () => {
         expect(toFeedbackError(refusal([{ key: "", message: "A locked order cannot be deleted." }]))).toEqual({
             "": ["A locked order cannot be deleted."],

@@ -15,7 +15,8 @@ heading.
   `toFeedbackError`. The bare field map and the ProblemDetails `errors` are read as before. An app that translates
   with another library sets its own translator once with `setErrorTranslator((message, args) => …)` — for vue-i18n,
   `te(key) ? t(key, args) : undefined` — and `undefined` restores the `useLang` default; a translator that throws is
-  logged and the message shown.
+  logged and the message shown. A field named like a member every object has (`Constructor`, `ToString`) is keyed like
+  any other.
 - Guides (`vue/ui`, `vue/lang`, `vue/entities`): the 400 an Entities API answers is a ProblemDetails, with
   `errorDetails` for a validator's refusal, and `ui.instructions` → feedback describes how its messages pair with
   translation keys.

@@ -92,11 +92,13 @@ export function toFeedbackError(ex: unknown): FeedbackError | undefined {
     const data = response?.data as { errors?: unknown; errorDetails?: unknown; detail?: unknown; message?: unknown } | undefined
     // errorDetails holds what errors does, plus the args
     if (isErrorDetails(data?.errorDetails)) {
-        const errors: Record<string, Array<string>> = {}
+        // a Map, not an object: on an object, a field named `constructor` or `toString` finds the inherited member
+        const errors = new Map<string, Array<string>>()
         for (const detail of data.errorDetails) {
-            ;(errors[fieldKey(detail.key)] ??= []).push(errorText(detail))
+            const key = fieldKey(detail.key)
+            errors.set(key, [...(errors.get(key) ?? []), errorText(detail)])
         }
-        return errors
+        return Object.fromEntries(errors)
     }
     const map = isFieldMap(data?.errors, true) ? data.errors : response?.status === 400 && isFieldMap(data, false) ? data : undefined
     if (map) {
