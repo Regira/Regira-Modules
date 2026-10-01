@@ -2,10 +2,11 @@ import { describe, test, expect, vi, afterEach } from "vitest"
 import { createApp, defineComponent, h, reactive } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
 import { useForm, FormStates } from "../../../src/vue/entities/form"
-import { FeedbackStatus, toFeedbackError } from "../../../src/vue/ui/feedback"
+import { FeedbackStatus, toFeedbackError, setErrorTranslator } from "../../../src/vue/ui/feedback"
+import { useLang } from "../../../src/vue/lang/useLang"
 
-// An Entities API answers a rule breach (EntityInputException) with a flat field map and model binding with a
-// ProblemDetails that wraps its map in `errors`. The form puts either map on feedback.error, and the server's own
+// An Entities API answers a rule breach (EntityInputException) and a model binding failure with a ProblemDetails that
+// holds its field map in `errors`; a bare field map is read too. The form puts the map on feedback.error, and the server's own
 // text on feedback.message when there is no field to point at.
 class Model {
     constructor(id = 7) {
@@ -230,4 +231,118 @@ describe("toFeedbackError", () => {
     test("answers undefined for a network failure", () => {
         expect(toFeedbackError(new Error("Network Error"))).toBeUndefined()
     })
+})
+
+// What a validator adds is a text or a translation key: every message is paired with the app's translation messages,
+// and `errorDetails` beside `errors` carries the args a translation fills in
+describe("toFeedbackError pairs messages with translation keys", () => {
+    const refusal = (errorDetails) => ({
+        response: {
+            status: 400,
+            data: {
+                title: "One or more validation errors occurred.",
+                status: 400,
+                errors: Object.fromEntries(errorDetails.map((d) => [d.key, [d.message]])),
+                errorDetails,
+            },
+        },
+    })
+    const tooLarge = { key: "Total", message: "ValueTooLarge", args: { max: 10000 } }
+
+    afterEach(() => {
+        setLang("", {})
+        setErrorTranslator(undefined)
+        vi.restoreAllMocks()
+    })
+
+    test("shows the translation of a message that is a key, its placeholders filled from the args", () => {
+        setLang("nl", { ValueTooLarge: { en: "At most {max}", nl: "Maximaal {max}" } })
+
+        expect(toFeedbackError(refusal([tooLarge, { key: "Total", message: "Must be a whole number." }]))).toEqual({
+            total: ["Maximaal 10000", "Must be a whole number."],
+        })
+    })
+
+    test("shows a key the app has no translation of as the server sent it", () => {
+        setLang("nl", { ValueTooSmall: { nl: "Minimaal {min}" } })
+
+        expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["ValueTooLarge"] })
+    })
+
+    test("falls back to the fallback language, then to the message", () => {
+        setLang("fr", { ValueTooLarge: { en: "At most {max}" } }, "en")
+        expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["At most 10000"] })
+
+        setLang("fr", { ValueTooLarge: { nl: "Maximaal {max}" } }, "en")
+        expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["ValueTooLarge"] })
+    })
+
+    // a host whose serializer camelCases dictionary keys sends a FluentValidation rule's {MaxLength} as maxLength
+    test("fills a placeholder whatever the case of its arg's name", () => {
+        setLang("en", { TooLong: "At most {MaxLength} characters ({TotalLength} given), {Unknown}" })
+        const detail = { key: "title", message: "TooLong", args: { maxLength: 20, totalLength: 23 } }
+
+        expect(toFeedbackError(refusal([detail]))).toEqual({ title: ["At most 20 characters (23 given), {Unknown}"] })
+    })
+
+    test("translates the messages of a field map without errorDetails too", () => {
+        setLang("nl", { Required: { nl: "Verplicht" } })
+
+        expect(toFeedbackError({ response: { status: 400, data: { errors: { Title: ["Required"], Code: "Too short." } } } })).toEqual({
+            title: ["Verplicht"],
+            code: "Too short.",
+        })
+    })
+
+    test("keeps the empty key of an error that belongs to no field", () => {
+        expect(toFeedbackError(refusal([{ key: "", message: "A locked order cannot be deleted." }]))).toEqual({
+            "": ["A locked order cannot be deleted."],
+        })
+    })
+
+    // an app on another i18n library — vue-i18n's te/t, here a stand-in over one dictionary
+    describe("with setErrorTranslator", () => {
+        const dictionary = { ValueTooLarge: "Maximaal {max}" }
+        const te = (key) => key in dictionary
+        const t = (key, args) => dictionary[key].replace(/\{(\w+)\}/g, (_, name) => String(args[name]))
+
+        test("translates through the app's own translator, which receives the args as sent", () => {
+            const translator = vi.fn((key, args) => (te(key) ? t(key, args) : undefined))
+            setErrorTranslator(translator)
+            // the useLang messages are not consulted any more
+            setLang("en", { "Must be a whole number.": "Whole numbers only" })
+
+            expect(toFeedbackError(refusal([tooLarge, { key: "Total", message: "Must be a whole number." }]))).toEqual({
+                total: ["Maximaal 10000", "Must be a whole number."],
+            })
+            expect(translator).toHaveBeenCalledWith("ValueTooLarge", { max: 10000 })
+            expect(translator).toHaveBeenCalledWith("Must be a whole number.", {})
+        })
+
+        test("shows the message when the translator has none or fails", () => {
+            const logged = vi.spyOn(console, "error").mockImplementation(() => {})
+            setErrorTranslator((key) => {
+                if (key === "Broken") throw new Error("no such message")
+                return ""
+            })
+
+            expect(toFeedbackError(refusal([tooLarge, { key: "Total", message: "Broken" }]))).toEqual({ total: ["ValueTooLarge", "Broken"] })
+            expect(logged).toHaveBeenCalledOnce()
+        })
+
+        test("undefined restores the useLang messages", () => {
+            setErrorTranslator(() => "custom")
+            setErrorTranslator(undefined)
+            setLang("en", { ValueTooLarge: "At most {max}" })
+
+            expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["At most 10000"] })
+        })
+    })
+
+    function setLang(lang, messages, fallback = "") {
+        const { replaceMessages, langCode, fallbackLangCode } = useLang()
+        replaceMessages(messages)
+        langCode.value = lang
+        fallbackLangCode.value = fallback
+    }
 })

@@ -7,6 +7,19 @@ heading.
 
 ## Unreleased
 
+- `vue/ui`: **`toFeedbackError` translates validation errors.** Every field message of a 400 is looked up in the
+  app's `useLang` messages, so a server validator can return a translation key (`ValueTooLarge`) instead of a full
+  message: a key found there shows its translation, in the active language and else the fallback one, with `{name}`
+  placeholders filled from the error's `args` in the body's `errorDetails`, whatever the case of their names. Any
+  other message shows as the server sent it, as before. Every entity form and overview gets it through
+  `toFeedbackError`. The bare field map and the ProblemDetails `errors` are read as before. An app that translates
+  with another library sets its own translator once with `setErrorTranslator((message, args) => …)` — for vue-i18n,
+  `te(key) ? t(key, args) : undefined` — and `undefined` restores the `useLang` default; a translator that throws is
+  logged and the message shown.
+- Guides (`vue/ui`, `vue/lang`, `vue/entities`): the 400 an Entities API answers is a ProblemDetails, with
+  `errorDetails` for a validator's refusal, and `ui.instructions` → feedback describes how its messages pair with
+  translation keys.
+
 - `vue/entities`: **`useForm`'s `changeState` ends a refused write in `error`, and only there.** Every write
   emitted its success state from a `finally`, so a delete the server refused — a validator's `400`, a `409` while
   the row is still referenced — reported `error` and then `removed`, and a failed save or restore `error` and then

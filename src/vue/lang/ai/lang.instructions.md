@@ -81,6 +81,15 @@ formatText("Hello {name}", { name: "Bram" }) // "Hello Bram"
 useLang().translate("greeting", { name: "Bram" })
 ```
 
+## Server validation errors
+
+An Entities API sends each validation error as a text or a translation key, with the `args` a translation fills in.
+`toFeedbackError` (`vue/ui`) — which every entity form uses — shows the translation of a message that is a key in
+these messages, placeholders filled from the args, and the message as sent otherwise. So the server returns keys
+(`ValueTooLarge`) where the app should translate, and the app adds them here:
+`"ValueTooLarge": { en: "At most {max}", nl: "Maximaal {max}" }`. An app on another i18n library (vue-i18n) points
+`toFeedbackError` at it with `setErrorTranslator` instead. Details: [ui](../../ui/ai/ui.instructions.md) → feedback.
+
 ## Gotchas
 
 - **`$t` returns `""` until messages load.** With an async `messages` loader the plugin gates `$t` on an

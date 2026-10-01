@@ -29,3 +29,9 @@ app.use(plugin, { defaultLang, messages })   →  drives the singleton useLang()
 `defaultLang` sets both the active and fallback language. The fallback-language retry lives on
 `useLang().translate` (and `$t`); the bare exported `translate` only falls back to the 2-letter
 language prefix (`en-US` → `en`).
+
+The same messages translate the validation errors an Entities API sends: a server validator can return a
+translation key (`ValueTooLarge`) instead of a full message, and `toFeedbackError` (from `vue/ui`, used by every entity
+form) shows its translation — `{param}` placeholders filled from the error's args — or the message as sent when the
+dictionary has no such key. An app that translates with another library, such as vue-i18n, hands `toFeedbackError`
+its own translator with `setErrorTranslator` (from `vue/ui`).

@@ -1,4 +1,5 @@
 import { computed, reactive, ref } from "vue"
+import { useLang } from "../../lang/useLang"
 
 export enum FeedbackStatus {
     none = "",
@@ -63,25 +64,98 @@ const isFieldMap = (value: unknown, allowSingle: boolean): value is Record<strin
     Object.keys(value).length > 0 &&
     Object.values(value).every((v) => isMessages(v) || (allowSingle && typeof v === "string"))
 
+/** An entry of the `errorDetails` an Entities API lists its refusals in: one error, with the args a translation fills in. */
+type ErrorDetail = { key: string; message: string; args?: Record<string, unknown> }
+
+const isErrorDetails = (value: unknown): value is Array<ErrorDetail> =>
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((d) => d != null && typeof d === "object" && typeof d.key === "string" && typeof d.message === "string")
+
+// keys start lower-case whatever the server's naming policy, so they match the model's field names
+const fieldKey = (key: string) => key.charAt(0).toLowerCase() + key.slice(1)
+
 /**
  * What a failed request tells the user, in the shape `fail()` takes: its field errors, or else the server's own text
  * (`detail` of a ProblemDetails, a `message`, or a plain-text 400 body) — `undefined` when the response carries
  * neither.
  *
- * Reads both 400 bodies an Entities API sends: the ProblemDetails of model binding (`{ title, status, errors }`)
- * and the flat map an `EntityInputException` produces (`{ CategoryId: ["…"] }`, no `errors` wrapper). Keys start
+ * Reads the ProblemDetails an Entities API answers a 400 with (`{ title, status, errors }`), and a bare field map
+ * (`{ CategoryId: ["…"] }`) too. Every message is paired with the app's translations — the {@link useLang} messages
+ * unless {@link setErrorTranslator} says otherwise: a message that is a key there shows its translation, the error's
+ * `args` in `errorDetails` filled into its placeholders; any other message shows as the server sent it. Keys start
  * lower-case whatever the server's naming policy, so they match the model's field names (`CategoryId` →
  * `categoryId`); an error that belongs to no field has the key `""`.
  */
 export function toFeedbackError(ex: unknown): FeedbackError | undefined {
     const response = (ex as { response?: { status?: number; data?: unknown } } | undefined)?.response
-    const data = response?.data as { errors?: unknown; detail?: unknown; message?: unknown } | undefined
+    const data = response?.data as { errors?: unknown; errorDetails?: unknown; detail?: unknown; message?: unknown } | undefined
+    // errorDetails holds what errors does, plus the args
+    if (isErrorDetails(data?.errorDetails)) {
+        const errors: Record<string, Array<string>> = {}
+        for (const detail of data.errorDetails) {
+            ;(errors[fieldKey(detail.key)] ??= []).push(errorText(detail))
+        }
+        return errors
+    }
     const map = isFieldMap(data?.errors, true) ? data.errors : response?.status === 400 && isFieldMap(data, false) ? data : undefined
     if (map) {
-        return Object.fromEntries(Object.entries(map).map(([key, messages]) => [key.charAt(0).toLowerCase() + key.slice(1), messages]))
+        return Object.fromEntries(
+            Object.entries(map).map(([key, messages]) => [
+                fieldKey(key),
+                typeof messages === "string" ? errorText({ key, message: messages }) : messages.map((message) => errorText({ key, message })),
+            ])
+        )
     }
     return serverText(ex)
 }
+
+/**
+ * Translates one validation message of a failed request — a key, or a text the server sent to be shown as is: its
+ * translation with `args` filled in, or `undefined` when the app has none, so the message shows as sent.
+ */
+export type ErrorTranslator = (message: string, args: Record<string, unknown>) => string | undefined
+
+// the default: the useLang messages, in the active language and else the fallback one
+const translateWithLang: ErrorTranslator = (message, args) => {
+    const { messages, translate } = useLang()
+    return messages.value[message] == null ? undefined : translate(message, fillArgs(args))
+}
+let errorTranslator: ErrorTranslator = translateWithLang
+
+/**
+ * Sets how {@link toFeedbackError} translates validation messages, for an app whose translations live elsewhere than
+ * `useLang` — with vue-i18n, `setErrorTranslator((key, args) => (te(key) ? t(key, args) : undefined))`. Call it once at
+ * startup; every entity form uses it from then on. `undefined` restores the default, the `useLang` messages.
+ */
+export function setErrorTranslator(translator: ErrorTranslator | undefined): void {
+    errorTranslator = translator ?? translateWithLang
+}
+
+function errorText({ message, args }: ErrorDetail): string {
+    try {
+        return errorTranslator(message, args ?? {}) || message
+    } catch (error) {
+        // a failing translator must not cost the user the error itself
+        console.error("Translating a validation message failed", { message, error })
+        return message
+    }
+}
+
+// fills `{name}` from the args regardless of case: a server whose serializer camelCases dictionary keys sends
+// `maxLength` for a rule's `{MaxLength}`. A placeholder without an arg stays, as `formatText` leaves it.
+const fillArgs =
+    (args: Record<string, unknown> = {}) =>
+    (text: string): string => {
+        // a message without the active language reaches here as undefined, for `translate` to try the fallback
+        if (text == null) {
+            return text
+        }
+        const values = new Map(Object.entries(args).map(([name, value]) => [name.toLowerCase(), value]))
+        return text.replace(/\{([^{}]+)\}/g, (placeholder, name: string) =>
+            values.has(name.toLowerCase()) ? String(values.get(name.toLowerCase()) ?? "") : placeholder
+        )
+    }
 
 // the server's own text for a failed request (`detail`, `message`, or a plain-text 400 body), if it sent any
 function serverText(ex: unknown): string | undefined {

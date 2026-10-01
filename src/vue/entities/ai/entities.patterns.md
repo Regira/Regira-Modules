@@ -893,10 +893,13 @@ function fieldError(name: string): string | undefined {
 </template>
 ```
 
-> A Regira API answers a `400` in two shapes: the flat map an `EntityInputException` produces
-> (`{ "Price": ["…"] }`) and model binding's ProblemDetails (`{ title, status, errors: { … } }`).
-> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads both and starts every key lower-case, so it matches the
-> model's field name; a body without field errors yields its `detail` (or `message`) text instead. The form
+> A Regira API answers a `400` with a ProblemDetails (`{ title, status, errors: { "Price": ["…"] } }`); a
+> validator's refusal adds `errorDetails`, each error with the `args` a translation fills in.
+> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts every key
+> lower-case, so it matches the model's field name. A message that is a key in the app's `useLang` messages —
+> a validator that returns `ValueTooLarge` rather than a full sentence — shows that translation
+> ([ui](../../ui/ai/ui.instructions.md) → feedback); a body without field errors yields its
+> `detail` (or `message`) text instead. The form
 > handlers use it, and a custom save should pass it to `feedback.fail` too. On `404`/`409`/`500` the server's text
 > is appended to `feedback.message` and `feedback.error` stays empty, so lean on the `<Feedback>` summary instead.
 > `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `@regira/modules/vue/ui`; gating the button on

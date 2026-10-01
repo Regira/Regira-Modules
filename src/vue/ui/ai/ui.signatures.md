@@ -10,7 +10,7 @@ Look the name up here, then fetch its heading, e.g.
 | Heading                      | Exports                                                                                                                                                                                                                  |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Plugins`                    | `feedbackPlugin`, `iconPlugin`, `loadingPlugin`, `pagingPlugin`, `modalPlugin`, `screenPlugin`                                                                                                                           |
-| `Feedback`                   | `useFeedback`, `toFeedbackError`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                                                           |
+| `Feedback`                   | `useFeedback`, `toFeedbackError`, `setErrorTranslator`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                                     |
 | `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`                                                                                                                                                                     |
 | `Loading`                    | `Loading`, `LoadingButton`, `LoadingContainer`, `injectLoading`                                                                                                                                                          |
 | `Modal`                      | `DefaultModal`, `ModalType`, `injectModal`                                                                                                                                                                               |
@@ -60,8 +60,10 @@ library `Icon`, whose glyphs you re-map via `icons`/`source` and restyle via the
 import {
     useFeedback,
     toFeedbackError,
+    setErrorTranslator,
     FeedbackStatus,
     Feedback,
+    type ErrorTranslator,
     type FeedbackOut,
     type FeedbackProps,
     type FeedbackSlots,
@@ -79,10 +81,17 @@ export type FeedbackIn = { autoHideDelay?: number }
 // or a plain string. NOT an Error: log the exception yourself and pass toFeedbackError(ex).
 export type FeedbackError = string | Record<string, string | Array<string>>
 // A failed request's field map, else the server's detail/message (or plain-text 400) text, else undefined.
-// Reads both 400 bodies the API sends — the flat map of an EntityInputException ({ CategoryId: [...] }) and
-// model binding's ProblemDetails ({ title, status, errors }) — and starts every key lower-case to match the
-// model's field name ("categoryId"). "" = an error that belongs to no field.
+// Reads the ProblemDetails of a 400 ({ title, status, errors }) and a bare field map ({ CategoryId: [...] }), and
+// starts every key lower-case to match the model's field name ("categoryId"). "" = an error that belongs to no field.
+// A message that is a key in useLang's messages — or that the translator setErrorTranslator set translates — shows its
+// translation, {name} filled from the args in the body's errorDetails ([{ key, message, args? }]); any other message
+// shows as sent.
 export function toFeedbackError(ex: unknown): FeedbackError | undefined
+// One validation message and its args as the server sent them → the translation, or undefined to show the message.
+export type ErrorTranslator = (message: string, args: Record<string, unknown>) => string | undefined
+// Replaces the useLang default for every toFeedbackError call (vue-i18n: (key, args) => (te(key) ? t(key, args) : undefined));
+// undefined restores it. A translator that throws is logged and the message shown.
+export function setErrorTranslator(translator: ErrorTranslator | undefined): void
 // reactive(), not a bag of refs: read the fields directly in script and template — :disabled="f.isPending".
 // Destructuring it snapshots the values, as with any reactive object — pass the object, or toRefs() it.
 export interface FeedbackOut {

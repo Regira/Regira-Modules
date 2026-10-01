@@ -16,6 +16,7 @@ export * from "./gis"
 export {
     useFeedback,
     toFeedbackError,
+    setErrorTranslator,
     Feedback,
     Pending,
     Success,
@@ -24,6 +25,7 @@ export {
     feedbackDefaults,
     plugin as feedbackPlugin,
     useAppFeedback,
+    type ErrorTranslator,
     type FeedbackOut,
     type FeedbackEmits,
     type FeedbackProps,
