@@ -894,7 +894,8 @@ function fieldError(name: string): string | undefined {
 ```
 
 > A Regira API answers a `400` with a ProblemDetails (`{ title, status, errors: { "Price": ["…"] } }`); a
-> validator's refusal adds `errorDetails`, each error with the `args` a translation fills in.
+> rule refusal (an `EntityInputException`, a validator's among them) adds `errorDetails`, each error with the `args` a
+> translation fills in.
 > `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts every key
 > lower-case, so it matches the model's field name. A message that is a key in the app's `useLang` messages —
 > a validator that returns `ValueTooLarge` rather than a full sentence — shows that translation

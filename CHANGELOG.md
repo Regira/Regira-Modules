@@ -18,7 +18,7 @@ heading.
   logged and the message shown. A field named like a member every object has (`Constructor`, `ToString`) is keyed like
   any other.
 - Guides (`vue/ui`, `vue/lang`, `vue/entities`): the 400 an Entities API answers is a ProblemDetails, with
-  `errorDetails` for a validator's refusal, and `ui.instructions` → feedback describes how its messages pair with
+  `errorDetails` for a rule refusal, and `ui.instructions` → feedback describes how its messages pair with
   translation keys.
 
 - `vue/entities`: **`useForm`'s `changeState` ends a refused write in `error`, and only there.** Every write
