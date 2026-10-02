@@ -1,4 +1,5 @@
 import { computed, reactive, ref } from "vue"
+import { formatText } from "../../lang/formatText"
 import { useLang } from "../../lang/useLang"
 
 export enum FeedbackStatus {
@@ -67,10 +68,16 @@ const isFieldMap = (value: unknown, allowSingle: boolean): value is Record<strin
 /** An entry of the `errorDetails` an Entities API lists its refusals in: one error, with the args a translation fills in. */
 type ErrorDetail = { key: string; message: string; args?: Record<string, unknown> }
 
-const isErrorDetails = (value: unknown): value is Array<ErrorDetail> =>
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((d) => d != null && typeof d === "object" && typeof d.key === "string" && typeof d.message === "string")
+// the entries an error can be shown from: a message, under a field key or none — an error of the whole entity. An entry
+// in another shape is left out, not the list: its error is still in `errors`.
+const readErrorDetails = (value: unknown): Array<ErrorDetail> =>
+    Array.isArray(value)
+        ? value.flatMap((d) =>
+              d != null && typeof d === "object" && typeof d.message === "string" && (d.key == null || typeof d.key === "string")
+                  ? [{ key: d.key ?? "", message: d.message, args: d.args != null && typeof d.args === "object" ? d.args : undefined }]
+                  : []
+          )
+        : []
 
 // keys start lower-case whatever the server's naming policy, so they match the model's field names
 const fieldKey = (key: string) => key.charAt(0).toLowerCase() + key.slice(1)
@@ -90,26 +97,57 @@ const fieldKey = (key: string) => key.charAt(0).toLowerCase() + key.slice(1)
 export function toFeedbackError(ex: unknown): FeedbackError | undefined {
     const response = (ex as { response?: { status?: number; data?: unknown } } | undefined)?.response
     const data = response?.data as { errors?: unknown; errorDetails?: unknown; detail?: unknown; message?: unknown } | undefined
-    // errorDetails holds what errors does, plus the args
-    if (isErrorDetails(data?.errorDetails)) {
-        // a Map, not an object: on an object, a field named `constructor` or `toString` finds the inherited member
-        const errors = new Map<string, Array<string>>()
-        for (const detail of data.errorDetails) {
-            const key = fieldKey(detail.key)
-            errors.set(key, [...(errors.get(key) ?? []), errorText(detail)])
-        }
-        return Object.fromEntries(errors)
-    }
+    const details = readErrorDetails(data?.errorDetails)
     const map = isFieldMap(data?.errors, true) ? data.errors : response?.status === 400 && isFieldMap(data, false) ? data : undefined
-    if (map) {
-        return Object.fromEntries(
-            Object.entries(map).map(([key, messages]) => [
-                fieldKey(key),
-                typeof messages === "string" ? errorText({ key, message: messages }) : messages.map((message) => errorText({ key, message })),
-            ])
-        )
+    if (details.length === 0 && !map) {
+        return serverText(ex)
     }
-    return serverText(ex)
+
+    // one accumulator for both sources, so keys alike once lower-cased merge whichever source they come from. A Map, not
+    // an object: on an object, a field named `constructor` or `toString` finds the inherited member
+    const errors = new Map<string, Array<string>>()
+    // a key the server sent one plain message under keeps that shape
+    const asText = new Set<string>()
+    const add = (detail: ErrorDetail, plain = false) => {
+        const key = fieldKey(detail.key)
+        const messages = [...(errors.get(key) ?? []), errorText(detail)]
+        errors.set(key, messages)
+        if (plain && messages.length === 1) {
+            asText.add(key)
+        } else {
+            asText.delete(key)
+        }
+    }
+    // errorDetails first, for its args; `errors` lists the same errors, perhaps in other words, and may list more fields
+    // — a server merging model binding's errors with a rule refusal's — so a field errorDetails names is read from there
+    // alone, and every other field from `errors`
+    details.forEach((detail) => add(detail))
+    const named = new Set(details.map((detail) => fieldKey(detail.key)))
+    for (const [key, messages] of Object.entries(map ?? {})) {
+        if (!named.has(fieldKey(key))) {
+            for (const message of [messages].flat()) {
+                add({ key, message }, typeof messages === "string")
+            }
+        }
+    }
+    return Object.fromEntries([...errors].map(([key, messages]) => [key, asText.has(key) ? messages[0]! : messages]))
+}
+
+/**
+ * The messages of one field in a field-error map — `feedback.error`, or a client-side map — as an array: empty when the
+ * field has none, or when `error` is text or unset. Only the map's own keys count, so a field named like a member every
+ * object has (`constructor`, `toString`) never reads the inherited one; an empty message counts as none.
+ */
+export function fieldMessages(error: FeedbackError | null | undefined, name: string): Array<string> {
+    if (error == null || typeof error !== "object") {
+        return []
+    }
+    // read before the own-key test: Vue tracks the key while it is absent, so a field added later re-renders
+    const messages = error[name]
+    if (!Object.prototype.hasOwnProperty.call(error, name) || messages == null) {
+        return []
+    }
+    return [messages].flat().filter((message) => message !== "")
 }
 
 /**
@@ -148,16 +186,9 @@ function errorText({ message, args }: ErrorDetail): string {
 // `maxLength` for a rule's `{MaxLength}`. A placeholder without an arg stays, as `formatText` leaves it.
 const fillArgs =
     (args: Record<string, unknown> = {}) =>
-    (text: string): string => {
+    (text: string): string =>
         // a message without the active language reaches here as undefined, for `translate` to try the fallback
-        if (text == null) {
-            return text
-        }
-        const values = new Map(Object.entries(args).map(([name, value]) => [name.toLowerCase(), value]))
-        return text.replace(/\{([^{}]+)\}/g, (placeholder, name: string) =>
-            values.has(name.toLowerCase()) ? String(values.get(name.toLowerCase()) ?? "") : placeholder
-        )
-    }
+        text == null ? text : formatText(text, args as Record<string, string>, { ignoreCase: true })
 
 // the server's own text for a failed request (`detail`, `message`, or a plain-text 400 body), if it sent any
 function serverText(ex: unknown): string | undefined {

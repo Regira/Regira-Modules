@@ -21,9 +21,9 @@ class Model {
 }
 
 // `events` collects every emit as [name, arg]
-function mountForm(props, save, { remove = async () => true, events = [] } = {}) {
+function mountForm(props, save, { remove = async () => true, events = [], toEntity = (item) => Object.assign(new Model(), item) } = {}) {
     const entityService = {
-        toEntity: (item) => Object.assign(new Model(), item),
+        toEntity,
         save,
         remove,
     }
@@ -89,6 +89,17 @@ describe("useForm failure mapping", () => {
 
         expect(form().feedback.message).toBe("Server error: A database constraint rejected the change.")
     })
+
+    // only a 400 shows a field map: another status shows the server's text, whatever errors its body lists
+    test("a 409 whose body lists errors still shows its detail", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const body = { title: "Conflict", status: 409, detail: "Still referenced by 3 orders", errorDetails: [{ key: "", message: "InUse" }] }
+        const form = mountForm({ modelValue: new Model() }, async (item) => ({ saved: item, isNew: false }), { remove: rejecting(409, body) })
+
+        await form().handleRemove()
+
+        expect(form().feedback.message).toBe("Deleting failed: Still referenced by 3 orders")
+    })
 })
 
 // A write emits `pending`, then one final state: a consumer keyed on changeState must not read a refused write as done.
@@ -149,6 +160,58 @@ describe("useForm state", () => {
         expect(states(succeeded)).toEqual([FormStates.pending, FormStates.saved])
         expect(states(failed)).toEqual([FormStates.pending, FormStates.error])
         expect(names(failed)).not.toContain(event)
+    })
+
+    // the server took the write: a throw in what the form does with the result afterwards is no refusal of it, and the
+    // handler still resolves, as `@submit.prevent="handleSubmit"` needs
+    test.each(["handleSubmit", "handleRestore"])("%s ends in saved when the work after an accepted write throws", async (handler) => {
+        const logged = vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        // the result the server answered cannot be read back into the form
+        let answered = false
+        const save = async (item) => {
+            answered = true
+            return { saved: item, isNew: false }
+        }
+        const toEntity = (item) => {
+            if (answered) {
+                throw new TypeError("unexpected payload")
+            }
+            return Object.assign(new Model(), item)
+        }
+        const form = mountForm({ modelValue: new Model() }, save, { events, toEntity })
+
+        await expect(form()[handler]()).resolves.toBeUndefined()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.saved])
+        expect(form().feedback.status).toBe(FeedbackStatus.success)
+        expect(logged).toHaveBeenCalled()
+    })
+
+    // in a dev build without an app errorHandler, Vue re-throws a listener's error out of emit
+    test.each([
+        ["handleSubmit", "save"],
+        ["handleRestore", "restore"],
+    ])("%s reports the accepted write when a %s listener throws", async (handler, event) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = new Proxy([], {
+            get: (target, name) =>
+                name === "push"
+                    ? (entry) => {
+                          target.push(entry)
+                          if (entry[0] === event) {
+                              throw new Error("listener failed")
+                          }
+                      }
+                    : Reflect.get(target, name),
+        })
+        const form = mountForm({ modelValue: new Model() }, saving, { events })
+
+        await expect(form()[handler]()).resolves.toBeUndefined()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.saved])
+        expect(form().feedback.status).toBe(FeedbackStatus.success)
+        expect(form().feedback.isPending).toBe(false)
     })
 
     test.each(["handleSubmit", "handleRemove", "handleRestore"])("%s ends in error when the rejection carries no reason", async (handler) => {
@@ -305,6 +368,39 @@ describe("toFeedbackError pairs messages with translation keys", () => {
             )
         ).toEqual({ constructor: ["Required"], toString: ["Too long", "Upper case only"] })
         expect(Object.hasOwn(toFeedbackError(refusal([{ key: "__proto__", message: "Required" }])), "__proto__")).toBe(true)
+    })
+
+    // a server merging model binding's errors with a rule refusal lists those in `errors` only
+    test("keeps a message errors lists beyond errorDetails", () => {
+        setLang("nl", { ValueTooLarge: { nl: "Maximaal {max}" } })
+        const ex = refusal([tooLarge])
+        ex.response.data.errors = { Title: ["Required"], Total: ["ValueTooLarge"] }
+
+        expect(toFeedbackError(ex)).toEqual({ total: ["Maximaal 10000"], title: ["Required"] })
+    })
+
+    // a server may word a field's errors in `errors` and give their keys in errorDetails: the field shows them once
+    test("shows a field errorDetails names from errorDetails alone", () => {
+        setLang("en", { ValueTooLarge: { en: "At most {max}" } })
+        const ex = refusal([{ key: "Name", message: "ValueTooLarge", args: { max: 50 } }])
+        ex.response.data.errors = { Name: ["At most 50 characters"] }
+
+        expect(toFeedbackError(ex)).toEqual({ name: ["At most 50"] })
+    })
+
+    // one entry in another shape — no message, a key that is no text — costs that entry, not the others' args
+    test("reads every well-formed entry of errorDetails, a missing key as the whole entity's", () => {
+        setLang("nl", { ValueTooLarge: { nl: "Maximaal {max}" } })
+        const ex = refusal([tooLarge, { key: null, message: "Locked" }, { key: 7, message: "Too short" }])
+        ex.response.data.errors = { Total: ["ValueTooLarge"] }
+
+        expect(toFeedbackError(ex)).toEqual({ total: ["Maximaal 10000"], "": ["Locked"] })
+    })
+
+    test("merges the messages of keys alike once lower-cased, from errors as from errorDetails", () => {
+        expect(toFeedbackError({ response: { status: 400, data: { errors: { Title: ["Required"], title: ["Too short"] } } } })).toEqual({
+            title: ["Required", "Too short"],
+        })
     })
 
     test("keeps the empty key of an error that belongs to no field", () => {

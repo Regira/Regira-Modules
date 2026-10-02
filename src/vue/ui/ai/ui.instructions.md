@@ -62,19 +62,19 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 ## Areas
 
-| Area         | Key components                                                                                                                                                        | Programmatic                                                                                              |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                                               |
-| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                                           |
-| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `setErrorTranslator`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut` |
-| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                                                 |
-| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                                                            |
-| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`, `IIconProvider`                                                                |
-| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                                                               |
-| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`, `autocompleteDefaults`                                                                 |
-| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                                                         |
-| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                                                         |
-| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                                                         |
+| Area         | Key components                                                                                                                                                        | Programmatic                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                                                                |
+| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                                                            |
+| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `fieldMessages`, `setErrorTranslator`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut` |
+| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                                                                  |
+| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                                                                             |
+| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`, `IIconProvider`                                                                                 |
+| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                                                                                |
+| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`, `autocompleteDefaults`                                                                                  |
+| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                                                                          |
+| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                                                                          |
+| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                                                                          |
 
 ## What the entity views use
 
@@ -98,7 +98,8 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 - `toFeedbackError(ex)` → what `fail()` should show for a failed request: its field map, else the server's
   `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads the ProblemDetails `errors` an
   Entities API answers a 400 with, and a bare field map too, and starts every key lower-case to match the model's
-  field names.
+  field names; keys alike once lower-cased share their messages. A field `errors` lists that the body's
+  `errorDetails` does not name shows too.
   **It translates validation errors.** A server validator returns, per error, a text or a translation key
   (`ValueTooLarge`). Every message is looked up in the app's translation messages (`useLang`,
   [lang](../../lang/ai/lang.instructions.md)): a key found there shows its translation, `{name}` placeholders filled
@@ -113,6 +114,10 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
     }
     ```
 
+- `fieldMessages(error, name)` → the messages of one field in a field map, `feedback.error` or a client-side one, as
+  an array: empty when the field has none, or when the error is text or unset. Read a field through it rather than
+  `feedback.error[name]`: it reads the map's own keys only, so a field named like an object member (`constructor`)
+  never finds the inherited one. A field may hold several messages — `fieldMessages(feedback.error, "title").join(" ")`.
 - `setErrorTranslator(translator)` → for an app whose translations live in another i18n library, such as vue-i18n.
   Call it once at startup and `toFeedbackError` — so every entity form — translates through it instead of `useLang`:
   the translator receives each message and its args as the server sent them, and answers the translation, or

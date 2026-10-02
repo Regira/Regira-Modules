@@ -16,6 +16,7 @@ export * from "./gis"
 export {
     useFeedback,
     toFeedbackError,
+    fieldMessages,
     setErrorTranslator,
     Feedback,
     Pending,

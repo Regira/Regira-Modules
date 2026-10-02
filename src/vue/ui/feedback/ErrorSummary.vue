@@ -20,12 +20,11 @@
         <slot name="summary">
             <template v-if="hasError">
                 <div v-if="typeof error == 'string'" class="mt-2">{{ error }}</div>
-                <ul v-else class="list-unstyled mt-2" v-for="(msgs, code) in error" :key="code">
+                <ul v-else class="list-unstyled mt-2" v-for="field in fields" :key="field.name">
                     <li>
-                        <b>{{ code }}</b>
-                        <div v-if="typeof msgs == 'string'" class="mt-2">{{ msgs }}</div>
-                        <ul v-else>
-                            <li v-for="(err, index) in msgs" :key="index">
+                        <b>{{ field.name }}</b>
+                        <ul>
+                            <li v-for="(err, index) in field.messages" :key="index">
                                 {{ err }}
                             </li>
                         </ul>
@@ -46,12 +45,11 @@
                 @submit="showSummary = false"
             >
                 <div v-if="typeof error == 'string'" class="mt-2">{{ error }}</div>
-                <ul v-else class="list-unstyled mt-2" v-for="(msgs, code) in error" :key="code">
+                <ul v-else class="list-unstyled mt-2" v-for="field in fields" :key="field.name">
                     <li>
-                        <b>{{ code }}</b>
-                        <div v-if="typeof msgs == 'string'" class="mt-2">{{ msgs }}</div>
-                        <ul v-else>
-                            <li v-for="(err, index) in msgs" :key="index">
+                        <b>{{ field.name }}</b>
+                        <ul>
+                            <li v-for="(err, index) in field.messages" :key="index">
                                 {{ err }}
                             </li>
                         </ul>
@@ -64,7 +62,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import type { FeedbackError } from "./feedback"
+import { fieldMessages, type FeedbackError } from "./feedback"
 import Icon from "../icons/Icon.vue"
 import { ModalType, injectModal } from "../modal"
 
@@ -82,12 +80,21 @@ const props = withDefaults(
 
 // Vue gives an `undefined` error — what Feedback passes for a failure without a field map — the `{}` default, so
 // whether there is anything to show is read from the content, not from the prop being set
+// the fields that hold a message: one whose messages are all empty shows nothing, as at its input
+const fields = computed(() => {
+    const error = props.error as FeedbackError | null | undefined
+    return error != null && typeof error === "object"
+        ? Object.keys(error)
+              .map((name) => ({ name, messages: fieldMessages(error, name) }))
+              .filter((field) => field.messages.length > 0)
+        : []
+})
 const hasError = computed(() => {
     const error = props.error as FeedbackError | null | undefined
     if (error == null) {
         return false
     }
-    return typeof error === "string" ? error.trim() !== "" : Object.keys(error).length > 0
+    return typeof error === "string" ? error.trim() !== "" : fields.value.length > 0
 })
 
 const Modal = injectModal()

@@ -830,17 +830,18 @@ fixed, for a save and for a delete alike:
 | `404`       | `"Item not found: …"`                                                                             | —                                                                       |
 | other       | `"Server error: …"` / `"Deleting failed: …"` (409: the ProblemDetails `detail`)                   | —                                                                       |
 
-A delete answers `400` when a validator refuses it; a rule on the whole entity arrives under the `""` key. The
-overview's `applyRemove` fills its `feedback` the same way under `Removing <title> failed`, and returns `false`.
-So only a `400` puts a per-field map on `feedback.error`. Combine **client-side** guards (validate before
-saving) with that **server-side** map; render the summary with `<Feedback>` and the field map per input:
+A delete answers `400` when a validator refuses it; a rule on the whole entity arrives under the `""` key. So only a
+`400` puts a per-field map on the form's `feedback.error`. The overview's `applyRemove` maps no status: it reports any
+failure under `Removing <title> failed`, with the field map `toFeedbackError(ex)` reads, else the server's text or the
+error's message, and returns `false`. Combine **client-side** guards (validate before saving) with the form's
+**server-side** map; render the summary with `<Feedback>` and the field map per input:
 
 ```vue
 <!-- details/Form.vue -->
 <script setup lang="ts">
 import { ref } from "vue"
 import { useForm, formDefaults, type FormEmits } from "@regira/modules/vue/entities"
-import { Feedback, FeedbackStatus } from "@regira/modules/vue/ui"
+import { Feedback, fieldMessages } from "@regira/modules/vue/ui"
 import type Article from "../data/Entity"
 import useEntityStore from "../data/store"
 
@@ -869,9 +870,9 @@ async function submit() {
 
 // client errors first, then the server's 400 field map on feedback.error — a field may hold several messages
 function fieldError(name: string): string | undefined {
-    if (errors.value[name]) return errors.value[name]
-    const server = typeof feedback.error === "object" ? feedback.error[name] : undefined
-    return server == null ? undefined : [server].flat().join(" ")
+    const client = fieldMessages(errors.value, name)
+    const messages = client.length > 0 ? client : fieldMessages(feedback.error, name)
+    return messages.length > 0 ? messages.join(" ") : undefined
 }
 </script>
 
@@ -903,8 +904,8 @@ function fieldError(name: string): string | undefined {
 > `detail` (or `message`) text instead. The form
 > handlers use it, and a custom save should pass it to `feedback.fail` too. On `404`/`409`/`500` the server's text
 > is appended to `feedback.message` and `feedback.error` stays empty, so lean on the `<Feedback>` summary instead.
-> `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `@regira/modules/vue/ui`; gating the button on
-> `FeedbackStatus.pending` prevents double-submits.
+> `feedback.isPending` — `status` is `FeedbackStatus.pending`, from `@regira/modules/vue/ui` — is the busy flag:
+> `:disabled="feedback.isPending"`, as in the example, prevents double-submits.
 
 ## Tabbed forms
 

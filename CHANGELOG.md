@@ -12,11 +12,22 @@ heading.
   message: a key found there shows its translation, in the active language and else the fallback one, with `{name}`
   placeholders filled from the error's `args` in the body's `errorDetails`, whatever the case of their names. Any
   other message shows as the server sent it, as before. Every entity form and overview gets it through
-  `toFeedbackError`. The bare field map and the ProblemDetails `errors` are read as before. An app that translates
+  `toFeedbackError`. The bare field map and the ProblemDetails `errors` are read as before, and a field `errors`
+  lists that `errorDetails` does not name shows too; an `errorDetails` entry in another shape is left out on its own, one without a
+  key counting as the whole entity's. Keys alike once lower-cased share their messages, from either source, where in
+  `errors` the later one replaced the earlier. An app that translates
   with another library sets its own translator once with `setErrorTranslator((message, args) => …)` — for vue-i18n,
   `te(key) ? t(key, args) : undefined` — and `undefined` restores the `useLang` default; a translator that throws is
   logged and the message shown. A field named like a member every object has (`Constructor`, `ToString`) is keyed like
   any other.
+- `vue/lang`: `formatText(input, args, { ignoreCase: true })` fills a placeholder whatever the case of its name and
+  its arg's, as `toFeedbackError` does with a server's args. A value is inserted as written, where one holding `$&` or
+  `$1` was rewritten, a placeholder whose name holds a regular-expression character such as `.` or `+` is filled, and
+  only the args' own names count, so `{constructor}` stays as written.
+- `vue/ui`: **`fieldMessages(error, name)` reads one field's messages** from a field map — `feedback.error`, or a
+  client-side map — as an array, empty when the field has none or the error is text or unset. It reads the map's own
+  keys only, so a field named like an object member (`constructor`) no longer finds the inherited one, as
+  `feedback.error[name]` does. The `entities.patterns` form example's `fieldError` reads through it.
 - Guides (`vue/ui`, `vue/lang`, `vue/entities`): the 400 an Entities API answers is a ProblemDetails, with
   `errorDetails` for a rule refusal, and `ui.instructions` → feedback describes how its messages pair with
   translation keys.
@@ -28,13 +39,19 @@ heading.
   `saved` or `removed` when it succeeded and `error` when it did not. The scaffold's
   `isLoading = $event == FormStates.pending` binding behaves as before. A save or delete whose promise rejects
   without a reason ends in `error` too, where it threw from its own error handler and left the feedback pending.
+  A save or restore the server took ends in `saved` even when the form's own work with the answer throws — the
+  error is logged and the handler resolves — where it reported `Server error` and `error`. A `404`, `409` or
+  `500` shows the server's `detail` also when its body lists errors, where it showed the request's own message.
 - `vue/ui`: `ErrorSummary` keys each message of a field by its position, so a field whose messages repeat one
   text no longer trips Vue's duplicate-key warning. Its summary buttons are disabled, and the popup button hidden,
-  while there is no error to show — none, an empty map or an empty string — as for every failure `Feedback` shows
-  without a field map (a `404`, `409` or `500`).
+  while there is no error to show — none, an empty map, a map whose fields hold no message, or an empty string — as
+  for every failure `Feedback` shows without a field map (a `404`, `409` or `500`), and the summary lists only the
+  fields that hold a message.
 - Guides (`vue/entities`): a refused delete can be a validator's `400` with an error map, beside a `409` or `403`.
   The failure table in `entities.patterns` covers the delete handlers, and its `fieldError` example shows every
-  message of a field.
+  message of a field. The overview's `applyRemove` is described as it reports — under `Removing <title> failed`, with
+  no per-status mapping — and the note under the form example gates the button on `feedback.isPending`, as the example
+  does.
 
 ## 6.4.0 — 2026-09-26
 

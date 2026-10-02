@@ -24,6 +24,7 @@ describe("ErrorSummary", () => {
         ["no error", undefined],
         ["an empty map", {}],
         ["an empty string", ""],
+        ["a map whose fields hold no message", { title: [], code: "" }],
     ])("with %s its button is disabled and the popup button hidden", (_, error) => {
         const buttons = summaryButtons(render(ErrorSummary, { msg: "Deleting failed", error, enablePopup: true }))
 

@@ -74,10 +74,12 @@ are the pure functions the composable wraps. A message value is either a string 
 `Record<langCode, string>`; the chosen `langCode` is tried first, then its 2-letter prefix (so `en-US`
 falls back to `en`). `formatText(input, formatArgs)` does the `{param}` substitution: pass a
 `Record<string, string | number | Date | undefined>` to fill placeholders, or pass a function
-`(input) => string` to transform the raw string yourself.
+`(input) => string` to transform the raw string yourself. A placeholder without an arg of its name stays as written;
+`{ ignoreCase: true }` matches the names whatever their case.
 
 ```ts
 formatText("Hello {name}", { name: "Bram" }) // "Hello Bram"
+formatText("At most {MaxLength}", { maxLength: 20 }, { ignoreCase: true }) // "At most 20"
 useLang().translate("greeting", { name: "Bram" })
 ```
 
