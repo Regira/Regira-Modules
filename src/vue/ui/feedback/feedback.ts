@@ -43,10 +43,16 @@ export type FeedbackProps = {
     feedback: FeedbackOut
     hideCloseButton?: boolean
     enableErrorPopup?: boolean
+    /**
+     * Leaves the named fields out of the error summary, for a form that shows each field's messages at its input
+     * ({@link fieldMessages}). A text error and the messages under the key `""`, which belong to no one field, still show.
+     */
+    hideFieldErrors?: boolean
 }
 export const feedbackDefaults = {
     hideCloseButton: false,
     enableErrorPopup: false,
+    hideFieldErrors: false,
 }
 export type FeedbackSlots = {
     "close-button"?(): any
@@ -148,6 +154,36 @@ export function fieldMessages(error: FeedbackError | null | undefined, name: str
         return []
     }
     return [messages].flat().filter((message) => message !== "")
+}
+
+/**
+ * The heading a field's messages show under in the error summary: the field's key translated as its messages are
+ * ({@link setErrorTranslator}, else the `useLang` messages), so the label an app gives a field heads its errors too;
+ * else the key in words — `dueDate` reads "Due date", and a foreign key `categoryId` "Category". The key `""`, for the
+ * errors of no one field, has no heading.
+ */
+export function fieldLabel(name: string): string {
+    if (name === "") {
+        return ""
+    }
+    try {
+        const translated = errorTranslator(name, {})
+        if (translated) {
+            return translated
+        }
+    } catch (error) {
+        console.error("Translating a field name failed", { name, error })
+    }
+    // a path (`lines[0].unitPrice`) or anything else that is not one identifier shows as sent
+    if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
+        return name
+    }
+    const words = name
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+        .toLowerCase()
+        .replace(/(.) id$/, "$1")
+    return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 /**

@@ -8,6 +8,7 @@ export {
     useFeedback as default,
     toFeedbackError,
     fieldMessages,
+    fieldLabel,
     setErrorTranslator,
     FeedbackStatus,
     feedbackDefaults,

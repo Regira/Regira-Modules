@@ -36,7 +36,7 @@ map makes the **plain package specifier resolve with no alias or tsconfig path**
 
 > Installs from the npm registry with a prebuilt `dist/` — no `git` binary, no on-install build. (Only
 > when pinning an unreleased commit use `"@regira/modules": "github:Regira/Regira-Modules"`, which needs `git`
-> on `PATH` and runs the full `prepare` build on install.)
+> on `PATH` and runs the full `prepack` build on install.)
 
 ```ts
 import { EntityBase, EntityServiceBase } from "@regira/modules/vue/entities"
@@ -479,7 +479,7 @@ makes every `$t()` render the raw key):
 See [lang.signatures.md](../../lang/ai/lang.signatures.md) (`ITranslationMessages`).
 
 Framework chrome emits its own keys (`keywords`, `new`, `noResults`, `save`, `cancel`, `delete`, `restore`, `deleteItem`, `filtersAreApplied`,
-`overview`, `popOut`, `signIn`/`signOut`); `scaffold.mjs --shell` seeds them in `translations.json` — add your
+`overview`, `popOut`, and `signIn`/`signOut` with auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
 domain labels alongside, or blank UI text renders the raw key.
 
 ### Typed config loader — `src/app-config.ts`
@@ -491,7 +491,7 @@ For anything beyond a toy app, load `config.json` through a small `app-config.ts
 // public/config.json — `api` may be a flat string or an object keyed by Vite MODE
 {
     "clientApp": "shopping-manager",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": { "development": "https://localhost:7001/api", "production": "/api" },
     "includeCredentials": false,
     "title": { "en": "ShoppingManager" },
 }
@@ -524,7 +524,8 @@ The `BasicApi` server template calls `app.UseHttpsRedirection()`, so a request t
 307-redirects to the HTTPS port and the browser blocks the SPA on the untrusted dev certificate. Pick one:
 
 - **Trust the dev cert** and keep `api` on the HTTPS port: `dotnet dev-certs https --trust`.
-- **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`:
+- **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`. `scaffold.mjs --shell`
+  writes this setup; set its proxy target to the API's HTTPS launch URL:
     ```ts
     // vite.config.ts → server.proxy
     server: { proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } } }
@@ -581,7 +582,7 @@ and navbar. Each `icon` is a **registered friendly key** or a **raw `bi bi-*` cl
 {
     "clientApp": "shopping-manager",
     "loginUrl": "https://accounts.example.com/auth/",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": "/api",
     "includeCredentials": false,
     "title": { "en": "ShoppingManager", "nl": "ShoppingManager" },
     "navigation": {
@@ -1001,7 +1002,9 @@ disabled), make these four changes:
 3. **`App.vue` — drop the auth UI.** Remove `LoginModal`, `LoginForm`, `ForgotPasswordModal`, the
    `ForgotPasswordForm` import and its `showForgot`/`forgotUsername` state, `useAuthStore`, and the `$auth`
    reference; gate the loading container on app status alone. Drop `ResetPasswordView` and its
-   `/reset-password` route from `router/routes.ts` too — password recovery goes with the auth plugin:
+   `/reset-password` route from `router/routes.ts` too — password recovery goes with the auth plugin. The
+   `#loginModal` host in `index.html` and the sign-in, account and recovery texts in `translations.json`
+   (`signIn`, `signOut`, `account`, `username`, `resetPassword`, `recoveryMail*`, …) have nothing left to serve:
 
     ```vue
     <script setup lang="ts">

@@ -3,7 +3,7 @@ import { createApp, h, nextTick } from "vue"
 
 import ErrorSummary from "../../../src/vue/ui/feedback/ErrorSummary.vue"
 import Feedback from "../../../src/vue/ui/feedback/Feedback.vue"
-import { useFeedback } from "../../../src/vue/ui/feedback"
+import { useFeedback, setErrorTranslator, fieldLabel } from "../../../src/vue/ui/feedback"
 
 // Feedback hands ErrorSummary `undefined` for every failure without a field map — a 404, 409 or 500 — and Vue
 // substitutes the prop's `{}` default for it: whether there is an error to show is read from the content.
@@ -50,6 +50,63 @@ describe("ErrorSummary", () => {
         feedback.fail("Deleting failed", "A database constraint rejected the change.")
         await nextTick()
 
+        const buttons = summaryButtons(host)
+        expect(buttons).toHaveLength(1)
+        expect(buttons[0].disabled).toBe(true)
+    })
+})
+
+describe("ErrorSummary field headings", () => {
+    test("head each field with its label, not its key, and the errors of no one field without a heading", () => {
+        const host = render(ErrorSummary, { msg: "Saving failed", error: { dueDate: ["Required"], categoryId: ["Unknown"], "": ["The order is closed"] } })
+        const headings = [...host.querySelectorAll(".rg-error-summary b")].map((b) => b.textContent)
+
+        expect(headings).toEqual(["Due date", "Category"])
+        expect(host.textContent).toContain("The order is closed")
+    })
+
+    test("a field's translation heads its errors", () => {
+        setErrorTranslator((key) => (key === "dueDate" ? "Deadline" : undefined))
+        try {
+            const host = render(ErrorSummary, { msg: "Saving failed", error: { dueDate: ["Required"] } })
+            expect(host.querySelector(".rg-error-summary b").textContent).toBe("Deadline")
+        } finally {
+            setErrorTranslator(undefined)
+        }
+    })
+
+    test.each([
+        ["title", "Title"],
+        ["unitPrice", "Unit price"],
+        ["categoryId", "Category"],
+        ["id", "Id"],
+        ["pdfURLText", "Pdf url text"],
+        ["lines[0].unitPrice", "lines[0].unitPrice"],
+        ["", ""],
+    ])("fieldLabel(%j) reads %j without a translation", (key, label) => {
+        expect(fieldLabel(key)).toBe(label)
+    })
+
+    test("hideFieldErrors leaves the named fields to the form's inputs and keeps the errors of no one field", async () => {
+        const feedback = useFeedback({ autoHideDelay: 0 })
+        const host = render(Feedback, { feedback, hideFieldErrors: true })
+
+        feedback.fail("Saving failed", { title: ["Required"], "": ["The order is closed"] })
+        await nextTick()
+
+        expect(host.textContent).not.toContain("Required")
+        expect(host.textContent).toContain("The order is closed")
+    })
+
+    test("hideFieldErrors with only named fields shows the message alone", async () => {
+        const feedback = useFeedback({ autoHideDelay: 0 })
+        const host = render(Feedback, { feedback, hideFieldErrors: true, enableErrorPopup: true })
+
+        feedback.fail("Saving failed", { title: ["Required"] })
+        await nextTick()
+
+        expect(host.textContent).toContain("Saving failed")
+        expect(host.textContent).not.toContain("Required")
         const buttons = summaryButtons(host)
         expect(buttons).toHaveLength(1)
         expect(buttons[0].disabled).toBe(true)

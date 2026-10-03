@@ -52,7 +52,7 @@
 //                       slice — the attachments field, the insert/update overrides, and the prepareItem
 //                       filter that drops rows marked for deletion. Only the form tab is left to place.
 //                       Passed alone (no entity), it scaffolds the shared slice and stops.
-//   --no-auth           strip the auth wiring (slice: reload hooks; shell: auth plugins/UI, the auth-only files + config.json keys)
+//   --no-auth           strip the auth wiring (slice: reload hooks; shell: auth plugins/UI, the auth-only files, config.json keys + auth translations)
 //   --force             overwrite files that already exist (--shell / --ui / --attachments only — never an
 //                       entity slice; slices hold hand-edited (c) files and need the explicit flag below)
 //   --overwrite-slice   overwrite an existing entity slice (or owned sub-slice), customized (c) files
@@ -779,7 +779,7 @@ if (sliceGenerated) {
         const relDir = join(baseDir, r.folder)
         console.log(
             existsSync(resolve(process.cwd(), relDir))
-                ? `  Relation column for ${r.name}: reads item.${r.field} — the API must eager-load it, unconditionally via e.Includes((q, _) => q.Include(x => x.${r.name})) for a to-one shown on every row; add the "${r.key}" translation key.`
+                ? `  Relation column for ${r.name}: reads item.${r.field} — the API must eager-load it, unconditionally via e.Includes((q, _) => q.Include(x => x.${upperFirst(r.field)})) for a to-one shown on every row; add the "${r.key}" translation key.`
                 : `  ! Relation column for ${r.name} imports from ${relDir}, which does not exist yet — scaffold that slice or vue-tsc will fail.`
         )
     }
@@ -942,8 +942,25 @@ function scaffoldShell() {
         "src/views/ResetPasswordView.vue",
         "src/components/users/ForgotPasswordForm.vue",
     ])
-    // ...and the one file whose auth-only bits are DATA, out of reach of applyShellVariant's comment markers
-    const AUTH_CONFIG_FILE = "public/config.json"
+    // ...and the files whose auth-only bits are DATA, out of reach of applyShellVariant's comment markers
+    const AUTH_DATA_KEYS = {
+        "public/config.json": ["clientApp", "loginUrl"],
+        // the texts of the sign-in, account and password-recovery UI: the auth-only files and @auth blocks above
+        "public/data/translations.json": [
+            "account",
+            "backToSignIn",
+            "changePassword",
+            "chooseNewPassword",
+            "invalidResetLink",
+            "recoveryMailFailed",
+            "recoveryMailSent",
+            "resetPassword",
+            "sendRecoveryLink",
+            "signIn",
+            "signOut",
+            "username",
+        ],
+    }
     const written = []
     const skipped = []
 
@@ -963,7 +980,7 @@ function scaffoldShell() {
             }
             mkdirSync(dirname(dest), { recursive: true })
             let content = applyShellVariant(readFileSync(abs, "utf8"), noAuth)
-            if (noAuth && rel === AUTH_CONFIG_FILE) content = stripAuthConfigKeys(content, rel)
+            if (noAuth && AUTH_DATA_KEYS[rel]) content = stripJsonKeys(content, rel, AUTH_DATA_KEYS[rel])
             writeFileSync(dest, content)
             written.push(rel)
         }
@@ -977,6 +994,11 @@ function scaffoldShell() {
     }
     console.log("  Next: ensure package.json has the known-good dependency set (entities.setup.md → Install),")
     console.log("  then scaffold entities and register them in src/entities/index.ts.")
+    if (written.includes("vite.config.ts")) {
+        console.log(`  config.json → api is "/api", and vite.config.ts proxies /api to https://localhost:7001: set that target to`)
+        console.log(`  the API's HTTPS launch URL, and serve the API's controllers under the "api" route prefix (entities.setup.md →`)
+        console.log(`  The URL contract).`)
+    }
     console.log("  The layout/navigation components are default implementations, not a prescribed design — restyle them,")
     console.log("  or replace any of them with your own as long as the functionality stays available")
     console.log("  (entities.shell.template.md → Default implementations, not requirements).")
@@ -1056,16 +1078,17 @@ function scaffoldAttachments(owner) {
     console.log(`✓ Scaffolded the attachments slice → ${join(baseDir, "entity-attachments")}`)
 }
 
-// public/config.json is DATA, not code: applyShellVariant is comment-marker driven and JSON has no comment
-// syntax, so there is nowhere to hang a @auth:only marker and the auth-only keys would ride along into an app
-// that deliberately has no auth. Nothing reads them there (main.ts touches them inside the @auth block this
-// run deletes), but shipping them is confusing output. Dropped by key below.
+// public/config.json and public/data/translations.json are DATA, not code: applyShellVariant is comment-marker
+// driven and JSON has no comment syntax, so there is nowhere to hang a @auth:only marker and the auth-only keys
+// would ride along into an app that deliberately has no auth. Nothing reads them there (main.ts touches the
+// config keys inside the @auth block this run deletes; the texts belong to the auth UI it omits), but shipping
+// them is confusing output. Dropped by top-level key below — each on a line of its own.
 //
-// Edited as TEXT, not re-stringified: the config is hand-formatted (inline api/navigation objects inside a
-// 4-space file) and JSON.stringify would reflow all of it. The edit is then re-parsed and compared against the
-// object it should have produced, so anything the text surgery got wrong fails loudly instead of shipping.
-function stripAuthConfigKeys(json, file) {
-    const AUTH_CONFIG_KEYS = ["clientApp", "loginUrl"]
+// Edited as TEXT, not re-stringified: the files are hand-formatted (inline api/navigation objects and one-line
+// translations inside a 4-space file) and JSON.stringify would reflow all of it. The edit is then re-parsed and
+// compared against the object it should have produced, so anything the text surgery got wrong fails loudly
+// instead of shipping.
+function stripJsonKeys(json, file, keys) {
     let parsed
     try {
         parsed = JSON.parse(json)
@@ -1073,11 +1096,12 @@ function stripAuthConfigKeys(json, file) {
         console.error(`✗ ${file} is not valid JSON (${err.message}) — cannot strip its auth-only keys.`)
         process.exit(1)
     }
-    const present = AUTH_CONFIG_KEYS.filter((key) => key in parsed)
+    const present = keys.filter((key) => key in parsed)
     if (!present.length) return json
     const expected = { ...parsed }
     for (const key of present) delete expected[key]
-    const stripped = json.replace(new RegExp(`^[^\\S\\r\\n]*"(?:${present.join("|")})"\\s*:.*\\r?\\n`, "gm"), "").replace(/,(\s*[}\]])/g, "$1") // dropping what happened to be the LAST key leaves a dangling comma
+    const alternatives = present.map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")
+    const stripped = json.replace(new RegExp(`^[^\\S\\r\\n]*"(?:${alternatives})"\\s*:.*\\r?\\n`, "gm"), "").replace(/,(\s*[}\]])/g, "$1") // dropping what happened to be the LAST key leaves a dangling comma
     let after
     try {
         after = JSON.parse(stripped)
@@ -1162,7 +1186,7 @@ Modes & shared flags:
   --ui <Component>    copy a UI-kit component's reference skin for free restyling (--ui list lists them)
   --attachments       this entity owns files — scaffold the shared slice (once per app) and wire it in;
                       alone, it scaffolds the shared slice and stops
-  --no-auth           strip the auth wiring (slice: reload hooks; shell: auth plugins/UI, the auth-only files + config.json keys)
+  --no-auth           strip the auth wiring (slice: reload hooks; shell: auth plugins/UI, the auth-only files, config.json keys + auth translations)
   --force             overwrite files that already exist (--shell / --ui / --attachments only — never a slice)
   --overwrite-slice   overwrite an existing entity slice or owned sub-slice, customized (c) files included
   -h, --help          show this reference and exit

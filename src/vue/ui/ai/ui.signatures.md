@@ -61,15 +61,17 @@ import {
     useFeedback,
     toFeedbackError,
     fieldMessages,
+    fieldLabel,
     setErrorTranslator,
     FeedbackStatus,
     Feedback,
     type ErrorTranslator,
+    type FeedbackError,
+    type FeedbackIn,
     type FeedbackOut,
     type FeedbackProps,
     type FeedbackSlots,
 } from "@regira/modules/vue/ui"
-import { type FeedbackError, type FeedbackIn } from "@regira/modules/vue/ui/feedback"
 
 export enum FeedbackStatus {
     none = "",
@@ -91,6 +93,10 @@ export function toFeedbackError(ex: unknown): FeedbackError | undefined
 // One field's messages in a field map (feedback.error, or a client-side map): [] when it has none, or when error is text
 // or unset. Own keys only — a field named "constructor" never reads the inherited member; an empty message counts as none.
 export function fieldMessages(error: FeedbackError | null | undefined, name: string): Array<string>
+// The heading <Feedback> shows over a field's messages: the key translated as the messages are (the translator
+// setErrorTranslator set, else useLang), else the key in words — "dueDate" → "Due date", "categoryId" → "Category";
+// a path ("lines[0].unitPrice") as sent; "" (no one field) → "", shown without a heading.
+export function fieldLabel(name: string): string
 // One validation message and its args as the server sent them → the translation, or undefined to show the message.
 export type ErrorTranslator = (message: string, args: Record<string, unknown>) => string | undefined
 // Replaces the useLang default for every toFeedbackError call (vue-i18n: (key, args) => (te(key) ? t(key, args) : undefined));
@@ -114,8 +120,10 @@ export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
 export function useAppFeedback(): FeedbackOut
 
 // Feedback component contract:
-export type FeedbackProps = { feedback: FeedbackOut; hideCloseButton?: boolean; enableErrorPopup?: boolean }
-export const feedbackDefaults: { hideCloseButton: false; enableErrorPopup: false }
+// hideFieldErrors: the summary leaves out the named fields — for a form that shows each at its input with
+// fieldMessages. A text error and the "" key's messages still show; a field without an input then shows nowhere.
+export type FeedbackProps = { feedback: FeedbackOut; hideCloseButton?: boolean; enableErrorPopup?: boolean; hideFieldErrors?: boolean }
+export const feedbackDefaults: { hideCloseButton: false; enableErrorPopup: false; hideFieldErrors: false }
 export interface FeedbackEmits {
     (e: "close", arg: { status: FeedbackStatus; error?: FeedbackError }): void
 }

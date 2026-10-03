@@ -270,7 +270,7 @@
     "scripts": {
         "dev": "vite",
         "build": "node scripts/build.mjs",
-        "prepare": "node scripts/build.mjs",
+        "prepack": "node scripts/build.mjs",
         "types": "vue-tsc --noEmit",
         "preview": "vite preview",
         "test": "vitest",

@@ -52,6 +52,32 @@ heading.
   message of a field. The overview's `applyRemove` is described as it reports — under `Removing <title> failed`, with
   no per-status mapping — and the note under the form example gates the button on `feedback.isPending`, as the example
   does.
+- `vue/ui`: the barrel exports the `FeedbackError` and `FeedbackIn` types, so `toFeedbackError`'s return type and
+  `fail()`'s error argument import from `@regira/modules/vue/ui` like the functions; a type import from there failed
+  with TS2724. `vue/ui/feedback` still exports both.
+- `vue/ui`: **`Feedback` heads each field of a failure by its label.** The field-error list showed each raw key
+  (`dueDate`) as its heading, and an error that belongs to no one field under an empty one. The new `fieldLabel(name)`
+  translates the key as the messages are — through `setErrorTranslator`'s translator, else the `useLang` messages — and
+  else writes it in words: `dueDate` reads "Due date", a foreign key `categoryId` "Category". The errors under the key
+  `""` show without a heading. A form that shows each field's errors at its input with `fieldMessages` sets the new
+  `hideFieldErrors` prop, so the summary keeps only the message, a text error and the `""` errors. The scaffolded
+  slices keep the list, since their forms show field errors nowhere else; the `entities.patterns` form example sets the
+  prop.
+- `vue/ui`: `Paging`'s page-1 link drops the `page` parameter from the query; it deleted `p`, which the links never
+  set, so the first page kept `?page=1`.
+- Package: the build runs on `prepack`, before `npm pack` and `npm publish` and when installing from git, instead of
+  on `prepare`, so installing a packed tarball no longer meets an install script npm asks to approve. A registry
+  install never built.
+- Scaffold: a `--rel X --as y` slice's eager-load hint names the navigation, `q.Include(x => x.Y)`, where it named the
+  related class.
+- Scaffold: `--shell` sets `config.json → api` to `/api` and writes a Vite proxy forwarding `/api` to
+  `https://localhost:7001` with `xfwd`, so the SPA calls its own origin in development as in production. It wrote
+  `https://localhost:7001` as the development API and no proxy, which matched neither setup in *The URL contract*:
+  against an API serving its controllers under the `api` prefix, every call 404'd. The scaffold says to point the proxy at the API's launch URL.
+  The `entities.setup` config examples follow.
+- Scaffold: `--shell --no-auth` leaves out the `#loginModal` host in `index.html` and the sign-in, account and
+  password-recovery texts in `translations.json` (`signIn`, `signOut`, `account`, `username`, `resetPassword`,
+  `recoveryMailSent`, …), which nothing in a no-auth app shows.
 
 ## 6.4.0 — 2026-09-26
 

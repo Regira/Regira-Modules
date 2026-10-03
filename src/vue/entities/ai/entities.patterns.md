@@ -834,7 +834,9 @@ A delete answers `400` when a validator refuses it; a rule on the whole entity a
 `400` puts a per-field map on the form's `feedback.error`. The overview's `applyRemove` maps no status: it reports any
 failure under `Removing <title> failed`, with the field map `toFeedbackError(ex)` reads, else the server's text or the
 error's message, and returns `false`. Combine **client-side** guards (validate before saving) with the form's
-**server-side** map; render the summary with `<Feedback>` and the field map per input:
+**server-side** map; render the summary with `<Feedback>` and the field map per input. `:hide-field-errors="true"`
+keeps the summary to the message, so each field's errors show once, at its input — and a field the form has no input
+for would show nowhere, so leave it off when the server can name one:
 
 ```vue
 <!-- details/Form.vue -->
@@ -878,7 +880,7 @@ function fieldError(name: string): string | undefined {
 
 <template>
     <form @submit.prevent="submit" novalidate>
-        <Feedback :feedback="feedback" />
+        <Feedback :feedback="feedback" :hide-field-errors="true" />
         <div class="mb-2">
             <label class="form-label">Title</label>
             <input v-model="item.title" class="form-control" :class="{ 'is-invalid': fieldError('title') }" />

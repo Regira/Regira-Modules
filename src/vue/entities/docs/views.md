@@ -77,7 +77,9 @@ without leaving the page.
 After an insert, `handleSubmit` replaces the current route with one carrying the new id (skipped when
 `isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (the ProblemDetails
 `errors`, read with `toFeedbackError` from `vue/ui`, which shows a validation error in the user's language when its
-message is a key in the app's translation messages), otherwise the server's text on `feedback.message`.
+message is a key in the app's translation messages), otherwise the server's text on `feedback.message`. The
+form's `Feedback` lists those field errors under the message, each headed by the field's label; a form that shows
+them at its inputs sets `:hide-field-errors="true"` on it.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.

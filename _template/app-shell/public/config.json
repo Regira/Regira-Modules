@@ -1,7 +1,7 @@
 {
     "clientApp": "my-app",
     "loginUrl": "https://accounts.example.com/auth/",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
     "title": { "en": "My App" },

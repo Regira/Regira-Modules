@@ -230,6 +230,15 @@ describe("scaffold.mjs stdout", () => {
         expect(out).not.toContain('includes "Person"')
     })
 
+    test("the eager-load hint names the navigation, which --as renames, not the related class", () => {
+        run("Clerk", "--no-auth")
+        const out = run("Errand", "--rel", "Clerk", "--as", "assignedTo", "--no-auth")
+        const hint = out.split("\n").find((l) => l.includes("Relation column for Clerk"))
+
+        expect(hint).toContain("q.Include(x => x.AssignedTo)")
+        expect(hint).not.toContain("x.Clerk)")
+    })
+
     test("still warns that an includes member the API's NAMED [Flags] enum does not declare 400s", () => {
         // the ["All"] default is gone, but a consumer who adds includes by hand still needs the 400 rule
         const out = run("Reservation", "--rel", "Person", "--no-auth")
@@ -478,11 +487,14 @@ describe("scaffold.mjs --shell config.json", () => {
     // --shell writes into the app ROOT, so every run gets its own
     const roots = []
     afterAll(() => roots.forEach((dir) => rmSync(dir, { recursive: true, force: true })))
-    function shellConfig(...args) {
+    function shell(...args) {
         const root = mkdtempSync(join(tmpdir(), "regira-shell-"))
         roots.push(root)
         execFileSync(process.execPath, [scaffold, "--shell", ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
-        return readFileSync(join(root, "public", "config.json"), "utf8")
+        return (...segments) => readFileSync(join(root, ...segments), "utf8")
+    }
+    function shellConfig(...args) {
+        return shell(...args)("public", "config.json")
     }
 
     test("--no-auth drops the auth-only keys — no marker can live in JSON, so the file is edited by key", () => {
@@ -498,7 +510,7 @@ describe("scaffold.mjs --shell config.json", () => {
     test("the surviving keys keep their hand-written formatting — the file is not re-stringified", () => {
         const raw = shellConfig("--no-auth")
 
-        expect(raw).toContain('"api": { "development"') // still inline, not reflowed onto three lines
+        expect(raw).toContain('"title": { "en"') // still inline, not reflowed onto three lines
         expect(raw).toContain('    "isDebug"') // still 4-space indented
     })
 
@@ -507,6 +519,34 @@ describe("scaffold.mjs --shell config.json", () => {
 
         expect(config.loginUrl).toBeTruthy()
         expect(config.clientApp).toBeTruthy()
+    })
+
+    test("the API is called on the SPA's own origin, through a Vite proxy for /api", () => {
+        // one of the two shapes the URL contract allows: an absolute origin without the "api" prefix fits neither
+        const read = shell("--no-auth")
+
+        expect(JSON.parse(read("public", "config.json")).api).toBe("/api")
+        expect(read("vite.config.ts")).toMatch(/proxy:\s*\{\s*"\/api":\s*\{\s*target:\s*"https:\/\/localhost:\d+"[^}]*xfwd:\s*true/)
+    })
+
+    test("--no-auth drops the auth UI's texts and its #loginModal host", () => {
+        const authTexts = ["signIn", "signOut", "account", "resetPassword", "recoveryMailSent", "username"]
+        const read = shell("--no-auth")
+        const translations = JSON.parse(read("public", "data", "translations.json"))
+
+        for (const key of authTexts) expect(translations, key).not.toHaveProperty(key)
+        expect(translations).toHaveProperty("save") // the slices' chrome stays
+        expect(read("index.html")).not.toContain("loginModal")
+        expect(read("index.html")).toContain('id="modals"')
+        expect(read("index.html")).not.toContain("@auth")
+    })
+
+    test("an auth app keeps the auth texts and the #loginModal host", () => {
+        const read = shell()
+
+        expect(JSON.parse(read("public", "data", "translations.json"))).toHaveProperty("signIn")
+        expect(read("index.html")).toContain('<div id="loginModal"')
+        expect(read("index.html")).not.toContain("@auth")
     })
 })
 

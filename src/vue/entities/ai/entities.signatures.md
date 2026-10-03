@@ -560,7 +560,7 @@ object — that refetches on every keystroke.
 
 ```ts
 import type { FeedbackOut } from "@regira/modules/vue/ui"
-import type { FeedbackError } from "@regira/modules/vue/ui/feedback" // string | Record<string, string | string[]>
+import type { FeedbackError } from "@regira/modules/vue/ui" // string | Record<string, string | string[]>
 // reactive(): read the fields directly, no .value — :disabled="feedback.isPending"
 export interface FeedbackOut {
     status: FeedbackStatus // "" | "Pending" | "Success" | "Failed"

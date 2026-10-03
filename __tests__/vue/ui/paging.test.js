@@ -2,10 +2,11 @@ import { describe, test, expect, vi, beforeAll, afterAll } from "vitest"
 import { ref } from "vue"
 
 // usePaging only needs a router to build the page hrefs — stub it so the composable can run standalone
+const currentQuery = { value: {} }
 vi.mock("vue-router", () => ({
     useRouter: () => ({
-        currentRoute: { value: { name: "list", path: "/list", hash: "", query: {} } },
-        resolve: (route) => ({ fullPath: `/list?page=${route.query.page}` }),
+        currentRoute: { value: { name: "list", path: "/list", hash: "", query: currentQuery.value } },
+        resolve: (route) => ({ fullPath: `/list?${new URLSearchParams(route.query)}`.replace(/\?$/, "") }),
     }),
 }))
 
@@ -72,6 +73,20 @@ describe("usePaging button budget", () => {
     test("the window never shows more pages than exist", () => {
         expect(paging({ count: 25 }).pages.value).toEqual([1, 2, 3])
         expect(paging({ count: 0 }).pages.value).toEqual([])
+    })
+})
+
+describe("usePaging pagedRoute", () => {
+    test("page 1 drops the page parameter and keeps the rest of the query", () => {
+        currentQuery.value = { page: "3", q: "lamp" }
+        try {
+            const { pagedRoute } = paging({ page: 3 })
+
+            expect(pagedRoute(1)).toBe("/list?q=lamp")
+            expect(pagedRoute(2)).toBe("/list?page=2&q=lamp")
+        } finally {
+            currentQuery.value = {}
+        }
     })
 })
 
