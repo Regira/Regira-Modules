@@ -247,6 +247,24 @@ describe("scaffold.mjs stdout", () => {
         expect(out).toContain("400s")
     })
 
+    test("config.ts sets only the URLs that differ from api", () => {
+        // every other *Url defaults to api; a restated saveUrl invites the edit that makes updates 404
+        run("Widgetry", "--no-auth")
+        const config = readFileSync(app("src", "entities", "widgetries", "config", "config.ts"), "utf8")
+
+        expect(config).toContain('searchUrl: api + "/search"')
+        expect(config).not.toMatch(/(save|details|list|delete)Url:/)
+    })
+
+    test("Form.vue's comments hold no literal closing tag, which regex-based edits mistake for markup", () => {
+        run("Doodad", "--no-auth")
+        const form = readFileSync(app("src", "entities", "doodads", "details", "Form.vue"), "utf8")
+
+        for (const comment of form.match(/<!--[\s\S]*?-->/g) ?? []) {
+            expect(comment, comment).not.toMatch(/<\/[A-Za-z]/)
+        }
+    })
+
     test("FilterAdv's reset button passes IconButton only the props it declares", () => {
         // an undeclared prop falls through to the DOM as an attribute: showText="true" on a <button>
         run("Gadget", "--no-auth")
@@ -575,6 +593,25 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(exists("src", "views", "Unauthorized.vue")).toBe(false)
         expect(read("src", "router", "routes.ts")).not.toMatch(/Unauthorized|\/401/)
         expect(read("src", "router", "routes.ts")).toContain('"/403"') // the other error pages stay
+    })
+
+    test("the shell installs loadingPlugin without an image, so loading shows the built-in spinner", () => {
+        // an img replaces the spinner: the 1×1 transparent placeholder made every loading state blank
+        const main = shell()("src", "main.ts")
+
+        expect(main).toMatch(/app\.use\(loadingPlugin\)/)
+        expect(main).not.toMatch(/data:image|loadingImg/)
+    })
+
+    test("the shell ships a favicon and links it, so a page load requests no missing icon", () => {
+        const read = shell("--no-auth")
+
+        expect(read("public", "favicon.svg")).toContain("<svg")
+        expect(read("index.html")).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />')
+    })
+
+    test("a --no-auth routes.ts says nothing about sign-in", () => {
+        expect(shell("--no-auth")("src", "router", "routes.ts")).not.toMatch(/login|auth-on/i)
     })
 
     test("an auth app keeps its sign-in page, /401 route and role names", () => {

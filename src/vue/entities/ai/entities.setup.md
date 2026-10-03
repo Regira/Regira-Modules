@@ -354,6 +354,7 @@ env.d.ts                         # /// <reference types="vite/client" />
 public/
   config.json                    # runtime config (env-keyed api, title, navigation, flags) — see Runtime config
   data/translations.json         # i18n messages (key-first) — see Runtime config
+  favicon.svg                    # placeholder app icon, linked from index.html — replace with your own
 src/
   shims.d.ts                     # $configs + app-specific globals ($isAdmin) — see Root component
   app-config.ts                  # loads + types public/config.json (createConfig / useConfig) — see Runtime config
@@ -713,7 +714,6 @@ import dateExtensions from "@regira/modules/extensions/date-extensions"
 import entityPlugins from "@/entities"
 import { routerFactory } from "@/router"
 import App from "@/App.vue"
-import loadingImg from "@/assets/loading.gif"
 
 dateExtensions.use() // serialize dates to JSON without timezone shift
 
@@ -735,7 +735,7 @@ fetch("/config.json")
         // UI plugins
         app.use(iconPlugin, { source: "bs" })
         app.use(screenPlugin)
-        app.use(loadingPlugin, { img: loadingImg })
+        app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
         const { setLangCode } = useLang()
@@ -941,20 +941,20 @@ export {}
 The entities layer needs only a few globals; install the rest as you actually use them. Install order
 still matters where dependencies exist (see [Bootstrap — main.ts](#bootstrap--maints)).
 
-| Plugin                                       | Provides                                      | Status for the entities layer                                                                                                               |
-| -------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `createPinia()`                              | Pinia stores                                  | **Required** (app store, entity stores, auth store)                                                                                         |
-| `appPlugin` (`vue/app`)                      | `$appStatus` / `$setAppStatus`, `$culture`    | **Required** — the startup lifecycle and loading gate                                                                                       |
-| `servicesPlugin` (`vue/ioc`)                 | `$services` IoC + `get()`; creates `$configs` | **Required** — register the shared `axios` and `PoolCache` here; services resolve from here                                                 |
-| entity plugins (`@/entities`)                | routes + service registrations + `$configs`   | **Required** — your slices                                                                                                                  |
-| `routerFactory` (vue-router)                 | routing                                       | **Required** for multi-view slices                                                                                                          |
-| `iconPlugin` (`vue/ui`)                      | `$icons`                                      | Required if your views/nav render icons (the demos do)                                                                                      |
-| `feedbackPlugin` (`vue/ui`)                  | `$feedback`                                   | Required if you use the `Feedback` component (the demo `App.vue` does)                                                                      |
-| `loadingPlugin` (`vue/ui`)                   | the image `Loading`/`LoadingContainer` render | Required if you use `LoadingContainer` (the demo `App.vue` does). **Must pass `{ img }`** when installed: `app.use(loadingPlugin, { img })` |
-| `langPlugin` (`vue/lang`)                    | `$t` i18n                                     | Optional — only if you render translated labels                                                                                             |
-| directives (`focus`, `grow`, `clickOutside`) | template directives                           | Optional — only where used                                                                                                                  |
-| `preloaderPlugin` (`vue/entities`)           | route preloading                              | Optional                                                                                                                                    |
-| `authPlugin` (`vue/auth`)                    | bearer auth + `$auth`                         | **Optional** — see [Running without authentication](#running-without-authentication)                                                        |
+| Plugin                                       | Provides                                          | Status for the entities layer                                                                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createPinia()`                              | Pinia stores                                      | **Required** (app store, entity stores, auth store)                                                                                                                           |
+| `appPlugin` (`vue/app`)                      | `$appStatus` / `$setAppStatus`, `$culture`        | **Required** — the startup lifecycle and loading gate                                                                                                                         |
+| `servicesPlugin` (`vue/ioc`)                 | `$services` IoC + `get()`; creates `$configs`     | **Required** — register the shared `axios` and `PoolCache` here; services resolve from here                                                                                   |
+| entity plugins (`@/entities`)                | routes + service registrations + `$configs`       | **Required** — your slices                                                                                                                                                    |
+| `routerFactory` (vue-router)                 | routing                                           | **Required** for multi-view slices                                                                                                                                            |
+| `iconPlugin` (`vue/ui`)                      | `$icons`                                          | Required if your views/nav render icons (the demos do)                                                                                                                        |
+| `feedbackPlugin` (`vue/ui`)                  | `$feedback`                                       | Required if you use the `Feedback` component (the demo `App.vue` does)                                                                                                        |
+| `loadingPlugin` (`vue/ui`)                   | the indicator `Loading`/`LoadingContainer` render | Required if you use `LoadingContainer` (the demo `App.vue` does). Without `{ img }` the built-in spinner renders; an image replaces it, so pass only one that shows something |
+| `langPlugin` (`vue/lang`)                    | `$t` i18n                                         | Optional — only if you render translated labels                                                                                                                               |
+| directives (`focus`, `grow`, `clickOutside`) | template directives                               | Optional — only where used                                                                                                                                                    |
+| `preloaderPlugin` (`vue/entities`)           | route preloading                                  | Optional                                                                                                                                                                      |
+| `authPlugin` (`vue/auth`)                    | bearer auth + `$auth`                             | **Optional** — see [Running without authentication](#running-without-authentication)                                                                                          |
 
 > **`debugPlugin` (`vue/debug`) — install it.** The scaffolded `Overview.vue`, `Filter.vue` and
 > `SelectorSearch.vue` import `<Debug>`, which renders only when `$isDebug` is true — and `$isDebug` is

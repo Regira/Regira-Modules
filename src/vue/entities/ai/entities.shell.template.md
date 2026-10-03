@@ -61,7 +61,7 @@ node node_modules/@regira/modules/_template/scaffold.mjs --shell --no-auth  # no
 ```
 
 `--shell` writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`, `env.d.ts`) + `src/**` +
-`public/config.json` + `public/data/translations.json` into the current app, **skipping any file that
+`public/config.json` + `public/data/translations.json` + `public/favicon.svg` into the current app, **skipping any file that
 already exists** (pass `--force` to overwrite — e.g. to replace the `npm create vue` files). Only
 `package.json` is yours to author — copy the known-good dependency set from
 [entities.setup.md → Install](entities.setup.md#install). Then scaffold entities and register them in
@@ -94,6 +94,7 @@ shell and slices. Styles come from the npm `bootstrap` / `bootstrap-icons` packa
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <title>My App</title>
     </head>
     <body>
@@ -236,8 +237,6 @@ import { routerFactory } from "@/router"
 import appConfig, { createConfig } from "@/app-config"
 import App from "@/App.vue"
 
-const loadingImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" // 1×1 — swap for your spinner
-
 dateExtensions.use() // serialize Dates to JSON without a timezone shift
 
 fetch(`${appConfig.baseUrl}/config.json`)
@@ -256,7 +255,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
 
         app.use(iconPlugin, { source: "bs" })
         app.use(screenPlugin)
-        app.use(loadingPlugin, { img: loadingImg })
+        app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
 
@@ -451,6 +450,17 @@ watch(showLogin, (gateOpen) => {
 }
 ```
 
+## `public/favicon.svg`
+
+A placeholder icon, so a page load asks for no missing `/favicon.ico` — replace it with the app's own.
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+    <rect width="32" height="32" rx="6" fill="#0d6efd" />
+    <path d="M9 16h14M16 9v14" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+</svg>
+```
+
 ## `public/data/translations.json`
 
 ```json
@@ -543,7 +553,7 @@ import NotFound from "@/views/NotFound.vue"
 import Forbidden from "@/views/Forbidden.vue"
 import Unauthorized from "@/views/Unauthorized.vue" // @auth:only
 
-// login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected
+// login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected // @auth:only
 // — home included: an anonymous visitor gets the sign-in modal, not a dashboard they can't act on // @auth:only
 const routes: Array<RouteRecordRaw> = [
     { path: "/", name: "home", component: HomeView }, // @auth:only

@@ -194,7 +194,9 @@ on drag wants `Related()` to see `null`, not a stale array) without touching the
 
 - `processItem` converts the string fields **`created`** and **`lastModified`** into `Date` instances
   on every fetched/saved item. Other date fields are not auto-converted (convert them in `toEntity` —
-  see [entities.patterns.md → Date hydration](entities.patterns.md#date-hydration)). To **bind** a date to
+  see [entities.patterns.md → Date hydration](entities.patterns.md#date-hydration)) — **except a `DateOnly` or
+  `TimeOnly` field, which stays a string** (`"2026-09-21"`): a `Date` goes back as a full timestamp, which the API
+  reads for a `DateOnly` only as `yyyy-MM-dd`, so the save answers 400. To **bind** a date to
   an `<input type="date">`, don't hand-roll a bridge — use the ejectable `DateInput` skin, or the
   `dateInputString(date?)` formatter (`yyyy-MM-dd`) from `@regira/modules/vue/formatters`.
 - `prepareItem` strips **top-level** `_`-prefixed properties before sending — use them for transient
@@ -518,6 +520,12 @@ hand-rolling one is a deviation to declare (recipes: [entities.patterns.md](enti
 > Step 8 alongside the form; the `_deleted` mark + `prepareItem` filter is what makes one parent `save()` persist
 > adds, edits, and removals together. For the scalar-row table, `scaffold.mjs <Entity> --owns <Child>` generates
 > the editor sub-slice and prints the three wiring lines (field, `<…Overview>`, `prepareItem` filter).
+
+> **A save that sends nothing is the browser's own validation.** The scaffolded form submits through a
+> `type="submit"` button, so a `required`, `min`, `pattern` or `type="email"` on any of its inputs stops the
+> submit before `useForm` runs: no request, no feedback, and for an input on a hidden tab not even the browser's
+> message. `document.querySelector("form").checkValidity()` in the console answers `false` then. Satisfy the
+> constraint, or put `novalidate` on the `<form>` and let the API's validators answer with field errors.
 
 > **Verify after wiring a slice:** the service resolves (`get<IEntityService>(Entity.name)` non-null after
 > startup); the overview lists and pages (archived rows hidden unless `searchObject.archived` is set);

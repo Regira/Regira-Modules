@@ -7,7 +7,7 @@
                     <IconButton
                         icon="delete"
                         class="btn-outline-danger border-0"
-                        :title="row._deleted ? 'restore' : 'remove'"
+                        :title="row._deleted ? (labels?.restore ?? 'Restore') : (labels?.remove ?? 'Remove')"
                         @click="toggleRemove(row)"
                     />
                 </div>

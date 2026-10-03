@@ -88,6 +88,22 @@ heading.
 - Scaffold: a slice's `FilterAdv.vue` passes its reset `IconButton` only the props it declares; `:showText="true"`
   reached the `<button>` as a `showtext` attribute. The `entities.examples` and `entities.advanced.example` filters
   drop it too.
+- Scaffold: `--shell` installs `loadingPlugin` without an image, so every loading state shows the built-in spinner.
+  It passed a transparent 1×1 GIF as `img`, which replaces the spinner, so loading showed nothing. The
+  `entities.setup` bootstrap and plugin table, and the `vue/ioc` example, no longer pass an image either: `img` is
+  optional, for an app that brands the indicator. A `--no-auth` `routes.ts` drops the comment about the sign-in modal.
+- Scaffold: `--shell` writes a placeholder `public/favicon.svg` and links it from `index.html`, so a page load no
+  longer logs a 404 for `/favicon.ico`.
+- Scaffold: a slice's `config.ts` sets `api` and `searchUrl` only; it also restated `saveUrl`, which defaults to
+  `api` like every other URL. The `entities.examples` configs drop the restated URLs too. A comment in `Form.vue` no
+  longer writes a closing `FormSection` tag, which edits matching the markup by text took for the real one.
+- `vue/entities`: `InputSelectorInline` takes `labels: { remove, restore }` for its delete button's title, which was
+  the untranslatable lower-case `remove` / `restore`; it reads "Remove" / "Restore" by default.
+- Guides (`vue/entities`, bootstrap): *Item hydration* says a `DateOnly`/`TimeOnly` field stays a string, since a
+  `Date` sent back answers 400. The form checklist explains a save that sends nothing: the browser's own validation
+  stops the submit before `useForm` runs. The advanced example gates on `hasRole`, as the auth card says, and
+  imports the attachment model as a type. Bootstrap step 7 says any drivable browser verifies the app, Playwright
+  among them.
 
 ## 6.4.0 — 2026-09-26
 

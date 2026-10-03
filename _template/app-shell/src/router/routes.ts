@@ -6,7 +6,7 @@ import NotFound from "@/views/NotFound.vue"
 import Forbidden from "@/views/Forbidden.vue"
 import Unauthorized from "@/views/Unauthorized.vue" // @auth:only
 
-// login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected
+// login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected // @auth:only
 // — home included: an anonymous visitor gets the sign-in modal, not a dashboard they can't act on // @auth:only
 const routes: Array<RouteRecordRaw> = [
     { path: "/", name: "home", component: HomeView }, // @auth:only

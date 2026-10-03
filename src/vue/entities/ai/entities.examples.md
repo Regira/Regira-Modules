@@ -131,12 +131,8 @@ const config: IConfig = {
 
     defaultPageSize: 10,
 
-    api,
-    detailsUrl: api,
-    listUrl: api,
+    api, // every other *Url defaults to api
     searchUrl: api + "/search",
-    saveUrl: api,
-    deleteUrl: api,
 }
 
 export default config
@@ -1810,12 +1806,8 @@ const config: IConfig = {
 
     defaultPageSize: 10,
 
-    api,
-    detailsUrl: api,
-    listUrl: api,
+    api, // every other *Url defaults to api
     searchUrl: api + "/search",
-    saveUrl: api,
-    deleteUrl: api,
 }
 
 export default config

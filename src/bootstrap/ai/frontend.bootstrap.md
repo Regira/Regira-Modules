@@ -245,5 +245,7 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    `scaffold.mjs <Entity> --attachments` also writes the shared file slice and wires it into the model and
    service; you add the tab.
 7. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
-   compilation only. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
+   compilation only. Any browser you can drive will do: one your environment provides as a tool, or a short
+   headless script with Playwright (`npm i -D playwright`, `npx playwright install chromium`); read its console
+   as well as the page. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
    empty/new-row paths) and check the main views at a mobile viewport before calling anything responsive.

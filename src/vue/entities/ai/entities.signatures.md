@@ -641,7 +641,8 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 //   props: { modelValue?: Array<T> (v-model);
 //            rowKey?: (row: T) => string | number | undefined;      // stable :key per row; falls back to an internal per-row identity (never the index)
 //            excludeKey?: (row: T) => number | undefined;           // related id per row → feeds the #selector `exclude`
-//            isNew?: (row: T) => boolean }                          // override the unsaved-row detection
+//            isNew?: (row: T) => boolean;                           // override the unsaved-row detection
+//            labels?: { remove?: string; restore?: string } }      // the delete button's title per state; English by default — pass translated ones
 //   slots: chip({ row }), selector({ add, exclude })                // add: (row: T) => void; exclude: number[] (every current row, marked ones included)
 //   emits: "add" (row: T) | "remove" (row: T) | "update:modelValue" (value: T[] | undefined)
 //   "remove" fires for hard-removal, mark AND restore — discriminate AFTER the event: hard-removed row is

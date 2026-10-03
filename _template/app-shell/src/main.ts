@@ -22,8 +22,6 @@ import { routerFactory } from "@/router"
 import appConfig, { createConfig } from "@/app-config"
 import App from "@/App.vue"
 
-const loadingImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" // 1×1 — swap for your spinner
-
 dateExtensions.use() // serialize Dates to JSON without a timezone shift
 
 fetch(`${appConfig.baseUrl}/config.json`)
@@ -42,7 +40,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
 
         app.use(iconPlugin, { source: "bs" })
         app.use(screenPlugin)
-        app.use(loadingPlugin, { img: loadingImg })
+        app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
 

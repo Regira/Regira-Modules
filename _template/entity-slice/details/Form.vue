@@ -53,9 +53,9 @@
                  InputSelector + exclude; filter _deleted rows in EntityService.prepareItem. The multi-Selector
                  hard-removes — don't use it here. See entities.patterns.md → owned-m2m recipe. -->
             <!-- child collections go here, e.g. <ChildOverview v-model="item" /> (see entities.advanced.example.md) -->
-            <!-- ⚠️ but NOT a component that brings its own <FormSection>: it would render a titled panel
+            <!-- ⚠️ but NOT a component that brings its own FormSection: it would render a titled panel
                  inside this one. The attachments overview is exactly that — it owns the "files" section, so
-                 place it after </FormSection> below, or in its own <template #files> in a tabbed form. -->
+                 place it after this section closes, or in its own #files template in a tabbed form. -->
         </FormSection>
 
         <!-- <Debug> dumps the live payload, self-gated on $isDebug (?debug=1) — inert in production; curate the payload. -->
