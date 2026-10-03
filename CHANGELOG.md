@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.5.0 — 2026-10-03
 
 - `vue/ui`: **`toFeedbackError` translates validation errors.** Every field message of a 400 is looked up in the
   app's `useLang` messages, so a server validator can return a translation key (`ValueTooLarge`) instead of a full
