@@ -247,6 +247,15 @@ describe("scaffold.mjs stdout", () => {
         expect(out).toContain("400s")
     })
 
+    test("FilterAdv's reset button passes IconButton only the props it declares", () => {
+        // an undeclared prop falls through to the DOM as an attribute: showText="true" on a <button>
+        run("Gadget", "--no-auth")
+        const filter = readFileSync(app("src", "entities", "gadgets", "filter", "FilterAdv.vue"), "utf8")
+
+        expect(filter).toContain('<IconButton icon="clear"')
+        expect(filter).not.toMatch(/showText|show-text/)
+    })
+
     test("lists the (c) files to customize, all of which exist", () => {
         const out = run("Supplier", "--no-auth")
 
@@ -549,6 +558,31 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(read("index.html")).not.toContain("loginModal")
         expect(read("index.html")).toContain('id="modals"')
         expect(read("index.html")).not.toContain("@auth")
+    })
+
+    test("--no-auth leaves out the sign-in page, its /401 route and the role names nothing reads", () => {
+        const read = shell("--no-auth")
+        const exists = (...segments) => {
+            try {
+                read(...segments)
+                return true
+            } catch {
+                return false
+            }
+        }
+
+        expect(exists("src", "infrastructure", "permissions.ts")).toBe(false)
+        expect(exists("src", "views", "Unauthorized.vue")).toBe(false)
+        expect(read("src", "router", "routes.ts")).not.toMatch(/Unauthorized|\/401/)
+        expect(read("src", "router", "routes.ts")).toContain('"/403"') // the other error pages stay
+    })
+
+    test("an auth app keeps its sign-in page, /401 route and role names", () => {
+        const read = shell()
+
+        expect(read("src", "infrastructure", "permissions.ts")).toContain("Roles")
+        expect(read("src", "views", "Unauthorized.vue")).toContain("401")
+        expect(read("src", "router", "routes.ts")).toContain('"/401"')
     })
 
     test("an auth app keeps the auth texts and the #loginModal host", () => {

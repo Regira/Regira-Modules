@@ -69,8 +69,8 @@ already exists** (pass `--force` to overwrite — e.g. to replace the `npm creat
 
 > **`--no-auth`** strips the auth wiring (lines tagged `@auth:only` / blocks between `@auth:block-start` and
 > `@auth:block-end`, the `#loginModal` host in `index.html` among them) and omits the auth-only files
-> (`infrastructure/user-plugin.ts`, `shims.d.ts`, `views/AccountView.vue`, `views/ResetPasswordView.vue`,
-> `components/users/ForgotPasswordForm.vue`). JSON has no comments to carry a marker, so it drops the auth-only
+> (`infrastructure/user-plugin.ts`, `infrastructure/permissions.ts`, `shims.d.ts`, `views/AccountView.vue`,
+> `views/ResetPasswordView.vue`, `views/Unauthorized.vue` with its `/401` route, `components/users/ForgotPasswordForm.vue`). JSON has no comments to carry a marker, so it drops the auth-only
 > keys by name: `clientApp` from `config.json`, and the account and sign-in texts from
 > `translations.json`. The default build strips the inverse `@noauth:*` markers. Both variants build green. See
 > [entities.setup.md → Running without authentication](entities.setup.md#running-without-authentication).
@@ -541,7 +541,7 @@ import AccountView from "@/views/AccountView.vue" // @auth:only
 import ResetPasswordView from "@/views/ResetPasswordView.vue" // @auth:only
 import NotFound from "@/views/NotFound.vue"
 import Forbidden from "@/views/Forbidden.vue"
-import Unauthorized from "@/views/Unauthorized.vue"
+import Unauthorized from "@/views/Unauthorized.vue" // @auth:only
 
 // login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected
 // — home included: an anonymous visitor gets the sign-in modal, not a dashboard they can't act on // @auth:only
@@ -551,7 +551,7 @@ const routes: Array<RouteRecordRaw> = [
     { path: "/account", name: "account", component: AccountView }, // @auth:only
     // the recovery mail links here — allowAnonymous, or the visitor who forgot their password can't reach it // @auth:only
     { path: "/reset-password", name: "resetPassword", component: ResetPasswordView, meta: { allowAnonymous: true } }, // @auth:only
-    { path: "/401", name: "unauthorized", component: Unauthorized, props: (to) => ({ url: to.query.url }), meta: { allowAnonymous: true } },
+    { path: "/401", name: "unauthorized", component: Unauthorized, props: (to) => ({ url: to.query.url }), meta: { allowAnonymous: true } }, // @auth:only
     { path: "/403", name: "forbidden", component: Forbidden, props: (to) => ({ url: to.query.url }) },
     { path: "/404", name: "notFound", component: NotFound, props: (to) => ({ url: to.query.url }), meta: { allowAnonymous: true } },
     {

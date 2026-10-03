@@ -83,6 +83,11 @@ heading.
   does not exist instead of to the API's `auth`, the default the guides tell an app to keep. The scaffold says to set
   `clientApp` to the API's JWT audience, and the `entities.setup` config examples drop `loginUrl` too; the minimal
   runtime-config example sets `api` to `/api`, as the shell does.
+- Scaffold: `--shell --no-auth` leaves out `infrastructure/permissions.ts`, whose role and permission names only
+  `user-plugin.ts` reads, and the `/401` "please sign in" page, `views/Unauthorized.vue`, with its route.
+- Scaffold: a slice's `FilterAdv.vue` passes its reset `IconButton` only the props it declares; `:showText="true"`
+  reached the `<button>` as a `showtext` attribute. The `entities.examples` and `entities.advanced.example` filters
+  drop it too.
 
 ## 6.4.0 — 2026-09-26
 

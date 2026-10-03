@@ -603,7 +603,7 @@ onMounted(load)
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" :showText="true" />
+                <IconButton icon="clear" @click="handleReset" />
             </div>
         </div>
 

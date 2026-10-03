@@ -937,9 +937,11 @@ function scaffoldShell() {
     // auth-only files: omitted entirely on --no-auth
     const AUTH_ONLY = new Set([
         "src/infrastructure/user-plugin.ts",
+        "src/infrastructure/permissions.ts", // role and permission names, read only by user-plugin.ts
         "src/shims.d.ts",
         "src/views/AccountView.vue",
         "src/views/ResetPasswordView.vue",
+        "src/views/Unauthorized.vue", // "Please sign in" — its /401 route is @auth:only
         "src/components/users/ForgotPasswordForm.vue",
     ])
     // ...and the files whose auth-only bits are DATA, out of reach of applyShellVariant's comment markers

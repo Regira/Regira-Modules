@@ -364,7 +364,7 @@ src/
     index.ts                     # re-export routerFactory
     router.ts                    # routerFactory(entityRoutes)
     routes.ts                    # static routes (home, account/auth, password reset, error pages)
-  views/                         # HomeView / NotFound / Forbidden / Unauthorized · AccountView + ResetPasswordView (auth builds)
+  views/                         # HomeView / NotFound / Forbidden · Unauthorized + AccountView + ResetPasswordView (auth builds)
   components/                    # shared UI shell — see App shell
     entity-navigation/           #   Dashboard / NavBar / NavSearch (built from $configs) + useNavigation()
       index.ts  functions.ts
@@ -372,7 +372,7 @@ src/
     layout/                      #   TheHeader / TheFooter / Main · AppModal / LangSelector / Offline (+)
     users/                       #   ForgotPasswordForm (auth-on) · (+) the rest of the account UI
   infrastructure/                # small app-wide glue (permissions, plugins) — see App shell (keep it basic)
-    permissions.ts               #   permission constants
+    permissions.ts               #   role + permission constants (auth builds)
     user-plugin.ts               #   $isAdmin + persists chosen language
   utilities/                     # (+) larger apps: helpers that import no entity — formatting, date math
   entities/
@@ -1245,8 +1245,8 @@ defineProps<{ url?: string }>()
 </template>
 ```
 
-`Forbidden.vue` / `Unauthorized.vue` follow the same shape (a heading + the offending `url`). Auth builds
-add two more: `AccountView` (the signed-in user's account page, hosting `ChangePasswordForm`) and
+`Forbidden.vue` follows the same shape (a heading + the offending `url`), and so does `Unauthorized.vue`,
+the `/401` "please sign in" page, which only auth builds have. Auth builds add two more: `AccountView` (the signed-in user's account page, hosting `ChangePasswordForm`) and
 `ResetPasswordView` (the recovery mail's landing page on `/reset-password`, hosting `ResetPasswordForm` —
 `allowAnonymous`, since the visitor cannot sign in yet). Full source for both is in
 [entities.shell.template.md](entities.shell.template.md).
