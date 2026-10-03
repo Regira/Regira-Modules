@@ -944,7 +944,7 @@ function scaffoldShell() {
     ])
     // ...and the files whose auth-only bits are DATA, out of reach of applyShellVariant's comment markers
     const AUTH_DATA_KEYS = {
-        "public/config.json": ["clientApp", "loginUrl"],
+        "public/config.json": ["clientApp"],
         // the texts of the sign-in, account and password-recovery UI: the auth-only files and @auth blocks above
         "public/data/translations.json": [
             "account",
@@ -1003,6 +1003,8 @@ function scaffoldShell() {
     console.log("  or replace any of them with your own as long as the functionality stays available")
     console.log("  (entities.shell.template.md → Default implementations, not requirements).")
     if (!noAuth) {
+        console.log(`  public/config.json → clientApp is "my-app": set it to the API's JWT audience (Authentication:Jwt:Audience),`)
+        console.log(`  or every authenticated call 401s. Sign-in posts to "auth" under the API base — add a loginUrl only for another endpoint.`)
         console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Admin") — the Identity + AddRoles`)
         console.log(`  default. The match is exact and case-sensitive, so confirm the role name against the API (and`)
         console.log(`  switch to hasPermission on a permissions-claim backend), or $isAdmin stays false for everyone.`)

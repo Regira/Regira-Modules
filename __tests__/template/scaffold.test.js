@@ -514,11 +514,21 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(raw).toContain('    "isDebug"') // still 4-space indented
     })
 
-    test("an auth app keeps both keys", () => {
+    test("an auth app keeps clientApp, and signs in at the API's own auth endpoint", () => {
+        // a loginUrl overrides login()'s default "auth" under the axios base — the placeholder one sent every sign-in
+        // to a host that does not exist
         const config = JSON.parse(shellConfig())
 
-        expect(config.loginUrl).toBeTruthy()
         expect(config.clientApp).toBeTruthy()
+        expect(config).not.toHaveProperty("loginUrl")
+    })
+
+    test("an auth shell says clientApp must be the API's JWT audience", () => {
+        const root = mkdtempSync(join(tmpdir(), "regira-shell-"))
+        roots.push(root)
+        const out = execFileSync(process.execPath, [scaffold, "--shell"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+
+        expect(out).toMatch(/clientApp[^\n]*JWT audience/)
     })
 
     test("the API is called on the SPA's own origin, through a Vite proxy for /api", () => {

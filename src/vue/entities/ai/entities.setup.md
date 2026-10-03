@@ -457,12 +457,14 @@ src/entities/<name>/             # one entity slice — copy this folder set for
 ## Runtime config — `public/config.json`
 
 ```json
-{ "api": "https://localhost:5001", "culture": "en-US", "clientApp": "my-app", "loginUrl": "https://accounts.example.com/login" }
+{ "api": "/api", "culture": "en-US", "clientApp": "my-app" }
 ```
 
-`clientApp` is the JWT audience and rides the login request automatically (`login()` appends `?clientApp=`);
-`loginUrl` only overrides the endpoint path. Never write a `{clientApp}` placeholder into it — nothing
-substitutes it at runtime.
+`api` is the axios base: `/api` on the SPA's own origin, which the Vite dev proxy forwards to the API in development
+([The URL contract](#the-url-contract--four-owners-one-request)). `clientApp` is the JWT audience and rides the login request automatically (`login()` appends `?clientApp=`).
+There is no `loginUrl`: `login()` posts to `auth` under the axios base, the endpoint the API's account controller
+serves. Add one only for a login endpoint that is not `auth` — it overrides that path, and never takes a
+`{clientApp}` placeholder, since nothing substitutes it at runtime.
 
 If you use the language plugin (`$t`), also add `public/data/translations.json`. Its shape is
 **key-first** — `Record<key, Record<langCode, string> | string>` — _not_ language-first (a wrong guess
@@ -581,7 +583,6 @@ and navbar. Each `icon` is a **registered friendly key** or a **raw `bi bi-*` cl
 ```jsonc
 {
     "clientApp": "shopping-manager",
-    "loginUrl": "https://accounts.example.com/auth/",
     "api": "/api",
     "includeCredentials": false,
     "title": { "en": "ShoppingManager", "nl": "ShoppingManager" },

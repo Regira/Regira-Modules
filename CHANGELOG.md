@@ -78,6 +78,11 @@ heading.
 - Scaffold: `--shell --no-auth` leaves out the `#loginModal` host in `index.html` and the sign-in, account and
   password-recovery texts in `translations.json` (`signIn`, `signOut`, `account`, `username`, `resetPassword`,
   `recoveryMailSent`, …), which nothing in a no-auth app shows.
+- Scaffold: `--shell` writes no `loginUrl` in `config.json`. Its placeholder, `https://accounts.example.com/auth/`,
+  reached the auth plugin as the login endpoint, so a scaffolded app with sign-in posted every login to a host that
+  does not exist instead of to the API's `auth`, the default the guides tell an app to keep. The scaffold says to set
+  `clientApp` to the API's JWT audience, and the `entities.setup` config examples drop `loginUrl` too; the minimal
+  runtime-config example sets `api` to `/api`, as the shell does.
 
 ## 6.4.0 — 2026-09-26
 

@@ -64,7 +64,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
             axios,
             tokenManager: new LocalStorageTokenManager(),
             clientApp: config.clientApp,
-            loginUrl: config.loginUrl,
+            loginUrl: config.loginUrl, // unset: login() posts to "auth" under the axios base — set only for another endpoint
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])

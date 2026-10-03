@@ -71,7 +71,7 @@ already exists** (pass `--force` to overwrite — e.g. to replace the `npm creat
 > `@auth:block-end`, the `#loginModal` host in `index.html` among them) and omits the auth-only files
 > (`infrastructure/user-plugin.ts`, `shims.d.ts`, `views/AccountView.vue`, `views/ResetPasswordView.vue`,
 > `components/users/ForgotPasswordForm.vue`). JSON has no comments to carry a marker, so it drops the auth-only
-> keys by name: `clientApp` and `loginUrl` from `config.json`, and the account and sign-in texts from
+> keys by name: `clientApp` from `config.json`, and the account and sign-in texts from
 > `translations.json`. The default build strips the inverse `@noauth:*` markers. Both variants build green. See
 > [entities.setup.md → Running without authentication](entities.setup.md#running-without-authentication).
 
@@ -278,7 +278,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
             axios,
             tokenManager: new LocalStorageTokenManager(),
             clientApp: config.clientApp,
-            loginUrl: config.loginUrl,
+            loginUrl: config.loginUrl, // unset: login() posts to "auth" under the axios base — set only for another endpoint
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
@@ -438,7 +438,6 @@ watch(showLogin, (gateOpen) => {
 ```json
 {
     "clientApp": "my-app",
-    "loginUrl": "https://accounts.example.com/auth/",
     "api": "/api",
     "includeCredentials": false,
     "isDebug": false,

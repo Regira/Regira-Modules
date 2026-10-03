@@ -1,6 +1,5 @@
 {
     "clientApp": "my-app",
-    "loginUrl": "https://accounts.example.com/auth/",
     "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
