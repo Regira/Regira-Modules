@@ -146,9 +146,11 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       (`:disabled="feedback.isPending"`, no `.value`). There is no `loading()`.
       ⚠️ `fail`'s second argument is a **field-error map** (`FeedbackError = string | Record<string, string | string[]>`),
       **not an `Error`**: `feedback.fail("Saving failed", toFeedbackError(ex))` — `toFeedbackError` ships from
-      **`@regira/modules/vue/ui`**, not `vue/entities`, like `useFeedback` beside it. That helper reads both 400
-      shapes the API sends (a flat `EntityInputException` map, or ProblemDetails `errors`) and falls back to the
-      server's `detail` text; `ex.response.data.errors` alone misses the first. Log the exception yourself.
+      **`@regira/modules/vue/ui`**, not `vue/entities`, like `useFeedback` beside it. That helper reads the
+      ProblemDetails `errors` (or a bare field map), translates each validation message that is a key in the app's
+      `useLang` messages, and falls back to the server's `detail` text. Log the exception yourself. Read one field's
+      messages with `fieldMessages(feedback.error, name)` (`vue/ui`), not `feedback.error[name]`; a form that shows them
+      at its inputs gives its `<Feedback>` `:hide-field-errors="true"`, or the summary lists them a second time.
     - `service.search(so?)` / `list(so?)` — **paging and sorting ride the argument, flat**, not your
       `SearchObject` class: `search({ ...so, pageSize: 0, sortBy: ["TitleDesc"] })`. Assigning `so.pageSize = 25`
       to a scaffolded `SearchObject` instance does not type-check; the param is

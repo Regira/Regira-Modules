@@ -57,7 +57,6 @@ jobs:
             exit 1
           fi
 
-      # Runs the package's own `prepare` script, which builds dist/.
       - name: Install dependencies
         run: npm ci
 
@@ -67,7 +66,7 @@ jobs:
       - name: Test
         run: npx vitest run
 
-      # `prepare` rebuilds dist/ before packing, so the published tarball is always freshly built.
+      # `prepack` builds dist/ before packing, so the published tarball is always freshly built.
       # `--access public` is required alongside `--provenance`: npm refuses to attest a package that
       # does not exist on the registry yet unless the access level is stated explicitly.
       - name: Publish

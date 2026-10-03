@@ -86,7 +86,7 @@ export default function usePaging({ pagingInfo, count, maxPages, emit }: PagingI
             },
         }
         if (p <= 1) {
-            delete route.query!.p
+            delete route.query!.page
         }
         return router.resolve(route).fullPath
     }

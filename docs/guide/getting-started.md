@@ -6,7 +6,7 @@
 ## Install
 
 The library is published to the npm registry as [`@regira/modules`](https://www.npmjs.com/package/@regira/modules) —
-the published package ships a prebuilt `dist/`. The `prepare` build (`scripts/build.mjs`: `vite build`,
+the published package ships a prebuilt `dist/`. The `prepack` build (`scripts/build.mjs`: `vite build`,
 `vue-tsc` declarations, SCSS copies, `_template` regeneration) runs at publish time, not on install:
 
 ```bash
@@ -18,7 +18,7 @@ don't pin a specific version by hand.
 
 > To pin an unreleased commit you can still install from the repo with
 > `"@regira/modules": "github:Regira/Regira-Modules"` — that path needs a `git` binary on `PATH` and runs the
-> full `prepare` build on install, so expect it to be much slower than the registry install.
+> full `prepack` build on install, so expect it to be much slower than the registry install.
 
 Bare subpath imports resolve via the package `exports` map:
 

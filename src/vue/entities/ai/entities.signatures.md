@@ -289,7 +289,7 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     // call writes feedback/isLoading, so a save settling mid-fetch cannot clear the spinner the fetch owns.
     // The return value is never gated — the caller still learns what the server said.
     applySave(item: T): Promise<SaveResult<T> | undefined> // undefined = the save failed
-    applyRemove(item: T): Promise<boolean> // false = the server refused the delete (409, 403, …)
+    applyRemove(item: T): Promise<boolean> // false = the server refused the delete (a validator's 400, 409, 403, …)
     handleSave({ saved, isNew }: SaveResult<T>): void
     handleRemove(item: T): void
     resetPage(): void
@@ -431,6 +431,8 @@ export interface FormEmits<T> {
     (e: "cancel", arg: { canceled: T; original?: T }): void
     (e: "changeState", state: FormStates): void
 }
+// a write emits `pending`, then one final state: `saved` (save/restore succeeded), `removed` (delete succeeded)
+// or `error` (the server refused the write, or it failed)
 export enum FormStates {
     pending = "Pending",
     saved = "Saved",
@@ -558,7 +560,7 @@ object — that refetches on every keystroke.
 
 ```ts
 import type { FeedbackOut } from "@regira/modules/vue/ui"
-import type { FeedbackError } from "@regira/modules/vue/ui/feedback" // string | Record<string, string | string[]>
+import type { FeedbackError } from "@regira/modules/vue/ui" // string | Record<string, string | string[]>
 // reactive(): read the fields directly, no .value — :disabled="feedback.isPending"
 export interface FeedbackOut {
     status: FeedbackStatus // "" | "Pending" | "Success" | "Failed"

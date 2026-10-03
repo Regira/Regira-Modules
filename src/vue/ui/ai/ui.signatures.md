@@ -10,7 +10,7 @@ Look the name up here, then fetch its heading, e.g.
 | Heading                      | Exports                                                                                                                                                                                                                  |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Plugins`                    | `feedbackPlugin`, `iconPlugin`, `loadingPlugin`, `pagingPlugin`, `modalPlugin`, `screenPlugin`                                                                                                                           |
-| `Feedback`                   | `useFeedback`, `toFeedbackError`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                                                           |
+| `Feedback`                   | `useFeedback`, `toFeedbackError`, `fieldMessages`, `setErrorTranslator`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                    |
 | `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`                                                                                                                                                                     |
 | `Loading`                    | `Loading`, `LoadingButton`, `LoadingContainer`, `injectLoading`                                                                                                                                                          |
 | `Modal`                      | `DefaultModal`, `ModalType`, `injectModal`                                                                                                                                                                               |
@@ -60,13 +60,18 @@ library `Icon`, whose glyphs you re-map via `icons`/`source` and restyle via the
 import {
     useFeedback,
     toFeedbackError,
+    fieldMessages,
+    fieldLabel,
+    setErrorTranslator,
     FeedbackStatus,
     Feedback,
+    type ErrorTranslator,
+    type FeedbackError,
+    type FeedbackIn,
     type FeedbackOut,
     type FeedbackProps,
     type FeedbackSlots,
 } from "@regira/modules/vue/ui"
-import { type FeedbackError, type FeedbackIn } from "@regira/modules/vue/ui/feedback"
 
 export enum FeedbackStatus {
     none = "",
@@ -79,10 +84,24 @@ export type FeedbackIn = { autoHideDelay?: number }
 // or a plain string. NOT an Error: log the exception yourself and pass toFeedbackError(ex).
 export type FeedbackError = string | Record<string, string | Array<string>>
 // A failed request's field map, else the server's detail/message (or plain-text 400) text, else undefined.
-// Reads both 400 bodies the API sends — the flat map of an EntityInputException ({ CategoryId: [...] }) and
-// model binding's ProblemDetails ({ title, status, errors }) — and starts every key lower-case to match the
-// model's field name ("categoryId"). "" = an error that belongs to no field.
+// Reads the ProblemDetails of a 400 ({ title, status, errors }) and a bare field map ({ CategoryId: [...] }), and
+// starts every key lower-case to match the model's field name ("categoryId"). "" = an error that belongs to no field.
+// A message that is a key in useLang's messages — or that the translator setErrorTranslator set translates — shows its
+// translation, {name} filled from the args in the body's errorDetails ([{ key, message, args? }]); any other message
+// shows as sent.
 export function toFeedbackError(ex: unknown): FeedbackError | undefined
+// One field's messages in a field map (feedback.error, or a client-side map): [] when it has none, or when error is text
+// or unset. Own keys only — a field named "constructor" never reads the inherited member; an empty message counts as none.
+export function fieldMessages(error: FeedbackError | null | undefined, name: string): Array<string>
+// The heading <Feedback> shows over a field's messages: the key translated as the messages are (the translator
+// setErrorTranslator set, else useLang), else the key in words — "dueDate" → "Due date", "categoryId" → "Category";
+// a path ("lines[0].unitPrice") as sent; "" (no one field) → "", shown without a heading.
+export function fieldLabel(name: string): string
+// One validation message and its args as the server sent them → the translation, or undefined to show the message.
+export type ErrorTranslator = (message: string, args: Record<string, unknown>) => string | undefined
+// Replaces the useLang default for every toFeedbackError call (vue-i18n: (key, args) => (te(key) ? t(key, args) : undefined));
+// undefined restores it. A translator that throws is logged and the message shown.
+export function setErrorTranslator(translator: ErrorTranslator | undefined): void
 // reactive(), not a bag of refs: read the fields directly in script and template — :disabled="f.isPending".
 // Destructuring it snapshots the values, as with any reactive object — pass the object, or toRefs() it.
 export interface FeedbackOut {
@@ -101,8 +120,10 @@ export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
 export function useAppFeedback(): FeedbackOut
 
 // Feedback component contract:
-export type FeedbackProps = { feedback: FeedbackOut; hideCloseButton?: boolean; enableErrorPopup?: boolean }
-export const feedbackDefaults: { hideCloseButton: false; enableErrorPopup: false }
+// hideFieldErrors: the summary leaves out the named fields — for a form that shows each at its input with
+// fieldMessages. A text error and the "" key's messages still show; a field without an input then shows nowhere.
+export type FeedbackProps = { feedback: FeedbackOut; hideCloseButton?: boolean; enableErrorPopup?: boolean; hideFieldErrors?: boolean }
+export const feedbackDefaults: { hideCloseButton: false; enableErrorPopup: false; hideFieldErrors: false }
 export interface FeedbackEmits {
     (e: "close", arg: { status: FeedbackStatus; error?: FeedbackError }): void
 }

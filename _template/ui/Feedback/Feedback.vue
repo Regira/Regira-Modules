@@ -15,7 +15,13 @@
             <Success :msg="message" class="rg-feedback__success px-2 py-1 border h-100" />
         </slot>
         <slot name="error" v-if="isFailed">
-            <ErrorSummary :msg="message" :error="error" :enable-popup="enableErrorPopup" class="rg-feedback__error px-2 border h-100" />
+            <ErrorSummary
+                :msg="message"
+                :error="error"
+                :enable-popup="enableErrorPopup"
+                :hide-field-errors="hideFieldErrors"
+                class="rg-feedback__error px-2 border h-100"
+            />
         </slot>
     </div>
 </template>

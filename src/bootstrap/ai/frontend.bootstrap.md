@@ -103,7 +103,7 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
       binary, no on-install build. Run the `npm install` first and surface any blocker before spending
       context on guides. (Only when pinning an unreleased commit use
       `"@regira/modules": "github:Regira/Regira-Modules"` — that path needs `git` on `PATH`, can resolve over
-      SSH, and runs the package's full `prepare` build on install, routinely past a 2-minute shell
+      SSH, and runs the package's full `prepack` build on install, routinely past a 2-minute shell
       timeout; run it detached and poll rather than reading a timeout as failure.) No NuGet, no
       license key, no service budget on the front-end.
 - [ ] Peers + toolchain installed from the **known-good dependency set** (`entities.setup` → Install) in

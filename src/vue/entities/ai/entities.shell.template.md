@@ -68,9 +68,11 @@ already exists** (pass `--force` to overwrite — e.g. to replace the `npm creat
 `src/entities/index.ts`.
 
 > **`--no-auth`** strips the auth wiring (lines tagged `@auth:only` / blocks between `@auth:block-start` and
-> `@auth:block-end`) and omits the auth-only files (`infrastructure/user-plugin.ts`, `shims.d.ts`,
-> `views/AccountView.vue`, `views/ResetPasswordView.vue`, `components/users/ForgotPasswordForm.vue`). The default
-> build strips the inverse `@noauth:*` markers. Both variants build green. See
+> `@auth:block-end`, the `#loginModal` host in `index.html` among them) and omits the auth-only files
+> (`infrastructure/user-plugin.ts`, `shims.d.ts`, `views/AccountView.vue`, `views/ResetPasswordView.vue`,
+> `components/users/ForgotPasswordForm.vue`). JSON has no comments to carry a marker, so it drops the auth-only
+> keys by name: `clientApp` from `config.json`, and the account and sign-in texts from
+> `translations.json`. The default build strips the inverse `@noauth:*` markers. Both variants build green. See
 > [entities.setup.md → Running without authentication](entities.setup.md#running-without-authentication).
 
 Every library import uses the **plain npm specifier** (`@regira/modules/…`); app-local imports use the `@ → src`
@@ -97,8 +99,9 @@ shell and slices. Styles come from the npm `bootstrap` / `bootstrap-icons` packa
     <body>
         <div id="app"></div>
         <div id="modals" class="fixed-top"></div>
+        <!-- @auth:block-start -->
         <div id="loginModal" class="fixed-top"></div>
-        <!-- @auth:only -->
+        <!-- @auth:block-end -->
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>
@@ -115,8 +118,13 @@ export default defineConfig({
     plugins: [vue()],
     resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
     define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version) },
-    server: { port: Number(process.env.PORT) || 5173 }, // honor a harness/preview-assigned PORT (Vite ignores it by default)
-    // calling the API through a dev proxy instead of its origin? add server.proxy — see entities.setup.md → The URL contract
+    server: {
+        port: Number(process.env.PORT) || 5173, // honor a harness/preview-assigned PORT (Vite ignores it by default)
+        // config.json → api is "/api": the SPA calls its own origin, in development as in production, and this
+        // forwards /api to the API. Set the target to the API's HTTPS launch URL (launchSettings.json → applicationUrl);
+        // the API serves its controllers under the "api" route prefix. See entities.setup.md → The URL contract
+        proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } },
+    },
 })
 ```
 
@@ -270,7 +278,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
             axios,
             tokenManager: new LocalStorageTokenManager(),
             clientApp: config.clientApp,
-            loginUrl: config.loginUrl,
+            loginUrl: config.loginUrl, // unset: login() posts to "auth" under the axios base — set only for another endpoint
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
@@ -430,8 +438,7 @@ watch(showLogin, (gateOpen) => {
 ```json
 {
     "clientApp": "my-app",
-    "loginUrl": "https://accounts.example.com/auth/",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
     "title": { "en": "My App" },

@@ -72,7 +72,7 @@ Publishing to the npm registry runs through [`.github/workflows/publish-npm.yml`
     git tag v<version> && git push origin main v<version>   # <version> = the version in package.json
     ```
     The workflow verifies the tag matches `package.json`, the version is not already on npm, and the
-    changelog has the release heading; it then type-checks, tests, builds (via `prepare`), and
+    changelog has the release heading; it then type-checks, tests, builds (via `prepack`), and
     publishes with provenance. It can also be run manually from the Actions tab.
 
 The workflow needs the `NPM_TOKEN` repository secret. For the first publish this must be an

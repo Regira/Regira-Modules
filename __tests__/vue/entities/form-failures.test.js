@@ -1,11 +1,12 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
 import { createApp, defineComponent, h, reactive } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
-import { useForm } from "../../../src/vue/entities/form"
-import { FeedbackStatus, toFeedbackError } from "../../../src/vue/ui/feedback"
+import { useForm, FormStates } from "../../../src/vue/entities/form"
+import { FeedbackStatus, toFeedbackError, setErrorTranslator } from "../../../src/vue/ui/feedback"
+import { useLang } from "../../../src/vue/lang/useLang"
 
-// An Entities API answers a rule breach (EntityInputException) with a flat field map and model binding with a
-// ProblemDetails that wraps its map in `errors`. The form puts either map on feedback.error, and the server's own
+// An Entities API answers a rule breach (EntityInputException) and a model binding failure with a ProblemDetails that
+// holds its field map in `errors`; a bare field map is read too. The form puts the map on feedback.error, and the server's own
 // text on feedback.message when there is no field to point at.
 class Model {
     constructor(id = 7) {
@@ -19,18 +20,19 @@ class Model {
     }
 }
 
-function mountForm(props, save) {
+// `events` collects every emit as [name, arg]
+function mountForm(props, save, { remove = async () => true, events = [], toEntity = (item) => Object.assign(new Model(), item) } = {}) {
     const entityService = {
-        toEntity: (item) => Object.assign(new Model(), item),
+        toEntity,
         save,
-        remove: async () => true,
+        remove,
     }
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/", component: { render: () => null } }] })
     let form = null
     const app = createApp(
         defineComponent({
             setup() {
-                form = useForm({ entityService, props, emit: () => {} })
+                form = useForm({ entityService, props, emit: (name, arg) => events.push([name, arg]) })
                 return () => h("div")
             },
         })
@@ -86,6 +88,142 @@ describe("useForm failure mapping", () => {
         await form().handleSubmit()
 
         expect(form().feedback.message).toBe("Server error: A database constraint rejected the change.")
+    })
+
+    // only a 400 shows a field map: another status shows the server's text, whatever errors its body lists
+    test("a 409 whose body lists errors still shows its detail", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const body = { title: "Conflict", status: 409, detail: "Still referenced by 3 orders", errorDetails: [{ key: "", message: "InUse" }] }
+        const form = mountForm({ modelValue: new Model() }, async (item) => ({ saved: item, isNew: false }), { remove: rejecting(409, body) })
+
+        await form().handleRemove()
+
+        expect(form().feedback.message).toBe("Deleting failed: Still referenced by 3 orders")
+    })
+})
+
+// A write emits `pending`, then one final state: a consumer keyed on changeState must not read a refused write as done.
+describe("useForm state", () => {
+    const states = (events) => events.filter(([name]) => name === "changeState").map(([, state]) => state)
+    const names = (events) => events.map(([name]) => name)
+    const saving = async (item) => ({ saved: item, isNew: false })
+
+    test("a delete a validator refuses ends in error, not removed", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        const form = mountForm({ modelValue: new Model() }, saving, {
+            remove: rejecting(400, { "": ["A shipped order cannot be deleted."] }),
+            events,
+        })
+
+        await form().handleRemove()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.error])
+        expect(names(events)).not.toContain("remove")
+        expect(form().feedback.error).toEqual({ "": ["A shipped order cannot be deleted."] })
+    })
+
+    test("a delete refused with a 409 ends in error", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        const form = mountForm({ modelValue: new Model() }, saving, {
+            remove: rejecting(409, { title: "Conflict", status: 409, detail: "A database constraint rejected the change." }),
+            events,
+        })
+
+        await form().handleRemove()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.error])
+    })
+
+    test("a delete that succeeds ends in removed", async () => {
+        const events = []
+        const form = mountForm({ modelValue: new Model() }, saving, { events })
+
+        await form().handleRemove()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.removed])
+        expect(names(events)).toContain("remove")
+    })
+
+    test.each([
+        ["handleSubmit", "save"],
+        ["handleRestore", "restore"],
+    ])("%s ends in saved when it succeeds and in error when it fails", async (handler, event) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const succeeded = []
+        const failed = []
+
+        await mountForm({ modelValue: new Model() }, saving, { events: succeeded })()[handler]()
+        await mountForm({ modelValue: new Model() }, rejecting(400, { Price: ["Price cannot be negative"] }), { events: failed })()[handler]()
+
+        expect(states(succeeded)).toEqual([FormStates.pending, FormStates.saved])
+        expect(states(failed)).toEqual([FormStates.pending, FormStates.error])
+        expect(names(failed)).not.toContain(event)
+    })
+
+    // the server took the write: a throw in what the form does with the result afterwards is no refusal of it, and the
+    // handler still resolves, as `@submit.prevent="handleSubmit"` needs
+    test.each(["handleSubmit", "handleRestore"])("%s ends in saved when the work after an accepted write throws", async (handler) => {
+        const logged = vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        // the result the server answered cannot be read back into the form
+        let answered = false
+        const save = async (item) => {
+            answered = true
+            return { saved: item, isNew: false }
+        }
+        const toEntity = (item) => {
+            if (answered) {
+                throw new TypeError("unexpected payload")
+            }
+            return Object.assign(new Model(), item)
+        }
+        const form = mountForm({ modelValue: new Model() }, save, { events, toEntity })
+
+        await expect(form()[handler]()).resolves.toBeUndefined()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.saved])
+        expect(form().feedback.status).toBe(FeedbackStatus.success)
+        expect(logged).toHaveBeenCalled()
+    })
+
+    // in a dev build without an app errorHandler, Vue re-throws a listener's error out of emit
+    test.each([
+        ["handleSubmit", "save"],
+        ["handleRestore", "restore"],
+    ])("%s reports the accepted write when a %s listener throws", async (handler, event) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = new Proxy([], {
+            get: (target, name) =>
+                name === "push"
+                    ? (entry) => {
+                          target.push(entry)
+                          if (entry[0] === event) {
+                              throw new Error("listener failed")
+                          }
+                      }
+                    : Reflect.get(target, name),
+        })
+        const form = mountForm({ modelValue: new Model() }, saving, { events })
+
+        await expect(form()[handler]()).resolves.toBeUndefined()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.saved])
+        expect(form().feedback.status).toBe(FeedbackStatus.success)
+        expect(form().feedback.isPending).toBe(false)
+    })
+
+    test.each(["handleSubmit", "handleRemove", "handleRestore"])("%s ends in error when the rejection carries no reason", async (handler) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const events = []
+        const reasonless = () => Promise.reject()
+        const form = mountForm({ modelValue: new Model() }, reasonless, { remove: reasonless, events })
+
+        await form()[handler]()
+
+        expect(states(events)).toEqual([FormStates.pending, FormStates.error])
+        expect(form().feedback.status).toBe(FeedbackStatus.failed)
     })
 })
 
@@ -156,4 +294,164 @@ describe("toFeedbackError", () => {
     test("answers undefined for a network failure", () => {
         expect(toFeedbackError(new Error("Network Error"))).toBeUndefined()
     })
+})
+
+// What a validator adds is a text or a translation key: every message is paired with the app's translation messages,
+// and `errorDetails` beside `errors` carries the args a translation fills in
+describe("toFeedbackError pairs messages with translation keys", () => {
+    const refusal = (errorDetails) => ({
+        response: {
+            status: 400,
+            data: {
+                title: "One or more validation errors occurred.",
+                status: 400,
+                errors: Object.fromEntries(errorDetails.map((d) => [d.key, [d.message]])),
+                errorDetails,
+            },
+        },
+    })
+    const tooLarge = { key: "Total", message: "ValueTooLarge", args: { max: 10000 } }
+
+    afterEach(() => {
+        setLang("", {})
+        setErrorTranslator(undefined)
+        vi.restoreAllMocks()
+    })
+
+    test("shows the translation of a message that is a key, its placeholders filled from the args", () => {
+        setLang("nl", { ValueTooLarge: { en: "At most {max}", nl: "Maximaal {max}" } })
+
+        expect(toFeedbackError(refusal([tooLarge, { key: "Total", message: "Must be a whole number." }]))).toEqual({
+            total: ["Maximaal 10000", "Must be a whole number."],
+        })
+    })
+
+    test("shows a key the app has no translation of as the server sent it", () => {
+        setLang("nl", { ValueTooSmall: { nl: "Minimaal {min}" } })
+
+        expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["ValueTooLarge"] })
+    })
+
+    test("falls back to the fallback language, then to the message", () => {
+        setLang("fr", { ValueTooLarge: { en: "At most {max}" } }, "en")
+        expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["At most 10000"] })
+
+        setLang("fr", { ValueTooLarge: { nl: "Maximaal {max}" } }, "en")
+        expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["ValueTooLarge"] })
+    })
+
+    // a host whose serializer camelCases dictionary keys sends a FluentValidation rule's {MaxLength} as maxLength
+    test("fills a placeholder whatever the case of its arg's name", () => {
+        setLang("en", { TooLong: "At most {MaxLength} characters ({TotalLength} given), {Unknown}" })
+        const detail = { key: "title", message: "TooLong", args: { maxLength: 20, totalLength: 23 } }
+
+        expect(toFeedbackError(refusal([detail]))).toEqual({ title: ["At most 20 characters (23 given), {Unknown}"] })
+    })
+
+    test("translates the messages of a field map without errorDetails too", () => {
+        setLang("nl", { Required: { nl: "Verplicht" } })
+
+        expect(toFeedbackError({ response: { status: 400, data: { errors: { Title: ["Required"], Code: "Too short." } } } })).toEqual({
+            title: ["Verplicht"],
+            code: "Too short.",
+        })
+    })
+
+    test("keeps a field named like a member every object has", () => {
+        expect(
+            toFeedbackError(
+                refusal([
+                    { key: "Constructor", message: "Required" },
+                    { key: "ToString", message: "Too long" },
+                    { key: "ToString", message: "Upper case only" },
+                ])
+            )
+        ).toEqual({ constructor: ["Required"], toString: ["Too long", "Upper case only"] })
+        expect(Object.hasOwn(toFeedbackError(refusal([{ key: "__proto__", message: "Required" }])), "__proto__")).toBe(true)
+    })
+
+    // a server merging model binding's errors with a rule refusal lists those in `errors` only
+    test("keeps a message errors lists beyond errorDetails", () => {
+        setLang("nl", { ValueTooLarge: { nl: "Maximaal {max}" } })
+        const ex = refusal([tooLarge])
+        ex.response.data.errors = { Title: ["Required"], Total: ["ValueTooLarge"] }
+
+        expect(toFeedbackError(ex)).toEqual({ total: ["Maximaal 10000"], title: ["Required"] })
+    })
+
+    // a server may word a field's errors in `errors` and give their keys in errorDetails: the field shows them once
+    test("shows a field errorDetails names from errorDetails alone", () => {
+        setLang("en", { ValueTooLarge: { en: "At most {max}" } })
+        const ex = refusal([{ key: "Name", message: "ValueTooLarge", args: { max: 50 } }])
+        ex.response.data.errors = { Name: ["At most 50 characters"] }
+
+        expect(toFeedbackError(ex)).toEqual({ name: ["At most 50"] })
+    })
+
+    // one entry in another shape — no message, a key that is no text — costs that entry, not the others' args
+    test("reads every well-formed entry of errorDetails, a missing key as the whole entity's", () => {
+        setLang("nl", { ValueTooLarge: { nl: "Maximaal {max}" } })
+        const ex = refusal([tooLarge, { key: null, message: "Locked" }, { key: 7, message: "Too short" }])
+        ex.response.data.errors = { Total: ["ValueTooLarge"] }
+
+        expect(toFeedbackError(ex)).toEqual({ total: ["Maximaal 10000"], "": ["Locked"] })
+    })
+
+    test("merges the messages of keys alike once lower-cased, from errors as from errorDetails", () => {
+        expect(toFeedbackError({ response: { status: 400, data: { errors: { Title: ["Required"], title: ["Too short"] } } } })).toEqual({
+            title: ["Required", "Too short"],
+        })
+    })
+
+    test("keeps the empty key of an error that belongs to no field", () => {
+        expect(toFeedbackError(refusal([{ key: "", message: "A locked order cannot be deleted." }]))).toEqual({
+            "": ["A locked order cannot be deleted."],
+        })
+    })
+
+    // an app on another i18n library — vue-i18n's te/t, here a stand-in over one dictionary
+    describe("with setErrorTranslator", () => {
+        const dictionary = { ValueTooLarge: "Maximaal {max}" }
+        const te = (key) => key in dictionary
+        const t = (key, args) => dictionary[key].replace(/\{(\w+)\}/g, (_, name) => String(args[name]))
+
+        test("translates through the app's own translator, which receives the args as sent", () => {
+            const translator = vi.fn((key, args) => (te(key) ? t(key, args) : undefined))
+            setErrorTranslator(translator)
+            // the useLang messages are not consulted any more
+            setLang("en", { "Must be a whole number.": "Whole numbers only" })
+
+            expect(toFeedbackError(refusal([tooLarge, { key: "Total", message: "Must be a whole number." }]))).toEqual({
+                total: ["Maximaal 10000", "Must be a whole number."],
+            })
+            expect(translator).toHaveBeenCalledWith("ValueTooLarge", { max: 10000 })
+            expect(translator).toHaveBeenCalledWith("Must be a whole number.", {})
+        })
+
+        test("shows the message when the translator has none or fails", () => {
+            const logged = vi.spyOn(console, "error").mockImplementation(() => {})
+            setErrorTranslator((key) => {
+                if (key === "Broken") throw new Error("no such message")
+                return ""
+            })
+
+            expect(toFeedbackError(refusal([tooLarge, { key: "Total", message: "Broken" }]))).toEqual({ total: ["ValueTooLarge", "Broken"] })
+            expect(logged).toHaveBeenCalledOnce()
+        })
+
+        test("undefined restores the useLang messages", () => {
+            setErrorTranslator(() => "custom")
+            setErrorTranslator(undefined)
+            setLang("en", { ValueTooLarge: "At most {max}" })
+
+            expect(toFeedbackError(refusal([tooLarge]))).toEqual({ total: ["At most 10000"] })
+        })
+    })
+
+    function setLang(lang, messages, fallback = "") {
+        const { replaceMessages, langCode, fallbackLangCode } = useLang()
+        replaceMessages(messages)
+        langCode.value = lang
+        fallbackLangCode.value = fallback
+    }
 })
