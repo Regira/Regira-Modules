@@ -102,7 +102,9 @@ heading.
 - Guides (`vue/entities`, bootstrap): *Item hydration* says a `DateOnly`/`TimeOnly` field stays a string, since a
   `Date` sent back answers 400. The form checklist explains a save that sends nothing: the browser's own validation
   stops the submit before `useForm` runs. The advanced example gates on `hasRole`, as the auth card says, and
-  imports the attachment model as a type. Bootstrap step 7 says any drivable browser verifies the app, Playwright
+  names its routes and icons by `config.key`, as the scaffold does, where it used `Entity.name`, which a production
+  build minifies, so its route names stopped matching `config.json → navigation` and a route pushed by name; it names
+  the other slices' icons by their key, so it imports their models as types only. Bootstrap step 7 says any drivable browser verifies the app, Playwright
   among them.
 
 ## 6.4.0 — 2026-09-26
