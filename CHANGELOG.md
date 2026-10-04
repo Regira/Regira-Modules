@@ -125,6 +125,11 @@ heading.
 - Scaffold: `_template/README.md` says `--shell` writes the toolchain (`index.html`, `vite.config.ts`, `tsconfig*`) and
   skips files that exist, so only `package.json` is set up first; it said to set up the toolchain before `--shell`,
   which then kept a hand-written `index.html` — without the `#modals` host every modal broke.
+- `vue/auth`: **the route guard checks the first navigation too.** The plugin registers the guard only after
+  `validateToken` restores a stored token, and the router's first navigation had already gone through by then, so a
+  reload or deep link to a page gated with `meta.policy` or `meta.permissions` showed it to a signed-in user without
+  the role. Once the guard is registered, the plugin now runs the same check for the route already shown and
+  replaces it with `forbidden` when the check fails. `routeGuard` returns that check, where it returned nothing.
 
 ## 6.4.0 — 2026-09-26
 

@@ -1,8 +1,12 @@
 import type { Store } from "pinia"
-import type { Router } from "vue-router"
+import type { RouteLocationNormalized, RouteLocationRaw, Router } from "vue-router"
 
+/**
+ * Registers the permission check as a `beforeEach` guard and returns the check itself, so a caller that registers the
+ * guard after the router's first navigation (as the auth plugin does) can run it for the route already shown.
+ */
 export default ({ router, store }: { router: Router; store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean } }) => {
-    router.beforeEach((to, _from) => {
+    const check = (to: RouteLocationNormalized): true | RouteLocationRaw => {
         // allowAnonmyous
         if (to.meta && to.meta.allowAnonymous) {
             return true
@@ -27,5 +31,7 @@ export default ({ router, store }: { router: Router; store: Store & { isAuthenti
         store.$patch({ authRequired: true })
         return true
         //return { name: "login", query: { returnUrl: to.query.returnUrl || to.fullPath } }
-    })
+    }
+    router.beforeEach((to, _from) => check(to))
+    return check
 }

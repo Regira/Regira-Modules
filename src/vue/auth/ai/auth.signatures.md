@@ -240,8 +240,9 @@ export const plugin: {
 ## Route guard
 
 ```ts
-export const routeGuard: (args: { router: Router; store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean } }) => void
+export const routeGuard: (args: { router: Router; store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean } }) => (to: RouteLocationNormalized) => true | RouteLocationRaw
 // reads route meta: allowAnonymous, policy(store) => boolean, permissions: string[]
+// registers the check as a beforeEach guard and returns it; the plugin runs it once more for the route already shown
 ```
 
 ## Account UI
