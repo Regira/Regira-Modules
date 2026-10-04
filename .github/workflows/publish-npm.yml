@@ -63,6 +63,11 @@ jobs:
       - name: Type check
         run: npm run types
 
+      # The `_template` tests import the package by its own name, which resolves through `exports` to dist/,
+      # so dist/ is built before they run; `npm ci` does not build it, since the build runs on `prepack`.
+      - name: Build
+        run: npm run build
+
       - name: Test
         run: npx vitest run
 
