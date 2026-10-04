@@ -109,6 +109,9 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   translated as the messages are (`fieldLabel`), else the key in words, `dueDate` as "Due date". Errors that belong
   to no one field show without a heading. A form that shows each field's errors at its input sets
   `:hide-field-errors="true"` so they appear once; a field without an input then shows nowhere.
+- `useFeedback({ autoHideDelay })`: only `success()` hides itself, `autoHideDelay` ms later (default 1500; `0`
+  keeps it up). `pending()`, `fail()` and `reset()` cancel a hide still waiting, so a failure shown right after a
+  success stays up until something resets it.
 - `FormLabel` renders **below** its input (a muted caption, not a `<label>` above it), so align a row that
   mixes labelled fields with buttons to `flex-start`.
 - `FormButtonsRow` with `readonly` renders no buttons: nothing can be saved, deleted or restored, and there

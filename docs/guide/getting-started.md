@@ -94,7 +94,7 @@ The hosted Regira MCP server serves these same modules (front-end ids look like
 can discover and read the guides on demand:
 
 ```json
-{ "mcpServers": { "regira": { "url": "https://mcp.regira.com/mcp", "transport": "http" } } }
+{ "mcpServers": { "regira": { "type": "http", "url": "https://mcp.regira.com/mcp" } } }
 ```
 
 Then use `list_packages` (filter `vue` or `frontend`), `get_package`, and `get_example`.

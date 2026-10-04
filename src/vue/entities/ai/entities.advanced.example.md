@@ -71,12 +71,8 @@ const config: IConfig = {
 
     defaultPageSize: 10,
 
-    api,
-    detailsUrl: api,
-    listUrl: api,
+    api, // every other *Url defaults to api
     searchUrl: api + "/search",
-    saveUrl: api,
-    deleteUrl: api,
 }
 
 export default config
@@ -904,14 +900,16 @@ export { default as FilterInline } from "./filter/FilterInline.vue"
 export { default as FilterAdv } from "./filter/FilterAdv.vue"
 
 export { default as Autocomplete } from "./selecting/Autocomplete.vue"
-export { default as FormModalButton } from "./details/FormModalButton.vue"
 export { default as InputSelector } from "./selecting/InputSelector.vue"
 export { default as Selector } from "./selecting/Selector.vue"
-export { default as SelectorDropDown } from "./selecting/SelectorDropDown.vue"
+export { default as SelectorDropdown } from "./selecting/SelectorDropdown.vue"
 export { default as SelectorList } from "./selecting/SelectorList.vue"
+export { default as SelectorModalButton } from "./selecting/SelectorModalButton.vue"
 export { default as SelectorSearch } from "./selecting/SelectorSearch.vue"
+export { default as FormModalButton } from "./details/FormModalButton.vue"
 
 export { default as Overview } from "./overview/Overview.vue"
+export { default as List } from "./overview/List.vue"
 export { default as Details } from "./details/Details.vue"
 export { default as Form } from "./details/Form.vue"
 

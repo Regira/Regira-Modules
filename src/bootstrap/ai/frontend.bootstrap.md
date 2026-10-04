@@ -212,7 +212,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   password with the provided components (`vue/auth`), and pop the login modal immediately for anonymous
   users instead of rendering a dashboard they can't use (`auth.instructions` → _Account UI_).
 - **Role gating uses `authStore.hasRole(...)`,** never `hasPermission` (that reads a `permissions` claim
-  the standard Identity backend doesn't mint). The full backend-to-SPA chain is `Regira.Security` →
+  the standard Identity backend doesn't mint); a role-gated route uses `meta.policy`, never `beforeEnter`
+  (`auth.instructions` → _Route guard_). The full backend-to-SPA chain is `Regira.Security` →
   security.instructions → _Roles end-to-end_ (`how_to` key `roles-end-to-end`).
 - **Multilanguage means a visible selector.** Wire `LangSelector` (from `vue/lang`) into the header
   whenever the app is multilanguage.
@@ -236,8 +237,9 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    symptom-driven — fetch a heading when you hit the symptom, not up front. For one exact signature call
    `get_type`; for a set of them read `entities.signatures` / `ui.signatures` by heading rather than whole.
 5. Scaffold the app shell — `node node_modules/@regira/modules/_template/scaffold.mjs --shell` (`--no-auth`
-   for a no-auth app) writes `main.ts`, `App.vue`, router, dashboard/navbar, layout, views, `config.json` +
-   `app-config.ts` (full source: `entities.shell.template`); then set up the toolchain per `entities.setup` → Install.
+   for a no-auth app) writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`), `main.ts`,
+   `App.vue`, router, dashboard/navbar, layout, views, `config.json` + `app-config.ts` (full source:
+   `entities.shell.template`), skipping files that already exist.
 6. Scaffold each entity slice with `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`
    (add `--no-auth` for a no-auth app), then customize the `(c)` files; consult `entities.namespaces` / `entities.signatures` for exact
    imports/signatures and `entities.patterns` for recipes. Re-running the scaffold over an existing slice

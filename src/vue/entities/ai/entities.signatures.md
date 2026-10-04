@@ -4,7 +4,7 @@ Verbatim TypeScript signatures for the front-end CRUD client (`@regira/modules/v
 
 > **AI rule:** Do not guess a signature, generic parameter, or option name — look it up here first.
 > Every block shows the `import` specifier above it. The barrel `@regira/modules/vue/entities`
-> re-exports everything below; the deeper specifiers (`/abstractions`, `/details`, `/form`) are
+> re-exports everything below except what a block marks internal or not re-exported; the deeper specifiers (`/abstractions`, `/details`, `/form`) are
 > also published for granular imports. Full specifier list:
 > [entities.namespaces.md](entities.namespaces.md).
 
@@ -370,7 +370,8 @@ queue rail, a split view, a dashboard with a live list) and its filters and pagi
 instead of navigating away to `/entities`. The paired constraint: `routeWatcher` re-runs the search only while
 the route **name** is unchanged, so a filter handler that pushes to a different named route stops the watcher.
 
-`OverviewProps<T>` / `OverviewEmits<T>` (for custom overview components):
+`OverviewProps<T>` / `OverviewEmits<T>` (for custom overview components; only `OverviewEmits` is re-exported — the
+`*In` / `*Out` shapes above and `OverviewProps` are declared but not importable, so write the props type locally):
 
 ```ts
 export interface OverviewProps<T> {
@@ -379,7 +380,7 @@ export interface OverviewProps<T> {
     title: string
     service: IEntityService<T>
 }
-export interface OverviewEmits<T> {
+export interface OverviewEmits<T extends IEntity, SO extends ISearchObject = ISearchObject> {
     "update:modelValue": [Array<T>]
     "update:searchObject": [SO]
     "update:pagingInfo": [IPagingInfo]
@@ -525,7 +526,7 @@ declare function useModalForm<T extends IEntity>({
 ```
 
 ```ts
-import { useFilter } from "@regira/modules/vue/entities"
+import { useFilter, type FilterEmits } from "@regira/modules/vue/entities" // FilterIn / FilterOut are not re-exported
 export interface FilterIn<SO> {
     searchObject: Ref<SO>
     emit: FilterEmits<SO>
@@ -648,6 +649,7 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 //   "remove" fires for hard-removal, mark AND restore — discriminate AFTER the event: hard-removed row is
 //   no longer in modelValue; marked row has `_deleted === true`; restored row has `_deleted === false`.
 //   contract types (for a replacement skin): InputSelectorInlineProps<T> / InputSelectorInlineEmits<T> / InputSelectorInlineSlots<T>
+//   — modelValue / update:modelValue are not in them: the collection binds via defineModel<Array<T>>()
 ```
 
 `InputSelector` (scaffolded per-slice into `selecting/`, re-exported from the slice barrel) is the

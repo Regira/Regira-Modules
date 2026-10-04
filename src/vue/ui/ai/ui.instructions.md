@@ -37,7 +37,7 @@ installing the plugins — see the **Global registration** column.
 | ---------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
 | `feedbackPlugin` | `$feedback` (`FeedbackOut`) — app-wide toasts                                   | `{ autoHideDelay? }`                                                 | —                                              |
 | `iconPlugin`     | glyph source for `Icon` (`bs`/`fa`) + friendly keys; `$icons` (`IIconProvider`) | `{ icons?, clearFirst?, source?: "bs" \| "fa", Icon?, IconButton? }` | `Icon`, `IconButton`                           |
-| `loadingPlugin`  | the image `Loading` renders + the app-wide indicator for `injectLoading()`      | `{ img, Loading?, LoadingButton?, LoadingContainer? }`               | `Loading`, `LoadingButton`, `LoadingContainer` |
+| `loadingPlugin`  | the image `Loading` renders + the app-wide indicator for `injectLoading()`      | `{ img?, Loading?, LoadingButton?, LoadingContainer? }`              | `Loading`, `LoadingButton`, `LoadingContainer` |
 | `pagingPlugin`   | the `Paging` default page size                                                  | `{ defaultPageSize?, Paging? }`                                      | `Paging`                                       |
 | `modalPlugin`    | the app-wide modal — provides it for `injectModal()`                            | `{ Modal?: ModalComponent }`                                         | `MyModal`                                      |
 | `screenPlugin`   | exposes the shared `useScreen()` instance as `$screen` / `inject("screen")`     | `{ sizes? }` — override `SCREEN_SIZES` breakpoints                   | —                                              |
@@ -94,7 +94,9 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
   `pending(msg)` / `success(msg)` / `fail(msg, err?)` / `reset()`). `isPending` is the busy flag to disable
   buttons against double-submits; the message argument is **required** — `pending()` does not compile.
   The result is `reactive()`, so bind the fields straight (`:disabled="feedback.isPending"`) — and, as with
-  any reactive object, destructuring it snapshots the values.
+  any reactive object, destructuring it snapshots the values. Only `success()` hides itself, `autoHideDelay` ms
+  later (default 1500; `0` keeps it up); `pending()`, `fail()` and `reset()` cancel a hide still waiting, so a
+  failure shown right after a success stays up.
 - `toFeedbackError(ex)` → what `fail()` should show for a failed request: its field map, else the server's
   `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads the ProblemDetails `errors` an
   Entities API answers a 400 with, and a bare field map too, and starts every key lower-case to match the model's

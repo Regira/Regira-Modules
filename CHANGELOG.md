@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## 6.5.0 — 2026-10-03
+## 6.5.0 — 2026-10-04
 
 - `vue/ui`: **`toFeedbackError` translates validation errors.** Every field message of a 400 is looked up in the
   app's `useLang` messages, so a server validator can return a translation key (`ValueTooLarge`) instead of a full
@@ -130,6 +130,19 @@ heading.
   reload or deep link to a page gated with `meta.policy` or `meta.permissions` showed it to a signed-in user without
   the role. Once the guard is registered, the plugin now runs the same check for the route already shown and
   replaces it with `forbidden` when the check fails. `routeGuard` returns that check, where it returned nothing.
+- Guides (`vue/ui`, `vue/entities`, `vue/auth`, bootstrap): `ui.signatures` and `entities.signatures` match the built
+  `.d.ts`. `loadingPlugin`'s `img` and the feedback, icon, paging, modal and screen plugin options are optional,
+  `ErrorSummary` takes `hideFieldErrors`, `NullableCheckBox` emits `change`, `OverviewEmits` takes its `SO` generic,
+  and the index lists `useAppFeedback`, `fieldLabel` and `ErrorSummary`. `FilterIn`, `FilterOut`, `OverviewProps`,
+  `SCREEN_SIZES` and `IScreen` are marked as not importable; `entities.namespaces` listed the filter shapes as exports.
+  `ui.instructions` and the `vue/ui` README describe `useFeedback`'s auto-hide: only `success()` hides itself, and
+  `fail()`, `pending()` and `reset()` cancel a pending hide. The auth guides say to register `onAuthenticated` below
+  everything its handler uses, and the auth card and bootstrap gate a role-only route with `meta.policy`, never
+  `beforeEnter`. Bootstrap step 5 says `--shell` writes the toolchain itself. The advanced example's config sets `api`
+  and `searchUrl` only, as the scaffold does, and the owned-m2m recipe names `InputSelectorInline`'s `labels`.
+  The advanced example's slice barrel exports `SelectorDropdown`, `SelectorModalButton` and `List`, as the scaffold's does, where it
+  named a `SelectorDropDown` file and export that do not exist. The docs site's MCP client config uses
+  `"type": "http"`; a `"transport"` key is not read, so the server was skipped.
 
 ## 6.4.0 — 2026-09-26
 

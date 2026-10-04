@@ -99,6 +99,10 @@ token is validated and 401s, wasting a request. Those two composables discard a 
 a view driving its own `useFeedback` does not, so there the 401's banner stays on screen over the data the
 hook then loads.
 
+⚠️ **Register it below everything its handler uses.** With a token already present, the immediate run happens
+at the `onAuthenticated(…)` call itself — so in `<script setup>` a `const load = async () => …` declared further
+down is not initialized yet, and the call throws `ReferenceError`.
+
 With the plugin `enabled: false` no token ever arrives, so it honours `immediate` once and stops — nothing
 is gated in such an app. Pass
 `{ store }` only for a store the plugin knows nothing about; it names the store to watch and is honoured

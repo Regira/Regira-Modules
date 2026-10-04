@@ -492,7 +492,8 @@ emits — read them when hand-writing the recipe or adapting the generated files
 2. **Render** — `InputSelectorInline` (`@regira/modules/vue/entities`) renders each row as a chip with a
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
    this session via `add` are removed outright — tracked by identity, so the join-row shape needs no `id`)
-   and hands the `#selector` slot an `add` function plus the `exclude` id list:
+   and hands the `#selector` slot an `add` function plus the `exclude` id list. The button's title reads
+   "Remove" / "Restore"; pass translated ones as `:labels="{ remove: …, restore: … }"`:
 
     ```vue
     <script setup lang="ts">

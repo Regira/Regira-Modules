@@ -59,7 +59,7 @@ async function signOut() {
 ```ts
 import { onAuthenticated } from "@regira/modules/vue/auth"
 
-onAuthenticated(() => reload())
+onAuthenticated(() => reload()) // below reload's declaration: with a token present it runs right here
 // already fetching on mount (useRouteOverview / useDetails)? pass { immediate: false }
 ```
 

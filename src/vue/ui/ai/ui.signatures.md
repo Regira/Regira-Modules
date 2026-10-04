@@ -10,13 +10,13 @@ Look the name up here, then fetch its heading, e.g.
 | Heading                      | Exports                                                                                                                                                                                                                  |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Plugins`                    | `feedbackPlugin`, `iconPlugin`, `loadingPlugin`, `pagingPlugin`, `modalPlugin`, `screenPlugin`                                                                                                                           |
-| `Feedback`                   | `useFeedback`, `toFeedbackError`, `fieldMessages`, `setErrorTranslator`, `Feedback`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                                                                    |
+| `Feedback`                   | `useFeedback`, `useAppFeedback`, `toFeedbackError`, `fieldMessages`, `fieldLabel`, `setErrorTranslator`, `Feedback`, `ErrorSummary`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                    |
 | `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`                                                                                                                                                                     |
 | `Loading`                    | `Loading`, `LoadingButton`, `LoadingContainer`, `injectLoading`                                                                                                                                                          |
 | `Modal`                      | `DefaultModal`, `ModalType`, `injectModal`                                                                                                                                                                               |
 | `Tabs`                       | `TabContainer`, `TabNavigation`, `Tab`, `ITab`                                                                                                                                                                           |
 | `Icons`                      | `Icon`, `BsIcon`, `FaIcon`, `IconButton`, `loadIcons`                                                                                                                                                                    |
-| `Screen`                     | `useScreen`, `SCREEN_SIZES`, `IScreen`                                                                                                                                                                                   |
+| `Screen`                     | `useScreen` (`SCREEN_SIZES` / `IScreen` are documented there but not importable)                                                                                                                                         |
 | `Autocomplete`               | `Autocomplete`, `useAutocomplete`                                                                                                                                                                                        |
 | `Buttons & input components` | `ConfirmButton`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `Anchor`, `FormLabel`, `FormSection`, `CopyToClipboardButton`, `GMap`, `GMapLink`, `GMapButton` |
 
@@ -35,13 +35,13 @@ exported `useXxx` composable where one exists. A replacement skin declares
 ```ts
 import { feedbackPlugin, iconPlugin, loadingPlugin, pagingPlugin, modalPlugin, screenPlugin } from "@regira/modules/vue/ui"
 
-feedbackPlugin.install(app, { autoHideDelay?: number })
-iconPlugin.install(app, { icons?: Record<string, string>; clearFirst?: boolean; source?: "bs" | "fa"; Icon?: IconComponent; IconButton?: IconButtonComponent })
+feedbackPlugin.install(app, options?: { autoHideDelay?: number })
+iconPlugin.install(app, options?: { icons?: Record<string, string>; clearFirst?: boolean; source?: "bs" | "fa"; Icon?: IconComponent; IconButton?: IconButtonComponent })
 loadingPlugin.install(app, options?: { img?: string; Loading?: LoadingComponent; LoadingButton?: LoadingButtonComponent; LoadingContainer?: LoadingContainerComponent })
 // loadingPlugin's Loading swaps the indicator app-wide — incl. inside LoadingContainer/LoadingButton, which resolve it via injectLoading()
-pagingPlugin.install(app, { defaultPageSize?: number; Paging?: PagingComponent })
-modalPlugin.install(app, { Modal?: ModalComponent }) // provides the app-wide modal — swaps EVERY modal, incl. the ones inside library components
-screenPlugin.install(app, { sizes?: Record<string, number> }) // sizes overrides the SCREEN_SIZES breakpoints (known keys only)
+pagingPlugin.install(app, options?: { defaultPageSize?: number; Paging?: PagingComponent })
+modalPlugin.install(app, options?: { Modal?: ModalComponent }) // provides the app-wide modal — swaps EVERY modal, incl. the ones inside library components
+screenPlugin.install(app, options?: { sizes?: Record<string, number> }) // sizes overrides the SCREEN_SIZES breakpoints (known keys only)
 ```
 
 Components are imported locally by default. When `registerComponentsGlobally` is on (set via
@@ -59,6 +59,7 @@ library `Icon`, whose glyphs you re-map via `icons`/`source` and restyle via the
 ```ts
 import {
     useFeedback,
+    useAppFeedback,
     toFeedbackError,
     fieldMessages,
     fieldLabel,
@@ -79,7 +80,7 @@ export enum FeedbackStatus {
     success = "Success",
     failed = "Failed",
 }
-export type FeedbackIn = { autoHideDelay?: number }
+export type FeedbackIn = { autoHideDelay?: number } // ms before a success() resets itself (default 1500; 0 = never)
 // ⚠️ A FIELD-ERROR MAP (the server sends { title: ["Required"] }; a client-side map may use plain strings),
 // or a plain string. NOT an Error: log the exception yourself and pass toFeedbackError(ex).
 export type FeedbackError = string | Record<string, string | Array<string>>
@@ -110,7 +111,7 @@ export interface FeedbackOut {
     error: FeedbackError | undefined
     readonly isPending: boolean // busy flag = status === FeedbackStatus.pending; gate buttons on this
     pending(msg: string): void // every setter REQUIRES a message — there is no no-arg form
-    success(msg: string): void
+    success(msg: string): void // the only state that hides itself — pending()/fail()/reset() cancel that hide
     fail(msg: string, errors?: FeedbackError): void // second arg is the FIELD-ERROR MAP above, never an Error
     reset(): void
 }
@@ -131,7 +132,8 @@ export type FeedbackSlots = { "close-button"?(): any; pending?(): any; success?(
 
 // ErrorSummary: renders one FeedbackError on its own, for a form showing field errors without a full
 // Feedback panel. Props and slots are declared in the SFC — there are no exported types to import.
-// props: { msg: string; error: FeedbackError | undefined; enablePopup?: boolean }
+// props: { msg: string; error: FeedbackError | undefined; enablePopup?: boolean; hideFieldErrors?: boolean }
+//   hideFieldErrors leaves the named fields out (the form shows them at its inputs); text and ""-keyed errors still show.
 //   msg and error are declared required but carry withDefaults values — msg falls back to
 //   "Unfortunately, an error has occurred." and error to {}, so both can be omitted in practice.
 // slots: { message?(): any; summary?(): any }
@@ -272,8 +274,8 @@ export class Tab implements ITab {
 export type TabContainerProps = { tabs: Array<ITab | string | undefined>; useRouteNav?: boolean; active?: string }
 export type TabsEmits = { (e: "select", tab: string): void }
 export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
-// TabContainer renders one named slot per tab key; `useRouteNav` syncs the active tab with the route
-// hash (deep-linkable, back-button friendly) — disable it inside popups (`:use-route-nav="!isPopup"`).
+// TabContainer renders one named slot per tab key; `useRouteNav` (off by default — tabContainerDefaults) syncs the
+// active tab with the route hash (deep-linkable, back-button friendly) — keep it off inside popups (`:use-route-nav="!isPopup"`).
 // The tab shown is the first of these that names a visible, enabled tab, else the default tab — with route nav:
 // the hash, then `active` (so Back to a hash-less URL shows `active` again); without: the last selection, then
 // `active`. `active` is read once, at setup: changing it later has no effect. A click on a disabled tab is
@@ -393,6 +395,7 @@ import {
 //   Clearing the field emits `undefined` — so a search-object field bound to it goes back to inactive
 //   (`value != null` is what marks a filter active), and an unparseable value emits nothing at all.
 // NullableCheckBox contract (NullableCheckBoxProps/Emits): { modelValue?: boolean | string | number; label?: string }
+//   emits: "update:modelValue" (modelValue?: boolean) | "change" ({ target: HTMLInputElement })
 //   (v-model: true → false → undefined, rendered indeterminate). `modelValue` is a live binding, normalised on
 //   the way in (`"true"`/`"false"` and numbers included): a parent-driven change after mount — a filter's Clear,
 //   a programmatic reset, a form re-filled from the server — moves the box. Bound without a listener it keeps
