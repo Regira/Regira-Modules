@@ -127,7 +127,7 @@ signatures: `get_package(id: "regira_modules.vue.formatters", section: "formatte
 > a symbol is re-exported; these deep paths are only needed for the few symbols that aren't.
 
 > **Date serialization (not under `vue/`):** `import dateExtensions from "@regira/modules/extensions/date-extensions"`
-> then call `dateExtensions.use()` once at startup to serialize `Date`s to JSON without a timezone shift.
+> then call `dateExtensions.use()` once at startup to serialize `Date`s to JSON as local time with their UTC offset.
 > It lives under `extensions/`, not `vue/` — a common wrong guess.
 
 ---

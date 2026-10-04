@@ -65,6 +65,7 @@ export class AuthData implements IAuthData {
 ```ts
 export type OnAuthenticatedOptions = {
     immediate?: boolean // default true; pass FALSE only when the view already fetches on mount — useRouteOverview and useDetails do, useSearchView / useListView do NOT
+    //                     an immediate run happens AT the onAuthenticated(…) call: register it below every const its handler uses
     store?: Pick<IAuthStore, "authData"> // defaults to the plugin's configured store, then the default pinia store
 }
 // Runs `handler` whenever an authenticated token arrives: sign-in, refresh (tenant switch included), and a

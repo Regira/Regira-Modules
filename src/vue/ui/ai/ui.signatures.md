@@ -388,7 +388,8 @@ import {
 // DateInput contract (DateInputProps/Emits): { modelValue?: string | Date; culture?: string; readonly?: boolean;
 //   showTime?: boolean } (v-model; `readonly` also refuses the emit — a native picker cannot write through it).
 //   showTime renders <input type="datetime-local"> and keeps the time on the emitted Date; without it the
-//   control is date-only. The matching formatters are dateInputString / dateTimeInputString.
+//   control picks a date only but still emits a Date — for a C# DateOnly field, which must stay a "yyyy-MM-dd"
+//   string, bind a native <input type="date"> instead. The matching formatters are dateInputString / dateTimeInputString.
 //   Clearing the field emits `undefined` — so a search-object field bound to it goes back to inactive
 //   (`value != null` is what marks a filter active), and an unparseable value emits nothing at all.
 // NullableCheckBox contract (NullableCheckBoxProps/Emits): { modelValue?: boolean | string | number; label?: string }

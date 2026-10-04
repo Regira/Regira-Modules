@@ -1128,6 +1128,10 @@ export function useAccess() {
 | `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
 | `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
 
+A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
+store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
+administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard).
+
 ⚠️ **Gating is not authorization.** It removes a button, not a capability; the server filter stays the only
 enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it
 secures anything.
@@ -1163,6 +1167,11 @@ import { onAuthenticated } from "@regira/modules/vue/auth"
 
 onAuthenticated(() => load())
 ```
+
+> **Register it below everything it uses.** With a token already present the handler runs right there, at the
+> `onAuthenticated(…)` line during `<script setup>` — so a `const load = async () => …` declared further down
+> is not initialized yet and the call throws `ReferenceError`. Put the call after every ref and function its
+> handler touches.
 
 > It fires on sign-in, on a refresh (tenant switch included), on a token restored from storage, and
 > immediately when one is already present — and not when the same token is merely re-validated. Rolling

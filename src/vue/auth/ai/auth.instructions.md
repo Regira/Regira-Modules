@@ -216,6 +216,12 @@ never the token.
 - Not authenticated: sets `authRequired` and **allows navigation** (the app shows a login popup rather
   than redirecting). Define an `allowAnonymous` route for public pages and a `forbidden` route.
 
+> ⚠️ **Gate a route by role with `meta.policy`, never `beforeEnter: () => hasRole(…)`.** The plugin restores a
+> stored token with an async `validateToken` and registers this guard only after it, so `beforeEnter` runs on the
+> first navigation with no token yet: an administrator reloading the page, or opening a link to it, lands on
+> `forbidden`. The API still decides who may write either way; the route gate only spares the user a page they
+> cannot use.
+
 ## Account UI — wire the FULL surface, shown on time
 
 **When an app has authentication, build the complete account surface, not just a login form.** The

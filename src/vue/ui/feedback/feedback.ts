@@ -242,6 +242,8 @@ export function useFeedback({ autoHideDelay = 1500 }: FeedbackIn = {}): Feedback
     const error = ref<FeedbackError | undefined>(undefined)
     const isPending = computed(() => status.value === FeedbackStatus.pending)
 
+    // only a success hides itself; every other state change cancels a hide still pending, or a failure or
+    // a new pending shown within autoHideDelay of a success would be wiped by that success's timer
     let timeout: any
 
     function fadeOut() {
@@ -252,11 +254,13 @@ export function useFeedback({ autoHideDelay = 1500 }: FeedbackIn = {}): Feedback
     }
 
     function reset() {
+        clearTimeout(timeout)
         status.value = FeedbackStatus.none
         message.value = ""
         error.value = undefined
     }
     function pending(msg: string) {
+        clearTimeout(timeout)
         status.value = FeedbackStatus.pending
         message.value = msg
         error.value = undefined
@@ -268,6 +272,7 @@ export function useFeedback({ autoHideDelay = 1500 }: FeedbackIn = {}): Feedback
         autoHideDelay && fadeOut()
     }
     function fail(msg: string, errors: FeedbackError) {
+        clearTimeout(timeout)
         status.value = FeedbackStatus.failed
         message.value = msg
         if (typeof errors === "string") {

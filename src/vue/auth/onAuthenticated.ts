@@ -12,6 +12,8 @@ const AUTH_DISABLED = Symbol("auth-disabled")
 export type OnAuthenticatedOptions = {
     /**
      * Run the handler straight away when an authenticated token is already present (default `true`).
+     * "Straight away" is the `onAuthenticated(…)` call itself, so register it after every `const` the handler uses —
+     * one declared below it is not initialized yet in `<script setup>`, and the call throws `ReferenceError`.
      *
      * Pass `false` in a view whose data is *already* fetched on mount by `useRouteOverview` or `useDetails`
      * — those two register their own `onMounted` fetch, and an immediate run would fire a second,

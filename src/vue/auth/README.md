@@ -33,7 +33,9 @@ useAuthStore  ←─ components read isAuthenticated / displayName / hasPermissi
 Install **after** the router and `initAxios`, passing that same axios instance. Auth endpoints are
 relative to the axios `baseURL` (`auth`, `auth/validate`, `auth/refresh`, `auth/password*`). `logout()`
 is client-side (clears the token); unauthenticated navigation is allowed (the app shows a login popup),
-so provide a login view and a `forbidden` route.
+so provide a login view and a `forbidden` route. Gate a route by role with `meta.policy`
+(`(store) => store.hasRole("Admin")`), not `beforeEnter`: a stored token is restored only after the first
+navigation, so a `beforeEnter` check sends an administrator who reloads the page to `forbidden`.
 
 Failed requests are logged with every credential this module handles masked — the bearer header on every
 request, and the body, `params` and query string of a credential-bearing endpoint (the `auth` family plus a

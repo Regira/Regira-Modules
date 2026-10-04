@@ -230,6 +230,16 @@ describe("scaffold.mjs stdout", () => {
         expect(out).not.toContain('includes "Person"')
     })
 
+    test("says the relation's form control is not written, with the line to add", () => {
+        // the list, filter and model are wired for a --rel, the form is not; without a word the run reads as done
+        const out = run("Booking2", "--rel", "Venue2", "--as", "hall", "--no-auth")
+        const line = out.split("\n").find((l) => l.includes("Form for Venue2"))
+
+        expect(line).toContain("NOT written")
+        expect(line).toContain('<Venue2InputSelector v-model="item.hall" v-model:idValue="item.hallId"')
+        expect(line).toContain("details/Form.vue")
+    })
+
     test("the eager-load hint names the navigation, which --as renames, not the related class", () => {
         run("Clerk", "--no-auth")
         const out = run("Errand", "--rel", "Clerk", "--as", "assignedTo", "--no-auth")

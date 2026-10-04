@@ -47,7 +47,7 @@ declare const _default: {
 export default _default
 ```
 
-`use()` sets `Date.prototype.toJSON` to a function backed by `stringifyDate` (no timezone correction):
+`use()` sets `Date.prototype.toJSON` to a function backed by `stringifyDate` (local wall-clock time with its UTC offset, not converted to UTC):
 
 ```ts
 // from utilities/datetime-utility

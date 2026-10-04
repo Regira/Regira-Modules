@@ -237,7 +237,7 @@ import { routerFactory } from "@/router"
 import appConfig, { createConfig } from "@/app-config"
 import App from "@/App.vue"
 
-dateExtensions.use() // serialize Dates to JSON without a timezone shift
+dateExtensions.use() // serialize Dates to JSON as local time with their UTC offset
 
 fetch(`${appConfig.baseUrl}/config.json`)
     .then((r) => r.json())

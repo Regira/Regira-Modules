@@ -106,6 +106,25 @@ heading.
   build minifies, so its route names stopped matching `config.json → navigation` and a route pushed by name; it names
   the other slices' icons by their key, so it imports their models as types only. Bootstrap step 7 says any drivable browser verifies the app, Playwright
   among them.
+- `utilities`, `extensions`: **`stringifyDate` — so `dateExtensions.use()`'s JSON dates — writes a half-hour or
+  45-minute time zone correctly.** It wrote the offset as hours divided by 60 (`+5.5:30` in India, `-2.5:30` in
+  Newfoundland) and shifted the time by whole hours only, so the API could not parse a date sent from such a zone.
+  Whole-hour zones serialize as before. The guides describe the format as what it is, the local wall-clock time with
+  its UTC offset, where they said "without a timezone shift".
+- `vue/ui`: **`useFeedback` no longer wipes a failure that follows a success.** `success()` schedules its auto-hide,
+  and `fail()`, `pending()` and `reset()` now cancel it; a failure or a new pending shown within `autoHideDelay`
+  (1.5 s) of a success was reset by that timer a moment after it appeared — on an overview's shared feedback too.
+- Scaffold: a `--rel` run says the relation's form control is not written, with the `InputSelector` line to add to
+  `details/Form.vue`; the run printed the list, filter and column lines only, so a required FK scaffolded into a form
+  that could not save.
+- Guides (`vue/entities`, `vue/auth`, `vue/ui`): a `DateOnly` field stays a string in the slice template's date
+  comment, binds a native `<input type="date">`, and `DateInput` — which emits a `Date` — is for `DateTime`.
+  `onAuthenticated` runs its handler at the call when a token is present, so the guide and its JSDoc say to register
+  it below every `const` it uses. A route only some roles may open is gated with `meta.policy`, not `beforeEnter`,
+  which runs before a stored token is restored and sent an administrator who reloaded to `forbidden`.
+- Scaffold: `_template/README.md` says `--shell` writes the toolchain (`index.html`, `vite.config.ts`, `tsconfig*`) and
+  skips files that exist, so only `package.json` is set up first; it said to set up the toolchain before `--shell`,
+  which then kept a hand-written `index.html` — without the `#modals` host every modal broke.
 
 ## 6.4.0 — 2026-09-26
 

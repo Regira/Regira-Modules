@@ -617,7 +617,9 @@ matches no registered slice (`"products"` instead of `"Product"`) is skipped wit
 ## Router
 
 Split the static (app-owned) routes from the entity routes the slices push at startup. The minimal form is
-a single `routerFactory`; the full template splits it across `src/router/`.
+a single `routerFactory`; the full template splits it across `src/router/`. A route only some roles may open is
+gated with `meta.policy` — `(store) => store.hasRole("Admin")` — not `beforeEnter`, which runs before a stored
+token is restored ([auth](../../auth/ai/auth.instructions.md) → Route guard).
 
 **Minimal:**
 
@@ -715,7 +717,7 @@ import entityPlugins from "@/entities"
 import { routerFactory } from "@/router"
 import App from "@/App.vue"
 
-dateExtensions.use() // serialize dates to JSON without timezone shift
+dateExtensions.use() // serialize Dates to JSON as local time with their UTC offset
 
 fetch("/config.json")
     .then((r) => r.json())

@@ -774,6 +774,11 @@ if (sliceGenerated) {
         console.log(
             `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key; the API filters on it via its SearchObject.`
         )
+        // the list, filter and model are written for the relation, the form is not — say so, or the run reads as done
+        // and a required FK scaffolds into a form that cannot save
+        console.log(
+            `  ! Form for ${r.name}: NOT written — add it to details/Form.vue: <${r.name}InputSelector v-model="item.${r.field}" v-model:idValue="item.${r.field}Id" :readonly="readonly" />   // import { InputSelector as ${r.name}InputSelector } from "${r.alias}"`
+        )
     }
     for (const r of relations) {
         const relDir = join(baseDir, r.folder)
