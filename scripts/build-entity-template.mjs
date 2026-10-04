@@ -26,7 +26,7 @@ function extractBlocks(markdown) {
     const lines = markdown.split(/\r?\n/)
     const blocks = {}
     for (let i = 0; i < lines.length; i++) {
-        const m = lines[i].match(/^#{2,}\s.*`([^`]+\.(?:ts|vue|json|html|scss))`/)
+        const m = lines[i].match(/^#{2,}\s.*`([^`]+\.(?:ts|vue|json|html|scss|svg))`/)
         if (!m) continue
         const path = m[1]
         // find the opening fence, then capture until the closing fence

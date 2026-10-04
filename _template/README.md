@@ -72,9 +72,10 @@ node node_modules/@regira/modules/_template/scaffold.mjs --shell            # au
 node node_modules/@regira/modules/_template/scaffold.mjs --shell --no-auth  # no-auth (omits the auth files + wiring)
 ```
 
-It writes `src/**` + `public/config.json` + `public/data/translations.json`, skipping files that already
-exist (`--force` overwrites). Set up the build toolchain (`vite.config`/`tsconfig`/`index.html`) from the
-entities setup guide → Install first.
+It writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`, `env.d.ts`) + `src/**` +
+`public/config.json` + `public/data/translations.json` + `public/favicon.svg`, skipping files that already exist
+(`--force` overwrites). So set up only `package.json` first — the known-good dependency set from the entities setup
+guide → Install: a hand-written `index.html` would be kept, and one without the `#modals` host breaks every modal.
 
 ## Attachments (`--attachments`)
 

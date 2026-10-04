@@ -131,12 +131,8 @@ const config: IConfig = {
 
     defaultPageSize: 10,
 
-    api,
-    detailsUrl: api,
-    listUrl: api,
+    api, // every other *Url defaults to api
     searchUrl: api + "/search",
-    saveUrl: api,
-    deleteUrl: api,
 }
 
 export default config
@@ -350,7 +346,7 @@ const { filterIsActive, handleReset, handleUpdate, handleToggle } = useFilter({
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" :showText="true" />
+                <IconButton icon="clear" @click="handleReset" />
             </div>
         </div>
         <div class="row">
@@ -701,8 +697,8 @@ async function handleRequestSave(item: Entity) {
     }
 }
 async function handleRequestRemove(item: Entity) {
-    // Guard on the result, exactly like save: a delete the server refused (409 while the row is still
-    // referenced) would otherwise show the failure AND remove the row until the next fetch.
+    // Guard on the result, exactly like save: a delete the server refused (a validator's 400, a 409 while
+    // the row is still referenced) would otherwise show the failure AND remove the row until the next fetch.
     if (await applyRemove(item)) {
         handleRemove(item)
     }
@@ -1810,12 +1806,8 @@ const config: IConfig = {
 
     defaultPageSize: 10,
 
-    api,
-    detailsUrl: api,
-    listUrl: api,
+    api, // every other *Url defaults to api
     searchUrl: api + "/search",
-    saveUrl: api,
-    deleteUrl: api,
 }
 
 export default config
@@ -1913,7 +1905,7 @@ export default EntitySearchObject
                 <span v-if="isLoading" class="ms-2 text-muted"><Loading style="height: 1.5rem" /></span>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" :showText="true" />
+                <IconButton icon="clear" @click="handleReset" />
             </div>
         </div>
         <div class="row">
@@ -2624,8 +2616,8 @@ async function handleRequestSave(item: Entity) {
     }
 }
 async function handleRequestRemove(item: Entity) {
-    // Guard on the result, exactly like save: a delete the server refused (409 while the row is still
-    // referenced) would otherwise show the failure AND remove the row until the next fetch.
+    // Guard on the result, exactly like save: a delete the server refused (a validator's 400, a 409 while
+    // the row is still referenced) would otherwise show the failure AND remove the row until the next fetch.
     if (await applyRemove(item)) {
         handleRemove(item)
     }

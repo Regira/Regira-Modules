@@ -42,7 +42,7 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     feedback: FeedbackOut
 
     applySave(item: T): Promise<SaveResult<T> | undefined>
-    /** `false` when the server refused the delete (409, 403, …) — guard `handleRemove` on it, or a failed delete still drops the row from the list. */
+    /** `false` when the server refused the delete (a validator's 400 with its error map, 409, 403, …) — guard `handleRemove` on it, or a failed delete still drops the row from the list. */
     applyRemove(item: T): Promise<boolean>
     handleSave({ saved, isNew }: SaveResult<T>): void
     handleRemove(item: T): void

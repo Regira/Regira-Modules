@@ -99,7 +99,18 @@ export default {
             // check saved (cookie, localStorage) token
             await store.validateToken()
             // check route permissions
-            enableRouteGuard && routeGuard({ router, store })
+            if (enableRouteGuard) {
+                const check = routeGuard({ router, store })
+                // the router's first navigation started when it was installed, before this guard existed (the token
+                // was still being validated above): a reload or deep link to a gated page went through unchecked
+                router
+                    .isReady()
+                    .then(() => {
+                        const result = check(router.currentRoute.value)
+                        if (result !== true) router.replace(result)
+                    })
+                    .catch(() => {}) // a failed first navigation has no route to check
+            }
             // log user out when token is invalidated (so loginPopup can appear automatically)
             autoLogoutOnFailedRequest(axios, store)
         } else {

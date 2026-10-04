@@ -492,7 +492,8 @@ emits — read them when hand-writing the recipe or adapting the generated files
 2. **Render** — `InputSelectorInline` (`@regira/modules/vue/entities`) renders each row as a chip with a
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
    this session via `add` are removed outright — tracked by identity, so the join-row shape needs no `id`)
-   and hands the `#selector` slot an `add` function plus the `exclude` id list:
+   and hands the `#selector` slot an `add` function plus the `exclude` id list. The button's title reads
+   "Remove" / "Restore"; pass translated ones as `:labels="{ remove: …, restore: … }"`:
 
     ```vue
     <script setup lang="ts">
@@ -822,23 +823,28 @@ directly, without `.value` (`status`/`message`/`error`/`isPending` +
 or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
 directly — branch on `feedback` when you need the outcome. (On a **readonly** form it reports
 `fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
-fixed:
+fixed, for a save and for a delete alike:
 
-| HTTP status | `feedback.message`                                                          | `feedback.error`                                                        |
-| ----------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `400`       | `"Saving failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
-| `404`       | `"Item not found: …"`                                                       | —                                                                       |
-| other       | `"Server error: …"` (409: the ProblemDetails `detail`)                      | —                                                                       |
+| HTTP status | `feedback.message`                                                                                | `feedback.error`                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `400`       | `"Saving failed"` / `"Deleting failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
+| `404`       | `"Item not found: …"`                                                                             | —                                                                       |
+| other       | `"Server error: …"` / `"Deleting failed: …"` (409: the ProblemDetails `detail`)                   | —                                                                       |
 
-So only a `400` puts a per-field map on `feedback.error`. Combine **client-side** guards (validate before
-saving) with that **server-side** map; render the summary with `<Feedback>` and the field map per input:
+A delete answers `400` when a validator refuses it; a rule on the whole entity arrives under the `""` key. So only a
+`400` puts a per-field map on the form's `feedback.error`. The overview's `applyRemove` maps no status: it reports any
+failure under `Removing <title> failed`, with the field map `toFeedbackError(ex)` reads, else the server's text or the
+error's message, and returns `false`. Combine **client-side** guards (validate before saving) with the form's
+**server-side** map; render the summary with `<Feedback>` and the field map per input. `:hide-field-errors="true"`
+keeps the summary to the message, so each field's errors show once, at its input — and a field the form has no input
+for would show nowhere, so leave it off when the server can name one:
 
 ```vue
 <!-- details/Form.vue -->
 <script setup lang="ts">
 import { ref } from "vue"
 import { useForm, formDefaults, type FormEmits } from "@regira/modules/vue/entities"
-import { Feedback, FeedbackStatus } from "@regira/modules/vue/ui"
+import { Feedback, fieldMessages } from "@regira/modules/vue/ui"
 import type Article from "../data/Entity"
 import useEntityStore from "../data/store"
 
@@ -865,13 +871,17 @@ async function submit() {
     await handleSubmit()
 }
 
-// client errors first, then the server's 400 field map on feedback.error (each field holds an array of messages)
-const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.error === "object" ? [feedback.error[name]].flat()[0] : undefined)
+// client errors first, then the server's 400 field map on feedback.error — a field may hold several messages
+function fieldError(name: string): string | undefined {
+    const client = fieldMessages(errors.value, name)
+    const messages = client.length > 0 ? client : fieldMessages(feedback.error, name)
+    return messages.length > 0 ? messages.join(" ") : undefined
+}
 </script>
 
 <template>
     <form @submit.prevent="submit" novalidate>
-        <Feedback :feedback="feedback" />
+        <Feedback :feedback="feedback" :hide-field-errors="true" />
         <div class="mb-2">
             <label class="form-label">Title</label>
             <input v-model="item.title" class="form-control" :class="{ 'is-invalid': fieldError('title') }" />
@@ -887,14 +897,18 @@ const fieldError = (name: string) => errors.value[name] ?? (typeof feedback.erro
 </template>
 ```
 
-> A Regira API answers a `400` in two shapes: the flat map an `EntityInputException` produces
-> (`{ "Price": ["…"] }`) and model binding's ProblemDetails (`{ title, status, errors: { … } }`).
-> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads both and starts every key lower-case, so it matches the
-> model's field name; a body without field errors yields its `detail` (or `message`) text instead. The form
+> A Regira API answers a `400` with a ProblemDetails (`{ title, status, errors: { "Price": ["…"] } }`); a
+> rule refusal (an `EntityInputException`, a validator's among them) adds `errorDetails`, each error with the `args` a
+> translation fills in.
+> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts every key
+> lower-case, so it matches the model's field name. A message that is a key in the app's `useLang` messages —
+> a validator that returns `ValueTooLarge` rather than a full sentence — shows that translation
+> ([ui](../../ui/ai/ui.instructions.md) → feedback); a body without field errors yields its
+> `detail` (or `message`) text instead. The form
 > handlers use it, and a custom save should pass it to `feedback.fail` too. On `404`/`409`/`500` the server's text
 > is appended to `feedback.message` and `feedback.error` stays empty, so lean on the `<Feedback>` summary instead.
-> `FeedbackStatus` (`"" | "Pending" | "Success" | "Failed"`) comes from `@regira/modules/vue/ui`; gating the button on
-> `FeedbackStatus.pending` prevents double-submits.
+> `feedback.isPending` — `status` is `FeedbackStatus.pending`, from `@regira/modules/vue/ui` — is the busy flag:
+> `:disabled="feedback.isPending"`, as in the example, prevents double-submits.
 
 ## Tabbed forms
 
@@ -1115,6 +1129,10 @@ export function useAccess() {
 | `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
 | `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
 
+A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
+store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
+administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard).
+
 ⚠️ **Gating is not authorization.** It removes a button, not a capability; the server filter stays the only
 enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it
 secures anything.
@@ -1150,6 +1168,11 @@ import { onAuthenticated } from "@regira/modules/vue/auth"
 
 onAuthenticated(() => load())
 ```
+
+> **Register it below everything it uses.** With a token already present the handler runs right there, at the
+> `onAuthenticated(…)` line during `<script setup>` — so a `const load = async () => …` declared further down
+> is not initialized yet and the call throws `ReferenceError`. Put the call after every ref and function its
+> handler touches.
 
 > It fires on sign-in, on a refresh (tenant switch included), on a token restored from storage, and
 > immediately when one is already present — and not when the same token is merely re-validated. Rolling

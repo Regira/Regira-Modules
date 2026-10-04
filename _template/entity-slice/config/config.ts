@@ -24,7 +24,6 @@ const config: IConfig = {
 
     api, // every *Url below defaults to `api` when omitted; keep only the ones you override
     searchUrl: api + "/search", // counted search endpoint — the overview pages through it (every controller exposes /search)
-    saveUrl: api, // resource base — update/remove append /{$id} themselves
 }
 
 export default config

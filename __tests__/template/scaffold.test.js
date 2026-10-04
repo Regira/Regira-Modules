@@ -230,12 +230,58 @@ describe("scaffold.mjs stdout", () => {
         expect(out).not.toContain('includes "Person"')
     })
 
+    test("says the relation's form control is not written, with the line to add", () => {
+        // the list, filter and model are wired for a --rel, the form is not; without a word the run reads as done
+        const out = run("Booking2", "--rel", "Venue2", "--as", "hall", "--no-auth")
+        const line = out.split("\n").find((l) => l.includes("Form for Venue2"))
+
+        expect(line).toContain("NOT written")
+        expect(line).toContain('<Venue2InputSelector v-model="item.hall" v-model:idValue="item.hallId"')
+        expect(line).toContain("details/Form.vue")
+    })
+
+    test("the eager-load hint names the navigation, which --as renames, not the related class", () => {
+        run("Clerk", "--no-auth")
+        const out = run("Errand", "--rel", "Clerk", "--as", "assignedTo", "--no-auth")
+        const hint = out.split("\n").find((l) => l.includes("Relation column for Clerk"))
+
+        expect(hint).toContain("q.Include(x => x.AssignedTo)")
+        expect(hint).not.toContain("x.Clerk)")
+    })
+
     test("still warns that an includes member the API's NAMED [Flags] enum does not declare 400s", () => {
         // the ["All"] default is gone, but a consumer who adds includes by hand still needs the 400 rule
         const out = run("Reservation", "--rel", "Person", "--no-auth")
 
         expect(out).toContain("NAMED [Flags]")
         expect(out).toContain("400s")
+    })
+
+    test("config.ts sets only the URLs that differ from api", () => {
+        // every other *Url defaults to api; a restated saveUrl invites the edit that makes updates 404
+        run("Widgetry", "--no-auth")
+        const config = readFileSync(app("src", "entities", "widgetries", "config", "config.ts"), "utf8")
+
+        expect(config).toContain('searchUrl: api + "/search"')
+        expect(config).not.toMatch(/(save|details|list|delete)Url:/)
+    })
+
+    test("Form.vue's comments hold no literal closing tag, which regex-based edits mistake for markup", () => {
+        run("Doodad", "--no-auth")
+        const form = readFileSync(app("src", "entities", "doodads", "details", "Form.vue"), "utf8")
+
+        for (const comment of form.match(/<!--[\s\S]*?-->/g) ?? []) {
+            expect(comment, comment).not.toMatch(/<\/[A-Za-z]/)
+        }
+    })
+
+    test("FilterAdv's reset button passes IconButton only the props it declares", () => {
+        // an undeclared prop falls through to the DOM as an attribute: showText="true" on a <button>
+        run("Gadget", "--no-auth")
+        const filter = readFileSync(app("src", "entities", "gadgets", "filter", "FilterAdv.vue"), "utf8")
+
+        expect(filter).toContain('<IconButton icon="clear"')
+        expect(filter).not.toMatch(/showText|show-text/)
     })
 
     test("lists the (c) files to customize, all of which exist", () => {
@@ -478,11 +524,14 @@ describe("scaffold.mjs --shell config.json", () => {
     // --shell writes into the app ROOT, so every run gets its own
     const roots = []
     afterAll(() => roots.forEach((dir) => rmSync(dir, { recursive: true, force: true })))
-    function shellConfig(...args) {
+    function shell(...args) {
         const root = mkdtempSync(join(tmpdir(), "regira-shell-"))
         roots.push(root)
         execFileSync(process.execPath, [scaffold, "--shell", ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
-        return readFileSync(join(root, "public", "config.json"), "utf8")
+        return (...segments) => readFileSync(join(root, ...segments), "utf8")
+    }
+    function shellConfig(...args) {
+        return shell(...args)("public", "config.json")
     }
 
     test("--no-auth drops the auth-only keys — no marker can live in JSON, so the file is edited by key", () => {
@@ -498,15 +547,97 @@ describe("scaffold.mjs --shell config.json", () => {
     test("the surviving keys keep their hand-written formatting — the file is not re-stringified", () => {
         const raw = shellConfig("--no-auth")
 
-        expect(raw).toContain('"api": { "development"') // still inline, not reflowed onto three lines
+        expect(raw).toContain('"title": { "en"') // still inline, not reflowed onto three lines
         expect(raw).toContain('    "isDebug"') // still 4-space indented
     })
 
-    test("an auth app keeps both keys", () => {
+    test("an auth app keeps clientApp, and signs in at the API's own auth endpoint", () => {
+        // a loginUrl overrides login()'s default "auth" under the axios base — the placeholder one sent every sign-in
+        // to a host that does not exist
         const config = JSON.parse(shellConfig())
 
-        expect(config.loginUrl).toBeTruthy()
         expect(config.clientApp).toBeTruthy()
+        expect(config).not.toHaveProperty("loginUrl")
+    })
+
+    test("an auth shell says clientApp must be the API's JWT audience", () => {
+        const root = mkdtempSync(join(tmpdir(), "regira-shell-"))
+        roots.push(root)
+        const out = execFileSync(process.execPath, [scaffold, "--shell"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+
+        expect(out).toMatch(/clientApp[^\n]*JWT audience/)
+    })
+
+    test("the API is called on the SPA's own origin, through a Vite proxy for /api", () => {
+        // one of the two shapes the URL contract allows: an absolute origin without the "api" prefix fits neither
+        const read = shell("--no-auth")
+
+        expect(JSON.parse(read("public", "config.json")).api).toBe("/api")
+        expect(read("vite.config.ts")).toMatch(/proxy:\s*\{\s*"\/api":\s*\{\s*target:\s*"https:\/\/localhost:\d+"[^}]*xfwd:\s*true/)
+    })
+
+    test("--no-auth drops the auth UI's texts and its #loginModal host", () => {
+        const authTexts = ["signIn", "signOut", "account", "resetPassword", "recoveryMailSent", "username"]
+        const read = shell("--no-auth")
+        const translations = JSON.parse(read("public", "data", "translations.json"))
+
+        for (const key of authTexts) expect(translations, key).not.toHaveProperty(key)
+        expect(translations).toHaveProperty("save") // the slices' chrome stays
+        expect(read("index.html")).not.toContain("loginModal")
+        expect(read("index.html")).toContain('id="modals"')
+        expect(read("index.html")).not.toContain("@auth")
+    })
+
+    test("--no-auth leaves out the sign-in page, its /401 route and the role names nothing reads", () => {
+        const read = shell("--no-auth")
+        const exists = (...segments) => {
+            try {
+                read(...segments)
+                return true
+            } catch {
+                return false
+            }
+        }
+
+        expect(exists("src", "infrastructure", "permissions.ts")).toBe(false)
+        expect(exists("src", "views", "Unauthorized.vue")).toBe(false)
+        expect(read("src", "router", "routes.ts")).not.toMatch(/Unauthorized|\/401/)
+        expect(read("src", "router", "routes.ts")).toContain('"/403"') // the other error pages stay
+    })
+
+    test("the shell installs loadingPlugin without an image, so loading shows the built-in spinner", () => {
+        // an img replaces the spinner: the 1×1 transparent placeholder made every loading state blank
+        const main = shell()("src", "main.ts")
+
+        expect(main).toMatch(/app\.use\(loadingPlugin\)/)
+        expect(main).not.toMatch(/data:image|loadingImg/)
+    })
+
+    test("the shell ships a favicon and links it, so a page load requests no missing icon", () => {
+        const read = shell("--no-auth")
+
+        expect(read("public", "favicon.svg")).toContain("<svg")
+        expect(read("index.html")).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />')
+    })
+
+    test("a --no-auth routes.ts says nothing about sign-in", () => {
+        expect(shell("--no-auth")("src", "router", "routes.ts")).not.toMatch(/login|auth-on/i)
+    })
+
+    test("an auth app keeps its sign-in page, /401 route and role names", () => {
+        const read = shell()
+
+        expect(read("src", "infrastructure", "permissions.ts")).toContain("Roles")
+        expect(read("src", "views", "Unauthorized.vue")).toContain("401")
+        expect(read("src", "router", "routes.ts")).toContain('"/401"')
+    })
+
+    test("an auth app keeps the auth texts and the #loginModal host", () => {
+        const read = shell()
+
+        expect(JSON.parse(read("public", "data", "translations.json"))).toHaveProperty("signIn")
+        expect(read("index.html")).toContain('<div id="loginModal"')
+        expect(read("index.html")).not.toContain("@auth")
     })
 })
 

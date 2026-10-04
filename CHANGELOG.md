@@ -5,6 +5,145 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.5.0 — 2026-10-04
+
+- `vue/ui`: **`toFeedbackError` translates validation errors.** Every field message of a 400 is looked up in the
+  app's `useLang` messages, so a server validator can return a translation key (`ValueTooLarge`) instead of a full
+  message: a key found there shows its translation, in the active language and else the fallback one, with `{name}`
+  placeholders filled from the error's `args` in the body's `errorDetails`, whatever the case of their names. Any
+  other message shows as the server sent it, as before. Every entity form and overview gets it through
+  `toFeedbackError`. The bare field map and the ProblemDetails `errors` are read as before, and a field `errors`
+  lists that `errorDetails` does not name shows too; an `errorDetails` entry in another shape is left out on its own, one without a
+  key counting as the whole entity's. Keys alike once lower-cased share their messages, from either source, where in
+  `errors` the later one replaced the earlier. An app that translates
+  with another library sets its own translator once with `setErrorTranslator((message, args) => …)` — for vue-i18n,
+  `te(key) ? t(key, args) : undefined` — and `undefined` restores the `useLang` default; a translator that throws is
+  logged and the message shown. A field named like a member every object has (`Constructor`, `ToString`) is keyed like
+  any other.
+- `vue/lang`: `formatText(input, args, { ignoreCase: true })` fills a placeholder whatever the case of its name and
+  its arg's, as `toFeedbackError` does with a server's args. A value is inserted as written, where one holding `$&` or
+  `$1` was rewritten, a placeholder whose name holds a regular-expression character such as `.` or `+` is filled, and
+  only the args' own names count, so `{constructor}` stays as written.
+- `vue/ui`: **`fieldMessages(error, name)` reads one field's messages** from a field map — `feedback.error`, or a
+  client-side map — as an array, empty when the field has none or the error is text or unset. It reads the map's own
+  keys only, so a field named like an object member (`constructor`) no longer finds the inherited one, as
+  `feedback.error[name]` does. The `entities.patterns` form example's `fieldError` reads through it.
+- Guides (`vue/ui`, `vue/lang`, `vue/entities`): the 400 an Entities API answers is a ProblemDetails, with
+  `errorDetails` for a rule refusal, and `ui.instructions` → feedback describes how its messages pair with
+  translation keys.
+
+- `vue/entities`: **`useForm`'s `changeState` ends a refused write in `error`, and only there.** Every write
+  emitted its success state from a `finally`, so a delete the server refused — a validator's `400`, a `409` while
+  the row is still referenced — reported `error` and then `removed`, and a failed save or restore `error` and then
+  `saved`. A consumer keyed on the last state read the refused write as done. A write now emits `pending`, then
+  `saved` or `removed` when it succeeded and `error` when it did not. The scaffold's
+  `isLoading = $event == FormStates.pending` binding behaves as before. A save or delete whose promise rejects
+  without a reason ends in `error` too, where it threw from its own error handler and left the feedback pending.
+  A save or restore the server took ends in `saved` even when the form's own work with the answer throws — the
+  error is logged and the handler resolves — where it reported `Server error` and `error`. A `404`, `409` or
+  `500` shows the server's `detail` also when its body lists errors, where it showed the request's own message.
+- `vue/ui`: `ErrorSummary` keys each message of a field by its position, so a field whose messages repeat one
+  text no longer trips Vue's duplicate-key warning. Its summary buttons are disabled, and the popup button hidden,
+  while there is no error to show — none, an empty map, a map whose fields hold no message, or an empty string — as
+  for every failure `Feedback` shows without a field map (a `404`, `409` or `500`), and the summary lists only the
+  fields that hold a message.
+- Guides (`vue/entities`): a refused delete can be a validator's `400` with an error map, beside a `409` or `403`.
+  The failure table in `entities.patterns` covers the delete handlers, and its `fieldError` example shows every
+  message of a field. The overview's `applyRemove` is described as it reports — under `Removing <title> failed`, with
+  no per-status mapping — and the note under the form example gates the button on `feedback.isPending`, as the example
+  does.
+- `vue/ui`: the barrel exports the `FeedbackError` and `FeedbackIn` types, so `toFeedbackError`'s return type and
+  `fail()`'s error argument import from `@regira/modules/vue/ui` like the functions; a type import from there failed
+  with TS2724. `vue/ui/feedback` still exports both.
+- `vue/ui`: **`Feedback` heads each field of a failure by its label.** The field-error list showed each raw key
+  (`dueDate`) as its heading, and an error that belongs to no one field under an empty one. The new `fieldLabel(name)`
+  translates the key as the messages are — through `setErrorTranslator`'s translator, else the `useLang` messages — and
+  else writes it in words: `dueDate` reads "Due date", a foreign key `categoryId` "Category". The errors under the key
+  `""` show without a heading. A form that shows each field's errors at its input with `fieldMessages` sets the new
+  `hideFieldErrors` prop, so the summary keeps only the message, a text error and the `""` errors. The scaffolded
+  slices keep the list, since their forms show field errors nowhere else; the `entities.patterns` form example sets the
+  prop.
+- `vue/ui`: `Paging`'s page-1 link drops the `page` parameter from the query; it deleted `p`, which the links never
+  set, so the first page kept `?page=1`.
+- Package: the build runs on `prepack`, before `npm pack` and `npm publish` and when installing from git, instead of
+  on `prepare`, so installing a packed tarball no longer meets an install script npm asks to approve. A registry
+  install never built.
+- Scaffold: a `--rel X --as y` slice's eager-load hint names the navigation, `q.Include(x => x.Y)`, where it named the
+  related class.
+- Scaffold: `--shell` sets `config.json → api` to `/api` and writes a Vite proxy forwarding `/api` to
+  `https://localhost:7001` with `xfwd`, so the SPA calls its own origin in development as in production. It wrote
+  `https://localhost:7001` as the development API and no proxy, which matched neither setup in *The URL contract*:
+  against an API serving its controllers under the `api` prefix, every call 404'd. The scaffold says to point the proxy at the API's launch URL.
+  The `entities.setup` config examples follow.
+- Scaffold: `--shell --no-auth` leaves out the `#loginModal` host in `index.html` and the sign-in, account and
+  password-recovery texts in `translations.json` (`signIn`, `signOut`, `account`, `username`, `resetPassword`,
+  `recoveryMailSent`, …), which nothing in a no-auth app shows.
+- Scaffold: `--shell` writes no `loginUrl` in `config.json`. Its placeholder, `https://accounts.example.com/auth/`,
+  reached the auth plugin as the login endpoint, so a scaffolded app with sign-in posted every login to a host that
+  does not exist instead of to the API's `auth`, the default the guides tell an app to keep. The scaffold says to set
+  `clientApp` to the API's JWT audience, and the `entities.setup` config examples drop `loginUrl` too; the minimal
+  runtime-config example sets `api` to `/api`, as the shell does.
+- Scaffold: `--shell --no-auth` leaves out `infrastructure/permissions.ts`, whose role and permission names only
+  `user-plugin.ts` reads, and the `/401` "please sign in" page, `views/Unauthorized.vue`, with its route.
+- Scaffold: a slice's `FilterAdv.vue` passes its reset `IconButton` only the props it declares; `:showText="true"`
+  reached the `<button>` as a `showtext` attribute. The `entities.examples` and `entities.advanced.example` filters
+  drop it too.
+- Scaffold: `--shell` installs `loadingPlugin` without an image, so every loading state shows the built-in spinner.
+  It passed a transparent 1×1 GIF as `img`, which replaces the spinner, so loading showed nothing. The
+  `entities.setup` bootstrap and plugin table, and the `vue/ioc` example, no longer pass an image either: `img` is
+  optional, for an app that brands the indicator. A `--no-auth` `routes.ts` drops the comment about the sign-in modal.
+- Scaffold: `--shell` writes a placeholder `public/favicon.svg` and links it from `index.html`, so a page load no
+  longer logs a 404 for `/favicon.ico`.
+- Scaffold: a slice's `config.ts` sets `api` and `searchUrl` only; it also restated `saveUrl`, which defaults to
+  `api` like every other URL. The `entities.examples` configs drop the restated URLs too. A comment in `Form.vue` no
+  longer writes a closing `FormSection` tag, which edits matching the markup by text took for the real one.
+- `vue/entities`: `InputSelectorInline` takes `labels: { remove, restore }` for its delete button's title, which was
+  the untranslatable lower-case `remove` / `restore`; it reads "Remove" / "Restore" by default.
+- Guides (`vue/entities`, bootstrap): *Item hydration* says a `DateOnly`/`TimeOnly` field stays a string, since a
+  `Date` sent back answers 400. The form checklist explains a save that sends nothing: the browser's own validation
+  stops the submit before `useForm` runs. The advanced example gates on `hasRole`, as the auth card says, and
+  names its routes and icons by `config.key`, as the scaffold does, where it used `Entity.name`, which a production
+  build minifies, so its route names stopped matching `config.json → navigation` and a route pushed by name; it names
+  the other slices' icons by their key, so it imports their models as types only. Bootstrap step 7 says any drivable browser verifies the app, Playwright
+  among them.
+- `utilities`, `extensions`: **`stringifyDate` — so `dateExtensions.use()`'s JSON dates — writes a half-hour or
+  45-minute time zone correctly.** It wrote the offset as hours divided by 60 (`+5.5:30` in India, `-2.5:30` in
+  Newfoundland) and shifted the time by whole hours only, so the API could not parse a date sent from such a zone.
+  Whole-hour zones serialize as before. The guides describe the format as what it is, the local wall-clock time with
+  its UTC offset, where they said "without a timezone shift".
+- `vue/ui`: **`useFeedback` no longer wipes a failure that follows a success.** `success()` schedules its auto-hide,
+  and `fail()`, `pending()` and `reset()` now cancel it; a failure or a new pending shown within `autoHideDelay`
+  (1.5 s) of a success was reset by that timer a moment after it appeared — on an overview's shared feedback too.
+- Scaffold: a `--rel` run says the relation's form control is not written, with the `InputSelector` line to add to
+  `details/Form.vue`; the run printed the list, filter and column lines only, so a required FK scaffolded into a form
+  that could not save.
+- Guides (`vue/entities`, `vue/auth`, `vue/ui`): a `DateOnly` field stays a string in the slice template's date
+  comment, binds a native `<input type="date">`, and `DateInput` — which emits a `Date` — is for `DateTime`.
+  `onAuthenticated` runs its handler at the call when a token is present, so the guide and its JSDoc say to register
+  it below every `const` it uses. A route only some roles may open is gated with `meta.policy`, not `beforeEnter`,
+  which runs before a stored token is restored and sent an administrator who reloaded to `forbidden`.
+- Scaffold: `_template/README.md` says `--shell` writes the toolchain (`index.html`, `vite.config.ts`, `tsconfig*`) and
+  skips files that exist, so only `package.json` is set up first; it said to set up the toolchain before `--shell`,
+  which then kept a hand-written `index.html` — without the `#modals` host every modal broke.
+- `vue/auth`: **the route guard checks the first navigation too.** The plugin registers the guard only after
+  `validateToken` restores a stored token, and the router's first navigation had already gone through by then, so a
+  reload or deep link to a page gated with `meta.policy` or `meta.permissions` showed it to a signed-in user without
+  the role. Once the guard is registered, the plugin now runs the same check for the route already shown and
+  replaces it with `forbidden` when the check fails. `routeGuard` returns that check, where it returned nothing.
+- Guides (`vue/ui`, `vue/entities`, `vue/auth`, bootstrap): `ui.signatures` and `entities.signatures` match the built
+  `.d.ts`. `loadingPlugin`'s `img` and the feedback, icon, paging, modal and screen plugin options are optional,
+  `ErrorSummary` takes `hideFieldErrors`, `NullableCheckBox` emits `change`, `OverviewEmits` takes its `SO` generic,
+  and the index lists `useAppFeedback`, `fieldLabel` and `ErrorSummary`. `FilterIn`, `FilterOut`, `OverviewProps`,
+  `SCREEN_SIZES` and `IScreen` are marked as not importable; `entities.namespaces` listed the filter shapes as exports.
+  `ui.instructions` and the `vue/ui` README describe `useFeedback`'s auto-hide: only `success()` hides itself, and
+  `fail()`, `pending()` and `reset()` cancel a pending hide. The auth guides say to register `onAuthenticated` below
+  everything its handler uses, and the auth card and bootstrap gate a role-only route with `meta.policy`, never
+  `beforeEnter`. Bootstrap step 5 says `--shell` writes the toolchain itself. The advanced example's config sets `api`
+  and `searchUrl` only, as the scaffold does, and the owned-m2m recipe names `InputSelectorInline`'s `labels`.
+  The advanced example's slice barrel exports `SelectorDropdown`, `SelectorModalButton` and `List`, as the scaffold's does, where it
+  named a `SelectorDropDown` file and export that do not exist. The docs site's MCP client config uses
+  `"type": "http"`; a `"transport"` key is not read, so the server was skipped.
+
 ## 6.4.0 — 2026-09-26
 
 - `vue/ui`: **`Autocomplete`'s result panel is no longer clipped inside a modal or any scroll container.**

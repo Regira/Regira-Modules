@@ -61,16 +61,18 @@ node node_modules/@regira/modules/_template/scaffold.mjs --shell --no-auth  # no
 ```
 
 `--shell` writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`, `env.d.ts`) + `src/**` +
-`public/config.json` + `public/data/translations.json` into the current app, **skipping any file that
+`public/config.json` + `public/data/translations.json` + `public/favicon.svg` into the current app, **skipping any file that
 already exists** (pass `--force` to overwrite — e.g. to replace the `npm create vue` files). Only
 `package.json` is yours to author — copy the known-good dependency set from
 [entities.setup.md → Install](entities.setup.md#install). Then scaffold entities and register them in
 `src/entities/index.ts`.
 
 > **`--no-auth`** strips the auth wiring (lines tagged `@auth:only` / blocks between `@auth:block-start` and
-> `@auth:block-end`) and omits the auth-only files (`infrastructure/user-plugin.ts`, `shims.d.ts`,
-> `views/AccountView.vue`, `views/ResetPasswordView.vue`, `components/users/ForgotPasswordForm.vue`). The default
-> build strips the inverse `@noauth:*` markers. Both variants build green. See
+> `@auth:block-end`, the `#loginModal` host in `index.html` among them) and omits the auth-only files
+> (`infrastructure/user-plugin.ts`, `infrastructure/permissions.ts`, `shims.d.ts`, `views/AccountView.vue`,
+> `views/ResetPasswordView.vue`, `views/Unauthorized.vue` with its `/401` route, `components/users/ForgotPasswordForm.vue`). JSON has no comments to carry a marker, so it drops the auth-only
+> keys by name: `clientApp` from `config.json`, and the account and sign-in texts from
+> `translations.json`. The default build strips the inverse `@noauth:*` markers. Both variants build green. See
 > [entities.setup.md → Running without authentication](entities.setup.md#running-without-authentication).
 
 Every library import uses the **plain npm specifier** (`@regira/modules/…`); app-local imports use the `@ → src`
@@ -92,13 +94,15 @@ shell and slices. Styles come from the npm `bootstrap` / `bootstrap-icons` packa
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <title>My App</title>
     </head>
     <body>
         <div id="app"></div>
         <div id="modals" class="fixed-top"></div>
+        <!-- @auth:block-start -->
         <div id="loginModal" class="fixed-top"></div>
-        <!-- @auth:only -->
+        <!-- @auth:block-end -->
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>
@@ -115,8 +119,13 @@ export default defineConfig({
     plugins: [vue()],
     resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
     define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version) },
-    server: { port: Number(process.env.PORT) || 5173 }, // honor a harness/preview-assigned PORT (Vite ignores it by default)
-    // calling the API through a dev proxy instead of its origin? add server.proxy — see entities.setup.md → The URL contract
+    server: {
+        port: Number(process.env.PORT) || 5173, // honor a harness/preview-assigned PORT (Vite ignores it by default)
+        // config.json → api is "/api": the SPA calls its own origin, in development as in production, and this
+        // forwards /api to the API. Set the target to the API's HTTPS launch URL (launchSettings.json → applicationUrl);
+        // the API serves its controllers under the "api" route prefix. See entities.setup.md → The URL contract
+        proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } },
+    },
 })
 ```
 
@@ -228,9 +237,7 @@ import { routerFactory } from "@/router"
 import appConfig, { createConfig } from "@/app-config"
 import App from "@/App.vue"
 
-const loadingImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" // 1×1 — swap for your spinner
-
-dateExtensions.use() // serialize Dates to JSON without a timezone shift
+dateExtensions.use() // serialize Dates to JSON as local time with their UTC offset
 
 fetch(`${appConfig.baseUrl}/config.json`)
     .then((r) => r.json())
@@ -248,7 +255,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
 
         app.use(iconPlugin, { source: "bs" })
         app.use(screenPlugin)
-        app.use(loadingPlugin, { img: loadingImg })
+        app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
 
@@ -270,7 +277,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
             axios,
             tokenManager: new LocalStorageTokenManager(),
             clientApp: config.clientApp,
-            loginUrl: config.loginUrl,
+            loginUrl: config.loginUrl, // unset: login() posts to "auth" under the axios base — set only for another endpoint
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
@@ -430,8 +437,7 @@ watch(showLogin, (gateOpen) => {
 ```json
 {
     "clientApp": "my-app",
-    "loginUrl": "https://accounts.example.com/auth/",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
     "title": { "en": "My App" },
@@ -442,6 +448,17 @@ watch(showLogin, (gateOpen) => {
         "search": ""
     }
 }
+```
+
+## `public/favicon.svg`
+
+A placeholder icon, so a page load asks for no missing `/favicon.ico` — replace it with the app's own.
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+    <rect width="32" height="32" rx="6" fill="#0d6efd" />
+    <path d="M9 16h14M16 9v14" stroke="#fff" stroke-width="3" stroke-linecap="round" />
+</svg>
 ```
 
 ## `public/data/translations.json`
@@ -534,9 +551,9 @@ import AccountView from "@/views/AccountView.vue" // @auth:only
 import ResetPasswordView from "@/views/ResetPasswordView.vue" // @auth:only
 import NotFound from "@/views/NotFound.vue"
 import Forbidden from "@/views/Forbidden.vue"
-import Unauthorized from "@/views/Unauthorized.vue"
+import Unauthorized from "@/views/Unauthorized.vue" // @auth:only
 
-// login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected
+// login is driven by the App.vue modal (auth-on); routes without allowAnonymous are treated as protected // @auth:only
 // — home included: an anonymous visitor gets the sign-in modal, not a dashboard they can't act on // @auth:only
 const routes: Array<RouteRecordRaw> = [
     { path: "/", name: "home", component: HomeView }, // @auth:only
@@ -544,7 +561,7 @@ const routes: Array<RouteRecordRaw> = [
     { path: "/account", name: "account", component: AccountView }, // @auth:only
     // the recovery mail links here — allowAnonymous, or the visitor who forgot their password can't reach it // @auth:only
     { path: "/reset-password", name: "resetPassword", component: ResetPasswordView, meta: { allowAnonymous: true } }, // @auth:only
-    { path: "/401", name: "unauthorized", component: Unauthorized, props: (to) => ({ url: to.query.url }), meta: { allowAnonymous: true } },
+    { path: "/401", name: "unauthorized", component: Unauthorized, props: (to) => ({ url: to.query.url }), meta: { allowAnonymous: true } }, // @auth:only
     { path: "/403", name: "forbidden", component: Forbidden, props: (to) => ({ url: to.query.url }) },
     { path: "/404", name: "notFound", component: NotFound, props: (to) => ({ url: to.query.url }), meta: { allowAnonymous: true } },
     {

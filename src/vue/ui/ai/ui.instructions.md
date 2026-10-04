@@ -21,7 +21,7 @@ exports:
 
 ```ts
 import { Paging, LoadingContainer, useFeedback, TabContainer, Tab, BsIcon, useScreen } from "@regira/modules/vue/ui"
-import { Pending, Success, ErrorSummary, type FeedbackError } from "@regira/modules/vue/ui/feedback"
+import { Pending, Success, ErrorSummary, type FeedbackError } from "@regira/modules/vue/ui/feedback" // all on the barrel too
 import { type IIconProvider, type IconProps } from "@regira/modules/vue/ui/icons"
 import { DefaultModal } from "@regira/modules/vue/ui/modal" // styles: import "@regira/modules/style.css" once
 ```
@@ -37,7 +37,7 @@ installing the plugins — see the **Global registration** column.
 | ---------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
 | `feedbackPlugin` | `$feedback` (`FeedbackOut`) — app-wide toasts                                   | `{ autoHideDelay? }`                                                 | —                                              |
 | `iconPlugin`     | glyph source for `Icon` (`bs`/`fa`) + friendly keys; `$icons` (`IIconProvider`) | `{ icons?, clearFirst?, source?: "bs" \| "fa", Icon?, IconButton? }` | `Icon`, `IconButton`                           |
-| `loadingPlugin`  | the image `Loading` renders + the app-wide indicator for `injectLoading()`      | `{ img, Loading?, LoadingButton?, LoadingContainer? }`               | `Loading`, `LoadingButton`, `LoadingContainer` |
+| `loadingPlugin`  | the image `Loading` renders + the app-wide indicator for `injectLoading()`      | `{ img?, Loading?, LoadingButton?, LoadingContainer? }`              | `Loading`, `LoadingButton`, `LoadingContainer` |
 | `pagingPlugin`   | the `Paging` default page size                                                  | `{ defaultPageSize?, Paging? }`                                      | `Paging`                                       |
 | `modalPlugin`    | the app-wide modal — provides it for `injectModal()`                            | `{ Modal?: ModalComponent }`                                         | `MyModal`                                      |
 | `screenPlugin`   | exposes the shared `useScreen()` instance as `$screen` / `inject("screen")`     | `{ sizes? }` — override `SCREEN_SIZES` breakpoints                   | —                                              |
@@ -62,19 +62,19 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 ## Areas
 
-| Area         | Key components                                                                                                                                                        | Programmatic                                                                        |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                         |
-| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                     |
-| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut` |
-| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                           |
-| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                                      |
-| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`, `IIconProvider`                                          |
-| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                                         |
-| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`, `autocompleteDefaults`                                           |
-| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                                   |
-| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                                   |
-| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                                   |
+| Area         | Key components                                                                                                                                                        | Programmatic                                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                                                                                 |
+| loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                                                                             |
+| feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `fieldMessages`, `setErrorTranslator`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut`, `FeedbackError` |
+| modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                                                                                   |
+| tabs         | `TabContainer`, `TabNavigation`                                                                                                                                       | `Tab` / `ITab`                                                                                                                              |
+| icons        | `BsIcon`, `FaIcon`, `IconButton`                                                                                                                                      | `iconPlugin`, `loadIcons`, `IIconProvider`                                                                                                  |
+| screen       | —                                                                                                                                                                     | `useScreen`, `screenPlugin`                                                                                                                 |
+| autocomplete | `Autocomplete`                                                                                                                                                        | `useAutocomplete`, `autocompleteDefaults`                                                                                                   |
+| buttons      | `ConfirmButton`                                                                                                                                                       | —                                                                                                                                           |
+| input        | `Anchor`, `DateInput`, `DescriptionInput`, `FormButtonsRow`, `FormLabel`, `FormSection`, `NullableCheckBox`, `NullableLabel`, `FileDropZone`, `CopyToClipboardButton` | —                                                                                                                                           |
+| gis          | `GMap`, `GMapLink`, `GMapButton` (Google Maps)                                                                                                                        | —                                                                                                                                           |
 
 ## What the entity views use
 
@@ -94,11 +94,54 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
   `pending(msg)` / `success(msg)` / `fail(msg, err?)` / `reset()`). `isPending` is the busy flag to disable
   buttons against double-submits; the message argument is **required** — `pending()` does not compile.
   The result is `reactive()`, so bind the fields straight (`:disabled="feedback.isPending"`) — and, as with
-  any reactive object, destructuring it snapshots the values.
+  any reactive object, destructuring it snapshots the values. Only `success()` hides itself, `autoHideDelay` ms
+  later (default 1500; `0` keeps it up); `pending()`, `fail()` and `reset()` cancel a hide still waiting, so a
+  failure shown right after a success stays up.
 - `toFeedbackError(ex)` → what `fail()` should show for a failed request: its field map, else the server's
-  `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads both 400 bodies an Entities API sends (the flat
-  `EntityInputException` map and model binding's ProblemDetails `errors`) and starts every key lower-case to match
-  the model's field names.
+  `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads the ProblemDetails `errors` an
+  Entities API answers a 400 with, and a bare field map too, and starts every key lower-case to match the model's
+  field names; keys alike once lower-cased share their messages. A field `errors` lists that the body's
+  `errorDetails` does not name shows too.
+  **It translates validation errors.** A server validator returns, per error, a text or a translation key
+  (`ValueTooLarge`). Every message is looked up in the app's translation messages (`useLang`,
+  [lang](../../lang/ai/lang.instructions.md)): a key found there shows its translation, `{name}` placeholders filled
+  from the error's `args` — listed in the body's `errorDetails`, `{ key, message, args? }` — whatever their case; any
+  other message shows as the server sent it. Nothing to wire: add the keys the API returns to the messages. The text
+  is fixed when the request fails — switching language re-translates on the next failure.
+
+    ```json
+    {
+        "ValueTooLarge": { "en": "At most {max}", "nl": "Maximaal {max}" },
+        "Required": { "en": "Required", "nl": "Verplicht" }
+    }
+    ```
+
+- `fieldMessages(error, name)` → the messages of one field in a field map, `feedback.error` or a client-side one, as
+  an array: empty when the field has none, or when the error is text or unset. Read a field through it rather than
+  `feedback.error[name]`: it reads the map's own keys only, so a field named like an object member (`constructor`)
+  never finds the inherited one. A field may hold several messages — `fieldMessages(feedback.error, "title").join(" ")`.
+- **`<Feedback>` lists a failure's field map under its message**, each field headed by `fieldLabel(name)`: the field's
+  key translated as the messages are, so the `dueDate` an app labels "Deadline" heads its errors as "Deadline", else
+  the key in words ("Due date"; a foreign key `categoryId` reads "Category"). The messages under the key `""`, which
+  belong to no one field, show without a heading. A form that shows each field's messages at its input passes
+  `:hide-field-errors="true"`, so they show once: the summary then keeps the message, a text error and the `""`
+  messages. A field the form has no input for then shows nowhere, so leave the list on where the server can name one.
+- `setErrorTranslator(translator)` → for an app whose translations live in another i18n library, such as vue-i18n.
+  Call it once at startup and `toFeedbackError` — so every entity form — translates through it instead of `useLang`:
+  the translator receives each message and its args as the server sent them, and answers the translation, or
+  `undefined` to show the message as is. A translator that throws is logged, and the message shown. `undefined`
+  restores the `useLang` default.
+
+    ```ts
+    import { setErrorTranslator } from "@regira/modules/vue/ui"
+    const { t, te } = i18n.global
+    // te() first: vue-i18n warns on a missing key, and a message that is plain text is one
+    setErrorTranslator((key, args) => (te(key) ? t(key, args) : undefined))
+    ```
+
+    vue-i18n reads a dotted key as a path into nested messages (`order.notOpen` → `{ order: { notOpen } }`), and
+    matches placeholder names by case.
+
 - `useAppFeedback()` → the **app-wide** `FeedbackOut` the feedback plugin installs — the panel the shell
   renders, as opposed to the per-form instance `useFeedback()` mints. Use it to report from a handler that
   owns no panel of its own (an add-to-cart button); it throws if the plugin was never installed.
@@ -173,9 +216,8 @@ it before writing a new component.
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns
   "Failed to resolve directive: click-outside" and the dropdown never closes.
-- **Sub-path exports.** `FeedbackError`/`FeedbackIn` (from `/feedback`) and the modal `style.scss`
-  (from `/modal`) are sub-path-only — everything else is on the main barrel, except part of the screen
-  module: `SCREEN_SIZES`, `IScreen`, `IScreenSize` and `getWindowSize` are on neither the barrel nor a
+- **Sub-path exports.** The modal `style.scss` (from `/modal`) is sub-path-only — everything else is on
+  the main barrel, `FeedbackError`/`FeedbackIn` included, except part of the screen module: `SCREEN_SIZES`, `IScreen`, `IScreenSize` and `getWindowSize` are on neither the barrel nor a
   sub-path, so they cannot be imported from the published package (only `useScreen` / `screenPlugin` are).
 
 ## See also

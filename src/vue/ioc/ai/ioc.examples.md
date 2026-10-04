@@ -73,7 +73,7 @@ import { configureGlobals } from "@regira/modules/vue/ioc"
 configureGlobals({ registerComponentsGlobally: true })
 
 app.use(iconPlugin)
-app.use(loadingPlugin, { img })
+app.use(loadingPlugin)
 app.use(pagingPlugin)
 app.use(modalPlugin)
 app.use(debugPlugin)

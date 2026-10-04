@@ -34,6 +34,19 @@ function mount(rowsRef, extraProps = {}) {
 }
 
 describe("InputSelectorInline", () => {
+    test("the delete button's title is translatable through labels, English by default", async () => {
+        const rows = ref(reactive([{ facetId: 1, title: "Red" }]))
+        const english = mount(rows).host.querySelector("button")
+        expect(english.title).toBe("Remove")
+
+        const translated = mount(ref(reactive([{ facetId: 1, title: "Rood" }])), { labels: { remove: "Verwijderen", restore: "Herstellen" } }).host
+        const button = translated.querySelector("button")
+        expect(button.title).toBe("Verwijderen")
+        button.click()
+        await nextTick()
+        expect(translated.querySelector("button").title).toBe("Herstellen")
+    })
+
     test("removing a PERSISTED row marks _deleted (undoable) — it never splices the row", async () => {
         const rows = ref(reactive([{ facetId: 1, title: "Red" }, { facetId: 2, title: "Blue" }]))
         const { host } = mount(rows)

@@ -3,7 +3,7 @@
 Verify signatures in [extensions.signatures.md](extensions.signatures.md). Nothing is patched on import — each extension is
 applied only when you call its `use()` enabler.
 
-## Serialize dates without timezone shift (startup)
+## Serialize dates as local time with their offset (startup)
 
 Every Regira demo app does exactly this in `main.ts` so `JSON.stringify(date)` emits the local wall-clock
 value the back-end expects (instead of the native UTC conversion):

@@ -71,12 +71,8 @@ const config: IConfig = {
 
     defaultPageSize: 10,
 
-    api,
-    detailsUrl: api,
-    listUrl: api,
+    api, // every other *Url defaults to api
     searchUrl: api + "/search",
-    saveUrl: api,
-    deleteUrl: api,
 }
 
 export default config
@@ -181,7 +177,8 @@ slice's own save flush makes — and maps the returned `{ data: { item } }` to a
 ```ts
 import { type AxiosWithFilesInstance, createQueryString, useAxios } from "@regira/modules/vue/http"
 import { EntityServiceBase, type ListResult, type IConfig } from "@regira/modules/vue/entities"
-import { Entity as EntityAttachment, insertWithAttachments, updateWithAttachments } from "../../entity-attachments"
+import type { Entity as EntityAttachment } from "../../entity-attachments"
+import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments"
 import Entity from "./Entity"
 
 export class EntityService extends EntityServiceBase<Entity> {
@@ -411,7 +408,6 @@ import { Overview as Labels } from "../../entity-labels"
 import { Overview as EntityAttachments } from "../../entity-attachments"
 import { InputSelector as BrandSelector } from "../../brands"
 import { InputSelector as VehicleTypeSelector } from "../../vehicle-types"
-import { Entity as Intervention } from "../../interventions"
 import { InputSelector as InterventionTypeSelector, FormModalButton as InterventionTypeButton } from "../../intervention-types"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -441,7 +437,7 @@ const { translate } = useLang()
 const tabs = computed(() => [
     Tab.create("form", { icon: "form", title: translate("form"), isDefault: true }),
     Tab.create("files", { icon: "attachment", title: translate("files") }),
-    Tab.create("interventions", { icon: Intervention.name, title: translate("interventions"), isDisabled: !item.value?.id }),
+    Tab.create("interventions", { icon: "Intervention", title: translate("interventions"), isDisabled: !item.value?.id }),
 ])
 </script>
 ```
@@ -603,7 +599,7 @@ onMounted(load)
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" :showText="true" />
+                <IconButton icon="clear" @click="handleReset" />
             </div>
         </div>
 
@@ -634,7 +630,7 @@ onMounted(load)
                     @select="handleUpdate"
                 >
                     <template #prepend>
-                        <div class="input-group-text"><Icon :name="VehicleType.name" /></div>
+                        <div class="input-group-text"><Icon name="VehicleType" /></div>
                     </template>
                 </VehicleTypeSelector>
             </div>
@@ -645,7 +641,7 @@ onMounted(load)
             <div class="col-md mb-2">
                 <BrandSelector v-model="brand" v-model:idValue="searchObject.brandId as number" placeholder="brand" @select="handleUpdate">
                     <template #prepend>
-                        <div class="input-group-text"><Icon :name="Brand.name" /></div>
+                        <div class="input-group-text"><Icon name="Brand" /></div>
                     </template>
                 </BrandSelector>
             </div>
@@ -664,8 +660,11 @@ onMounted(load)
 import { ref, computed } from "vue"
 import { useFilter, type FilterEmits } from "@regira/modules/vue/entities"
 import { useAuthStore } from "@regira/modules/vue/auth"
-import { Entity as Brand, InputSelector as BrandSelector } from "../../brands"
-import { Entity as VehicleType, InputSelector as VehicleTypeSelector } from "../../vehicle-types"
+// a slice's icon is registered under its config.key ("Brand"), so naming it needs no runtime import of the model
+import type { Entity as Brand } from "../../brands"
+import type { Entity as VehicleType } from "../../vehicle-types"
+import { InputSelector as BrandSelector } from "../../brands"
+import { InputSelector as VehicleTypeSelector } from "../../vehicle-types"
 import SearchObject from "./SearchObject"
 
 interface Emits extends /* @vue-ignore */ FilterEmits {}
@@ -682,8 +681,8 @@ const vehicleType = ref<VehicleType>()
 
 const { filterIsActive, handleReset, handleUpdate } = useFilter({ searchObject, emit, Constructor: SearchObject })
 
-const { hasPermission } = useAuthStore()
-const showOperatorFilter = computed(() => hasPermission("ReadAllActivities"))
+const { hasRole } = useAuthStore()
+const showOperatorFilter = computed(() => hasRole("Admin"))
 </script>
 ```
 
@@ -901,14 +900,16 @@ export { default as FilterInline } from "./filter/FilterInline.vue"
 export { default as FilterAdv } from "./filter/FilterAdv.vue"
 
 export { default as Autocomplete } from "./selecting/Autocomplete.vue"
-export { default as FormModalButton } from "./details/FormModalButton.vue"
 export { default as InputSelector } from "./selecting/InputSelector.vue"
 export { default as Selector } from "./selecting/Selector.vue"
-export { default as SelectorDropDown } from "./selecting/SelectorDropDown.vue"
+export { default as SelectorDropdown } from "./selecting/SelectorDropdown.vue"
 export { default as SelectorList } from "./selecting/SelectorList.vue"
+export { default as SelectorModalButton } from "./selecting/SelectorModalButton.vue"
 export { default as SelectorSearch } from "./selecting/SelectorSearch.vue"
+export { default as FormModalButton } from "./details/FormModalButton.vue"
 
 export { default as Overview } from "./overview/Overview.vue"
+export { default as List } from "./overview/List.vue"
 export { default as Details } from "./details/Details.vue"
 export { default as Form } from "./details/Form.vue"
 
@@ -917,7 +918,9 @@ export { default as plugin } from "./setup"
 
 ## 13. Plugin — `setup.ts`
 
-`addServices` resolves `axios` as an `AxiosWithFilesInstance` and takes the route key from `Entity.name`.
+`addServices` resolves `axios` as an `AxiosWithFilesInstance`. As in the scaffold, route names and the icon take
+`config.key`, a literal that survives minification and matches `config.json → navigation`, while the service and
+`$configs` stay keyed by `Entity.name`, which registration and lookup both read from the same class.
 The narrower type is this example's choice, not a requirement: the attachment helpers upload through
 `useAxios()`, and a subclass method reaching `upload` / `getFile` calls `useAxios()` too, because
 `EntityServiceBase` declares `protected axios: AxiosInstance` whatever the constructor takes.
@@ -937,7 +940,7 @@ import Details from "./details/Details.vue"
 import Form from "./details/Form.vue"
 
 export function createRoutes(): Array<RouteRecordRaw> {
-    const key = Entity.name
+    const key = config.key
     return [
         {
             path: `/${config.routePrefix}`,
@@ -970,7 +973,7 @@ export function addServices(serviceProvider: IServiceProvider) {
 }
 
 export function addIcons(icons: IIconProvider) {
-    icons.add(Entity.name, config.icon!)
+    icons.add(config.key, config.icon!)
 }
 
 export default {
@@ -982,7 +985,7 @@ export default {
 
         app.config.globalProperties.$configs[Entity.name] = config
 
-        console.debug("install", Entity.name)
+        console.debug("install", config.key)
     },
 }
 ```

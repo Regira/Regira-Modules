@@ -40,7 +40,7 @@ package set — each module has its own guide (load it when you work in that are
 | **vue/online**                 | [`@regira/modules/vue/online`](../../online/ai/online.instructions.md)                            | Connectivity: `isOnlinePlugin` + `$isOnline`, drives an offline banner.                                                                                                                                                                                                                                                                | ○ optional                                                                                |
 | **vue/formatters**             | [`@regira/modules/vue/formatters`](../../formatters/ai/formatters.instructions.md)                | Date/number formatting (`formatDateTime`, …) — used for display and config cache-busting.                                                                                                                                                                                                                                              | ○ optional                                                                                |
 | **vue/debug**                  | [`@regira/modules/vue/debug`](../../debug/ai/debug.instructions.md)                               | Dev-only `debugPlugin` + `$isDebug`/`$setDebug`.                                                                                                                                                                                                                                                                                       | ○ optional                                                                                |
-| **extensions/date-extensions** | [`@regira/modules/extensions/date-extensions`](../../../extensions/ai/extensions.instructions.md) | `dateSerializer.use()` once at startup — serialize `Date`s to JSON without a timezone shift. Lives under `extensions/`, **not** `vue/`.                                                                                                                                                                                                | ○ recommended                                                                             |
+| **extensions/date-extensions** | [`@regira/modules/extensions/date-extensions`](../../../extensions/ai/extensions.instructions.md) | `dateSerializer.use()` once at startup — serialize `Date`s to JSON as local time with their UTC offset. Lives under `extensions/`, **not** `vue/`.                                                                                                                                                                                     | ○ recommended                                                                             |
 | **utilities**                  | [`@regira/modules/utilities`](../../../utilities/ai/utilities.instructions.md)                    | Pure helpers (`string-utility`, `array-utility`, `file-utility`, …).                                                                                                                                                                                                                                                                   | ○ as needed                                                                               |
 
 > **Not in the common stack:** `@regira/modules/treelist` (`TreeList` / `IFindParents`) is a direct
@@ -194,9 +194,12 @@ on drag wants `Related()` to see `null`, not a stale array) without touching the
 
 - `processItem` converts the string fields **`created`** and **`lastModified`** into `Date` instances
   on every fetched/saved item. Other date fields are not auto-converted (convert them in `toEntity` —
-  see [entities.patterns.md → Date hydration](entities.patterns.md#date-hydration)). To **bind** a date to
-  an `<input type="date">`, don't hand-roll a bridge — use the ejectable `DateInput` skin, or the
-  `dateInputString(date?)` formatter (`yyyy-MM-dd`) from `@regira/modules/vue/formatters`.
+  see [entities.patterns.md → Date hydration](entities.patterns.md#date-hydration)) — **except a `DateOnly` or
+  `TimeOnly` field, which stays a string** (`"2026-09-21"`): a `Date` goes back as a full timestamp, which the API
+  reads for a `DateOnly` only as `yyyy-MM-dd`, so the save answers 400. To **bind** a date: a `DateOnly`
+  string goes straight on a native `<input type="date" v-model="item.startDate">`; a `DateTime` (a `Date`) takes
+  the ejectable `DateInput` skin, which emits a `Date`, or the `dateInputString(date?)` formatter (`yyyy-MM-dd`)
+  from `@regira/modules/vue/formatters` — don't hand-roll a bridge.
 - `prepareItem` strips **top-level** `_`-prefixed properties before sending — use them for transient
   client-only state. The strip does **not** recurse, so a `_deleted` child row is still sent; drop such rows
   in a per-collection `prepareItem` override to delete them ([entities.patterns.md → Transient client-only
@@ -518,6 +521,12 @@ hand-rolling one is a deviation to declare (recipes: [entities.patterns.md](enti
 > Step 8 alongside the form; the `_deleted` mark + `prepareItem` filter is what makes one parent `save()` persist
 > adds, edits, and removals together. For the scalar-row table, `scaffold.mjs <Entity> --owns <Child>` generates
 > the editor sub-slice and prints the three wiring lines (field, `<…Overview>`, `prepareItem` filter).
+
+> **A save that sends nothing is the browser's own validation.** The scaffolded form submits through a
+> `type="submit"` button, so a `required`, `min`, `pattern` or `type="email"` on any of its inputs stops the
+> submit before `useForm` runs: no request, no feedback, and for an input on a hidden tab not even the browser's
+> message. `document.querySelector("form").checkValidity()` in the console answers `false` then. Satisfy the
+> constraint, or put `novalidate` on the `<form>` and let the API's validators answer with field errors.
 
 > **Verify after wiring a slice:** the service resolves (`get<IEntityService>(Entity.name)` non-null after
 > startup); the overview lists and pages (archived rows hidden unless `searchObject.archived` is set);

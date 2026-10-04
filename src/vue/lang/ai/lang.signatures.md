@@ -12,6 +12,7 @@ import {
     type ITranslationMessages,
     type ITranslationMessage,
     type IFormatInput,
+    type FormatTextOptions,
 } from "@regira/modules/vue/lang"
 ```
 
@@ -31,8 +32,11 @@ export function translateMessage(message: ITranslationMessage, langCode: string,
 type IFormatValueInput = string | number | Date | undefined
 type IFormatFunctionInput = (input: string) => string
 export type IFormatInput = Record<string, IFormatValueInput> | IFormatFunctionInput
+// ignoreCase: a placeholder takes its arg whatever the case of either name ({MaxLength} ← maxLength)
+export type FormatTextOptions = { ignoreCase?: boolean }
 
-export function formatText(input: string, formatArgs: IFormatInput): string
+// a placeholder without an own arg of its name stays as written
+export function formatText(input: string, formatArgs: IFormatInput, options?: FormatTextOptions): string
 ```
 
 ## Composable (`useLang`)

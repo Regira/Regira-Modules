@@ -47,9 +47,9 @@ existing members are left untouched.
 ## Date extensions
 
 `dateExtensions.use()` replaces `Date.prototype.toJSON` with one backed by `stringifyDate`, which
-serializes the date **without timezone correction** (unlike the native `toJSON`, which converts to UTC).
-This makes `JSON.stringify(new Date())` emit the local wall-clock value, matching what the Regira
-back-end expects.
+writes the date's **local wall-clock time with its UTC offset** (`2026-10-20T11:30:00.000+05:30`), where the
+native `toJSON` converts to UTC (`2026-10-20T06:00:00.000Z`). It is the same instant, written as the user entered
+it, which is what the Regira back-end expects.
 
 ## Promise extensions
 

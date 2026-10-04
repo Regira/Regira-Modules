@@ -4,7 +4,7 @@ Verbatim TypeScript signatures for the front-end CRUD client (`@regira/modules/v
 
 > **AI rule:** Do not guess a signature, generic parameter, or option name — look it up here first.
 > Every block shows the `import` specifier above it. The barrel `@regira/modules/vue/entities`
-> re-exports everything below; the deeper specifiers (`/abstractions`, `/details`, `/form`) are
+> re-exports everything below except what a block marks internal or not re-exported; the deeper specifiers (`/abstractions`, `/details`, `/form`) are
 > also published for granular imports. Full specifier list:
 > [entities.namespaces.md](entities.namespaces.md).
 
@@ -289,7 +289,7 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     // call writes feedback/isLoading, so a save settling mid-fetch cannot clear the spinner the fetch owns.
     // The return value is never gated — the caller still learns what the server said.
     applySave(item: T): Promise<SaveResult<T> | undefined> // undefined = the save failed
-    applyRemove(item: T): Promise<boolean> // false = the server refused the delete (409, 403, …)
+    applyRemove(item: T): Promise<boolean> // false = the server refused the delete (a validator's 400, 409, 403, …)
     handleSave({ saved, isNew }: SaveResult<T>): void
     handleRemove(item: T): void
     resetPage(): void
@@ -370,7 +370,8 @@ queue rail, a split view, a dashboard with a live list) and its filters and pagi
 instead of navigating away to `/entities`. The paired constraint: `routeWatcher` re-runs the search only while
 the route **name** is unchanged, so a filter handler that pushes to a different named route stops the watcher.
 
-`OverviewProps<T>` / `OverviewEmits<T>` (for custom overview components):
+`OverviewProps<T>` / `OverviewEmits<T>` (for custom overview components; only `OverviewEmits` is re-exported — the
+`*In` / `*Out` shapes above and `OverviewProps` are declared but not importable, so write the props type locally):
 
 ```ts
 export interface OverviewProps<T> {
@@ -379,7 +380,7 @@ export interface OverviewProps<T> {
     title: string
     service: IEntityService<T>
 }
-export interface OverviewEmits<T> {
+export interface OverviewEmits<T extends IEntity, SO extends ISearchObject = ISearchObject> {
     "update:modelValue": [Array<T>]
     "update:searchObject": [SO]
     "update:pagingInfo": [IPagingInfo]
@@ -431,6 +432,8 @@ export interface FormEmits<T> {
     (e: "cancel", arg: { canceled: T; original?: T }): void
     (e: "changeState", state: FormStates): void
 }
+// a write emits `pending`, then one final state: `saved` (save/restore succeeded), `removed` (delete succeeded)
+// or `error` (the server refused the write, or it failed)
 export enum FormStates {
     pending = "Pending",
     saved = "Saved",
@@ -523,7 +526,7 @@ declare function useModalForm<T extends IEntity>({
 ```
 
 ```ts
-import { useFilter } from "@regira/modules/vue/entities"
+import { useFilter, type FilterEmits } from "@regira/modules/vue/entities" // FilterIn / FilterOut are not re-exported
 export interface FilterIn<SO> {
     searchObject: Ref<SO>
     emit: FilterEmits<SO>
@@ -558,7 +561,7 @@ object — that refetches on every keystroke.
 
 ```ts
 import type { FeedbackOut } from "@regira/modules/vue/ui"
-import type { FeedbackError } from "@regira/modules/vue/ui/feedback" // string | Record<string, string | string[]>
+import type { FeedbackError } from "@regira/modules/vue/ui" // string | Record<string, string | string[]>
 // reactive(): read the fields directly, no .value — :disabled="feedback.isPending"
 export interface FeedbackOut {
     status: FeedbackStatus // "" | "Pending" | "Success" | "Failed"
@@ -639,12 +642,14 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 //   props: { modelValue?: Array<T> (v-model);
 //            rowKey?: (row: T) => string | number | undefined;      // stable :key per row; falls back to an internal per-row identity (never the index)
 //            excludeKey?: (row: T) => number | undefined;           // related id per row → feeds the #selector `exclude`
-//            isNew?: (row: T) => boolean }                          // override the unsaved-row detection
+//            isNew?: (row: T) => boolean;                           // override the unsaved-row detection
+//            labels?: { remove?: string; restore?: string } }      // the delete button's title per state; English by default — pass translated ones
 //   slots: chip({ row }), selector({ add, exclude })                // add: (row: T) => void; exclude: number[] (every current row, marked ones included)
 //   emits: "add" (row: T) | "remove" (row: T) | "update:modelValue" (value: T[] | undefined)
 //   "remove" fires for hard-removal, mark AND restore — discriminate AFTER the event: hard-removed row is
 //   no longer in modelValue; marked row has `_deleted === true`; restored row has `_deleted === false`.
 //   contract types (for a replacement skin): InputSelectorInlineProps<T> / InputSelectorInlineEmits<T> / InputSelectorInlineSlots<T>
+//   — modelValue / update:modelValue are not in them: the collection binds via defineModel<Array<T>>()
 ```
 
 `InputSelector` (scaffolded per-slice into `selecting/`, re-exported from the slice barrel) is the

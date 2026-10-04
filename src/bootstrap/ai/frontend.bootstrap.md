@@ -103,7 +103,7 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
       binary, no on-install build. Run the `npm install` first and surface any blocker before spending
       context on guides. (Only when pinning an unreleased commit use
       `"@regira/modules": "github:Regira/Regira-Modules"` — that path needs `git` on `PATH`, can resolve over
-      SSH, and runs the package's full `prepare` build on install, routinely past a 2-minute shell
+      SSH, and runs the package's full `prepack` build on install, routinely past a 2-minute shell
       timeout; run it detached and poll rather than reading a timeout as failure.) No NuGet, no
       license key, no service budget on the front-end.
 - [ ] Peers + toolchain installed from the **known-good dependency set** (`entities.setup` → Install) in
@@ -212,7 +212,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   password with the provided components (`vue/auth`), and pop the login modal immediately for anonymous
   users instead of rendering a dashboard they can't use (`auth.instructions` → _Account UI_).
 - **Role gating uses `authStore.hasRole(...)`,** never `hasPermission` (that reads a `permissions` claim
-  the standard Identity backend doesn't mint). The full backend-to-SPA chain is `Regira.Security` →
+  the standard Identity backend doesn't mint); a role-gated route uses `meta.policy`, never `beforeEnter`
+  (`auth.instructions` → _Route guard_). The full backend-to-SPA chain is `Regira.Security` →
   security.instructions → _Roles end-to-end_ (`how_to` key `roles-end-to-end`).
 - **Multilanguage means a visible selector.** Wire `LangSelector` (from `vue/lang`) into the header
   whenever the app is multilanguage.
@@ -236,8 +237,9 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    symptom-driven — fetch a heading when you hit the symptom, not up front. For one exact signature call
    `get_type`; for a set of them read `entities.signatures` / `ui.signatures` by heading rather than whole.
 5. Scaffold the app shell — `node node_modules/@regira/modules/_template/scaffold.mjs --shell` (`--no-auth`
-   for a no-auth app) writes `main.ts`, `App.vue`, router, dashboard/navbar, layout, views, `config.json` +
-   `app-config.ts` (full source: `entities.shell.template`); then set up the toolchain per `entities.setup` → Install.
+   for a no-auth app) writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`), `main.ts`,
+   `App.vue`, router, dashboard/navbar, layout, views, `config.json` + `app-config.ts` (full source:
+   `entities.shell.template`), skipping files that already exist.
 6. Scaffold each entity slice with `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`
    (add `--no-auth` for a no-auth app), then customize the `(c)` files; consult `entities.namespaces` / `entities.signatures` for exact
    imports/signatures and `entities.patterns` for recipes. Re-running the scaffold over an existing slice
@@ -245,5 +247,7 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    `scaffold.mjs <Entity> --attachments` also writes the shared file slice and wires it into the model and
    service; you add the tab.
 7. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
-   compilation only. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
+   compilation only. Any browser you can drive will do: one your environment provides as a tool, or a short
+   headless script with Playwright (`npm i -D playwright`, `npx playwright install chromium`); read its console
+   as well as the page. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
    empty/new-row paths) and check the main views at a mobile viewport before calling anything responsive.

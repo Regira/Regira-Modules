@@ -76,7 +76,7 @@ import { initAxios, useAxios, createQueryString } from "@regira/modules/vue/http
 | Overview               | `useSearchView`, `useListView`, `useOverviewCore`, `useRouteOverview`, `OverviewEmits` (`OverviewProps` and `DEFAULT_DEBOUNCE` are internal — not re-exported)                                                                                                                 |
 | Details                | `useDetails`, `DetailsSummary`, `DetailsSummaryProps`                                                                                                                                                                                                                          |
 | Form                   | `useForm`, `useModal`, `FormProps`, `FormEmits`, `FormIn`, `FormOut`, `FormModalIn`, `FormModalOut`, `FormStates`, `formDefaults`, `useOwnedCollection`, `useOwnedModal`, `useListInput`, `useListItemInput`, `InputSelectorInline` (+ `InputSelectorInlineProps/Emits/Slots`) |
-| Filter                 | `useFilter`, `FilterIn`, `FilterEmits`, `FilterOut`                                                                                                                                                                                                                            |
+| Filter                 | `useFilter`, `FilterEmits` (`FilterIn` / `FilterOut` are internal — not re-exported)                                                                                                                                                                                           |
 | Lean views             | `EntityOverview`, `EntityForm` (generic list/edit driven by `IEntityService`) + `useLeanOverview`, `useLeanForm`, `leanOverviewDefaults`, `LeanOverviewProps/Slots/Out`, `LeanFormProps/Emits/Slots/Out`                                                                       |
 | Pooling                | `createStore`, `usePooling`, `defaultPoolCache`, `PoolCache`, `PoolService`, `IPoolHandler`, `IPoolService`, `IPoolCache`                                                                                                                                                      |
 | Navigation             | `NavItem`, `NavGroup`, `INavItem`, `INavCore`, `createNavItem`, `createNavGroup`, `buildNavigationTree`, `importDashboard`, `importNavbar`, `isNavItem`                                                                                                                        |
@@ -127,7 +127,7 @@ signatures: `get_package(id: "regira_modules.vue.formatters", section: "formatte
 > a symbol is re-exported; these deep paths are only needed for the few symbols that aren't.
 
 > **Date serialization (not under `vue/`):** `import dateExtensions from "@regira/modules/extensions/date-extensions"`
-> then call `dateExtensions.use()` once at startup to serialize `Date`s to JSON without a timezone shift.
+> then call `dateExtensions.use()` once at startup to serialize `Date`s to JSON as local time with their UTC offset.
 > It lives under `extensions/`, not `vue/` — a common wrong guess.
 
 ---

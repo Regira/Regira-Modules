@@ -164,9 +164,10 @@ export class Foo extends EntityBase {
     //    JSON key (a `get fullName()` mirroring a projected fullName) makes hydration throw at runtime;
     //    vue-tsc stays green
 
-    // the only two Date fields hydrated for you (EntityServiceBase.processItem) — every OTHER Date field
+    // the only two Date fields hydrated for you (EntityServiceBase.processItem) — every OTHER DateTime field
     // arrives as an ISO string and needs a guarded lift in EntityService.toEntity, nested rows included,
-    // or `.getTime()`/a mask formatter throws at runtime while vue-tsc stays green
+    // or `.getTime()`/a mask formatter throws at runtime while vue-tsc stays green. A DateOnly / TimeOnly
+    // field is the exception: it stays a "yyyy-MM-dd" string (a Date goes back as a timestamp → 400)
     // (see entities.instructions.md → Item hydration)
     created?: Date
     lastModified?: Date
@@ -212,7 +213,6 @@ const config: IConfig = {
 
     api, // every *Url below defaults to `api` when omitted; keep only the ones you override
     searchUrl: api + "/search", // counted search endpoint — the overview pages through it (every controller exposes /search)
-    saveUrl: api, // resource base — update/remove append /{$id} themselves
 }
 
 export default config
@@ -263,7 +263,7 @@ substitute: it refetches on every keystroke.
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" :showText="true" @click="handleReset" />
+                <IconButton icon="clear" @click="handleReset" />
             </div>
         </div>
 
@@ -515,9 +515,9 @@ const item = defineModel<Entity>({ required: true })
                  InputSelector + exclude; filter _deleted rows in EntityService.prepareItem. The multi-Selector
                  hard-removes — don't use it here. See entities.patterns.md → owned-m2m recipe. -->
             <!-- child collections go here, e.g. <ChildOverview v-model="item" /> (see entities.advanced.example.md) -->
-            <!-- ⚠️ but NOT a component that brings its own <FormSection>: it would render a titled panel
+            <!-- ⚠️ but NOT a component that brings its own FormSection: it would render a titled panel
                  inside this one. The attachments overview is exactly that — it owns the "files" section, so
-                 place it after </FormSection> below, or in its own <template #files> in a tabbed form. -->
+                 place it after this section closes, or in its own #files template in a tabbed form. -->
         </FormSection>
 
         <!-- <Debug> dumps the live payload, self-gated on $isDebug (?debug=1) — inert in production; curate the payload. -->

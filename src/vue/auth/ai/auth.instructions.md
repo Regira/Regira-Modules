@@ -99,6 +99,10 @@ token is validated and 401s, wasting a request. Those two composables discard a 
 a view driving its own `useFeedback` does not, so there the 401's banner stays on screen over the data the
 hook then loads.
 
+⚠️ **Register it below everything its handler uses.** With a token already present, the immediate run happens
+at the `onAuthenticated(…)` call itself — so in `<script setup>` a `const load = async () => …` declared further
+down is not initialized yet, and the call throws `ReferenceError`.
+
 With the plugin `enabled: false` no token ever arrives, so it honours `immediate` once and stops — nothing
 is gated in such an app. Pass
 `{ store }` only for a store the plugin knows nothing about; it names the store to watch and is honoured
@@ -215,6 +219,17 @@ never the token.
   `meta.permissions` checks the `permissions` claim, not roles.
 - Not authenticated: sets `authRequired` and **allows navigation** (the app shows a login popup rather
   than redirecting). Define an `allowAnonymous` route for public pages and a `forbidden` route.
+
+The plugin restores a stored token with an async `validateToken` and registers this guard only after it, while the
+router's first navigation has already started. So once the guard is registered, the plugin runs the same check for
+the route already shown and replaces it when the check redirects: a reload or a deep link to a gated page is
+checked too, as soon as the token is known. `routeGuard` returns that check, for an app that registers the guard
+itself.
+
+> ⚠️ **Gate a route by role with `meta.policy`, never `beforeEnter: () => hasRole(…)`.** `beforeEnter` runs on the
+> first navigation with no token yet, and nothing runs it again: an administrator reloading the page, or opening a
+> link to it, lands on `forbidden`. The API still decides who may write either way; the route gate only spares the
+> user a page they cannot use.
 
 ## Account UI — wire the FULL surface, shown on time
 

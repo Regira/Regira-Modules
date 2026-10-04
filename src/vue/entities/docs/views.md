@@ -32,8 +32,8 @@ if (await applyRemove(item)) handleRemove(item)
 ```
 
 Calling `handleRemove(item)` unconditionally removes the row even when the server refused the delete
-(a 409 while the row is still referenced), so the list and the failure message contradict each other
-until the next fetch.
+(a validator's 400, or a 409 while the row is still referenced), so the list and the failure message
+contradict each other until the next fetch.
 
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
@@ -69,13 +69,17 @@ passing `item`. `item` is `undefined` until the `onMounted` load resolves — ga
 `useForm({ entityService, props, emit })` returns `item` plus `handleSubmit`, `handleCancel`,
 `handleRemove`, `handleRestore`, and `feedback`. Note the form's `handleRemove()` takes **no arguments**
 (it removes the bound `item.value`) — unlike the overview's `handleRemove(item)`. Define props with `withDefaults(defineProps<FormProps &
-…>(), { ...formDefaults })` and emits via `FormEmits<T>`; `FormStates` enumerates pending/saved/removed/
-error. `useModal` is the in-modal variant for editing without leaving the page.
+…>(), { ...formDefaults })` and emits via `FormEmits<T>`. Its `changeState` event reports a write as
+`FormStates.pending`, then one final state: `saved` or `removed` when the write succeeded, `error` when the server
+refused it or it failed — a refused delete never reports `removed`. `useModal` is the in-modal variant for editing
+without leaving the page.
 
 After an insert, `handleSubmit` replaces the current route with one carrying the new id (skipped when
-`isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (both the flat
-map a rule breach produces and model binding's `errors`, read with `toFeedbackError` from `vue/ui`), otherwise the
-server's text on `feedback.message`.
+`isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (the ProblemDetails
+`errors`, read with `toFeedbackError` from `vue/ui`, which shows a validation error in the user's language when its
+message is a key in the app's translation messages), otherwise the server's text on `feedback.message`. The
+form's `Feedback` lists those field errors under the message, each headed by the field's label; a form that shows
+them at its inputs sets `:hide-field-errors="true"` on it.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.
@@ -86,7 +90,8 @@ that user may do. This hides buttons; the API remains the only place writes are 
 For child/owned collections inside a form, render the rows with **`InputSelectorInline`** — chips that
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`
 override), remove rows added this session outright (nothing to undo; override the detection via the
-`isNew` prop), and hand the picker slot an `exclude` list. The heavier per-row editors are `useOwnedCollection`,
+`isNew` prop), and hand the picker slot an `exclude` list. Its delete button's title reads "Remove" or "Restore";
+pass translated ones through the `labels` prop. The heavier per-row editors are `useOwnedCollection`,
 `useOwnedModal`, `useListInput`, and `useListItemInput`. The multi-`Selector`
 hard-removes on delete, so it does not fit collections that need the marked-delete UX.
 

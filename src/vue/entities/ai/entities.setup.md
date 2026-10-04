@@ -36,7 +36,7 @@ map makes the **plain package specifier resolve with no alias or tsconfig path**
 
 > Installs from the npm registry with a prebuilt `dist/` — no `git` binary, no on-install build. (Only
 > when pinning an unreleased commit use `"@regira/modules": "github:Regira/Regira-Modules"`, which needs `git`
-> on `PATH` and runs the full `prepare` build on install.)
+> on `PATH` and runs the full `prepack` build on install.)
 
 ```ts
 import { EntityBase, EntityServiceBase } from "@regira/modules/vue/entities"
@@ -354,6 +354,7 @@ env.d.ts                         # /// <reference types="vite/client" />
 public/
   config.json                    # runtime config (env-keyed api, title, navigation, flags) — see Runtime config
   data/translations.json         # i18n messages (key-first) — see Runtime config
+  favicon.svg                    # placeholder app icon, linked from index.html — replace with your own
 src/
   shims.d.ts                     # $configs + app-specific globals ($isAdmin) — see Root component
   app-config.ts                  # loads + types public/config.json (createConfig / useConfig) — see Runtime config
@@ -364,7 +365,7 @@ src/
     index.ts                     # re-export routerFactory
     router.ts                    # routerFactory(entityRoutes)
     routes.ts                    # static routes (home, account/auth, password reset, error pages)
-  views/                         # HomeView / NotFound / Forbidden / Unauthorized · AccountView + ResetPasswordView (auth builds)
+  views/                         # HomeView / NotFound / Forbidden · Unauthorized + AccountView + ResetPasswordView (auth builds)
   components/                    # shared UI shell — see App shell
     entity-navigation/           #   Dashboard / NavBar / NavSearch (built from $configs) + useNavigation()
       index.ts  functions.ts
@@ -372,7 +373,7 @@ src/
     layout/                      #   TheHeader / TheFooter / Main · AppModal / LangSelector / Offline (+)
     users/                       #   ForgotPasswordForm (auth-on) · (+) the rest of the account UI
   infrastructure/                # small app-wide glue (permissions, plugins) — see App shell (keep it basic)
-    permissions.ts               #   permission constants
+    permissions.ts               #   role + permission constants (auth builds)
     user-plugin.ts               #   $isAdmin + persists chosen language
   utilities/                     # (+) larger apps: helpers that import no entity — formatting, date math
   entities/
@@ -457,12 +458,14 @@ src/entities/<name>/             # one entity slice — copy this folder set for
 ## Runtime config — `public/config.json`
 
 ```json
-{ "api": "https://localhost:5001", "culture": "en-US", "clientApp": "my-app", "loginUrl": "https://accounts.example.com/login" }
+{ "api": "/api", "culture": "en-US", "clientApp": "my-app" }
 ```
 
-`clientApp` is the JWT audience and rides the login request automatically (`login()` appends `?clientApp=`);
-`loginUrl` only overrides the endpoint path. Never write a `{clientApp}` placeholder into it — nothing
-substitutes it at runtime.
+`api` is the axios base: `/api` on the SPA's own origin, which the Vite dev proxy forwards to the API in development
+([The URL contract](#the-url-contract--four-owners-one-request)). `clientApp` is the JWT audience and rides the login request automatically (`login()` appends `?clientApp=`).
+There is no `loginUrl`: `login()` posts to `auth` under the axios base, the endpoint the API's account controller
+serves. Add one only for a login endpoint that is not `auth` — it overrides that path, and never takes a
+`{clientApp}` placeholder, since nothing substitutes it at runtime.
 
 If you use the language plugin (`$t`), also add `public/data/translations.json`. Its shape is
 **key-first** — `Record<key, Record<langCode, string> | string>` — _not_ language-first (a wrong guess
@@ -479,7 +482,7 @@ makes every `$t()` render the raw key):
 See [lang.signatures.md](../../lang/ai/lang.signatures.md) (`ITranslationMessages`).
 
 Framework chrome emits its own keys (`keywords`, `new`, `noResults`, `save`, `cancel`, `delete`, `restore`, `deleteItem`, `filtersAreApplied`,
-`overview`, `popOut`, `signIn`/`signOut`); `scaffold.mjs --shell` seeds them in `translations.json` — add your
+`overview`, `popOut`, and `signIn`/`signOut` with auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
 domain labels alongside, or blank UI text renders the raw key.
 
 ### Typed config loader — `src/app-config.ts`
@@ -491,7 +494,7 @@ For anything beyond a toy app, load `config.json` through a small `app-config.ts
 // public/config.json — `api` may be a flat string or an object keyed by Vite MODE
 {
     "clientApp": "shopping-manager",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": { "development": "https://localhost:7001/api", "production": "/api" },
     "includeCredentials": false,
     "title": { "en": "ShoppingManager" },
 }
@@ -524,7 +527,8 @@ The `BasicApi` server template calls `app.UseHttpsRedirection()`, so a request t
 307-redirects to the HTTPS port and the browser blocks the SPA on the untrusted dev certificate. Pick one:
 
 - **Trust the dev cert** and keep `api` on the HTTPS port: `dotnet dev-certs https --trust`.
-- **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`:
+- **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`. `scaffold.mjs --shell`
+  writes this setup; set its proxy target to the API's HTTPS launch URL:
     ```ts
     // vite.config.ts → server.proxy
     server: { proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } } }
@@ -580,8 +584,7 @@ and navbar. Each `icon` is a **registered friendly key** or a **raw `bi bi-*` cl
 ```jsonc
 {
     "clientApp": "shopping-manager",
-    "loginUrl": "https://accounts.example.com/auth/",
-    "api": { "development": "https://localhost:7001", "production": "/api" },
+    "api": "/api",
     "includeCredentials": false,
     "title": { "en": "ShoppingManager", "nl": "ShoppingManager" },
     "navigation": {
@@ -614,7 +617,9 @@ matches no registered slice (`"products"` instead of `"Product"`) is skipped wit
 ## Router
 
 Split the static (app-owned) routes from the entity routes the slices push at startup. The minimal form is
-a single `routerFactory`; the full template splits it across `src/router/`.
+a single `routerFactory`; the full template splits it across `src/router/`. A route only some roles may open is
+gated with `meta.policy` — `(store) => store.hasRole("Admin")` — not `beforeEnter`, which runs before a stored
+token is restored ([auth](../../auth/ai/auth.instructions.md) → Route guard).
 
 **Minimal:**
 
@@ -711,9 +716,8 @@ import dateExtensions from "@regira/modules/extensions/date-extensions"
 import entityPlugins from "@/entities"
 import { routerFactory } from "@/router"
 import App from "@/App.vue"
-import loadingImg from "@/assets/loading.gif"
 
-dateExtensions.use() // serialize dates to JSON without timezone shift
+dateExtensions.use() // serialize Dates to JSON as local time with their UTC offset
 
 fetch("/config.json")
     .then((r) => r.json())
@@ -733,7 +737,7 @@ fetch("/config.json")
         // UI plugins
         app.use(iconPlugin, { source: "bs" })
         app.use(screenPlugin)
-        app.use(loadingPlugin, { img: loadingImg })
+        app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
         const { setLangCode } = useLang()
@@ -939,20 +943,20 @@ export {}
 The entities layer needs only a few globals; install the rest as you actually use them. Install order
 still matters where dependencies exist (see [Bootstrap — main.ts](#bootstrap--maints)).
 
-| Plugin                                       | Provides                                      | Status for the entities layer                                                                                                               |
-| -------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `createPinia()`                              | Pinia stores                                  | **Required** (app store, entity stores, auth store)                                                                                         |
-| `appPlugin` (`vue/app`)                      | `$appStatus` / `$setAppStatus`, `$culture`    | **Required** — the startup lifecycle and loading gate                                                                                       |
-| `servicesPlugin` (`vue/ioc`)                 | `$services` IoC + `get()`; creates `$configs` | **Required** — register the shared `axios` and `PoolCache` here; services resolve from here                                                 |
-| entity plugins (`@/entities`)                | routes + service registrations + `$configs`   | **Required** — your slices                                                                                                                  |
-| `routerFactory` (vue-router)                 | routing                                       | **Required** for multi-view slices                                                                                                          |
-| `iconPlugin` (`vue/ui`)                      | `$icons`                                      | Required if your views/nav render icons (the demos do)                                                                                      |
-| `feedbackPlugin` (`vue/ui`)                  | `$feedback`                                   | Required if you use the `Feedback` component (the demo `App.vue` does)                                                                      |
-| `loadingPlugin` (`vue/ui`)                   | the image `Loading`/`LoadingContainer` render | Required if you use `LoadingContainer` (the demo `App.vue` does). **Must pass `{ img }`** when installed: `app.use(loadingPlugin, { img })` |
-| `langPlugin` (`vue/lang`)                    | `$t` i18n                                     | Optional — only if you render translated labels                                                                                             |
-| directives (`focus`, `grow`, `clickOutside`) | template directives                           | Optional — only where used                                                                                                                  |
-| `preloaderPlugin` (`vue/entities`)           | route preloading                              | Optional                                                                                                                                    |
-| `authPlugin` (`vue/auth`)                    | bearer auth + `$auth`                         | **Optional** — see [Running without authentication](#running-without-authentication)                                                        |
+| Plugin                                       | Provides                                          | Status for the entities layer                                                                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createPinia()`                              | Pinia stores                                      | **Required** (app store, entity stores, auth store)                                                                                                                           |
+| `appPlugin` (`vue/app`)                      | `$appStatus` / `$setAppStatus`, `$culture`        | **Required** — the startup lifecycle and loading gate                                                                                                                         |
+| `servicesPlugin` (`vue/ioc`)                 | `$services` IoC + `get()`; creates `$configs`     | **Required** — register the shared `axios` and `PoolCache` here; services resolve from here                                                                                   |
+| entity plugins (`@/entities`)                | routes + service registrations + `$configs`       | **Required** — your slices                                                                                                                                                    |
+| `routerFactory` (vue-router)                 | routing                                           | **Required** for multi-view slices                                                                                                                                            |
+| `iconPlugin` (`vue/ui`)                      | `$icons`                                          | Required if your views/nav render icons (the demos do)                                                                                                                        |
+| `feedbackPlugin` (`vue/ui`)                  | `$feedback`                                       | Required if you use the `Feedback` component (the demo `App.vue` does)                                                                                                        |
+| `loadingPlugin` (`vue/ui`)                   | the indicator `Loading`/`LoadingContainer` render | Required if you use `LoadingContainer` (the demo `App.vue` does). Without `{ img }` the built-in spinner renders; an image replaces it, so pass only one that shows something |
+| `langPlugin` (`vue/lang`)                    | `$t` i18n                                         | Optional — only if you render translated labels                                                                                                                               |
+| directives (`focus`, `grow`, `clickOutside`) | template directives                               | Optional — only where used                                                                                                                                                    |
+| `preloaderPlugin` (`vue/entities`)           | route preloading                                  | Optional                                                                                                                                                                      |
+| `authPlugin` (`vue/auth`)                    | bearer auth + `$auth`                             | **Optional** — see [Running without authentication](#running-without-authentication)                                                                                          |
 
 > **`debugPlugin` (`vue/debug`) — install it.** The scaffolded `Overview.vue`, `Filter.vue` and
 > `SelectorSearch.vue` import `<Debug>`, which renders only when `$isDebug` is true — and `$isDebug` is
@@ -1001,7 +1005,9 @@ disabled), make these four changes:
 3. **`App.vue` — drop the auth UI.** Remove `LoginModal`, `LoginForm`, `ForgotPasswordModal`, the
    `ForgotPasswordForm` import and its `showForgot`/`forgotUsername` state, `useAuthStore`, and the `$auth`
    reference; gate the loading container on app status alone. Drop `ResetPasswordView` and its
-   `/reset-password` route from `router/routes.ts` too — password recovery goes with the auth plugin:
+   `/reset-password` route from `router/routes.ts` too — password recovery goes with the auth plugin. The
+   `#loginModal` host in `index.html` and the sign-in, account and recovery texts in `translations.json`
+   (`signIn`, `signOut`, `account`, `username`, `resetPassword`, `recoveryMail*`, …) have nothing left to serve:
 
     ```vue
     <script setup lang="ts">
@@ -1241,8 +1247,8 @@ defineProps<{ url?: string }>()
 </template>
 ```
 
-`Forbidden.vue` / `Unauthorized.vue` follow the same shape (a heading + the offending `url`). Auth builds
-add two more: `AccountView` (the signed-in user's account page, hosting `ChangePasswordForm`) and
+`Forbidden.vue` follows the same shape (a heading + the offending `url`), and so does `Unauthorized.vue`,
+the `/401` "please sign in" page, which only auth builds have. Auth builds add two more: `AccountView` (the signed-in user's account page, hosting `ChangePasswordForm`) and
 `ResetPasswordView` (the recovery mail's landing page on `/reset-password`, hosting `ResetPasswordForm` —
 `allowAnonymous`, since the visitor cannot sign in yet). Full source for both is in
 [entities.shell.template.md](entities.shell.template.md).

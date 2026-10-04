@@ -48,8 +48,8 @@ export function useOverviewCore<T extends IEntity, SO extends ISearchObject = IS
         return undefined
     }
     // Returns whether the row is gone, so a caller can guard handleRemove the way applySave's result already
-    // lets it guard handleSave. A delete the server refused (409 while the row is referenced, 403) used to
-    // leave the failure message up AND drop the row from the list until the next fetch.
+    // lets it guard handleSave. A delete the server refused (a validator's 400, a 409 while the row is referenced, 403)
+    // would otherwise leave the failure message up AND drop the row from the list until the next fetch.
     async function applyRemove(item: T): Promise<boolean> {
         const isLatest = claimWrite()
         isLoading.value = true

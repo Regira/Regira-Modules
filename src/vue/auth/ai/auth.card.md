@@ -27,7 +27,8 @@
   probes all three. `hasPermission` reads a **`permissions`** claim the standard Identity recipe never
   mints; role-gating with it silently answers `false` (invisible buttons, forbidden redirects).
 - **Route guard** (installed by the plugin): `meta.allowAnonymous` bypasses; `meta.permissions: string[]`
-  checks `hasPermission`; role-gated routes use `meta.policy: (store) => store.hasRole("Admin")`.
+  checks `hasPermission`; role-gated routes use `meta.policy: (store) => store.hasRole("Admin")`, never
+  `beforeEnter`, which runs before a stored token is restored; the plugin re-checks the first route once it is.
   Unauthenticated navigation is **allowed** (popup model — gate content and show `LoginModal`); only
   `permissions`/`policy` failures redirect, to a route named `forbidden`.
 - **Build the full account surface, not just login:** `LoginModal`, `ForgotPasswordModal` (+ your own form),

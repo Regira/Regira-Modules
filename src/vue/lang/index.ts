@@ -1,7 +1,7 @@
 export { useLang } from "./useLang"
 export { plugin } from "./plugin"
 export { translate, translateMessage, type ITranslationMessages, type ITranslationMessage } from "./translate"
-export { formatText, type IFormatInput } from "./formatText"
+export { formatText, type IFormatInput, type FormatTextOptions } from "./formatText"
 export { default as LangSelector } from "./LangSelector.vue"
 export { type LangSelectorProps, type LangSelectorEmits } from "./langSelector"
 

@@ -9,6 +9,8 @@ export type InputSelectorInlineProps<T> = {
      * defaults to "added via this component's `add` in this session and no persisted id"
      */
     isNew?: (row: T) => boolean
+    /** the delete button's title per state — English by default; pass translated ones for i18n */
+    labels?: { remove?: string; restore?: string }
 }
 export type InputSelectorInlineEmits<T> = {
     /**
