@@ -263,7 +263,7 @@ substitute: it refetches on every keystroke.
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
 
@@ -338,7 +338,7 @@ the row pushes the page sideways. A cell holding one `.btn` needs **≥ 4.5rem**
                      dropping them misaligns the header by ~2px. Inert markup on purpose (`.disabled` = no
                      pointer events) — a disabled FormModalButton here would mount a useModal + a <Teleport> per list. -->
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col">{{ $t("name") }}</div>
             <!-- TODO: the 1–3 most important OTHER fields, in this reveal order (`scaffold.mjs --rel <Related>`
@@ -402,7 +402,12 @@ const items = computed<Array<Entity>>({
             <!-- Row-edit affordance follows config.isComplex: a real entity (page) links to its Details route;
                  a very basic entity (modal) opens FormModalButton. Forward @remove either way so a delete from
                  inside the modal refreshes the pooled overview — without it the deleted row lingers until reload. -->
-            <RouterLink v-if="config.isComplex" :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+            <RouterLink
+                v-if="config.isComplex"
+                :to="{ name: config.key + 'Details', params: { id: item.$id } }"
+                class="btn btn-link p-1"
+                :aria-label="$t('edit')"
+            >
                 <Icon name="edit" />
             </RouterLink>
             <FormModalButton v-else v-model="item" :readonly="readonly" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
@@ -424,6 +429,7 @@ const items = computed<Array<Entity>>({
             <ConfirmButton
                 v-if="!readonly"
                 icon="delete"
+                :aria-label="$t('delete')"
                 :modal-type="ModalType.danger"
                 :modal-title="$t('delete')"
                 :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"
@@ -493,7 +499,7 @@ const item = defineModel<Entity>({ required: true })
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info" :aria-label="$t('overview')">
                     <Icon name="list" /> <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
             </div>
@@ -559,7 +565,12 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
         </div>
         <div v-for="item in items" :key="item.$id" class="row border-bottom py-2" :class="{ 'is-selected': isSelected(item) }">
             <div class="col-auto">
-                <IconButton :icon="isSelected(item) ? 'selected' : 'select'" @click="handleSelect(item)" />
+                <IconButton
+                    :icon="isSelected(item) ? 'selected' : 'select'"
+                    :aria-label="$t('select')"
+                    :aria-pressed="isSelected(item)"
+                    @click="handleSelect(item)"
+                />
             </div>
             <!-- TODO: columns -->
             <div class="col text-truncate">{{ item.$title }}</div>

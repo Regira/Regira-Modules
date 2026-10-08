@@ -7,7 +7,7 @@
                      dropping them misaligns the header by ~2px. Inert markup on purpose (`.disabled` = no
                      pointer events) — a disabled FormModalButton here would mount a useModal + a <Teleport> per list. -->
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col">{{ $t("name") }}</div>
             <!-- TODO: the 1–3 most important OTHER fields, in this reveal order (`scaffold.mjs --rel <Related>`

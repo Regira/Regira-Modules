@@ -152,7 +152,19 @@ describe("scaffold.mjs derived paths", () => {
 
             writeFileSync(
                 join(appRoot, "public", "data", "translations.json"),
-                JSON.stringify({ save: 1, cancel: 1, delete: 1, restore: 1, deleteItem: { en: "Delete {title}?" } })
+                JSON.stringify({
+                    save: 1,
+                    cancel: 1,
+                    delete: 1,
+                    restore: 1,
+                    deleteItem: { en: "Delete {title}?" },
+                    edit: 1,
+                    clear: 1,
+                    filter: 1,
+                    select: 1,
+                    remove: 1,
+                    download: 1,
+                })
             )
             const current = runIn("Receipt", "--no-auth")
             expect(current).not.toContain("translations.json has no")

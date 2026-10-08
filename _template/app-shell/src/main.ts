@@ -66,6 +66,8 @@ fetch(`${appConfig.baseUrl}/config.json`)
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
+                // the pool is per tab: the next account must not see the previous one's rows
+                if (!auth.isAuthenticated) defaultPoolCache.clear()
             },
         })
         app.use(userPlugin)

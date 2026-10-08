@@ -798,9 +798,9 @@ if (sliceGenerated) {
     console.log(`· ${join(baseDir, plural)} exists — leaving the slice as-is, adding ${adding} only.`)
 }
 
-// The keys a slice's chrome translates (form buttons, the delete dialog). `scaffold.mjs --shell` seeds them, but a
-// shell scaffolded by an older version lacks the newer ones, and $t renders a missing key raw — so name the ones this
-// app's translations do not have instead of leaving buttons reading "save" / "delete".
+// The keys a slice's chrome translates (form buttons, the names of its icon-only buttons, the delete dialog).
+// `scaffold.mjs --shell` seeds them, but a shell scaffolded by an older version lacks the newer ones, and $t renders a
+// missing key raw — so name the ones this app's translations do not have instead of leaving buttons reading "save".
 function missingChromeKeys() {
     const file = resolve(process.cwd(), "public", "data", "translations.json")
     if (!existsSync(file)) return
@@ -810,11 +810,23 @@ function missingChromeKeys() {
     } catch {
         return // unreadable — nothing to compare against
     }
-    const seeds = { save: "Save", cancel: "Cancel", delete: "Delete", restore: "Restore", deleteItem: "Delete {title}?" }
+    const seeds = {
+        save: "Save",
+        cancel: "Cancel",
+        delete: "Delete",
+        restore: "Restore",
+        deleteItem: "Delete {title}?",
+        edit: "Edit",
+        clear: "Clear",
+        filter: "Filter",
+        select: "Select",
+        remove: "Remove",
+        download: "Download",
+    }
     const missing = Object.keys(seeds).filter((key) => !(key in translations))
     if (missing.length) {
         console.log(
-            `! public/data/translations.json has no ${missing.map((k) => `"${k}"`).join(", ")} — the slice's form buttons and delete dialog would render ${missing.length === 1 ? "it" : "them"} raw. Add: ${missing.map((k) => `"${k}": { "en": "${seeds[k]}" }`).join(", ")}`
+            `! public/data/translations.json has no ${missing.map((k) => `"${k}"`).join(", ")} — the slice's buttons and delete dialog would render ${missing.length === 1 ? "it" : "them"} raw. Add: ${missing.map((k) => `"${k}": { "en": "${seeds[k]}" }`).join(", ")}`
         )
     }
     if (translations.deleteItem && !JSON.stringify(translations.deleteItem).includes("{title}")) {
@@ -1012,8 +1024,8 @@ function scaffoldShell() {
     if (!noAuth) {
         console.log(`  public/config.json → clientApp is "my-app": set it to the API's JWT audience (Authentication:Jwt:Audience),`)
         console.log(`  or every authenticated call 401s. Sign-in posts to "auth" under the API base — add a loginUrl only for another endpoint.`)
-        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Admin") — the Identity + AddRoles`)
-        console.log(`  default. The match is exact and case-sensitive, so confirm the role name against the API (and`)
+        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Administrator") — the role the back-end`)
+        console.log(`  guides seed. The match is exact and case-sensitive, so confirm the role name against the API (and`)
         console.log(`  switch to hasPermission on a permissions-claim backend), or $isAdmin stays false for everyone.`)
     }
 }

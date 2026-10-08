@@ -19,6 +19,10 @@ app.use(servicesPlugin, { configure: (sp) => sp.add("axios", () => axios).add(Po
 `usePooling(service, type, cache?, persistent?)` is the lower-level primitive; mark never-expiring types
 via `cache.persistentTypes`. `PoolCache` accepts `{ interval, expires, maxItems }`.
 
+The pooled `details`, `list` and `search` write every row they return into the cache, so a re-fetch refreshes
+the shared instances. The cache belongs to the browser tab, not to the signed-in user: the app shell empties it
+on sign-out with `defaultPoolCache.clear()`, and a tenant switch should do the same.
+
 Views read the cache through two store accessors. **`fromPool(entityOrRelation)`** (single or array) runs the
 input through `toEntity` and returns the shared, deduplicated instance for its `$id` — rehydrating a plain
 nested relation into a real model so `$id`/`$title` work, and pooling it on first sight (a single unsaved

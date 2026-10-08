@@ -58,7 +58,7 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 ```jsonc
 // package.json — known-good set (runtime peers + the build toolchain they require)
 "dependencies": {
-  "@regira/modules": "*", // always the latest published version — npm install pins the caret range
+  "@regira/modules": "*", // the latest release; npm install keeps "*" (the lockfile pins it) — npm install @regira/modules writes "^6.x"
   "vue": "^3.5", "vue-router": "^5", "pinia": "^3",
   "axios": "^1", "date-fns": "^4",
   "bootstrap": "^5.3", "bootstrap-icons": "^1.13"
@@ -482,7 +482,8 @@ makes every `$t()` render the raw key):
 See [lang.signatures.md](../../lang/ai/lang.signatures.md) (`ITranslationMessages`).
 
 Framework chrome emits its own keys (`keywords`, `new`, `noResults`, `save`, `cancel`, `delete`, `restore`, `deleteItem`, `filtersAreApplied`,
-`overview`, `popOut`, and `signIn`/`signOut` with auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
+`overview`, `popOut`, the icon-button names `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`, and `signIn`/`signOut` with
+auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
 domain labels alongside, or blank UI text renders the raw key.
 
 ### Typed config loader — `src/app-config.ts`
@@ -618,7 +619,7 @@ matches no registered slice (`"products"` instead of `"Product"`) is skipped wit
 
 Split the static (app-owned) routes from the entity routes the slices push at startup. The minimal form is
 a single `routerFactory`; the full template splits it across `src/router/`. A route only some roles may open is
-gated with `meta.policy` — `(store) => store.hasRole("Admin")` — not `beforeEnter`, which runs before a stored
+gated with `meta.policy` — `(store) => store.hasRole("Administrator")` — not `beforeEnter`, which runs before a stored
 token is restored ([auth](../../auth/ai/auth.instructions.md) → Route guard).
 
 **Minimal:**
@@ -763,6 +764,8 @@ fetch("/config.json")
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
+                // the pool is per tab: the next account must not see the previous one's rows
+                if (!auth.isAuthenticated) defaultPoolCache.clear()
             },
         })
 
@@ -1174,7 +1177,7 @@ store and persists the chosen language. Skip both for a no-auth app. In a larger
 
 ```ts
 // src/infrastructure/permissions.ts — erasableSyntaxOnly-safe const maps (not enums)
-export const Roles = { ADMIN: "Admin" } as const
+export const Roles = { ADMIN: "Administrator" } as const
 export type Role = (typeof Roles)[keyof typeof Roles]
 
 export const Permissions = { CAN_READ: "can_read", CAN_WRITE: "can_write", ADMIN: "admin" } as const

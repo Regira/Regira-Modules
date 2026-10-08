@@ -112,6 +112,10 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 - `useFeedback({ autoHideDelay })`: only `success()` hides itself, `autoHideDelay` ms later (default 1500; `0`
   keeps it up). `pending()`, `fail()` and `reset()` cancel a hide still waiting, so a failure shown right after a
   success stays up until something resets it.
+- Icons render `aria-hidden`, so a button showing only an icon has no accessible name: give an icon-only
+  `IconButton`, `ConfirmButton` or `<button>` an `aria-label` (it falls through to the `<button>`). A label hidden
+  below a breakpoint (`d-none d-md-inline`) is hidden from assistive tech as well, so keep the same text in
+  `aria-label`. `FormButtonsRow` does this for its buttons.
 - `FormLabel` renders **below** its input (a muted caption, not a `<label>` above it), so align a row that
   mixes labelled fields with buttons to `flex-start`.
 - `FormButtonsRow` with `readonly` renders no buttons: nothing can be saved, deleted or restored, and there

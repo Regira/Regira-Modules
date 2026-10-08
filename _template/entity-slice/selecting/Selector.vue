@@ -4,7 +4,7 @@
             <div class="text-nowrap p-2 border rounded-1">
                 <FormModalButton v-model="items![i]" class="m-0 p-0" />
                 {{ item.$title }}
-                <IconButton icon="delete" class="m-0 py-0 px-1" @click="handleRemove(item)" />
+                <IconButton icon="delete" class="m-0 py-0 px-1" :aria-label="$t('remove')" @click="handleRemove(item)" />
             </div>
         </div>
         <div class="col-auto">

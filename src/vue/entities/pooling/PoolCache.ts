@@ -14,6 +14,8 @@ export interface IPoolCache {
     set<T extends IEntity>(item: T): Ref<T>
     get<T extends IEntity>(type: string, key: number | string): Ref<T> | undefined
     remove<T extends IEntity>(item: T): boolean
+    /** drops every cached row, persistent types included — the pool is per tab, not per user */
+    clear?(): void
 
     hasType(type: string): boolean
     getAll<T extends IEntity>(type: string): Array<Ref<T>>
@@ -68,6 +70,10 @@ export class PoolCache implements IPoolCache {
         // const references = this.findReferences(item);
         // console.debug("references", { removed: item, references });
         return isRemoved
+    }
+
+    clear(): void {
+        this._cache.clear()
     }
 
     hasType(type: string): boolean {

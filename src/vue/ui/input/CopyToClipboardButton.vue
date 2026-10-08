@@ -1,5 +1,5 @@
 <template>
-    <IconButton class="rg-copy-button" :icon="success ? 'check' : 'copy'" :disabled="success" @click="handleCopy" />
+    <IconButton class="rg-copy-button" :icon="success ? 'check' : 'copy'" :disabled="success" aria-label="Copy" @click="handleCopy" />
 </template>
 
 <script setup lang="ts">

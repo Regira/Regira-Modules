@@ -702,6 +702,7 @@ export interface IPoolCache {
     set<T extends IEntity>(item: T): Ref<T>
     get<T extends IEntity>(type: string, key: number | string): Ref<T> | undefined
     remove<T extends IEntity>(item: T): boolean
+    clear?(): void // drops every cached row, persistent types included (PoolCache implements it)
     hasType(type: string): boolean
     getAll<T extends IEntity>(type: string): Array<Ref<T>>
     getEntityMap(type: string): Map<number | string, any>

@@ -34,10 +34,12 @@ Install **after** the router and `initAxios`, passing that same axios instance. 
 relative to the axios `baseURL` (`auth`, `auth/validate`, `auth/refresh`, `auth/password*`). `logout()`
 is client-side (clears the token); unauthenticated navigation is allowed (the app shows a login popup),
 so provide a login view and a `forbidden` route. Gate a route by role with `meta.policy`
-(`(store) => store.hasRole("Admin")`), not `beforeEnter`: a stored token is restored only after the first
+(`(store) => store.hasRole("Administrator")`), not `beforeEnter`: a stored token is restored only after the first
 navigation, so a `beforeEnter` check sends an administrator who reloads the page to `forbidden`. The guard
 itself is registered after that restore, so the plugin then checks the route already shown as well, and a
-reload or deep link to a gated page is caught once the token is known.
+reload or deep link to a gated page is caught once the token is known. Every new token runs that check again, so
+a page stays on screen only while the signed-in identity may see it — after another account signs in on it, or a
+refresh or tenant switch changes its roles.
 
 Failed requests are logged with every credential this module handles masked — the bearer header on every
 request, and the body, `params` and query string of a credential-bearing endpoint (the `auth` family plus a

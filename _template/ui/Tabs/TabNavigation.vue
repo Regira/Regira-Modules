@@ -5,6 +5,7 @@
                 <a
                     :href="`#${tab.key}`"
                     :class="['py-1 px-2', 'nav-link', { active: activeTab == tab.key, disabled: tab.isDisabled }]"
+                    :aria-label="tab.icon ? tab.title : undefined"
                     @click.prevent="$emit('select', tab.key)"
                 >
                     <template v-if="tab.icon"><Icon :name="tab.icon" /></template>

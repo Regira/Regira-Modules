@@ -35,7 +35,7 @@ const routes = [
     { path: "/login", name: "login", component: LoginView, meta: { allowAnonymous: true } },
     { path: "/forbidden", name: "forbidden", component: ForbiddenView, meta: { allowAnonymous: true } },
     { path: "/users", name: "UserOverview", component: UserOverview, meta: { permissions: ["users.read"] } },
-    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store) => store.hasRole("Admin") } },
+    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store) => store.hasRole("Administrator") } },
 ]
 ```
 

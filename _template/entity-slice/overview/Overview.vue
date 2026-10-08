@@ -30,12 +30,12 @@
             </div>
             <div class="col-auto order-2 order-lg-3 ps-2">
                 <template v-if="config.isComplex">
-                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info">
+                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </RouterLink>
                 </template>
                 <template v-else>
-                    <FormModalButton class="btn btn-info" @save="searchHandler(false)">
+                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </FormModalButton>
                 </template>

@@ -101,15 +101,19 @@ export default {
             // check route permissions
             if (enableRouteGuard) {
                 const check = routeGuard({ router, store })
+                const checkCurrentRoute = () => {
+                    const result = check(router.currentRoute.value)
+                    if (result !== true) router.replace(result)
+                }
                 // the router's first navigation started when it was installed, before this guard existed (the token
                 // was still being validated above): a reload or deep link to a gated page went through unchecked
                 router
                     .isReady()
-                    .then(() => {
-                        const result = check(router.currentRoute.value)
-                        if (result !== true) router.replace(result)
-                    })
+                    .then(checkCurrentRoute)
                     .catch(() => {}) // a failed first navigation has no route to check
+                // a new token changes who may see the page on screen without any navigation: another account
+                // signing in on it, a refresh or a tenant switch with other roles
+                watch(() => store.authData?.token, checkCurrentRoute)
             }
             // log user out when token is invalidated (so loginPopup can appear automatically)
             autoLogoutOnFailedRequest(axios, store)

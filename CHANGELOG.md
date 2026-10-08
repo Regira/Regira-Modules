@@ -5,6 +5,31 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/auth`: **the route guard follows the identity.** The plugin runs its check again for the route on screen on
+  every new token — another account signing in on the page, a refresh, a tenant switch — so a page the new identity
+  may not see goes to `forbidden`. It ran on navigation and once after the first one, so signing out on a role-gated
+  page and in as a lower role left that page mounted.
+- `vue/entities`: `PoolCache.clear()` drops every cached row (optional on `IPoolCache`, so a custom cache keeps
+  compiling). The scaffolded shell calls it on sign-out, so the next account does not see the previous one's pooled
+  rows, and the tenant-switcher blueprint calls it after a switch.
+- `vue/ui`: **icon-only buttons have accessible names.** Icons render `aria-hidden`. `FormButtonsRow` names each
+  button after its label, which hides below `md`, and a `TabNavigation` tab with an icon after its title, which hides
+  below `lg`; the `Feedback` close button, `CopyToClipboardButton` and the `FormSection`/`ErrorSummary` toggles carry
+  an `aria-label`. `ConfirmButton` declares `disabled` and no longer renders a `name` attribute.
+- Scaffold: every icon-only control of the shell and the entity and attachments slices — and every button or link
+  whose label hides at a breakpoint (New, Overview, the navbar items) — carries an `aria-label`, through new translation keys (`edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`), and the
+  `FormModalButton`/`SelectorModalButton` defaults are named after the dialog they open. `scaffold.mjs <Entity>`
+  names the keys an older shell's `translations.json` lacks. ⚠️ Upgrade: add those keys to an existing app's
+  `translations.json`, or `$t` renders them raw as the button names.
+- Scaffold: the shell's `Roles.ADMIN` is `"Administrator"`, the role the back-end guides seed; the front-end
+  examples gate on it too.
+- Guides: the front-end workflow resolves every scaffold `TODO` before the build-and-browser check; the chrome
+  translation keys include the icon-button names; the icon-only button rule
+  (`ui.instructions` → Gotchas); the pooled `details`/`list`/`search` refresh cached rows; `useAccess()` is app
+  code from the *Permission-gated UI* pattern; the `"*"` dependency spec and what `npm install` writes.
+
 ## 6.5.0 — 2026-10-04
 
 - `vue/ui`: **`toFeedbackError` translates validation errors.** Every field message of a 400 is looked up in the

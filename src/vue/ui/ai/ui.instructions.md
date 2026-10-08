@@ -178,6 +178,11 @@ it before writing a new component.
   `tag`, `list` and ~60 more exist only under `bs`, and `iconPlugin({ source: "fa" })` re-seeds the shared map,
   so switching source silently blanks every key the `fa` set does not define. Register your own with
   `iconPlugin`'s `icons` option instead of adding a raw class per call site.
+- **An icon-only button has no name of its own.** The glyph is `aria-hidden`, so an `IconButton`, a
+  `ConfirmButton` or a `<button>` holding only an `Icon` reads as a bare "button" to screen readers and browser
+  automation. Give it `aria-label` (it falls through to the root `<button>`). A label hidden below a breakpoint
+  (`d-none d-md-inline`) is hidden from assistive tech too, so such a button keeps the same text in `aria-label`
+  — as `FormButtonsRow` and the scaffolded slices do.
 - **`FormLabel` renders BELOW its input** — it is a `<small class="form-text text-muted">` caption, not a
   `<label>` above the field, and the scaffolded forms follow that order. Two consequences for rows you write
   yourself: a row mixing labelled fields with buttons aligns **`flex-start`**, never `flex-end` (which lines

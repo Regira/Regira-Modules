@@ -204,7 +204,10 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
   the raw `get<EntityService>(Entity.name)`, not the pooled store. ⚠️ `fromPool` is **read-through**: for an
   id already cached it returns the cached instance and **discards its input**, so landing the payload of a
   custom endpoint with it silently keeps the stale row — 200, no error, unchanged UI. `set(dto)` /
-  `setMany(dtos)` are the writes (`entities.patterns` → _Resolving relations with `fromPool`_).
+  `setMany(dtos)` are the writes (`entities.patterns` → _Resolving relations with `fromPool`_). The pooled
+  `details()`/`list()`/`search()` write every row they return into the pool, so a re-fetch refreshes the
+  cached instances. The pool is per tab, not per user: the shell's `onAuthenticationChange` empties it on
+  sign-out (`defaultPoolCache.clear()`), and a tenant switch clears it too (`entities.blueprints` → _Tenant switcher_).
 - **A displayed relation is a component, not text**: the related entity's `FormModalButton` beside its
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK

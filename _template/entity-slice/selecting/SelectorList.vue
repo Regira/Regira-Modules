@@ -7,7 +7,12 @@
         </div>
         <div v-for="item in items" :key="item.$id" class="row border-bottom py-2" :class="{ 'is-selected': isSelected(item) }">
             <div class="col-auto">
-                <IconButton :icon="isSelected(item) ? 'selected' : 'select'" @click="handleSelect(item)" />
+                <IconButton
+                    :icon="isSelected(item) ? 'selected' : 'select'"
+                    :aria-label="$t('select')"
+                    :aria-pressed="isSelected(item)"
+                    @click="handleSelect(item)"
+                />
             </div>
             <!-- TODO: columns -->
             <div class="col text-truncate">{{ item.$title }}</div>

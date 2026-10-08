@@ -275,7 +275,7 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1" :aria-label="$t('overview')">
                     <Icon name="list" /> <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
             </div>
@@ -599,7 +599,7 @@ onMounted(load)
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
 
@@ -682,7 +682,7 @@ const vehicleType = ref<VehicleType>()
 const { filterIsActive, handleReset, handleUpdate } = useFilter({ searchObject, emit, Constructor: SearchObject })
 
 const { hasRole } = useAuthStore()
-const showOperatorFilter = computed(() => hasRole("Admin"))
+const showOperatorFilter = computed(() => hasRole("Administrator"))
 </script>
 ```
 
@@ -769,7 +769,7 @@ const items = computed<Array<Entity>>({
     <div class="row border-bottom border-bottom-1 py-2">
         <div class="col-auto">
             <!-- <FormModalButton v-model="item" class="p-1" /> -->
-            <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+            <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1" :aria-label="$t('edit')">
                 <Icon :name="config.key" />
             </router-link>
         </div>

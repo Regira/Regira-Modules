@@ -1,5 +1,10 @@
 <template>
-    <button type="button" class="btn btn-default" @click="open">
+    <button
+        type="button"
+        class="btn btn-default"
+        :aria-label="$slots.default ? undefined : modalTitle || $t(config.overviewTitle || '')"
+        @click="open"
+    >
         <slot><Icon name="search" /></slot>
         <Teleport to="#modals">
             <component

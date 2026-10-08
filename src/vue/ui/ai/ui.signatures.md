@@ -381,8 +381,9 @@ import {
     CopyToClipboardButton,
 } from "@regira/modules/vue/ui"
 // ConfirmButton contract (ConfirmButtonProps/Emits/Slots + confirmButtonDefaults):
-//   props: { icon?: string; buttonLabel?: string; modalTitle?: string; modalType?: ModalType;
+//   props: { icon?: string; buttonLabel?: string; disabled?: boolean; modalTitle?: string; modalType?: ModalType;
 //            modalLabels?: { cancel?: string; submit?: string } }   (modal title/labels default to English "Sure?" / "Cancel" / "Submit")
+//   icon-only by default (no buttonLabel): pass aria-label, which falls through to the root <button>
 //   emits: confirm | cancel | open | close ; slots: button-content, modal, default (confirm-modal body)
 //   exposes: open() / close() — `open` is BOTH an emit (fired on click) and an exposed method. To raise the
 //   same confirmation from another affordance (a swipe, a context menu, a shortcut), keep the button in the

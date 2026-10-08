@@ -22,6 +22,6 @@ function handleSearch() {
             class="form-control me-2"
             :placeholder="`${$t('search')} ${$t(searchItemConfig.overviewTitle || '')}`"
         />
-        <IconButton icon="search" class="btn-outline-primary" type="submit" />
+        <IconButton icon="search" class="btn-outline-primary" type="submit" :aria-label="$t('search')" />
     </form>
 </template>

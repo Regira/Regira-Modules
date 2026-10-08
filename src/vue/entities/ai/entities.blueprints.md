@@ -110,6 +110,7 @@ import { ref, computed } from "vue"
 import { defineStore } from "pinia"
 import { useAxios } from "@regira/modules/vue/http"
 import { useAuthStore, onAuthenticated } from "@regira/modules/vue/auth"
+import { defaultPoolCache } from "@regira/modules/vue/entities"
 import Entity from "./Entity"
 
 export const useEntityStore = defineStore(Entity.name, () => {
@@ -123,6 +124,7 @@ export const useEntityStore = defineStore(Entity.name, () => {
     }
     async function setActiveTenant(id: string) {
         await refreshToken({ tenantId: id }) // POST auth/refresh/?tenantId=… → new JWT with the new `tenant` claim
+        defaultPoolCache.clear() // pooled rows belong to the previous tenant
     }
     const activeTenant = computed(() => items.value?.find((x) => x.id == getClaimValue("tenant")))
 
@@ -149,7 +151,7 @@ app.config.globalProperties.$activeTenant = computed(() => useEntityStore().acti
 - `authStore.refresh(o)` passes `o` as query parameters to the refresh endpoint; the back-end reads `tenantId`, rebuilds the claims for that tenant (membership verified server-side), and returns a fresh token. The axios interceptor keeps sending `Authorization: Bearer` — nothing else changes client-side.
 - `activeTenant` is **derived, not stored** — `getClaimValue("tenant")` decodes the current token, so a page reload keeps the right tenant automatically.
 - Per-tenant permissions arrive as claims in the same token — gate UI with `getClaimValue("permissions")` (e.g. hide write actions without `can_write`).
-- After a switch, tenant-scoped stores hold rows of the _previous_ tenant — refresh them (the `onAuthenticated` hook above fires on the re-minted token, so stores wired the same way reload themselves).
+- After a switch, tenant-scoped stores hold rows of the _previous_ tenant — refresh them (the `onAuthenticated` hook above fires on the re-minted token, so stores wired the same way reload themselves). `setActiveTenant` empties the entity pool for the same reason.
 
 ---
 
@@ -497,8 +499,8 @@ back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "E
 Copy the **Tenant switcher blueprint**: a pinia store that loads `/tenants` whenever a token arrives
 (`onAuthenticated`), derives `activeTenant` from the JWT —
 `items.find(x => x.id == getClaimValue("tenant"))` — and switches with
-`authStore.refresh({ tenantId })`, which re-mints the token server-side. No tenant header: the bearer
-token _is_ the tenant context.
+`authStore.refresh({ tenantId })`, which re-mints the token server-side, then empties the entity pool
+(`defaultPoolCache.clear()`). No tenant header: the bearer token _is_ the tenant context.
 
 **See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Tenant switcher")`;
 back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "Multi-tenancy")`.

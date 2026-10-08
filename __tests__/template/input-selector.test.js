@@ -14,6 +14,13 @@ vi.mock("@regira/modules/vue/ui", () => ({ Icon: { render: () => null } }))
 
 const { default: InputSelector } = await import("../../_template/entity-slice/selecting/InputSelector.vue")
 
+// a slice runs under langPlugin, which provides $t (the clear button's accessible name)
+function mountApp(Parent) {
+    const app = createApp(Parent)
+    app.config.globalProperties.$t = (key) => key
+    app.mount(document.createElement("div"))
+}
+
 const flush = async () => {
     for (let i = 0; i < 5; i++) await nextTick()
 }
@@ -28,7 +35,7 @@ function mount(state, { modelOnly = false } = {}) {
                 ...(modelOnly ? {} : { idValue: state.id, "onUpdate:idValue": (v) => (state.id = v) }),
             }),
     })
-    createApp(Parent).mount(document.createElement("div"))
+    mountApp(Parent)
 }
 
 /** the scaffolded FilterAdv: a local entity ref, and the id on a search object the overview rebuilds from the URL */
@@ -42,7 +49,7 @@ function mountFilter(state) {
                 "onUpdate:idValue": (v) => (state.searchObject.barId = v),
             }),
     })
-    createApp(Parent).mount(document.createElement("div"))
+    mountApp(Parent)
 }
 
 describe("generated InputSelector — as an overview filter", () => {

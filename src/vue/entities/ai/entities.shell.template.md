@@ -281,6 +281,8 @@ fetch(`${appConfig.baseUrl}/config.json`)
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
+                // the pool is per tab: the next account must not see the previous one's rows
+                if (!auth.isAuthenticated) defaultPoolCache.clear()
             },
         })
         app.use(userPlugin)
@@ -471,14 +473,19 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "cancel": { "en": "Cancel" },
     "changePassword": { "en": "Change password" },
     "chooseNewPassword": { "en": "Choose a new password" },
+    "clear": { "en": "Clear" },
     "created": { "en": "Created" },
     "delete": { "en": "Delete" },
     "deleteItem": { "en": "Delete {title}?" },
+    "download": { "en": "Download" },
+    "edit": { "en": "Edit" },
     "files": { "en": "Files" },
+    "filter": { "en": "Filter" },
     "filtersAreApplied": { "en": "Filters are applied" },
     "invalidResetLink": { "en": "This recovery link is invalid or incomplete. Request a new one from the sign-in screen." },
     "keywords": { "en": "Keywords" },
     "main": { "en": "Main" },
+    "menu": { "en": "Menu" },
     "name": { "en": "Name" },
     "new": { "en": "New" },
     "noResults": { "en": "No results" },
@@ -486,11 +493,13 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "popOut": { "en": "Open in new tab" },
     "recoveryMailFailed": { "en": "Sending the recovery link failed. Please try again." },
     "recoveryMailSent": { "en": "If that account exists, a recovery link is on its way." },
+    "remove": { "en": "Remove" },
     "resetPassword": { "en": "Reset password" },
     "restore": { "en": "Restore" },
     "results": { "en": "results" },
     "save": { "en": "Save" },
     "search": { "en": "Search" },
+    "select": { "en": "Select" },
     "sendRecoveryLink": { "en": "Send recovery link" },
     "signIn": { "en": "Sign in" },
     "signOut": { "en": "Sign out" },
@@ -704,11 +713,16 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
                 }
             "
         >
-            <router-link v-if="isNavItem(node.value)" class="nav-link" :to="to(node.value as INavItem)">
+            <router-link v-if="isNavItem(node.value)" class="nav-link" :to="to(node.value as INavItem)" :aria-label="$t(node.value.title)">
                 <Icon :name="node.value.icon ?? ''" /><span class="d-sm-none d-lg-inline ms-1">{{ $t(node.value.title) }}</span>
             </router-link>
             <template v-else>
-                <a class="nav-link dropdown-toggle" href="#" @click.prevent="openId = openId === node.value.id ? undefined : node.value.id">
+                <a
+                    class="nav-link dropdown-toggle"
+                    href="#"
+                    :aria-label="$t(node.value.title)"
+                    @click.prevent="openId = openId === node.value.id ? undefined : node.value.id"
+                >
                     <Icon :name="node.value.icon ?? ''" /><span class="d-sm-none d-lg-inline ms-1">{{ $t(node.value.title) }}</span>
                 </a>
                 <ul class="dropdown-menu" :class="{ show: openId === node.value.id }">
@@ -749,7 +763,7 @@ function handleSearch() {
             class="form-control me-2"
             :placeholder="`${$t('search')} ${$t(searchItemConfig.overviewTitle || '')}`"
         />
-        <IconButton icon="search" class="btn-outline-primary" type="submit" />
+        <IconButton icon="search" class="btn-outline-primary" type="submit" :aria-label="$t('search')" />
     </form>
 </template>
 ```
@@ -788,7 +802,9 @@ const accountLabel = computed(() => getAccountName()) // @auth:only
     <nav class="navbar navbar-expand-sm" v-click-outside="closeMenu">
         <div class="container-fluid">
             <router-link class="navbar-brand" :to="{ name: 'home' }">{{ $tm(title) }}</router-link>
-            <button class="navbar-toggler" type="button" @click.stop="open = !open"><span class="navbar-toggler-icon"></span></button>
+            <button class="navbar-toggler" type="button" :aria-label="$t('menu')" :aria-expanded="open" @click.stop="open = !open">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" :class="{ show: open }">
                 <NavBar @select="closeMenu" />
                 <div class="d-flex ms-auto align-items-center gap-2">
@@ -1027,7 +1043,7 @@ defineProps<{ url?: string }>()
 // erasableSyntaxOnly-safe const maps (not enums)
 // Roles match the names the API's Identity roles carry; permissions match a "permissions" claim, which a
 // standard Identity backend does not mint — see user-plugin.ts.
-export const Roles = { ADMIN: "Admin" } as const
+export const Roles = { ADMIN: "Administrator" } as const
 export type Role = (typeof Roles)[keyof typeof Roles]
 
 export const Permissions = { CAN_READ: "can_read", CAN_WRITE: "can_write", ADMIN: "admin" } as const

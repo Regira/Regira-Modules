@@ -215,7 +215,7 @@ never the token.
 - `meta.allowAnonymous` → always allowed.
 - Authenticated: each matched route's `meta.policy(store)` and `meta.permissions: string[]`
   (via `store.hasPermission`) must pass, else redirect to route **`forbidden`** (`query.url` = target).
-  Role-gated routes use a policy — `meta.policy: (store) => store.hasRole("Admin")` — since
+  Role-gated routes use a policy — `meta.policy: (store) => store.hasRole("Administrator")` — since
   `meta.permissions` checks the `permissions` claim, not roles.
 - Not authenticated: sets `authRequired` and **allows navigation** (the app shows a login popup rather
   than redirecting). Define an `allowAnonymous` route for public pages and a `forbidden` route.
@@ -223,8 +223,9 @@ never the token.
 The plugin restores a stored token with an async `validateToken` and registers this guard only after it, while the
 router's first navigation has already started. So once the guard is registered, the plugin runs the same check for
 the route already shown and replaces it when the check redirects: a reload or a deep link to a gated page is
-checked too, as soon as the token is known. `routeGuard` returns that check, for an app that registers the guard
-itself.
+checked too, as soon as the token is known. It runs the check again on every new token — another account signing
+in on the page, a refresh, a tenant switch — so a page the new identity may not see leaves the screen.
+`routeGuard` returns that check, for an app that registers the guard itself.
 
 > ⚠️ **Gate a route by role with `meta.policy`, never `beforeEnter: () => hasRole(…)`.** `beforeEnter` runs on the
 > first navigation with no token yet, and nothing runs it again: an administrator reloading the page, or opening a

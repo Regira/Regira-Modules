@@ -31,7 +31,7 @@
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info" :aria-label="$t('overview')">
                     <Icon name="list" /> <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
             </div>

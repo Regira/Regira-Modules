@@ -203,7 +203,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   `entities.instructions` → _Functionality contract_. If the **user** asks for less, build what they asked
   — the rule is against losing a capability by accident, not against a smaller scope.
 - **Responsive layout, always** — unless the user explicitly requests otherwise. Bootstrap grid with
-  breakpoint variants, `d-none d-md-inline` button labels, `d-none d-md-block` to drop list columns on
+  breakpoint variants, `d-none d-md-inline` button labels (the button keeps that text in `aria-label`: a hidden
+  label names nothing — `ui.instructions` → _Gotchas_), `d-none d-md-block` to drop list columns on
   small screens, `$screen` for JS-side switches (`entities.patterns` → _Overview list layout_).
 - **Tabs for big forms.** When an entity form grows beyond a handful of fields or has related data
   (children, links, trees), split it with hash-routed tabs — a main `#form` tab plus related-data tabs
@@ -246,7 +247,10 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
    needs `--overwrite-slice` (`--force` deliberately excludes slices). For an entity that owns files/pictures,
    `scaffold.mjs <Entity> --attachments` also writes the shared file slice and wires it into the model and
    service; you add the tab.
-7. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
+7. Close every scaffold `TODO` — `grep -rn TODO src` comes back empty. Each marks what the scaffold could not
+   guess (model and form fields, list and selector columns, filter fields, the config's icon); fill it in or
+   delete it, along with the hint comment around it.
+8. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
    compilation only. Any browser you can drive will do: one your environment provides as a tool, or a short
    headless script with Playwright (`npm i -D playwright`, `npx playwright install chromium`); read its console
    as well as the page. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,

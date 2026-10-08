@@ -21,11 +21,16 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
                 }
             "
         >
-            <router-link v-if="isNavItem(node.value)" class="nav-link" :to="to(node.value as INavItem)">
+            <router-link v-if="isNavItem(node.value)" class="nav-link" :to="to(node.value as INavItem)" :aria-label="$t(node.value.title)">
                 <Icon :name="node.value.icon ?? ''" /><span class="d-sm-none d-lg-inline ms-1">{{ $t(node.value.title) }}</span>
             </router-link>
             <template v-else>
-                <a class="nav-link dropdown-toggle" href="#" @click.prevent="openId = openId === node.value.id ? undefined : node.value.id">
+                <a
+                    class="nav-link dropdown-toggle"
+                    href="#"
+                    :aria-label="$t(node.value.title)"
+                    @click.prevent="openId = openId === node.value.id ? undefined : node.value.id"
+                >
                     <Icon :name="node.value.icon ?? ''" /><span class="d-sm-none d-lg-inline ms-1">{{ $t(node.value.title) }}</span>
                 </a>
                 <ul class="dropdown-menu" :class="{ show: openId === node.value.id }">

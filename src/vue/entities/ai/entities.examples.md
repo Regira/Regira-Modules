@@ -281,10 +281,16 @@ function handleSubmit() {
     <div class="row">
         <div class="col-auto">
             <div class="input-group">
-                <IconButton icon="clear" class="btn-outline-secondary" @click="handleReset" />
+                <IconButton icon="clear" class="btn-outline-secondary" :aria-label="$t('clear')" @click="handleReset" />
                 <input v-model.lazy.trim="searchObject.q" class="form-control" :placeholder="$t('keywords')" @change="handleUpdate" />
-                <IconButton icon="search" class="btn-outline-primary d-none d-sm-block" @click="handleUpdate" />
-                <IconButton v-if="showToggleAdv" icon="filter" :class="filterIsActive ? 'btn-info' : 'btn-outline-info'" @click="handleToggle" />
+                <IconButton icon="search" class="btn-outline-primary d-none d-sm-block" :aria-label="$t('search')" @click="handleUpdate" />
+                <IconButton
+                    v-if="showToggleAdv"
+                    icon="filter"
+                    :aria-label="$t('filter')"
+                    :class="filterIsActive ? 'btn-info' : 'btn-outline-info'"
+                    @click="handleToggle"
+                />
             </div>
             <small v-if="filterIsActive" class="d-none d-sm-inline italic-muted">{{ $t("filtersAreApplied") }}</small>
         </div>
@@ -346,7 +352,7 @@ const { filterIsActive, handleReset, handleUpdate, handleToggle } = useFilter({
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
         <div class="row">
@@ -436,7 +442,7 @@ const { filterIsActive, handleReset, handleUpdate } = useFilter({
         <div class="row pb-2 border-bottom border-bottom-1">
             <div class="col-auto fw-bold">
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col-2 col-lg-1 fw-bold">{{ $t("code") }}</div>
             <div class="col fw-bold">{{ $t("name") }}</div>
@@ -495,7 +501,7 @@ const items = computed<Array<Entity>>({
         <div class="col-auto">
             <template v-if="config.isComplex">
                 <!-- Complex entity: Link to input page -->
-                <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+                <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1" :aria-label="$t('edit')">
                     <Icon :name="config.key" />
                 </router-link>
             </template>
@@ -513,6 +519,7 @@ const items = computed<Array<Entity>>({
         <div class="col-auto">
             <ConfirmButton
                 icon="delete"
+                :aria-label="$t('delete')"
                 class="m-0 p-1"
                 :modal-type="ModalType.danger"
                 :modal-title="$t('delete')"
@@ -586,12 +593,12 @@ const item = defineModel<Entity>({ required: true })
             </div>
             <div class="col-auto order-2 order-lg-3 ps-2">
                 <template v-if="config.isComplex">
-                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info">
+                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </RouterLink>
                 </template>
                 <template v-else>
-                    <FormModalButton class="btn btn-info" @save="searchHandler(false)">
+                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </FormModalButton>
                 </template>
@@ -786,7 +793,7 @@ function handleRemove() {
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1" :aria-label="$t('overview')">
                     <Icon name="list" />
                     <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
@@ -869,7 +876,12 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 ```vue
 <template>
-    <button type="button" class="btn btn-default" @click="open">
+    <button
+        type="button"
+        class="btn btn-default"
+        :aria-label="$slots.default ? undefined : modalTitle || $t(config.detailsTitle || '')"
+        @click="open"
+    >
         <slot>
             <Icon :name="config.key" />
         </slot>
@@ -1062,7 +1074,14 @@ const displayItemFormatter = (item?: Entity) => item?.$title as string
         </slot>
         <slot name="append">
             <template v-if="!readonly">
-                <button v-if="!readonly" type="button" v-show="item != null" class="btn btn-outline-secondary" @click="handleSelect(undefined)">
+                <button
+                    v-if="!readonly"
+                    type="button"
+                    v-show="item != null"
+                    class="btn btn-outline-secondary"
+                    :aria-label="$t('clear')"
+                    @click="handleSelect(undefined)"
+                >
                     <Icon name="clear" />
                 </button>
                 <SelectorModalButton
@@ -1165,7 +1184,7 @@ onMounted(() => {
             <div class="text-nowrap p-2 border rounded-1">
                 <FormModalButton v-model="items![i]" class="m-0 p-0" />
                 {{ item.$title }}
-                <IconButton icon="delete" class="m-0 py-0 px-1" @click="handleRemove(item)" />
+                <IconButton icon="delete" class="m-0 py-0 px-1" :aria-label="$t('remove')" @click="handleRemove(item)" />
             </div>
         </div>
         <div class="col-auto">
@@ -1352,7 +1371,12 @@ function handleSelect(item?: Entity) {
 
 ```vue
 <template>
-    <button type="button" class="btn btn-default" @click="open">
+    <button
+        type="button"
+        class="btn btn-default"
+        :aria-label="$slots.default ? undefined : modalTitle || $t(config.overviewTitle || '')"
+        @click="open"
+    >
         <slot><Icon name="search" /></slot>
         <Teleport to="#modals">
             <component
@@ -1476,7 +1500,7 @@ watchEffect(() => (selected.value = props.modelValue))
                     <div v-show="!feedback.status" class="row g-0">
                         <div class="col-auto">
                             <div v-if="selected?.id" class="form-control bg-info py-0">
-                                <IconButton icon="selected" class="px-1 me-1" @click="handleSelect(undefined)" />
+                                <IconButton icon="selected" class="px-1 me-1" :aria-label="$t('clear')" @click="handleSelect(undefined)" />
                                 <FormModalButton v-model="selected" class="px-1" />
                                 {{ selected.$title }}
                             </div>
@@ -1485,7 +1509,13 @@ watchEffect(() => (selected.value = props.modelValue))
                 </div>
             </div>
             <div class="col-auto order-2 mb-2">
-                <FormModalButton :item-defaults="itemDefaults" :close-on-save="true" @save="({ saved }) => handleSelect(saved)" class="btn btn-info">
+                <FormModalButton
+                    :item-defaults="itemDefaults"
+                    :close-on-save="true"
+                    @save="({ saved }) => handleSelect(saved)"
+                    class="btn btn-info"
+                    :aria-label="$t('new')"
+                >
                     <Icon name="new" />
                     <span class="d-none d-sm-inline">{{ $t("new") }}</span>
                 </FormModalButton>
@@ -1905,7 +1935,7 @@ export default EntitySearchObject
                 <span v-if="isLoading" class="ms-2 text-muted"><Loading style="height: 1.5rem" /></span>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
         <div class="row">
@@ -2317,7 +2347,7 @@ watchEffect(async () => {
         <div class="row pb-2 border-bottom border-bottom-1">
             <div class="col-auto">
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col fw-bold">{{ $t("name") }}</div>
             <div class="d-none d-lg-block col-lg col-xl-3 fw-bold">
@@ -2388,7 +2418,7 @@ const items = computed<Array<Entity>>({
             <div class="col-auto">
                 <template v-if="config.isComplex">
                     <!-- Complex entity: Link to input page -->
-                    <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+                    <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1" :aria-label="$t('edit')">
                         <Icon :name="config.key" />
                     </router-link>
                 </template>
@@ -2416,6 +2446,7 @@ const items = computed<Array<Entity>>({
             <div class="col-auto">
                 <ConfirmButton
                     icon="delete"
+                    :aria-label="$t('delete')"
                     class="m-0 p-1"
                     :modal-type="ModalType.danger"
                     :modal-title="$t('delete')"
@@ -2500,7 +2531,7 @@ const { fromPool: getFacet } = useFacetStore()
                 <Feedback v-bind="{ feedback }" :hideCloseButton="true" />
             </div>
             <div class="col-auto order-2 order-lg-3 ps-2">
-                <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info">
+                <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                     <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                 </RouterLink>
             </div>
@@ -2662,7 +2693,7 @@ async function handleRequestRemove(item: Entity) {
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1" :aria-label="$t('overview')">
                     <Icon name="list" />
                     <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>

@@ -1,5 +1,5 @@
 <template>
-    <i :class="className" :style="style" />
+    <i :class="className" :style="style" aria-hidden="true" />
 </template>
 
 <script setup lang="ts">
