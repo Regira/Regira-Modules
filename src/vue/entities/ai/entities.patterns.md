@@ -493,7 +493,9 @@ emits — read them when hand-writing the recipe or adapting the generated files
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
    this session via `add` are removed outright — tracked by identity, so the join-row shape needs no `id`)
    and hands the `#selector` slot an `add` function plus the `exclude` id list. The button's title reads
-   "Remove" / "Restore"; pass translated ones as `:labels="{ remove: …, restore: … }"`:
+   "Remove" / "Restore"; pass translated ones as `:labels="{ remove: …, restore: … }"`. In a read-only form
+   pass `:readonly="readonly"`: the chips lose their toggle, the `#selector` slot is left out, and the `#chip`
+   slot receives `readonly` for the button it renders:
 
     ```vue
     <script setup lang="ts">
@@ -1110,9 +1112,10 @@ then gate three affordances per slice — nothing else changes.
 // src/access.ts — the SPA's single mirror of the API's write tiers; keep it next to the filter it mirrors.
 import { useAuthStore } from "@regira/modules/vue/auth"
 
+// keyed by config.key — the entity class name, as the scaffold sets it — since that is what the slices pass
 const WRITERS: Record<string, Array<string>> = {
-    departments: ["Administrator"],
-    employees: ["Administrator", "Manager"],
+    Department: ["Administrator"],
+    Employee: ["Administrator", "Manager"],
     // an entity the API only ever writes itself (notifications, audit rows) is simply absent → nobody writes it
 }
 
@@ -1128,10 +1131,18 @@ export function useAccess() {
 | `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
 | `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
 | `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
+| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only)                                                   |
 
 A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
 store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
-administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard).
+administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard). A slice's routes
+are built in its `setup.ts` (`createRoutes()`), so that is where the policy goes — `meta: { policy }` on the Overview
+route and on the Details route, whose children inherit it.
+
+`meta.policy` is read by the auth plugin's route guard, so in a `--no-auth` app it gates nothing. One that still has
+roles — an identity source of its own, a demo role switch — resolves that identity in `main.ts` before `app.mount()`
+and gates the route with `beforeEnter` (or one `router.beforeEach`) reading it. The race that rules `beforeEnter` out
+above is the auth plugin's token restore, which such an app does not have.
 
 ⚠️ **Gating is not authorization.** It removes a button, not a capability; the server filter stays the only
 enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it

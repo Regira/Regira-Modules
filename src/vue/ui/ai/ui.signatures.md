@@ -185,7 +185,7 @@ import { Loading, LoadingButton, LoadingContainer, injectLoading, LOADING_COMPON
 import { type LoadingComponent, type LoadingContainerProps, type LoadingContainerSlots, type LoadingButtonProps, type LoadingButtonSlots, type LoadingInput } from "@regira/modules/vue/ui"
 // Loading: no props — renders the img provided by loadingPlugin ({ img }); without one it falls back to a
 // built-in Bootstrap spinner labelled by the injectable `loadingLabel` (default "Loading…")
-export type LoadingContainerProps = { isLoading: boolean }
+export type LoadingContainerProps = { isLoading: boolean } // dims the default slot under the indicator; the slot stays mounted, so a child still mounts and runs its own loads — hold one back with v-if
 export type LoadingContainerSlots = { loading?(): any; default?(): any }
 export type LoadingButtonProps = { isLoading: boolean; disabled?: boolean }
 export type LoadingButtonSlots = { loading?(): any; default?(): any }

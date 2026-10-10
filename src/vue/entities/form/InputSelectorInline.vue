@@ -3,8 +3,9 @@
         <template v-for="row in model ?? []" :key="keyOf(row)">
             <div class="col-auto mb-2 pe-0">
                 <div class="form-control p-0 d-inline-flex align-items-center" :class="{ 'is-deleted': row._deleted }">
-                    <slot name="chip" v-bind="{ row }" />
+                    <slot name="chip" v-bind="{ row, readonly: !!props.readonly }" />
                     <IconButton
+                        v-if="!props.readonly"
                         icon="delete"
                         class="btn-outline-danger border-0"
                         :title="row._deleted ? (labels?.restore ?? 'Restore') : (labels?.remove ?? 'Remove')"
@@ -13,7 +14,7 @@
                 </div>
             </div>
         </template>
-        <div class="col-auto mb-2">
+        <div v-if="!props.readonly" class="col-auto mb-2">
             <slot name="selector" v-bind="{ add, exclude }" />
         </div>
     </div>

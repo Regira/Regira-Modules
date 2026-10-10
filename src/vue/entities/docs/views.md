@@ -62,7 +62,8 @@ destructure `{ items }` from it). Both send the current search object merged wit
 `useDetails(service)` loads the item for the route `:id` and returns `item`, `isLoading`, `overviewUrl`,
 `load`, and `feedback`. The Details component renders a nested `<RouterView>` for the Fiche/Form child,
 passing `item`. `item` is `undefined` until the `onMounted` load resolves — gate the child with
-`<RouterView v-if="item" …>`.
+`<RouterView v-if="item" …>`. On `:id` = `new` the item comes from the service's `newEntity({})`, so defaults every
+new item needs go in an override of `newEntity` in the slice's service, which the modal path calls too.
 
 ## Form — `useForm` (and `useModal`)
 
@@ -91,7 +92,8 @@ For child/owned collections inside a form, render the rows with **`InputSelector
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`
 override), remove rows added this session outright (nothing to undo; override the detection via the
 `isNew` prop), and hand the picker slot an `exclude` list. Its delete button's title reads "Remove" or "Restore";
-pass translated ones through the `labels` prop. The heavier per-row editors are `useOwnedCollection`,
+pass translated ones through the `labels` prop. In a read-only form its `readonly` prop shows the chips without the
+toggle or the picker. The heavier per-row editors are `useOwnedCollection`,
 `useOwnedModal`, `useListInput`, and `useListItemInput`. The multi-`Selector`
 hard-removes on delete, so it does not fit collections that need the marked-delete UX.
 

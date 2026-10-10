@@ -55,7 +55,9 @@
   relations, no tabs. A modal per real entity does not scale (no deep-link, no tabs, cramped on mobile).
   **When it is a coin flip, use the page.** Concretely: more than ~6 editable fields, _any_ relation, or
   _any_ collection → page. Modal only for the flat lookup tables (a title, maybe a code and a colour).
-  `isComplex` also gates the advanced-filter toggle on the overview, so a modal entity gets no `FilterAdv`.
+  `isComplex` also gates the advanced-filter toggle on the overview, so a modal entity gets no `FilterAdv` — unless
+  it turns the toggle on itself: a read-only log that needs filters stays modal with
+  `<FilterInline … :show-toggle-adv="true" />` in its `filter/Filter.vue`.
 - **A displayed _related_ entity defaults to its `FormModalButton`** — every chip, badge, or list cell that
   shows a related row opens that row's form in a modal (quick-edit), whatever that entity's own `isComplex`;
   a bare text label is the exception. This is distinct from the rule above: it edits a _neighbour_, not the
@@ -203,8 +205,9 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
   **detached copy that goes stale** — use it only when a snapshot is what you want. Custom endpoints live on
   the raw `get<EntityService>(Entity.name)`, not the pooled store. ⚠️ `fromPool` is **read-through**: for an
   id already cached it returns the cached instance and **discards its input**, so landing the payload of a
-  custom endpoint with it silently keeps the stale row — 200, no error, unchanged UI. `set(dto)` /
-  `setMany(dtos)` are the writes (`entities.patterns` → _Resolving relations with `fromPool`_). The pooled
+  custom endpoint with it silently keeps the stale row — 200, no error, unchanged UI. The writes are on the
+  store itself — `useEntityStore().set(dto)` / `setMany(dtos)` — not on `store.service`, the pooled
+  `IPoolService`, which has neither (`entities.patterns` → _Resolving relations with `fromPool`_). The pooled
   `details()`/`list()`/`search()` write every row they return into the pool, so a re-fetch refreshes the
   cached instances. The pool is per tab, not per user: the shell's `onAuthenticationChange` empties it on
   sign-out (`defaultPoolCache.clear()`), and a tenant switch clears it too (`entities.blueprints` → _Tenant switcher_).

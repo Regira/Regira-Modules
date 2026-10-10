@@ -230,7 +230,8 @@ in on the page, a refresh, a tenant switch — so a page the new identity may no
 > ⚠️ **Gate a route by role with `meta.policy`, never `beforeEnter: () => hasRole(…)`.** `beforeEnter` runs on the
 > first navigation with no token yet, and nothing runs it again: an administrator reloading the page, or opening a
 > link to it, lands on `forbidden`. The API still decides who may write either way; the route gate only spares the
-> user a page they cannot use.
+> user a page they cannot use. Without the auth plugin nothing reads `meta.policy` — a `--no-auth` app with roles of
+> its own: `entities.patterns` → _Permission-gated UI_.
 
 ## Account UI — wire the FULL surface, shown on time
 

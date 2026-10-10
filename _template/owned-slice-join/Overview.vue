@@ -14,6 +14,8 @@ import {
 import type { __Child__ } from "./Entity"
 
 const model = defineModel<Array<__Child__>>()
+// the parent form's readonly: the chips lose their remove toggle and the picker, and open their entity read-only
+defineProps<{ readonly?: boolean }>()
 
 // Rows arrive from ?includes= as plain DTOs — they have the API's fields but none of the model's getters, so
 // row.__target__.$title reads undefined. fromPool rehydrates through the sibling slice's pool, which also
@@ -23,10 +25,10 @@ const hydrate = (x?: Partial<__Target__>) => fromPool(x as __Target__)
 </script>
 
 <template>
-    <InputSelectorInline v-model="model" :row-key="(r) => r.__target__Id" :exclude-key="(r) => r.__target__Id">
+    <InputSelectorInline v-model="model" :row-key="(r) => r.__target__Id" :exclude-key="(r) => r.__target__Id" :readonly="readonly">
         <template #chip="{ row }">
             <!-- the related entity's own edit affordance — keep it, a bare label loses the way in -->
-            <__Target__Button :modelValue="hydrate(row.__target__)" />
+            <__Target__Button :modelValue="hydrate(row.__target__)" :readonly="readonly" />
             {{ hydrate(row.__target__)?.$title }}
         </template>
         <template #selector="{ add, exclude }">

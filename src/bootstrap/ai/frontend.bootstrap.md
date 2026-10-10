@@ -214,7 +214,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   users instead of rendering a dashboard they can't use (`auth.instructions` → _Account UI_).
 - **Role gating uses `authStore.hasRole(...)`,** never `hasPermission` (that reads a `permissions` claim
   the standard Identity backend doesn't mint); a role-gated route uses `meta.policy`, never `beforeEnter`
-  (`auth.instructions` → _Route guard_). The full backend-to-SPA chain is `Regira.Security` →
+  (`auth.instructions` → _Route guard_). A `--no-auth` app with roles of its own has no guard to read
+  `meta.policy` (`entities.patterns` → _Permission-gated UI_). The full backend-to-SPA chain is `Regira.Security` →
   security.instructions → _Roles end-to-end_ (`how_to` key `roles-end-to-end`).
 - **Multilanguage means a visible selector.** Wire `LangSelector` (from `vue/lang`) into the header
   whenever the app is multilanguage.

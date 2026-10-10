@@ -7,6 +7,22 @@ heading.
 
 ## Unreleased
 
+- `vue/entities`: `InputSelectorInline` takes `readonly`: a read-only form shows the chips without their
+  remove/restore toggle and without the `#selector` slot, and the `#chip` slot receives `readonly` for the button it
+  renders. The `--picker` chips editor takes the parent form's `readonly` and passes it on to `InputSelectorInline` and
+  each chip's button, and `scaffold.mjs` prints the wiring line with `:readonly="readonly"`.
+- Scaffold: the slice and shell messages, and the shell's `vite.config.ts`, name the route prefix of mapped entity
+  endpoints (`MapEntityEndpoints(o => o.Prefix = "api")`) beside the controllers' one, and the proxy target of an API
+  that serves HTTP only in development.
+- Guides: _Permission-gated UI_ keys its `WRITERS` map by `config.key`, the entity class name the slices pass to
+  `canWrite`; a related entity's button in a `--rel` column or a `--picker` chip gates on that entity; and a
+  role-gated page puts its `meta.policy` on the routes in the slice's `setup.ts`. _The URL contract_ names the prefix
+  of mapped entity endpoints and the proxy target of an HTTP-only development API. The card says how a modal entity
+  turns the advanced filter on and that the pool writes `set`/`setMany` are on the store, not on `store.service`; the
+  project tree marks `src/shims.d.ts` as auth-only. A `--no-auth` app with roles of its own gates a route with
+  `beforeEnter`, since nothing reads `meta.policy` without the auth plugin. Defaults for every new item go in the
+  slice service's `newEntity` override, which the Details page and the modal both reach, and `LoadingContainer` is
+  documented as dimming its slot, not holding it back.
 - `vue/auth`: **the route guard follows the identity.** The plugin runs its check again for the route on screen on
   every new token — another account signing in on the page, a refresh, a tenant switch — so a page the new identity
   may not see goes to `forbidden`. It ran on navigation and once after the first one, so signing out on a role-gated

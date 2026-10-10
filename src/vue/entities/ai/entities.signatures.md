@@ -417,6 +417,12 @@ export type DetailsOut<T> = {
 > `useDetails` (and `useModal`) load with `archived: ArchivedFilter.included`, so a soft-deleted row opens
 > in the form with its Restore button instead of 404-ing. Row security is unaffected.
 
+> **Defaults for a new item.** On `…/new`, `useDetails` builds the item with `entityService.newEntity({})`, and the
+> modal path passes its `itemDefaults` into the same call. Defaults every new item needs — the acting customer, an
+> initial status — go in the slice's `EntityService`, which both paths reach through the pooled store:
+> `override newEntity(values?: Record<string, any>) { return super.newEntity({ status: "Open", ...values }) }`.
+> A caller's `itemDefaults` still win over them.
+
 ```ts
 import { useForm, formDefaults, FormStates } from "@regira/modules/vue/entities"
 export interface FormProps<T> {
@@ -643,8 +649,9 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 //            rowKey?: (row: T) => string | number | undefined;      // stable :key per row; falls back to an internal per-row identity (never the index)
 //            excludeKey?: (row: T) => number | undefined;           // related id per row → feeds the #selector `exclude`
 //            isNew?: (row: T) => boolean;                           // override the unsaved-row detection
-//            labels?: { remove?: string; restore?: string } }      // the delete button's title per state; English by default — pass translated ones
-//   slots: chip({ row }), selector({ add, exclude })                // add: (row: T) => void; exclude: number[] (every current row, marked ones included)
+//            labels?: { remove?: string; restore?: string };       // the delete button's title per state; English by default — pass translated ones
+//            readonly?: boolean }                                   // a read-only form: no remove/restore toggle, no #selector slot
+//   slots: chip({ row, readonly }), selector({ add, exclude })      // add: (row: T) => void; exclude: number[] (every current row, marked ones included)
 //   emits: "add" (row: T) | "remove" (row: T) | "update:modelValue" (value: T[] | undefined)
 //   "remove" fires for hard-removal, mark AND restore — discriminate AFTER the event: hard-removed row is
 //   no longer in modelValue; marked row has `_deleted === true`; restored row has `_deleted === false`.

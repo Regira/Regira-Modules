@@ -39,7 +39,8 @@ navigation, so a `beforeEnter` check sends an administrator who reloads the page
 itself is registered after that restore, so the plugin then checks the route already shown as well, and a
 reload or deep link to a gated page is caught once the token is known. Every new token runs that check again, so
 a page stays on screen only while the signed-in identity may see it — after another account signs in on it, or a
-refresh or tenant switch changes its roles.
+refresh or tenant switch changes its roles. Without this plugin nothing reads `meta.policy`: an app with roles of its
+own resolves them before mounting and gates the route with `beforeEnter`.
 
 Failed requests are logged with every credential this module handles masked — the bearer header on every
 request, and the body, `params` and query string of a credential-bearing endpoint (the `auth` family plus a

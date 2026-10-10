@@ -356,7 +356,7 @@ public/
   data/translations.json         # i18n messages (key-first) — see Runtime config
   favicon.svg                    # placeholder app icon, linked from index.html — replace with your own
 src/
-  shims.d.ts                     # $configs + app-specific globals ($isAdmin) — see Root component
+  shims.d.ts                     # $configs + app-specific globals ($isAdmin) — see Root component; auth shells only (--no-auth omits it)
   app-config.ts                  # loads + types public/config.json (createConfig / useConfig) — see Runtime config
   main.ts                        # bootstrap — see Bootstrap
   App.vue                        # root shell — see Root component
@@ -529,7 +529,9 @@ The `BasicApi` server template calls `app.UseHttpsRedirection()`, so a request t
 
 - **Trust the dev cert** and keep `api` on the HTTPS port: `dotnet dev-certs https --trust`.
 - **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`. `scaffold.mjs --shell`
-  writes this setup; set its proxy target to the API's HTTPS launch URL:
+  writes this setup; set its proxy target to the API's HTTPS launch URL — or, for an API that serves HTTP only in
+  development (the third choice, or a launch profile without HTTPS), its `http://` URL, where `secure: false` has
+  nothing left to do:
     ```ts
     // vite.config.ts → server.proxy
     server: { proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } } }
@@ -554,12 +556,12 @@ or route-prefix to align. Switch to the proxy contract when you want the SPA and
 Four settings each own a segment of the final request URL; misalign one and every call 404s. Align them
 up front:
 
-| Segment             | Owned by                                                                               | Example                           |
-| ------------------- | -------------------------------------------------------------------------------------- | --------------------------------- |
-| axios base          | `config.json → api` → `initAxios({ api })`                                             | `/api`                            |
-| resource path       | each entity's `IConfig.api` — **relative to the axios base**                           | `/products`                       |
-| dev proxy           | `vite.config.ts → server.proxy` (only when `api` is a relative path)                   | `/api` → `https://localhost:7001` |
-| server route prefix | back-end host config or a route-prefix convention (controllers stay resource-relative) | `api`                             |
+| Segment             | Owned by                                                                                                                            | Example                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| axios base          | `config.json → api` → `initAxios({ api })`                                                                                          | `/api`                            |
+| resource path       | each entity's `IConfig.api` — **relative to the axios base**                                                                        | `/products`                       |
+| dev proxy           | `vite.config.ts → server.proxy` (only when `api` is a relative path)                                                                | `/api` → `https://localhost:7001` |
+| server route prefix | back-end host config, a route-prefix convention (controllers stay resource-relative) or `MapEntityEndpoints(o => o.Prefix = "api")` | `api`                             |
 
 Resolution: `products.search()` → axios base `/api` + `IConfig.api` `/products` + `/search` =
 **`/api/products/search`** → Vite proxy → `https://localhost:7001/api/products/search` → server prefix
@@ -569,7 +571,9 @@ Resolution: `products.search()` → axios base `/api` + `IConfig.api` `/products
 - The proxy forwards `/api/*` but the API serves controllers at root — add the prefix **once** on the
   back-end: `builder.Services.AddControllers(o => o.Conventions.Add(new RoutePrefixConvention("api")));`
   (controllers stay resource-relative; full convention in `Regira.Entities` → `entities.setup` → _API route
-  prefix_). Or skip the proxy and point `config.json → api` straight at the API origin (then configure CORS).
+  prefix_). An API that maps its entities as minimal-API endpoints instead takes the prefix where it maps them:
+  `app.MapEntityEndpoints(o => o.Prefix = "api")`. Or skip the proxy and point `config.json → api` straight at the
+  API origin (then configure CORS).
 
 Multi-word resources are **kebab-case plural** on both sides: `InterventionType` → `[Route("intervention-types")]`
 and `api: "/intervention-types"`. `scaffold.mjs` derives that spelling from the class name; pass `--api <path>`
@@ -1026,6 +1030,10 @@ disabled), make these four changes:
         </LoadingContainer>
     </template>
     ```
+
+    `LoadingContainer` dims the routed view while the app loads; it does not hold it back, so the view mounts and
+    fetches at once. A precondition of the app's own that the views need — an acting persona, say — gates the view
+    itself: `<RouterView v-if="session.isLoaded" />`.
 
 4. **Entity slices — scaffold with `--no-auth`.** The boilerplate `overview/Overview.vue` and
    `details/Details.vue` carry `onAuthenticated` reload hooks.

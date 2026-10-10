@@ -763,7 +763,7 @@ if (sliceGenerated) {
     for (const f of customize) console.log(`    · ${join(baseDir, plural, f)}`)
     console.log(`  Then register its plugin in ${join(baseDir, "index.ts")} (see the entities setup guide → Add entities).`)
     console.log(
-        `  Confirm api "${api}" equals the server route — [Route("${api.slice(1)}")] on ${name}Controller. A mismatch 404s every call; re-run with --api <path> to change it.`
+        `  Confirm api "${api}" equals the server route — [Route("${api.slice(1)}")] on ${name}Controller, or with mapped entity endpoints (MapEntityEndpoints) the route of ${name}'s registration. A mismatch 404s every call; re-run with --api <path> to change it.`
     )
     missingChromeKeys()
     if (attachmentsOwner) {
@@ -929,7 +929,7 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
         `    1. ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // import type { Entity as ${childName} } from "../${childFolder}"`
     )
     console.log(
-        `    2. ${p("details/Form.vue")}       render  <${childName}Overview v-model="item.${childField}" />   // import { ${childName}Overview } from "../${childFolder}"`
+        `    2. ${p("details/Form.vue")}       render  <${childName}Overview v-model="item.${childField}" :readonly="readonly" />   // import { ${childName}Overview } from "../${childFolder}"`
     )
     console.log(
         sliceGenerated
@@ -1014,9 +1014,10 @@ function scaffoldShell() {
     console.log("  Next: ensure package.json has the known-good dependency set (entities.setup.md → Install),")
     console.log("  then scaffold entities and register them in src/entities/index.ts.")
     if (written.includes("vite.config.ts")) {
-        console.log(`  config.json → api is "/api", and vite.config.ts proxies /api to https://localhost:7001: set that target to`)
-        console.log(`  the API's HTTPS launch URL, and serve the API's controllers under the "api" route prefix (entities.setup.md →`)
-        console.log(`  The URL contract).`)
+        console.log(`  config.json → api is "/api", and vite.config.ts proxies /api to https://localhost:7001: set that target to the`)
+        console.log(`  API's launch URL (its http:// one when the API serves HTTP only in development), and serve the API under the "api"`)
+        console.log(`  route prefix — UseCentralRoutePrefix for controllers, MapEntityEndpoints(o => o.Prefix = "api") for mapped entity`)
+        console.log(`  endpoints (entities.setup.md → The URL contract).`)
     }
     console.log("  The layout/navigation components are default implementations, not a prescribed design — restyle them,")
     console.log("  or replace any of them with your own as long as the functionality stays available")
