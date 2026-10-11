@@ -158,7 +158,7 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       to a scaffolded `SearchObject` instance does not type-check; the param is
       `ISearchObject & IPagingInfo & Partial<ISortByInfo>`, and `ISearchObject extends Record<string, any>`, so
       any other key you add reaches the query string too (arrays as repeated keys). `new PagingInfo(pageSize?,
-page?)` is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
+page?)` (from `@regira/modules/vue/entities`) is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
       `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"`; give it a locale tag instead and it
@@ -173,7 +173,8 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
       titles render untranslated unless you pass one. `icon` is a registered key (all listed in `ui.signatures`
       → _Icons_) or a raw `bi bi-*` class — any other name renders nothing.
 - **Anything that fetches on mount must go through `onAuthenticated(() => load())`** (from
-  `@regira/modules/vue/auth`). Views mount _before_ a stored token is validated, so a fetch guarded on
+  `@regira/modules/vue/auth`) — in an app with the auth plugin; a `--no-auth` app fetches in `onMounted`, since
+  nothing calls the hook there. Views mount _before_ a stored token is validated, so a fetch guarded on
   `isAuthenticated` leaves a blank panel with no error and no failed request; `onAuthenticated` covers
   sign-in, refresh, a restored token, and already being signed in. A hand-rolled `$onAction` must list all
   three actions (`["login", "refresh", "validateToken"]`) — the third is the one that fires on reload.

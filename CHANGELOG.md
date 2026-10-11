@@ -7,6 +7,62 @@ heading.
 
 ## Unreleased
 
+- Guides: the route pre-fill recipe re-applies the FK to every item the form is given, so a reload of the Details page
+  keeps it; `patch` is marked optional on the raw `IEntityService` in the API table; the card names where `PagingInfo`
+  comes from; the picker example resets its `<select>`; `ui.signatures` names the Autocomplete's rendered roles; the
+  shell template notes that its search box is a `<form>` of its own; `entities.signatures` says that the pooled reads
+  return hydrated instances that are not the cached ones; `prepareItem`'s copy is shallow, so the Party blueprint
+  filters nested rows onto new objects.
+- Scaffold: the shell's `vite.config.ts` carries a `strictPort` line; `scaffold.mjs --attachments` points to _Files in
+  the creating request_ for sending the files inside the owner's own save.
+- Guides: a cleared date or number input binds `""`, which the service's `prepareItem` sends as absent; the card's
+  `onAuthenticated` rule names `onMounted` for a `--no-auth` app; a refused page lands on `forbidden`; `--bs-body-bg`
+  tints inputs too; separate slices per role over one role-discriminated resource; the bootstrap's reading rule
+  matches its _Reading order_.
+- Scaffold: the shell's `config.json` carries `"culture": "en-US"`, which `main.ts` reads; the list header's delete
+  spacer shows no border; the `--owns` message points a row with a relation and scalars to the table with an
+  `InputSelector` column, as the form checklist now does.
+- Guides: a `--no-auth` hand-written view's first fetch (`onMounted`); the pooled service implements `patch`;
+  `this.axios` in a service is the IoC instance; entity names that shadow DOM globals; the shell's `server.port`.
+- `vue/entities`: `insert` and `update` hand `prepareItem` a copy of the item (its prototype kept, `copyForSave`), so
+  a save the server refuses leaves the form model's `_deleted` marks and staged `_` fields in place for the next try,
+  where the purge had already removed them.
+- Scaffold: the attachments row declares `newBytes`, and the guide gains _Files in the creating request_: overrides
+  that send staged files inside the owner's own `POST`/`PUT` as `newFileName` + `newBytes`. The `--owns` message
+  points to _Shapes `--owns` does not scaffold_.
+- Guides: showing a `DateOnly` string as its own day; a new row pre-filled from the route (`?vehicleId=3`); the FK of
+  a new inner row under a new outer row; `readonly` versus `can-edit` on an `InputSelector`; `Entity.name` as an IoC
+  key (safe) versus a navigation key (a literal); each slice's `config.key` as an icon key; and the advanced example
+  builds its join row in a script function, which `vue-tsc` accepts.
+- `vue/entities`: a search object's field left `undefined` no longer erases the matching `config.baseQueryParams`
+  default. A slice's `SearchObject` class that declares `includes?` or `sortBy?` without a value holds them as own
+  properties set to `undefined`, and spreading it over the base params dropped the defaults from every list and search.
+- Guides: _Owned rows — the inline table_ says that the add-row comes from `createRow`, on mount and after every
+  append, where it described a bare `{ id: 0 }` and a `watch` to fix it. `entities.setup` calls the icon-only button
+  labels translation keys, not icon names, and `utilities.signatures` marks `blobToBase64` as returning a data URL.
+- `vue/entities`: `EntityServiceBase.patch(id, changes)` sends a JSON merge patch (`PATCH /{id}`,
+  `application/merge-patch+json`) of the given fields and answers the saved row; the pooled service's `patch` writes
+  it into the pool, and `JSONService` applies it to its cached row. `patch` is optional on `IEntityService`, so a
+  service of your own keeps compiling; on `IPoolService` it is required, which only a class implementing that
+  interface itself would notice. ⚠️ A subclass of `EntityServiceBase` that already declares a `patch` of another
+  shape now fails to compile (TS2416): rename it. The _State toggle_ recipe changes a field with it, and keeps a dedicated
+  endpoint for a change the server decides.
+- `vue/auth`: `routeAllows(route, store)` is the route guard's verdict for a signed-in user — `allowAnonymous`, then
+  every matched `meta.policy` and `meta.permissions` — as a boolean, for hiding what the guard would refuse. The
+  guard itself uses it.
+- Scaffold: the shell's navigation drops an entry whose Overview route `routeAllows` refuses, so a slice gated by
+  `meta.policy` leaves the navbar and the dashboard for everyone else, where `hasAccess` returned `true` and the
+  entry led to `forbidden`. ⚠️ Upgrade: copy `hasAccess` from the template into an existing shell's
+  `components/entity-navigation/functions.ts`.
+- Scaffold: `--owns` declares each owned field, with its type import, in the parent's `data/Entity.ts` when the run
+  also scaffolds the parent, as `--rel` declares its fields; the generated `prepareItem` filter type-checks as
+  scaffolded, and one wiring line is left to add. The guide shows the two shapes `--owns` does not scaffold: picking
+  another aggregate's owned rows, which have no slice, and nested owned rows.
+- `vue/ui`: `useAppFeedback()` called outside setup — in an event handler, after an `await` — throws "must be called
+  during setup", where it claimed the feedback plugin was missing. The guide and the JSDoc say to call it during setup
+  and keep the result, and report through that from a handler.
+- `utilities`: the guide and the JSDoc say that `blobToBase64` resolves to a data URL, and that a JSON `byte[]` field
+  such as an attachment's `newBytes` takes only the part after the comma.
 - `vue/entities`: `InputSelectorInline` takes `readonly`: a read-only form shows the chips without their
   remove/restore toggle and without the `#selector` slot, and the `#chip` slot receives `readonly` for the button it
   renders. The `--picker` chips editor takes the parent form's `readonly` and passes it on to `InputSelectorInline` and

@@ -18,6 +18,12 @@ export interface IEntityService<T extends IEntity = IEntity> {
     searchUnion(searchObjects: Array<object>, extra?: IPagingInfo | ISortByInfo): Promise<SearchResult<T>>
 
     save(item: T): Promise<SaveResult<T>>
+    /**
+     * Changes only the given fields of a stored row — a JSON merge patch — and answers the saved row. Optional, so a
+     * service of your own keeps compiling; `EntityServiceBase` implements it, and so does the pooled service a store
+     * hands out (`useEntityStore().service.patch`, typed as required there), which writes the saved row into the pool.
+     */
+    patch?(id: number | string, changes: Record<string, unknown>): Promise<T | undefined>
     remove(item: T): Promise<void>
 
     toEntity(item: object): T

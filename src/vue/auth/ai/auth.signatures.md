@@ -12,6 +12,7 @@ import {
     createStore,
     onAuthenticated,
     routeGuard,
+    routeAllows,
     AuthService,
     CookieTokenManager,
     MemoryTokenManager,
@@ -244,6 +245,8 @@ export const routeGuard: (args: { router: Router; store: Store & { isAuthenticat
 // reads route meta: allowAnonymous, policy(store) => boolean, permissions: string[]
 // registers the check as a beforeEach guard and returns it; the plugin also runs it for the route already shown,
 // after the first navigation and on every new token
+export function routeAllows(to: Pick<RouteLocationNormalized, "matched" | "meta">, store: { hasPermission(value: string): boolean }): boolean
+// the guard's verdict for a signed-in user: allowAnonymous, then every matched meta.policy and meta.permissions
 ```
 
 ## Account UI

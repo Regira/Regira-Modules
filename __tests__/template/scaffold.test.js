@@ -362,6 +362,27 @@ describe("scaffold.mjs owned collections", () => {
         expect(overview).toContain('v-model="item.menuItems"') // the BINDING stays the camelCase JSON key
     })
 
+    // the generated prepareItem filter reads the field, so the parent model declares it — as --rel declares its own
+    test("declares each owned field on the parent model it scaffolds", () => {
+        const out = run("Workshop", "--owns", "WorkshopLine", "--owns", "WorkshopTag", "--as", "tags", "--picker", "Tag", "--no-auth")
+        const model = readFileSync(app("src", "entities", "workshops", "data", "Entity.ts"), "utf8")
+
+        expect(model).toContain('import type { Entity as WorkshopLine } from "../workshop-lines"')
+        expect(model).toContain('import type { Entity as WorkshopTag } from "../workshop-tags"')
+        expect(model).toContain("    workshopLines?: Array<WorkshopLine>")
+        expect(model).toContain("    tags?: Array<WorkshopTag>")
+        expect(out).toMatch(/✓ .*Entity\.ts\s+field\s+tags\?: Array<WorkshopTag>/)
+    })
+
+    test("leaves an existing parent's model alone and prints the field to add", () => {
+        run("Vendor", "--no-auth")
+        const before = readFileSync(app("src", "entities", "vendors", "data", "Entity.ts"), "utf8")
+        const out = run("Vendor", "--owns", "VendorLine", "--no-auth")
+
+        expect(readFileSync(app("src", "entities", "vendors", "data", "Entity.ts"), "utf8")).toBe(before)
+        expect(out).toMatch(/1\. .*Entity\.ts\s+field\s+vendorLines\?: Array<VendorLine>/)
+    })
+
     test("--picker emits chips over a plain join row, not the scalar editable table", () => {
         // A pure join has nothing to type into, and InputSelectorInline constrains rows to
         // `{ _deleted?, id? }` — giving it the EntityBase row class is what makes add({...}) fail to compile.
@@ -546,6 +567,19 @@ describe("scaffold.mjs --shell config.json", () => {
     function shellConfig(...args) {
         return shell(...args)("public", "config.json")
     }
+
+    // _template/app-shell is generated from entities.shell.template.md: an edit made only in the generated file is lost
+    // on the next build, so pin what the navigation ships in both variants
+    test("the navigation hides an entry the route guard would refuse, and a --no-auth shell shows every entry", () => {
+        const nav = ["src", "components", "entity-navigation", "functions.ts"]
+        const withAuth = shell()(...nav)
+        const noAuth = shell("--no-auth")(...nav)
+
+        expect(withAuth).toContain("routeAllows(router.resolve({ name }), authStore)")
+        expect(withAuth).not.toContain("=> true")
+        expect(noAuth).toContain("const hasAccess = (_config: IConfig) => true")
+        expect(noAuth).not.toMatch(/auth|router/i)
+    })
 
     test("--no-auth drops the auth-only keys — no marker can live in JSON, so the file is edited by key", () => {
         const raw = shellConfig("--no-auth")

@@ -567,7 +567,18 @@ function withFilterReset(text) {
 // with nothing owned the marker is dead weight in a file the user is told to leave alone, so drop it.
 const OWNED_FILTER_TODO = /^[^\S\r\n]*\/\/ TODO \(owned collections only\):.*\r?\n/m
 function applyOwnedCollections(relPath, text) {
-    if (relPath.replace(/\\/g, "/") !== "data/EntityService.ts") return text
+    const path = relPath.replace(/\\/g, "/")
+    // the field each editor binds, so the prepareItem filter below type-checks as scaffolded — as --rel declares
+    // its fields. `import type`: an owned row never needs the parent at runtime, and the erased form cannot cycle
+    if (path === "data/Entity.ts" && owns.length) {
+        text = insertAfter(
+            text,
+            `import { EntityBase } from "@regira/modules/vue/entities"`,
+            owns.map((o) => `import type { Entity as ${o.child} } from "../${kebab(pluralize(o.child))}"`).join("\n")
+        )
+        return insertAfter(text, `title = ""`, owns.map((o) => `    ${ownedField(o)}?: Array<${o.child}>`).join("\n"))
+    }
+    if (path !== "data/EntityService.ts") return text
     const marker = text.match(OWNED_FILTER_TODO)
     if (!marker) {
         console.error(
@@ -925,19 +936,29 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             `  ! The chips import from ${join(baseDir, targetFolder)}, which does not exist yet — scaffold the ${pickerName} slice or vue-tsc will fail.`
         )
     }
-    console.log(`  Wire it into the ${name} slice (the editor is generated; these ${sliceGenerated ? "two" : "three"} lines connect it):`)
+    console.log(`  Wire it into the ${name} slice (the editor is generated; ${sliceGenerated ? "one line connects it" : "these three lines connect it"}):`)
     console.log(
-        `    1. ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // import type { Entity as ${childName} } from "../${childFolder}"`
+        sliceGenerated
+            ? `    ✓ ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // already written by this run`
+            : `    1. ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // import type { Entity as ${childName} } from "../${childFolder}"`
     )
     console.log(
-        `    2. ${p("details/Form.vue")}       render  <${childName}Overview v-model="item.${childField}" :readonly="readonly" />   // import { ${childName}Overview } from "../${childFolder}"`
+        `    ${sliceGenerated ? "1" : "2"}. ${p("details/Form.vue")}       render  <${childName}Overview v-model="item.${childField}" :readonly="readonly" />   // import { ${childName}Overview } from "../${childFolder}"`
     )
     console.log(
         sliceGenerated
-            ? `    ✓ ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // already written by this run — it type-checks as soon as step 1 declares the field`
+            ? `    ✓ ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // already written by this run`
             : `    3. ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // add it yourself: the existing service was left untouched`
     )
     console.log(`    back-end: e.Related(x => x.${ChildrenPascal}) on ${name} (owned child — no For<>()/controller/budget slot).`)
+    console.log(
+        `  Nested owned rows, or picking another aggregate's owned rows (no slice to pick from): entities.patterns → "Shapes --owns does not scaffold".`
+    )
+    if (!pickerName) {
+        console.log(
+            `  Rows with a relation AND scalars (invoice lines): keep this table and put an InputSelector in the relation column — entities.patterns → "Owned rows with scalar fields".`
+        )
+    }
     if (pickerName) {
         console.log(
             `    back-end: eager-load the nested ${pickerName} too — .Include(x => x.${ChildrenPascal}).ThenInclude(r => r.${pickerName}) — or every chip renders blank.`
@@ -1046,6 +1067,9 @@ function attachmentsTodo() {
         `    public/data/translations.json  the shell ships "files" and "addNewFile(s)" (literal key, parentheses included) in English — add the other languages from config.json → langs`
     )
     console.log(`    back-end: register the owner's files (WithAttachments + HasAttachments<>).`)
+    console.log(
+        `    The overrides save the owner, then upload each file. To send the files inside the owner's own POST/PUT instead (one request): entities.patterns → "Files in the creating request".`
+    )
     console.log(
         `    Adding getAttachments/addAttachment of your own? upload/getFile live on AxiosWithFilesInstance - call useAxios() inside the method; this.axios stays a plain AxiosInstance.`
     )

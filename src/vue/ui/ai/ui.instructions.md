@@ -143,8 +143,10 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
     matches placeholder names by case.
 
 - `useAppFeedback()` → the **app-wide** `FeedbackOut` the feedback plugin installs — the panel the shell
-  renders, as opposed to the per-form instance `useFeedback()` mints. Use it to report from a handler that
-  owns no panel of its own (an add-to-cart button); it throws if the plugin was never installed.
+  renders, as opposed to the per-form instance `useFeedback()` mints. Call it during setup and keep the result:
+  it resolves through `inject()`, so a call inside an event handler or after an `await` throws. Use the result to
+  report from a handler that owns no panel of its own (an add-to-cart button); it throws if the plugin was never
+  installed.
 - `useScreen()` → `{ size, screen }` where `screen` exposes `isSmall`…`isExtraExtraLarge`, `layout`,
   `isSize`. It is a **module-level shared instance** that owns a single debounced
   `resize`/`orientationchange` subscription, so it tracks the viewport with or without `screenPlugin`

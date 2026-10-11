@@ -121,6 +121,7 @@ export default defineConfig({
     define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version) },
     server: {
         port: Number(process.env.PORT) || 5173, // honor a harness/preview-assigned PORT (Vite ignores it by default)
+        strictPort: false, // true when the port is prescribed: fail rather than move to the next free one
         // config.json → api is "/api": the SPA calls its own origin, in development as in production, and this
         // forwards /api to the API. Set the target to the API's launch URL (launchSettings.json → applicationUrl): its HTTPS
         // one, or its http:// one for an API that serves HTTP only in development. The API serves its routes under the
@@ -443,6 +444,7 @@ watch(showLogin, (gateOpen) => {
     "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
+    "culture": "en-US",
     "title": { "en": "My App" },
     "navigation": {
         "groups": [{ "id": "Main", "title": "main", "icon": "bi bi-grid" }],
@@ -615,7 +617,9 @@ export default {
 
 ```ts
 import { computed, getCurrentInstance } from "vue"
+import { useRouter } from "vue-router" // @auth:only
 import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
+import { routeAllows, useAuthStore } from "@regira/modules/vue/auth" // @auth:only
 import { useConfig } from "@/app-config"
 
 // reads config.json → navigation + the collected $configs, builds the dashboard/navbar trees
@@ -626,7 +630,18 @@ export function useNavigation() {
     } = useConfig()
 
     const configs = Object.values(app.appContext.config.globalProperties.$configs) as Array<IConfig>
-    const hasAccess = (_config: IConfig) => true // gate by permissions here if needed
+    // @auth:block-start
+    // an entry shows when the route guard would let this user open its overview: the meta.policy / meta.permissions a
+    // slice's setup.ts puts on its routes. Recomputed on sign-in, since the policies read the auth store
+    const router = useRouter()
+    const authStore = useAuthStore()
+    const hasAccess = (config: IConfig) => {
+        const name = `${config.key}Overview`
+        return !router.hasRoute(name) || routeAllows(router.resolve({ name }), authStore)
+    }
+    // @auth:block-end
+    // gate entries by anything of your own here // @noauth:only
+    const hasAccess = (_config: IConfig) => true // @noauth:only
 
     const dashboardTree = computed(() => buildNavigationTree(importDashboard({ groups, entities: dashboard, configs, hasAccess })))
     const navbarTree = computed(() => buildNavigationTree(importNavbar({ groups, entities: navbar, configs, hasAccess })))
@@ -738,6 +753,9 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
 ```
 
 ## `src/components/entity-navigation/NavSearch.vue`
+
+The header's search box is a `<form>` with a submit button of its own, so a test or a style addressing "the form's
+submit button" reaches it first: scope to `main form`.
 
 ```vue
 <script setup lang="ts">

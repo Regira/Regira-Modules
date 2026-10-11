@@ -47,7 +47,9 @@ The app shell — the config-driven **dashboard + navbar** (`entity-navigation/`
 **auth-independent**: it builds from `$configs` + `config.json → navigation`, not the auth store, so build it
 even for a no-auth app. Navigation entries reference each entity by its **`config.key`** — the literal string
 in the slice's `config.ts` (conventionally the class name, e.g. `"Product"`), not the route/kebab plural and
-**not** `Entity.name` (minified in a build). An unmatched key is skipped with a console warning. Hand-rolling a navbar
+**not** `Entity.name`: `config.json` holds a literal, and a minified build renames the class. `Entity.name` stays safe
+where both sides read it from the class — the IoC key `setup.ts` registers the service under and
+`get<EntityService>(Entity.name)` reads. An unmatched key is skipped with a console warning. Hand-rolling a navbar
 instead of `useNavigation()` forfeits that config-driven shell; only `users/` + `user-plugin` are auth-coupled.
 
 **Token economy.** Prefer heading-scoped reads — `get_package(id, section, heading)` — over pulling a whole
@@ -113,8 +115,9 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
       without authentication_ recipe in `entities.setup` to run without a login.
 - [ ] **Type the client from the API's OpenAPI.** When the API exposes OpenAPI, generate TypeScript types
       from it and feed them into the hand-written entity models (you still hand-write the model classes).
-- [ ] The primary guides **for the chosen tier** (full tier: `entities.instructions` + `entities.setup`)
-      are read in full before generating slices, services, composables, or the app shell.
+- [ ] The primary guides **for the chosen tier** (full tier: `entities.instructions` + `entities.setup`) are read
+      before generating slices, services, composables, or the app shell — their workflow sections in full, the
+      rest by heading as the task needs it (_Reading order_ below).
 - [ ] **Restyling never requires forking the library.** Theme tokens, stable `rg-*`/`is-*` css hooks,
       typed slots, contract-typed replacement skins, and `scaffold.mjs --ui <Component>` ejects cover
       every customization level — see `regira_modules.vue.ui` → `ui.customize`.
@@ -241,7 +244,9 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
 5. Scaffold the app shell — `node node_modules/@regira/modules/_template/scaffold.mjs --shell` (`--no-auth`
    for a no-auth app) writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`), `main.ts`,
    `App.vue`, router, dashboard/navbar, layout, views, `config.json` + `app-config.ts` (full source:
-   `entities.shell.template`), skipping files that already exist.
+   `entities.shell.template`), skipping files that already exist. `vite.config.ts` serves on port 5173 and proxies to
+   `https://localhost:7001`: point the proxy at the API, and set `server.port` (with `strictPort: true`) when the
+   ports are prescribed.
 6. Scaffold each entity slice with `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`
    (add `--no-auth` for a no-auth app), then customize the `(c)` files; consult `entities.namespaces` / `entities.signatures` for exact
    imports/signatures and `entities.patterns` for recipes. Re-running the scaffold over an existing slice

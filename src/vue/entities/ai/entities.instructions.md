@@ -136,9 +136,10 @@ them for you**, so the method return types are _not_ these envelopes — see the
 | `searchUnion(sos)` | POST   | `{searchUrl}?{query}` (body = array of search objects) | `{ items, count }` |
 | `insert(item)`     | POST   | `{saveUrl}`                                            | `{ item }`         |
 | `update(item)`     | PUT    | `{saveUrl}/{$id}`                                      | `{ item }`         |
+| `patch(id, changes)` | PATCH  | `{saveUrl}/{id}` (body = the changed fields only; optional on the raw `IEntityService` — call it on `useEntityStore().service`, where it is required and pools the result) | `{ item }`         |
 | `remove(item)`     | DELETE | `{deleteUrl}/{$id}`                                    | —                  |
 
-> **The methods return _unwrapped_ values, not these envelopes.** `list()` resolves to `Array<T>` (not `{ items }`), `details()` to `T | undefined`, `search()`/`searchUnion()` to `SearchResult<T>` (`{ items, count }`), `save()`/`insert()`/`update()` to `SaveResult<T>`/`T | undefined`. Destructure accordingly — `const items = await service.list()`, never `const { items } = await service.list()`. Verify in [entities.signatures.md](entities.signatures.md).
+> **The methods return _unwrapped_ values, not these envelopes.** `list()` resolves to `Array<T>` (not `{ items }`), `details()` to `T | undefined`, `search()`/`searchUnion()` to `SearchResult<T>` (`{ items, count }`), `save()`/`insert()`/`update()` to `SaveResult<T>`/`T | undefined`, `patch()` to `T | undefined`. Destructure accordingly — `const items = await service.list()`, never `const { items } = await service.list()`. Verify in [entities.signatures.md](entities.signatures.md).
 
 `save(item)` dispatches: **insert** when `$id` is an unsaved sentinel — `null`, `undefined`, `"new"`, `""`,
 or a **non-positive number** (`0`, or the negative temp ids owned/related collections mint for new rows) via
@@ -505,7 +506,7 @@ hand-rolling one is a deviation to declare (recipes: [entities.patterns.md](enti
 | 2+ related collections / many fields                                                         | `TabContainer` + `Tab.create` tabs — not one long column or a fixed-width table                                                                                                                                                                                       |
 | an editable child/join **relation** (rows link to another entity)                            | **`InputSelectorInline`** chips (`_deleted` mark + `exclude`) + a `prepareItem` filter — never the hard-removing `Selector`, never per-row `DELETE` calls                                                                                                             |
 | editable owned rows with **scalar fields** (nothing to pick)                                 | an inline **table** via `useOwnedCollection` (add-row + `_deleted`) + the same `prepareItem` filter — [recipe](entities.patterns.md#owned-rows-with-scalar-fields--the-inline-table)                                                                                  |
-| rows carrying **both** — a relation **and** scalars (quantity, sort order, role, valid-from) | the **table**, with an `InputSelector` in the relation column. Very common on join rows; the chips form has nowhere to put the scalars                                                                                                                                |
+| rows carrying **both** — a relation **and** scalars (quantity, sort order, role, valid-from) | the **table**, with an `InputSelector` in the relation column. Very common on join rows; the chips form has nowhere to put the scalars. Scaffold it with `--owns <Child>` (no `--picker`) and replace a placeholder column with the `InputSelector` |
 | **files / pictures** on the entity                                                           | the `entity-attachments` slice in a tab: `FileDropZone` drop, offline add/rename/remove (`_deleted`), flush on save via `useAxios().upload` — never `FileHelper.send` — [recipe](entities.patterns.md#attachments-files--offline-add--rename--remove-confirm-on-save) |
 | a related entity displayed anywhere                                                          | that entity's **`FormModalButton`** (chip/badge that opens its form in a modal) — a bare label is the exception, not the default                                                                                                                                      |
 | "add related entity" controls                                                                | `InputSelector` with `:filter-defaults="{ exclude: currentIds }"` (hides already-added rows)                                                                                                                                                                          |
@@ -520,7 +521,9 @@ hand-rolling one is a deviation to declare (recipes: [entities.patterns.md](enti
 > collection read-only (badges, a static list) is an _incomplete_ slice, not a valid simplification. Build it in
 > Step 8 alongside the form; the `_deleted` mark + `prepareItem` filter is what makes one parent `save()` persist
 > adds, edits, and removals together. For the scalar-row table, `scaffold.mjs <Entity> --owns <Child>` generates
-> the editor sub-slice and prints the three wiring lines (field, `<…Overview>`, `prepareItem` filter).
+> the editor sub-slice. In a run that also scaffolds the parent it writes the `Array<Child>` field and the
+> `prepareItem` filter, leaving one line to add (`<…Overview>` in the form); against an existing parent it prints
+> all three.
 
 > **A save that sends nothing is the browser's own validation.** The scaffolded form submits through a
 > `type="submit"` button, so a `required`, `min`, `pattern` or `type="email"` on any of its inputs stops the
@@ -579,7 +582,7 @@ plugin installs; the router must be built **after** the entity plugins have coll
 Load [entities.patterns.md](entities.patterns.md) when implementing one of these:
 
 - **Soft delete / archived rows** — `archived` on the search object; `handleRestore` in the form.
-- **State toggle (activate/deactivate)** — a dedicated endpoint + custom service method for a visible status flag.
+- **State toggle (activate/deactivate)** — `service.patch(id, { isActive: false })`, a merge patch of the one field; a dedicated endpoint only when the server decides the change.
 - **Date hydration** — convert non-`created`/`lastModified` date fields in `toEntity`.
 - **Transient client-only fields** — `_`-prefixed props (e.g. `_deleted`) stripped before save.
 - **Paging** — `pagingInfo` + `itemsCount`; `pageSize: 0` returns all rows capped by the server's `MaxPageSize` (send a positive `pageSize` to page).

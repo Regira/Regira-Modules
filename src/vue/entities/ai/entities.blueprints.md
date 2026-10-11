@@ -275,6 +275,11 @@ Container niceties from the reference apps (`Overview.vue`):
 
 ## Polymorphic entity (single class over a TPH back-end)
 
+> **Separate screens per role over one resource** (Employees and Suppliers over one `/parties`, after the back-end
+> collapsed them into a role-discriminated party): scaffold one slice per role with `--api parties`, give each
+> config `baseQueryParams: { role: "Employee" }` (the API's role filter) and the model a fixed `role` default. Each
+> slice keeps its own pool, IoC key, navigation entry and picker.
+
 Client side of the back-end **Stakeholders** blueprint (or any `[JsonPolymorphic]` TPH endpoint): the API serves one route (`/parties`) with a discriminator (`partyType`) selecting the subtype payload. On the client, **don't mirror the class hierarchy** — one flattened entity class carrying the union of subtype fields keeps every composable, store, and picker working unchanged:
 
 ```ts
@@ -319,11 +324,11 @@ export class Party extends EntityBase {
 protected override prepareItem(item: Party): Party {
     item.addresses = item.addresses?.filter((x) => !x._deleted)
     item.contactData = item.contactData?.filter((x) => !x._deleted)
-    for (const relations of [item.parentRelationships, item.childRelationships]) {
-        relations?.forEach((r) => (r.contactData = r.contactData?.filter((c) => !c._deleted)))
-    }
-    item.parentRelationships = item.parentRelationships?.filter((x) => !x._deleted)
-    item.childRelationships = item.childRelationships?.filter((x) => !x._deleted)
+    // the copy is shallow: give each kept relation a new object rather than changing the form's own row
+    const keep = (relations?: PartyRelationship[]) =>
+        relations?.filter((x) => !x._deleted).map((r) => ({ ...r, contactData: r.contactData?.filter((c) => !c._deleted) }))
+    item.parentRelationships = keep(item.parentRelationships)
+    item.childRelationships = keep(item.childRelationships)
     return super.prepareItem(item)
 }
 ```

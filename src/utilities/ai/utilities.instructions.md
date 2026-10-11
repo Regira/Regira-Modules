@@ -65,6 +65,9 @@ defaults to `"files"`), `saveAs` (triggers a browser download), and `formatFileS
 adds `browse` (open the native file picker → `Promise<File[]>`) and `dropHandler` (extract files from a
 drop `DragEvent`).
 
+⚠️ `blobToBase64` resolves to a **data URL** (`data:<type>;base64,<data>`) despite its name. A JSON `byte[]` field
+(an attachment's `newBytes`) takes bare base64: send only the part after the comma.
+
 ## Dates (`datetimeUtility`)
 
 `isValidDate`, `stringifyDate` (ISO string preserving the local timezone offset, no UTC shift), `timer`

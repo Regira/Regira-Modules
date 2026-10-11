@@ -58,6 +58,7 @@ export interface IEntityService<T extends IEntity = IEntity> {
     search(so?: object): Promise<SearchResult<T>>
     searchUnion(searchObjects: Array<object>, extra?: IPagingInfo | ISortByInfo): Promise<SearchResult<T>>
     save(item: T): Promise<SaveResult<T>>
+    patch?(id: number | string, changes: Record<string, unknown>): Promise<T | undefined> // optional: a service of your own keeps compiling
     remove(item: T): Promise<void>
     toEntity(item: object): T
     newEntity(values?: Record<string, any>): Promise<T>
@@ -90,12 +91,14 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
     search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<SearchResult<T>>
     searchUnion(searchObjects: Array<ISearchObject>, extra?: IPagingInfo | ISortByInfo): Promise<SearchResult<T>>
     save(item: T): Promise<SaveResult<T>>
+    patch(id: string | number, changes: Record<string, unknown>): Promise<T | undefined> // PATCH /{id} as application/merge-patch+json → the saved row
     remove(item: T): Promise<void>
     update(item: T): Promise<T | undefined>
     insert(item: T): Promise<T | undefined>
     protected fetchItems<TResult extends { items: Array<T> }>(api: string, so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<TResult>
     protected processItem(item: T | undefined): T | undefined // hydrates `created`/`lastModified` strings to Date
-    protected prepareItem(item: T): T // strips top-level properties whose key starts with "_" (does not recurse)
+    protected prepareItem(item: T): T // strips top-level properties whose key starts with "_" (does not recurse); gets copyForSave's copy
+    protected copyForSave(item: T): T // the shallow, prototype-keeping copy insert/update hand prepareItem, so a refused save leaves the form alone
     protected createInstance<T>(type: { new (): T }): T
     newEntity(values?: Record<string, any>): Promise<T>
     abstract toEntity(item: Object): T // the ONLY required override
@@ -132,6 +135,7 @@ export abstract class JSONService<T extends IEntity> extends EntityServiceBase<T
     list(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<T[]>
     search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<SearchResult<T>>
     save(item: T): Promise<{ saved: T; isNew: boolean }>
+    patch(id: string | number, changes: Record<string, unknown>): Promise<T | undefined> // applied to the cached row client-side
     remove(item: T): Promise<void>
     processSearchObject(so?: ISearchObject): ISearchObject
     abstract toEntity(item: Object): T
@@ -688,6 +692,7 @@ export function usePooling<T extends IEntity>(service: IEntityService<T>, type: 
 export const defaultPoolCache: PoolCache
 
 export interface IPoolService<T extends IEntity> extends IEntityService<T> {
+    patch(id: number | string, changes: Record<string, unknown>): Promise<T | undefined> // the service's patch, saved row written into the pool
     get(input: T): Ref<T> | undefined
     getMany(input: Array<T>): Array<Ref<T>>
 }
@@ -723,7 +728,8 @@ export class PoolService<T extends IEntity> implements IPoolService<T> {
 ```
 
 The pooled `details` / `list` / `search` write every row they receive into the cache (refreshing a cached row in
-place) but **return plain copies** — run them through `fromPool` to get the shared instances. The cache is a
+place) but **return hydrated instances** — through `toEntity` (`$id`, `$title` work; `details` hands a fresh copy), yet not
+the cached ones, so an edit elsewhere does not reach them. Run them through `fromPool` to get the shared instances. The cache is a
 plain `Map`, so `fromCache()` read inside a `computed` does not see ids added after it first ran: a component
 that lists a type loads the rows itself rather than reading the cache.
 

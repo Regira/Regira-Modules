@@ -482,7 +482,7 @@ makes every `$t()` render the raw key):
 See [lang.signatures.md](../../lang/ai/lang.signatures.md) (`ITranslationMessages`).
 
 Framework chrome emits its own keys (`keywords`, `new`, `noResults`, `save`, `cancel`, `delete`, `restore`, `deleteItem`, `filtersAreApplied`,
-`overview`, `popOut`, the icon-button names `edit`, `clear`, `filter`, `search`, `select`, `remove`, `download`, `menu`, and `signIn`/`signOut` with
+`overview`, `popOut`, the keys that label icon-only buttons (`edit`, `clear`, `filter`, `search`, `select`, `remove`, `download`, `menu` — translation keys, not icon names), and `signIn`/`signOut` with
 auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
 domain labels alongside, or blank UI text renders the raw key.
 
@@ -1100,6 +1100,10 @@ change (`AccountView`) and sign out (the header).
 
 ### Add entities
 
+An entity named like a DOM or TypeScript global (`Event`, `Location`, `Document`, `Range`, `Selection`) shadows it in
+its slice's files; the barrels export the model as `Entity`, so import it aliased elsewhere
+(`import type { Entity as Event }`) and keep the global reachable as `globalThis.Event` where a file needs both.
+
 Create `src/entities/<name>/` slices — each with the full folder set (`config/ data/ details/ filter/
 overview/ selecting/` + `index.ts` + `setup.ts`, see [Entity slice anatomy](#entity-slice-anatomy)) — and
 an `src/entities/index.ts` aggregator that installs them and collects routes (each `setup.ts` writes its
@@ -1143,7 +1147,9 @@ the library importers:
 ```ts
 // src/components/entity-navigation/functions.ts
 import { computed, getCurrentInstance } from "vue"
+import { useRouter } from "vue-router"
 import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
+import { routeAllows, useAuthStore } from "@regira/modules/vue/auth"
 import { useConfig } from "@/app-config"
 
 export function useNavigation() {
@@ -1153,7 +1159,14 @@ export function useNavigation() {
     } = useConfig()
 
     const configs = Object.values(app.appContext.config.globalProperties.$configs) as Array<IConfig>
-    const hasAccess = (_config: IConfig) => true // gate by permissions here if needed
+    // an entry shows when the route guard would let this user open its overview (meta.policy / meta.permissions on the
+    // slice's routes). A --no-auth shell has `const hasAccess = (_config: IConfig) => true` and no auth imports
+    const router = useRouter()
+    const authStore = useAuthStore()
+    const hasAccess = (config: IConfig) => {
+        const name = `${config.key}Overview`
+        return !router.hasRoute(name) || routeAllows(router.resolve({ name }), authStore)
+    }
 
     const dashboardTree = computed(() => buildNavigationTree(importDashboard({ groups, entities: dashboard, configs, hasAccess })))
     const navbarTree = computed(() => buildNavigationTree(importNavbar({ groups, entities: navbar, configs, hasAccess })))

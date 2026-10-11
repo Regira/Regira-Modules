@@ -1,7 +1,7 @@
 import { type IAuthData } from "./AuthData"
 
 export { AuthService, type IAuthenticateInput, type IChangePasswordInput, type IForgotPasswordInput, type IResetPasswordInput } from "./auth-service"
-export { default as routeGuard } from "./route-guard"
+export { default as routeGuard, routeAllows } from "./route-guard"
 export { type ITokenManager, CookieTokenManager, MemoryTokenManager, LocalStorageTokenManager } from "./token-manager"
 
 export { useAuth, useGlobalAuth, getAccountName, type IAuth, type IGlobalAuth, type GlobalAuth, type IAuthOptions } from "./auth"

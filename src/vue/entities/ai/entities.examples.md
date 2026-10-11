@@ -447,7 +447,7 @@ const { filterIsActive, handleReset, handleUpdate } = useFilter({
             <div class="col-2 col-lg-1 fw-bold">{{ $t("code") }}</div>
             <div class="col fw-bold">{{ $t("name") }}</div>
             <div class="col-auto fw-bold">
-                <span class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <template v-for="(item, i) in items" :key="item.$id">
@@ -2360,7 +2360,7 @@ watchEffect(async () => {
             </div>
             <div class="col-2 d-none d-md-block fw-bold">{{ $t("unitType") }}</div>
             <div class="col-auto fw-bold">
-                <span class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <template v-for="(item, i) in items" :key="item.$id">

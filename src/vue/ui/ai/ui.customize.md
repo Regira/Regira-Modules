@@ -82,6 +82,9 @@ Overriding `:root { --bs-primary: … }` alone recolors almost nothing. Re-theme
 }
 ```
 
+Tinting the page with `--bs-body-bg` also tints every `.form-control` and `.form-select`: precompiled Bootstrap paints
+inputs with the body background, so set their `background-color` back when only the page should change.
+
 Theming belongs in `theme.scss` — never fork or patch the library css.
 
 ## L1 — CSS restyle via class hooks

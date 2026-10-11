@@ -224,8 +224,14 @@ The plugin restores a stored token with an async `validateToken` and registers t
 router's first navigation has already started. So once the guard is registered, the plugin runs the same check for
 the route already shown and replaces it when the check redirects: a reload or a deep link to a gated page is
 checked too, as soon as the token is known. It runs the check again on every new token — another account signing
-in on the page, a refresh, a tenant switch — so a page the new identity may not see leaves the screen.
+in on the page, a refresh, a tenant switch — so a page the new identity may not see leaves the screen for the
+`forbidden` route (`/403?url=…`).
 `routeGuard` returns that check, for an app that registers the guard itself.
+
+`routeAllows(route, store)` is the guard's verdict for a signed-in user, as a boolean: `allowAnonymous`, then every
+matched `meta.policy` and `meta.permissions`. Pass it a route from `router.resolve(...)` to hide what the guard would
+refuse: the scaffolded navigation drops an entry whose overview route it refuses, so a role-gated slice leaves the
+navbar and the dashboard for everyone else.
 
 > ⚠️ **Gate a route by role with `meta.policy`, never `beforeEnter: () => hasRole(…)`.** `beforeEnter` runs on the
 > first navigation with no token yet, and nothing runs it again: an administrator reloading the page, or opening a

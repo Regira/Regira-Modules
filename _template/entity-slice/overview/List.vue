@@ -25,7 +25,7 @@
                      header cell the same width as the row's, so the trailing edges line up. `disabled`
                      on a span is inert without being focusable. Gated on the same `readonly` as the row's
                      button: kept while the rows have none, it widens this cell and the columns part. -->
-                <span v-if="!readonly" class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span v-if="!readonly" class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <ListItem

@@ -357,16 +357,7 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
                                                 :filter-defaults="{ exclude }"
                                                 :readonly="readonly"
                                                 :placeholder="$t('selectType')"
-                                                @select="
-                                                    (it: InterventionType) =>
-                                                        add(
-                                                            VehicleInterventionType.create({
-                                                                interventionTypeId: it.id!,
-                                                                interventionType: it,
-                                                                vehicleId: item.id,
-                                                            })
-                                                        )
-                                                "
+                                                @select="(it?: InterventionType) => it && add(toJoinRow(it))"
                                             />
                                         </template>
                                     </InputSelectorInline>
@@ -433,6 +424,11 @@ const { service: entityService } = useEntityStore()
 
 const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore } = useForm<Entity>({ entityService, props, emit })
 
+// the join row is built here, not in the template: a static factory called inside a nested slot's handler fails
+// vue-tsc (TS2339), and the selector's select hands an optional value
+const toJoinRow = (it: InterventionType) =>
+    VehicleInterventionType.create({ interventionTypeId: it.id!, interventionType: it, vehicleId: item.value.id })
+
 // Tabs
 const { translate } = useLang()
 const tabs = computed(() => [
@@ -475,7 +471,7 @@ class VehicleInterventionType extends EntityBase {
     </template>
     <template #selector="{ add, exclude }">
         <InterventionTypeSelector :filter-defaults="{ exclude }"
-            @select="(it: InterventionType) => add(VehicleInterventionType.create({ interventionTypeId: it.id!, interventionType: it, vehicleId: item.id }))" />
+            @select="(it?: InterventionType) => it && add(toJoinRow(it))" /> <!-- toJoinRow: a script function, see §5 -->
     </template>
 </InputSelectorInline>
 ```

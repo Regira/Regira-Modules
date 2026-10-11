@@ -304,6 +304,8 @@ export function load(icons: Record<string, string> | Array<Array<string>>): void
 // BsIcon / FaIcon props: IconProps
 // Every icon-typed input (Icon name, IconButton icon, Tab.create({ icon }), config.icon) takes a registered key
 // or a raw class ("bi bi-rocket", rendered as given). An unregistered key renders NOTHING (a console warning).
+// Each entity slice registers its config.key as a key for its config.icon (setup.ts → addIcons), so
+// <Icon :name="config.key" /> and Tab.create({ icon: "Intervention" }) name an entity's icon.
 // Registered keys, source "bs" (the default; "fa" defines a smaller subset):
 //   address, admin, alert, attachment, ban, bank, birthday, box, boxes, building, calendar, cancel, car, chat,
 //   chatLeft, chatRight, check, checked, clear, client, clone, close, closeSq, code, collapse, collection,
@@ -340,6 +342,9 @@ export function useScreen(): { size: Ref<number[]>; screen: IScreen }
 ```
 
 ## Autocomplete
+
+The suggestions render as `role="listbox"` with one `role="option"` per visible result — what an end-to-end test
+picks from.
 
 ```ts
 import { useAutocomplete, autocompleteDefaults, Autocomplete } from "@regira/modules/vue/ui"

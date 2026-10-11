@@ -71,6 +71,7 @@ export class EntityAttachment extends EntityBase {
     uri?: string
     sortOrder = 0 // list position — mirrored from the array index client-side (keeps re-maps stable); the server derives SortOrder from the array order on save (its input DTO has no sort field, so the serialized value is informational)
     newFileName?: string // edited name for an existing file — applied on flush
+    newBytes?: string // base64 file content, for a host that sends its files in the owner's own save (entities.patterns → Files in the creating request)
     attachment?: Attachment
     _deleted = false // marked-delete (undoable) — filtered out in the host service's prepareItem
 
@@ -129,8 +130,7 @@ export function useEntityAttachments({
     // edits (rename, _deleted, reorder) persist without re-mapping. Re-map only when the host swaps in a new record.
     // The ARRAY ORDER is the wire contract (the server assigns SortOrder from position on every parent
     // save) — but the client mirrors the index into sortOrder after every change, because re-maps sort by
-    // it: a host prepareItem that assigns a fresh filtered array retriggers toItems, and stale values
-    // would visually revert a drag at the moment of save.
+    // it: when the host loads a record again (after a save, say), stale values would visually revert a drag.
     const renumber = (v: Array<Entity>) => v.forEach((x, i) => (x.sortOrder = i))
     const toItems = (v: Array<Entity>) => {
         const mapped = v.map((x) => Entity.create(x)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))

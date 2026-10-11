@@ -115,6 +115,20 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
         const saved = isNew ? await this.insert(item) : await this.update(item)
         return { saved: this.processItem(saved)!, isNew }
     }
+    /**
+     * `PATCH /{id}` with a JSON merge patch (RFC 7386): only the fields in `changes` change, and `null` clears one —
+     * a status toggle without sending the whole row. The server merges them onto the stored row, validates the
+     * result as it validates a save, and answers the saved row. Field names are the JSON names of the input DTO;
+     * an owned collection left out stays as it is.
+     */
+    async patch(id: string | number, changes: Record<string, unknown>): Promise<T | undefined> {
+        if (id == null || id === "" || isNewEntity(id)) {
+            throw new Error(`EntityServiceBase ("${this.config.key ?? "unknown entity"}"): cannot patch — the row has no id yet. Save it first.`)
+        }
+        const url = `${this.requireUrl(this.config.saveUrl, "saveUrl")}/${id}`
+        const response = await this.axios.patch<SavedResult<T>>(url, changes, { headers: { "Content-Type": "application/merge-patch+json" } })
+        return this.processItem(response.data.item)
+    }
     async remove(item: T): Promise<void> {
         const url = `${this.requireUrl(this.config.deleteUrl, "deleteUrl")}/${this.requireId(item, "delete")}`
         await this.axios.delete<DeleteResult<T>>(url).then((r) => r.data)
@@ -122,7 +136,7 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
 
     async update(item: T) {
         const url = `${this.requireUrl(this.config.saveUrl, "saveUrl")}/${this.requireId(item, "update")}`
-        const prepared = this.prepareItem(item)
+        const prepared = this.prepareItem(this.copyForSave(item))
         const response = (await this.axios.put<SavedResult<T>>(url, prepared)) as any
         if (response instanceof AxiosError) {
             throw response
@@ -133,7 +147,7 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
 
     async insert(item: T) {
         const url = this.requireUrl(this.config.saveUrl, "saveUrl")
-        const prepared = this.prepareItem(item)
+        const prepared = this.prepareItem(this.copyForSave(item))
         // The server mints the key, so an unsaved sentinel is dropped from the payload rather than posted.
         // `id = 0` is harmless on an int key, but a string/Guid model must initialize `id` to `""`
         // (strictPropertyInitialization), and `""` fails the server's `Guid?` binder with
@@ -159,7 +173,9 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
     ): Promise<TResult> {
         const queryParams = {
             ...(this.config.baseQueryParams || {}),
-            ...(so || {}),
+            // only the values the search object holds: a class field declared without a value (`includes?: …`) is an
+            // own property holding undefined, and spreading it would erase the base default it means to leave alone
+            ...Object.fromEntries(Object.entries(so || {}).filter(([, value]) => value !== undefined)),
         }
 
         if (!queryParams.pageSize && queryParams.pageSize !== 0) {
@@ -198,6 +214,14 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
             }
         }
         return entity
+    }
+    /**
+     * The copy `prepareItem` works on. The item is usually the live form model, and a save the server refuses must
+     * leave its `_deleted` marks and staged `_` fields in place for the next attempt. Shallow, with the item's
+     * prototype: reassigning a collection (the `_deleted` purge) or deleting a top-level key leaves the item alone.
+     */
+    protected copyForSave(item: T): T {
+        return Object.assign(Object.create(Object.getPrototypeOf(item)), item) as T
     }
     protected prepareItem(item: T): T {
         // remove all (private) properties starting with '_'
