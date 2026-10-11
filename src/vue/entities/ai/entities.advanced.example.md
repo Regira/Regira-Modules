@@ -346,9 +346,10 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
                                         v-model="item.interventionTypes"
                                         :row-key="(r) => r.interventionTypeId"
                                         :exclude-key="(r) => r.interventionTypeId"
+                                        :readonly="readonly"
                                     >
                                         <template #chip="{ row }">
-                                            <InterventionTypeButton :modelValue="row.interventionType" />
+                                            <InterventionTypeButton :modelValue="row.interventionType" :readonly="readonly" />
                                             {{ row.interventionType?.title }}
                                         </template>
                                         <template #selector="{ add, exclude }">
@@ -468,9 +469,9 @@ class VehicleInterventionType extends EntityBase {
 <!-- 2. Inline chip editor (§5): InputSelectorInline binds the join rows directly. Its delete toggle marks
      `_deleted` (tinted, undoable) — there is no flatten/rebuild bridge and no hard-remove. `#selector`'s
      add() appends a new join row; :exclude-key drops already-linked rows from the picker. -->
-<InputSelectorInline v-model="item.interventionTypes" :row-key="(r) => r.interventionTypeId" :exclude-key="(r) => r.interventionTypeId">
+<InputSelectorInline v-model="item.interventionTypes" :row-key="(r) => r.interventionTypeId" :exclude-key="(r) => r.interventionTypeId" :readonly="readonly">
     <template #chip="{ row }">
-        <InterventionTypeButton :modelValue="row.interventionType" /> {{ row.interventionType?.title }}
+        <InterventionTypeButton :modelValue="row.interventionType" :readonly="readonly" /> {{ row.interventionType?.title }}
     </template>
     <template #selector="{ add, exclude }">
         <InterventionTypeSelector :filter-defaults="{ exclude }"

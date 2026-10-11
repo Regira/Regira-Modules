@@ -1218,9 +1218,11 @@ onAuthenticated(() => searchHandler(false), { immediate: false })
 ```ts
 // details/Details.vue — add `load` back to the existing useDetails destructure:
 // const { item, …, load, feedback } = useDetails(service)
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 
-onAuthenticated(() => item.value == null && load(), { immediate: false })
+// reloads for another account's sign-in, and keeps the form when the same account's token is refreshed
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (item.value == null || userId !== shownFor) { shownFor = userId; load() } }, { immediate: false })
 ```
 
 The same primitive drives any other login-sensitive work — see

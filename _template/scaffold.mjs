@@ -819,6 +819,7 @@ function missingChromeKeys() {
         edit: "Edit",
         clear: "Clear",
         filter: "Filter",
+        search: "Search",
         select: "Select",
         remove: "Remove",
         download: "Download",

@@ -27,6 +27,13 @@ heading.
   every new token — another account signing in on the page, a refresh, a tenant switch — so a page the new identity
   may not see goes to `forbidden`. It ran on navigation and once after the first one, so signing out on a role-gated
   page and in as a lower role left that page mounted.
+- Scaffold: the Details page reloads its row when another account signs in behind the login modal, where it kept the
+  previous account's row on screen because it reloaded only while it had none. A refresh of the same account's token
+  still keeps the form and its unsaved edits. The guides' copies of the hook match. ⚠️ Upgrade: in an existing slice's
+  `details/Details.vue`, replace the `onAuthenticated` line with the two lines the template now has.
+- Scaffold: `scaffold.mjs <Entity>` names a missing `search` translation key with the other chrome keys, since the
+  slice's inline filter labels its search button with it; the `--picker` header comment and the advanced example pass
+  `:readonly="readonly"` to the chips editor.
 - `vue/entities`: `PoolCache.clear()` drops every cached row (optional on `IPoolCache`, so a custom cache keeps
   compiling). The scaffolded shell calls it on sign-out, so the next account does not see the previous one's pooled
   rows, and the tenant-switcher blueprint calls it after a switch.

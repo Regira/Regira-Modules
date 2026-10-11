@@ -1,5 +1,5 @@
 <!-- Owned m2m editor for __Parent__.__Children__ — each join row is a chip selecting one __Target__.
-     Bind it in the parent Form.vue to the ARRAY: <__Child__Overview v-model="item.__children__" />
+     Bind it in the parent Form.vue to the ARRAY: <__Child__Overview v-model="item.__children__" :readonly="readonly" />
      Removing a persisted chip marks `_deleted` (tinted, click again to restore); the parent's
      EntityService.prepareItem drops flagged rows so `Related()` deletes them by omission. A chip added this
      session is dropped outright — InputSelectorInline tracks it by identity, so new rows need no id. -->

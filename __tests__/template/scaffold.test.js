@@ -161,6 +161,7 @@ describe("scaffold.mjs derived paths", () => {
                     edit: 1,
                     clear: 1,
                     filter: 1,
+                    search: 1,
                     select: 1,
                     remove: 1,
                     download: 1,

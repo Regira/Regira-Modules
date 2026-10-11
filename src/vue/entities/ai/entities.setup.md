@@ -482,7 +482,7 @@ makes every `$t()` render the raw key):
 See [lang.signatures.md](../../lang/ai/lang.signatures.md) (`ITranslationMessages`).
 
 Framework chrome emits its own keys (`keywords`, `new`, `noResults`, `save`, `cancel`, `delete`, `restore`, `deleteItem`, `filtersAreApplied`,
-`overview`, `popOut`, the icon-button names `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`, and `signIn`/`signOut` with
+`overview`, `popOut`, the icon-button names `edit`, `clear`, `filter`, `search`, `select`, `remove`, `download`, `menu`, and `signIn`/`signOut` with
 auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
 domain labels alongside, or blank UI text renders the raw key.
 
