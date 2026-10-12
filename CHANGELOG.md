@@ -11,7 +11,7 @@ heading.
   lists, the dev server's included, so a `siteUrl` elsewhere answers `400`, and that the API names the mail itself, so
   `siteName` does not reach it. The link carries the token percent-encoded in `siteUrl`'s query, and
   `route.query.token` decodes it as `URLSearchParams` does; the guide said vue-router kept a `+` that `URLSearchParams`
-  turned into a space, and put the token at the site root. Both describe `Regira.Security.Authentication.Web` 6.5.1.
+  turned into a space, and put the token at the site root. Both describe `Regira.Security.Authentication.Web` 6.6.0.
 - Guides: the route pre-fill recipe re-applies the FK to every item the form is given, so a reload of the Details page
   keeps it; `patch` is marked optional on the raw `IEntityService` in the API table; the card names where `PagingInfo`
   comes from; the picker example resets its `<select>`; `ui.signatures` names the Autocomplete's rendered roles; the
