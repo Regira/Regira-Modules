@@ -260,6 +260,10 @@ components and composables exist for all of it — use them instead of hand-roll
 - **`siteUrl` is the reset PAGE, not the site root.** The API mails `siteUrl` with `?token=…` appended, so
   `location.origin` alone puts the recovery link on the dashboard, where nothing reads the token — send
   `${location.origin}/reset-password` (or `router.resolve({ name: "resetPassword" })`).
+- **The API mails the link only to an origin it lists.** Add the SPA's origin, and the dev server's
+  (`http://localhost:5173`; a port Vite moves to is another origin), to the API's allowed origins: a `siteUrl`
+  elsewhere answers `400`, and an API that lists none answers `500` — `Regira.Security` → security.instructions →
+  _Mailed links: allowed origins_. The API also names the mail itself, so `siteName` does not reach it.
 - **Show the login form on time.** Gate the main content and pop the login modal immediately for
   anonymous users — never render a dashboard an anonymous user can't do anything with:
 
@@ -312,9 +316,10 @@ resolved `authStore.isAuthenticated` — it needs no guard.
   is never doubled. Never emit a `{clientApp}`/`<clientApp>` placeholder into the URL — nothing substitutes it at
   runtime, and the API would mint a token with that literal audience, 401-ing every later call. `refresh` needs
   no `clientApp`: the server re-reads `aud` from the current token.
-- **Password-reset link:** the recover email lands at `{siteUrl}/?token=<base64>` (root path). Read the token
-  from **vue-router `route.query.token`** (preserves `+`), never `URLSearchParams` — it turns `+` into a space
-  and corrupts the base64.
+- **Password-reset link:** the recover email links to `siteUrl` with the Base64 token as its query string,
+  percent-encoded (`/reset-password?token=…`). Read it from vue-router's `route.query.token`, which decodes the
+  query as `URLSearchParams` does, so either returns the token intact; treat anything but a single string as no
+  token, since a repeated `?token=a&token=b` parses as an array.
 
 ## See also
 

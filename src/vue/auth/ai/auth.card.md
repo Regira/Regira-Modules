@@ -41,6 +41,7 @@
   interceptor logs every failed request the app makes, so **register the app's own credential endpoints** —
   `credentialUrls: ["users/*/password", …]` on the plugin, or `registerCredentialUrls(...)` — or their
   bodies are logged in full. See _Logging_ in `auth.instructions`.
-- **Top traps:** `siteUrl` for recovery is the reset _page_, not the origin; read the mailed token via
-  vue-router `route.query.token` (URLSearchParams corrupts base64 `+`); gate `LoginModal` with `v-if`, not
-  visibility; a 401 on non-`auth/` URLs auto-triggers re-validation + the login popup (403 does not).
+- **Top traps:** `siteUrl` for recovery is the reset _page_, not the origin, and the API mails it only on an
+  origin it lists (the dev server's too); read the mailed token from `route.query.token`, a single string or
+  none; gate `LoginModal` with `v-if`, not visibility; a 401 on non-`auth/` URLs auto-triggers re-validation +
+  the login popup (403 does not).
