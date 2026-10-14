@@ -9,11 +9,20 @@ export { registerCredentialUrls } from "./error-logging"
 export { useAuthStore, createStore, type IDefineAuthStore, type IAuthStore } from "./store"
 export { onAuthenticated, type OnAuthenticatedOptions } from "./onAuthenticated"
 export { default as plugin } from "./plugin"
-export { useLoginForm, type LoginFormEmits, type LoginFormProps, type LoginModalProps, type LoginModalSlots, type LoginInput } from "./useLoginForm"
+export {
+    useLoginForm,
+    type LoginFormEmits,
+    type LoginFormProps,
+    type LoginModalEmits,
+    type LoginModalProps,
+    type LoginModalSlots,
+    type LoginInput,
+} from "./useLoginForm"
 export {
     useForgotPasswordForm,
     type ForgotPasswordFormEmits,
     type ForgotPasswordFormProps,
+    type ForgotPasswordModalEmits,
     type ForgotPasswordModalProps,
     type ForgotPasswordModalSlots,
 } from "./useForgotPasswordForm"

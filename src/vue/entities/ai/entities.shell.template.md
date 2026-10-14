@@ -422,7 +422,7 @@ watch(showLogin, (gateOpen) => {
             <!-- the library ships the recovery MODAL, not the form — slot in the app's own (users/).
                  `showLogin &&` matters: without it, authenticating by another path (token refresh, a sign-in
                  in a second tab) leaves this modal stranded over an authenticated app.
-                 @close falls through to the modal's header X, which would otherwise be a dead button. -->
+                 @close is the modal's header X, which would otherwise be a dead button. -->
             <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">
                 <ForgotPasswordForm :username="username" @login="showForgot = false" />
             </ForgotPasswordModal>
@@ -877,7 +877,7 @@ const emit = defineEmits<ForgotPasswordFormEmits>()
 const props = defineProps<ForgotPasswordFormProps>()
 
 const router = useRouter()
-// The API mails `siteUrl` with "?token=…" appended, so it must be the ABSOLUTE url of the reset PAGE.
+// The API mails `siteUrl` with "?token=…" as its query string, so it must be the ABSOLUTE url of the reset PAGE.
 // Passing location.origin (a tempting shortcut) lands the recovery link on the dashboard, where nothing
 // reads the token. router.resolve keeps it correct under a non-root Vite base.
 const siteUrl = new URL(router.resolve({ name: "resetPassword" }).href, location.origin).href

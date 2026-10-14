@@ -181,6 +181,24 @@ describe("scaffold.mjs derived paths", () => {
         expect(isDir("src", "entities", "invoices", "invoice-rows")).toBe(true)
         expect(readFileSync(app("src", "entities", "invoices", "invoice-rows", "Entity.ts"), "utf8")).toContain("invoiceId")
     })
+
+    test("refuses an owned child whose folder is one of the slice's own, and writes nothing", () => {
+        // --owns Detail → details/, the slice's own details folder: Entity.ts imported a folder with no barrel, and
+        // the --overwrite-slice the run then suggested removed Details.vue and Form.vue
+        const err = runFailing("Receipt", "--owns", "Detail", "--no-auth")
+
+        expect(err).toContain('"details/"')
+        expect(err).toContain("--as")
+        expect(isDir("src", "entities", "receipts")).toBe(false)
+    })
+
+    test("leaves an existing slice's own folder alone when the owned child's folder matches it", () => {
+        run("Voucher", "--no-auth")
+        const err = runFailing("Voucher", "--owns", "Detail", "--overwrite-slice", "--no-auth")
+
+        expect(err).toContain('"details/"')
+        expect(readdirSync(app("src", "entities", "vouchers", "details"))).toContain("Details.vue")
+    })
 })
 
 describe("scaffold.mjs --rel", () => {
@@ -335,6 +353,8 @@ describe("scaffold.mjs stdout", () => {
 
         expect(out).toContain("Usage:")
         expect(out).toContain("--overwrite-slice")
+        // --as renames the JSON key only: the sub-slice folder stays the kebab-cased class plural
+        expect(out).toContain("order-lines/")
         expect(readdirSync(cwd)).toEqual(before)
     })
 })

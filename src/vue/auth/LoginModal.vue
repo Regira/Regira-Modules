@@ -1,5 +1,5 @@
 <template>
-    <component :is="Modal" :is-visible="isVisible" :title="title" :showFooter="false">
+    <component :is="Modal" :is-visible="isVisible" :title="title" :showFooter="false" @close="$emit('close')">
         <slot v-bind="{ username }">
             <LoginForm
                 @success="$emit('success', $event)"
@@ -12,11 +12,11 @@
 </template>
 
 <script setup lang="ts">
-import { type LoginFormEmits, type LoginModalProps, type LoginModalSlots } from "./useLoginForm"
+import { type LoginModalEmits, type LoginModalProps, type LoginModalSlots } from "./useLoginForm"
 import { injectModal } from "../ui/modal"
 import LoginForm from "./LoginForm.vue"
 
-defineEmits<LoginFormEmits>()
+defineEmits<LoginModalEmits>()
 withDefaults(defineProps<LoginModalProps>(), {
     title: "Sign in",
     isVisible: true,

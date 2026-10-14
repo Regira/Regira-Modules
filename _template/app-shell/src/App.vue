@@ -57,7 +57,7 @@ watch(showLogin, (gateOpen) => {
             <!-- the library ships the recovery MODAL, not the form — slot in the app's own (users/).
                  `showLogin &&` matters: without it, authenticating by another path (token refresh, a sign-in
                  in a second tab) leaves this modal stranded over an authenticated app.
-                 @close falls through to the modal's header X, which would otherwise be a dead button. -->
+                 @close is the modal's header X, which would otherwise be a dead button. -->
             <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">
                 <ForgotPasswordForm :username="username" @login="showForgot = false" />
             </ForgotPasswordModal>

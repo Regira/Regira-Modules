@@ -35,6 +35,8 @@
 //                       plural of the child, OrderLine → orderLines). After --rel: the to-one navigation property
 //                       (default camelCase of the class, Employee → employee; its FK is that + Id). Place it right after its --owns/--rel:
 //                       --owns Row --as orderRows  /  --rel Employee --as assignedToEmployee
+//                       It renames the key only: an --owns sub-slice folder stays the kebab-cased class plural
+//                       (OrderLine → order-lines/).
 //   --picker <Target>   the --owns before it is a PURE JOIN onto <Target> — only the two FKs, no scalar fields
 //                       of its own: emit InputSelectorInline chips selecting <Target> instead of an editable
 //                       table, over a plain join-row interface. Chains after --as; the picked slice must
@@ -352,6 +354,20 @@ for (const o of owns) {
     if (o.picker && o.fk) {
         console.error(
             `✗ --fk does not apply to --owns ${o.child} --picker ${o.picker}: a pure join carries no parent FK on the client — drop --fk (it renames the FK in the editable-table template only).`
+        )
+        process.exit(1)
+    }
+}
+
+// An owned sub-slice lives in the slice's folder, named after the child class (Detail → details/). A name that is
+// one of the slice's own entries would share that folder: the parent's model imports a folder with no barrel, and
+// --overwrite-slice would remove the slice's own files to make room. Refused before anything is written.
+const sliceEntries = existsSync(srcRoot) ? new Set(readdirSync(srcRoot)) : new Set()
+for (const o of owns) {
+    const folder = kebab(pluralize(o.child))
+    if (sliceEntries.has(folder)) {
+        console.error(
+            `✗ --owns ${o.child}: its sub-slice folder "${folder}/" is one of the slice's own. The folder is the kebab-cased class plural, and --as renames the JSON key only, so give the child class another name (--owns ${name}${o.child} --as ${o.field ?? lowerFirst(pluralize(o.child))} keeps the key).`
         )
         process.exit(1)
     }
@@ -1224,7 +1240,9 @@ Owned collections (a back-end e.Related(...) child):
                       --owns OrderLine. Works on an existing slice too (only the sub-slice is generated then)
   --as <fieldName>    JSON key for the --owns OR --rel directly before it — must match the back-end navigation's
                       camelCase key. After --owns: the collection field (default camelCase plural, OrderLine →
-                      orderLines). After --rel: the to-one nav property (default camelCase class, Employee → employee)
+                      orderLines). After --rel: the to-one nav property (default camelCase class, Employee → employee).
+                      It renames the key only: an --owns sub-slice folder stays the kebab-cased class plural
+                      (OrderLine → order-lines/)
   --picker <Entity>   the --owns before it is a PURE JOIN onto <Entity> (only the two FKs, no scalar fields of
                       its own): emit chips selecting <Entity> instead of an editable table. Chains after --as.
                       The picked slice must already be scaffolded. A join row that also carries a scalar

@@ -70,7 +70,10 @@ All number helpers return `""` for `null`/`undefined`.
 - **`formatPercentage` auto-scales.** Any `value > 1` is divided by 100. Pass fractions (`0.25`) unless your
   source is already whole percentages.
 - **`formatBankaccount` is BE-specific.** Non-`BE` or non-16-char input returns `""`, not the original.
-- **`formatTextPreserveNewLines` emits HTML.** Render with `v-html`; sanitize untrusted input first.
+- **`formatTextPreserveNewLines` emits HTML and escapes nothing.** `v-html` renders markup as is: escape user text
+  first, `v-html="formatTextPreserveNewLines(htmlEncode(text))"` (`htmlEncode` from
+  `@regira/modules/utilities/string-utility`), or skip `v-html` with CSS `white-space: pre-line`; user-supplied HTML
+  (rich text) goes through a sanitiser such as DOMPurify first.
 
 ## See also
 

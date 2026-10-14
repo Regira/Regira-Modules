@@ -20,10 +20,10 @@ export type OnAuthenticatedOptions = {
      * unsequenced request during `setup`, before the search object and paging are populated from the route.
      * That is why the scaffolded views pass it. `useSearchView` and `useListView` fetch nothing themselves,
      * so a hand-written view built on either owns its first fetch: keep the default `immediate` and do
-     * **not** add an `onMounted` fetch beside it — that one runs before the stored token is validated and
-     * 401s, wasting a request. `useSearchView`/`useListView` discard a superseded fetch's feedback, but a
-     * view driving its own `useFeedback` does not: there the 401's banner stays on screen over the data the
-     * hook then loads.
+     * **not** add an `onMounted` fetch beside it — that one sends a second request, with the stored token
+     * (the bearer header is attached before validation); it 401s only when that token has expired.
+     * `useSearchView`/`useListView` discard a superseded fetch's feedback, but a view driving its own
+     * `useFeedback` does not: there a failed fetch's banner stays on screen over the data the hook then loads.
      */
     immediate?: boolean
     /**

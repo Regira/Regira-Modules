@@ -241,7 +241,10 @@ export const plugin: {
 ## Route guard
 
 ```ts
-export const routeGuard: (args: { router: Router; store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean } }) => (to: RouteLocationNormalized) => true | RouteLocationRaw
+export const routeGuard: (args: {
+    router: Router
+    store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean }
+}) => (to: RouteLocationNormalized) => true | RouteLocationRaw
 // reads route meta: allowAnonymous, policy(store) => boolean, permissions: string[]
 // registers the check as a beforeEach guard and returns it; the plugin also runs it for the route already shown,
 // after the first navigation and on every new token
@@ -279,7 +282,7 @@ export function useForgotPasswordForm(
     isSuccess: Ref<boolean | undefined>
     handleSubmit: () => Promise<void>
 }
-// ForgotPasswordFormEmits: "success" | "fail" | "login"
+// ForgotPasswordFormEmits: "success" (username?) | "fail" (ex?) | "login" (username?)
 
 export function useChangePasswordForm(emit: ChangePasswordFormEmits): {
     currentPassword: Ref<string>
@@ -311,8 +314,11 @@ export function useResetPasswordForm(
 //                                ChangePasswordForm, ResetPasswordForm
 // LoginForm props: LoginFormProps { username?: string } ; emits: LoginFormEmits
 // LoginModal props: LoginModalProps { username?; title?; isVisible? } ; slots: LoginModalSlots = default{ username } (replace the form)
+//   emits: LoginModalEmits = LoginFormEmits (from its default form only; a slotted form emits its own) + close (header X)
 // ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
-// Both slot types are exported from the barrel — import them when you type a wrapper that forwards the slot
+//   emits: ForgotPasswordModalEmits = close (header X)
+// Both slot and emits types are exported from the barrel — import them when you type a wrapper that forwards the slot
+// or the events
 // ChangePasswordForm props: ChangePasswordFormProps { username?: string }, emits: ChangePasswordFormEmits
 // ResetPasswordForm props: ResetPasswordFormProps, emits: ResetPasswordFormEmits
 // Both password forms render a visually-hidden `autocomplete="username"` input (NOT display:none — that

@@ -68,7 +68,7 @@ new item needs go in an override of `newEntity` in the slice's service, which th
 ## Form — `useForm` (and `useModal`)
 
 `useForm({ entityService, props, emit })` returns `item` plus `handleSubmit`, `handleCancel`,
-`handleRemove`, `handleRestore`, and `feedback`. Note the form's `handleRemove()` takes **no arguments**
+`handleRemove`, `handleRestore`, `feedback` and `failure`. Note the form's `handleRemove()` takes **no arguments**
 (it removes the bound `item.value`) — unlike the overview's `handleRemove(item)`. Define props with `withDefaults(defineProps<FormProps &
 …>(), { ...formDefaults })` and emits via `FormEmits<T>`. Its `changeState` event reports a write as
 `FormStates.pending`, then one final state: `saved` or `removed` when the write succeeded, `error` when the server
@@ -80,7 +80,9 @@ After an insert, `handleSubmit` replaces the current route with one carrying the
 `errors`, read with `toFeedbackError` from `vue/ui`, which shows a validation error in the user's language when its
 message is a key in the app's translation messages), otherwise the server's text on `feedback.message`. The
 form's `Feedback` lists those field errors under the message, each headed by the field's label; a form that shows
-them at its inputs sets `:hide-field-errors="true"` on it.
+them at its inputs sets `:hide-field-errors="true"` on it. `failure` keeps the last refused write's HTTP status and
+ProblemDetails `title`, so a 409 titled `"Concurrency conflict"` (a stale concurrency token) can offer a reload where
+one titled `"Conflict"` (a database constraint) cannot; the next write and a new `modelValue` clear it.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.

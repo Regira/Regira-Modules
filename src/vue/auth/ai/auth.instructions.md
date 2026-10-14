@@ -53,14 +53,22 @@ token, installs the route guard, and adds the **401 auto-logout response interce
 
 ## Token storage
 
-A token manager (`ITokenManager`: `get/set token`) decides where the JWT lives. Three implementations,
-all keyed by `prefix + "auth:token"`:
+A token manager (`ITokenManager`: `get/set token`) decides where the JWT lives. Three implementations; the
+two persistent ones are keyed by `prefix + "auth:token"`:
 
-| Manager                             | Storage                                        |
-| ----------------------------------- | ---------------------------------------------- |
-| `LocalStorageTokenManager(prefix?)` | `localStorage` (persists across tabs/restarts) |
-| `CookieTokenManager(prefix?)`       | a cookie (`path=/`)                            |
-| `MemoryTokenManager(token?)`        | in-memory (cleared on reload)                  |
+| Manager                             | Storage                                                             |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `LocalStorageTokenManager(prefix?)` | `localStorage` (persists across tabs/restarts)                      |
+| `CookieTokenManager(prefix?)`       | a cookie (`path=/`)                                                 |
+| `MemoryTokenManager(token)`         | in-memory (cleared on reload; pass `undefined` to start signed out) |
+
+⚠️ **No manager hides the token from script.** `LocalStorageTokenManager` survives reloads and new tabs, so a
+script injected into the origin (XSS) can read it at any time until it expires. `CookieTokenManager` is no safer: a
+cookie written by script cannot be `HttpOnly`. `MemoryTokenManager` leaves nothing at rest, at the price of a sign-in
+on every reload and new tab, but an injected script can still read it from the running app. This module keeps a
+single token and never calls the API's `auth/refresh-token`, so a short access-token lifetime means signing in again
+when it runs out (`auth/refresh` renews only a token that is still valid). Keep script injection out: no `v-html` on
+unescaped user content, and a Content-Security-Policy.
 
 The bearer interceptor reads `tokenManager.token`; you never set headers manually.
 
@@ -94,10 +102,37 @@ request. Restoring a token dispatches `validateToken`, not `login`, which is why
 ⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
 or the immediate run races their `onMounted` fetch during `setup` — that is the only reason the scaffolded
 views pass it. `useSearchView`/`useListView` fetch nothing themselves, so a hand-written view built on either
-keeps the default `immediate` and adds **no** `onMounted` fetch beside it: one there runs before the stored
-token is validated and 401s, wasting a request. Those two composables discard a superseded fetch's feedback;
-a view driving its own `useFeedback` does not, so there the 401's banner stays on screen over the data the
-hook then loads.
+keeps the default `immediate` and adds **no** `onMounted` fetch beside it: one there sends a second request, with
+the stored token (the bearer header is attached before validation); it 401s only when that token has expired.
+Those two composables discard a superseded fetch's feedback; a view driving its own `useFeedback` does not, so
+there a failed fetch's banner stays on screen over the data the hook then loads.
+
+⚠️ **A default read from the signed-in user is unknown in `setup` on a reload.** `authData` stays empty until the
+stored token is validated, so a search-object default taken from a claim (an `ownerId`) is `undefined` there and the
+first search runs without it. Set it inside the `onAuthenticated` handler, before the search it runs. With
+`{ immediate: false }` the handler skips a token that is already there, so also set it in `setup` for in-app
+navigation. The handler also runs when another account signs in on a page that stays mounted, so it replaces a
+default it set before, never a value the user picked:
+
+```ts
+// the claim value the default came from: a sign-in as another account replaces it, a value the user picked stays
+let appliedOwnerId: string | undefined
+const applyDefaults = () => {
+    const ownerId = authStore.getClaimValue("owner_id") as string | undefined
+    if (searchObject.value.ownerId == null || searchObject.value.ownerId === appliedOwnerId) {
+        searchObject.value.ownerId = ownerId
+    }
+    appliedOwnerId = ownerId
+}
+applyDefaults()
+onAuthenticated(
+    () => {
+        applyDefaults()
+        searchHandler(false)
+    },
+    { immediate: false }
+)
+```
 
 ⚠️ **Register it below everything its handler uses.** With a token already present, the immediate run happens
 at the `onAuthenticated(…)` call itself — so in `<script setup>` a `const load = async () => …` declared further
@@ -276,14 +311,15 @@ components and composables exist for all of it — use them instead of hand-roll
 | Change password (signed-in user)        | `ChangePasswordForm`                                | `useChangePasswordForm` |
 | Sign out                                | `LogoutForm` (or `store.logout()` in a header menu) | —                       |
 | Sign up (self-registration)             | none: _Sign-up_ below                               | —                       |
+| Confirm email (from the mail link)      | none: _Confirm page_ below                          | —                       |
 
 - **The entities app shell wires all five out of the box** (`scaffold.mjs --shell`, auth variant): login +
   recovery modals in `App.vue`, an app-owned `components/users/ForgotPasswordForm.vue` (the library ships
   `ForgotPasswordModal` and `useForgotPasswordForm`, but **no** `ForgotPasswordForm` — the form is yours),
   `views/ResetPasswordView.vue` on an `allowAnonymous` `/reset-password` route, and `AccountView` for
   change-password. Building the shell yourself? Reproduce all of it.
-- **`siteUrl` is the reset PAGE, not the site root.** The API mails `siteUrl` with `?token=…` appended, so
-  `location.origin` alone puts the recovery link on the dashboard, where nothing reads the token — send
+- **`siteUrl` is the reset PAGE, not the site root.** The API mails `siteUrl` with `?token=…` as its query
+  string, so `location.origin` alone puts the recovery link on the dashboard, where nothing reads the token — send
   `${location.origin}/reset-password` (or `router.resolve({ name: "resetPassword" })`).
 - **The API mails the link only to an origin it lists.** Add the SPA's origin, and the dev server's
   (`http://localhost:5173`; a port Vite moves to is another origin), to the API's allowed origins: a `siteUrl`
@@ -346,14 +382,59 @@ async function handleSubmit() {
 
 - **Add `"users"` to `credentialUrls`** on the auth plugin. The shared axios instance logs every failed request
   with its body, and this body holds the password.
+- **An API whose sign-up takes profile fields** has an action of its own (`users/sign-up`). Post there with the
+  fields, and add that path to `credentialUrls` too.
 - **The API opens `POST users` on an override.** The base action requires a signed-in caller, so a sign-up
   answers `401` until the app's `UserControllerBase` subclass overrides `Create` with `[AllowAnonymous]`:
   `Regira.Security` → security.instructions → _Authorization: guarded by default_.
 - **A taken name answers `400`** with ASP.NET Identity's `DuplicateUserName` as the key, like a password the
   API's rules refuse. `toFeedbackError` reads both, and `<Feedback>` lists them.
 - To have the API mail a confirmation link, post `confirmEmailUrl` too: the absolute URL of the app's confirm
-  page, on an origin the API lists (`Regira.Security` → security.instructions → _Mailed links: allowed origins_).
-  Sign-in does not wait for the confirmation.
+  page (_Confirm page_ below), on an origin the API lists (`Regira.Security` → security.instructions → _Mailed
+  links: allowed origins_). Sign-in does not wait for the confirmation unless the API sets
+  `SignIn.RequireConfirmedEmail` or `RequireConfirmedAccount`, which `Regira.Security.Authentication.Web` honours
+  from 6.6.0. Then drop the `login` call after the post and tell the visitor to follow the mailed link: signing in
+  answers `401` with `isNotAllowed` until they do, and the stock `LoginForm` shows only its generic failure.
+
+### Confirm page
+
+The confirmation mail links to the page `confirmEmailUrl` named, with `?token=…` as its query string. The page is
+anonymous, so it loads in `onMounted` (_What a first load shows_), and posts the token back, alone
+(`Regira.Security.Authentication.Web` 6.6.0 or later):
+
+```vue
+<!-- views/ConfirmEmailView.vue, route { path: "/confirm-email", name: "confirmEmail", meta: { allowAnonymous: true } } -->
+<script setup lang="ts">
+import { onMounted } from "vue"
+import { useRoute } from "vue-router"
+import { useAxios } from "@regira/modules/vue/http"
+import { Feedback, useFeedback, toFeedbackError } from "@regira/modules/vue/ui"
+
+const route = useRoute()
+const feedback = useFeedback({ autoHideDelay: 0 })
+onMounted(async () => {
+    const token = route.query.token
+    if (typeof token !== "string") return feedback.fail("This link is incomplete")
+    feedback.pending("Confirming your address")
+    try {
+        // the API reads the user from the token
+        await useAxios().post("users/confirm-email", { token })
+        feedback.success("Your address is confirmed: you can sign in")
+    } catch (ex) {
+        feedback.fail("This link is invalid or has expired", toFeedbackError(ex))
+    }
+})
+</script>
+
+<template>
+    <Feedback :feedback="feedback" />
+</template>
+```
+
+- **Add `"users/confirm-email"` to `credentialUrls`** beside `"users"`: the body carries the token, and `"users"`
+  matches that path alone.
+- The sign-up form posts `confirmEmailUrl: new URL(router.resolve({ name: "confirmEmail" }).href, location.origin).href`,
+  as the shell's `ForgotPasswordForm` builds its `siteUrl`.
 
 ## `$auth` global
 
@@ -384,8 +465,8 @@ resolved `authStore.isAuthenticated` — it needs no guard.
   is never doubled. Never emit a `{clientApp}`/`<clientApp>` placeholder into the URL — nothing substitutes it at
   runtime, and the API would mint a token with that literal audience, 401-ing every later call. `refresh` needs
   no `clientApp`: the server re-reads `aud` from the current token.
-- **Password-reset link:** the recover email links to `siteUrl` with the Base64 token as its query string,
-  percent-encoded (`/reset-password?token=…`). Read it from vue-router's `route.query.token`, which decodes the
+- **Password-reset link:** the recover email links to `siteUrl` with its query string set to `?token=…`, the Base64
+  token percent-encoded (`/reset-password?token=…`). Read it from vue-router's `route.query.token`, which decodes the
   query as `URLSearchParams` does, so either returns the token intact; treat anything but a single string as no
   token, since a repeated `?token=a&token=b` parses as an array.
 

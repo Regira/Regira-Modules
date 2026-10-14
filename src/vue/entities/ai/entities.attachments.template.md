@@ -423,4 +423,5 @@ protected override prepareItem(item: Owner): Owner {
 > saved order (`HasAttachments` assigns `SortOrder` from the incoming array position on every parent
 > save). Expose the download **anonymously** if
 > `<img src>` tags render thumbnails (a guarded download 401s — the tag sends no `Authorization` header).
-> See `Regira.Entities` → _Public (anonymous) attachment downloads_.
+> See `Regira.Entities` → _Public (anonymous) attachment downloads_. A file that must stay private loads through
+> `getFile` instead (entities.patterns → _Attachments (files)_).

@@ -408,7 +408,7 @@ import { useDetails } from "@regira/modules/vue/entities"
 export function useDetails<T extends IEntity>(entityService: IEntityService<T>, feedback?: FeedbackOut): DetailsOut<T>
 export type DetailsOut<T> = {
     item: Ref<T | undefined> // undefined until the onMounted load resolves — guard with v-if="item"
-    routeId: ComputedRef<string>
+    routeId: ComputedRef<string> // the route's :id, "new" on an insert; a change on the same route re-runs load(), except one that leaves "new"
     isNew: ComputedRef<boolean>
     overviewUrl?: RouteRecordRaw | string
     isForm: ComputedRef<boolean>
@@ -466,6 +466,7 @@ export interface FormOut<T> {
     item: Ref<T>
     original?: Ref<T>
     feedback: FeedbackOut
+    failure: Ref<{ status?: number; title?: string } | undefined> // the last refused write's HTTP status and ProblemDetails title (no status: a network failure); cleared when a write starts and by a new modelValue — a 409 "Concurrency conflict" is a stale token, "Conflict" a constraint
     handleCancel(): void
     handleSubmit(): Promise<void>
     handleRemove(): Promise<void> // ⚠ takes NO args — removes item.value

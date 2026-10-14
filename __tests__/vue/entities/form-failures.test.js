@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
-import { createApp, defineComponent, h, reactive } from "vue"
+import { createApp, defineComponent, h, nextTick, reactive } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
 import { useForm, FormStates } from "../../../src/vue/entities/form"
 import { FeedbackStatus, toFeedbackError, setErrorTranslator, fieldMessages } from "../../../src/vue/ui/feedback"
@@ -224,6 +224,70 @@ describe("useForm state", () => {
 
         expect(states(events)).toEqual([FormStates.pending, FormStates.error])
         expect(form().feedback.status).toBe(FeedbackStatus.failed)
+    })
+})
+
+// `failure` keeps the status and ProblemDetails title of the last refused write, so a form tells a stale concurrency
+// token ("Concurrency conflict") from a database constraint ("Conflict") and offers a Reload for the first
+describe("useForm failure", () => {
+    const stale = { title: "Concurrency conflict", status: 409, detail: "The row changed since it was read." }
+    const saving = async (item) => ({ saved: item, isNew: false })
+
+    test.each([
+        ["handleSubmit", { save: rejecting(409, stale) }],
+        ["handleRemove", { save: saving, remove: rejecting(409, stale) }],
+        ["handleRestore", { save: rejecting(409, stale) }],
+    ])("%s keeps the status and title of a refused write", async (handler, { save, remove }) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const form = mountForm({ modelValue: new Model() }, save, { remove })
+
+        expect(form().failure.value).toBeUndefined()
+        await form()[handler]()
+
+        expect(form().failure.value).toEqual({ status: 409, title: "Concurrency conflict" })
+    })
+
+    test("the next write clears it", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        let refuse = true
+        const form = mountForm({ modelValue: new Model() }, async (item) => {
+            if (refuse) {
+                await rejecting(409, stale)()
+            }
+            return { saved: item, isNew: false }
+        })
+        await form().handleSubmit()
+        expect(form().failure.value?.status).toBe(409)
+
+        refuse = false
+        await form().handleSubmit()
+
+        expect(form().failure.value).toBeUndefined()
+    })
+
+    test("a new modelValue clears it, as a reload passes the fresh row up", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const props = reactive({ modelValue: new Model() })
+        const form = mountForm(props, rejecting(409, stale))
+        await form().handleSubmit()
+        expect(form().failure.value?.status).toBe(409)
+
+        props.modelValue = new Model()
+        await nextTick()
+
+        expect(form().failure.value).toBeUndefined()
+    })
+
+    test("a failure without a response has no status", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const form = mountForm({ modelValue: new Model() }, async () => {
+            throw new Error("Network Error")
+        })
+
+        await form().handleSubmit()
+
+        expect(form().failure.value).toBeDefined()
+        expect(form().failure.value.status).toBeUndefined()
     })
 })
 

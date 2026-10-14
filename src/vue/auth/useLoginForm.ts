@@ -10,6 +10,10 @@ export interface LoginFormEmits {
     (e: "success", username?: string): void
     (e: "fail", username?: string): void
 }
+/** the default form's events, forwarded (a slotted form emits its own), plus the modal's header X */
+export interface LoginModalEmits extends LoginFormEmits {
+    (e: "close"): void
+}
 export interface LoginFormProps {
     username?: string
 }

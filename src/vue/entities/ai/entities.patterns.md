@@ -55,7 +55,7 @@ field. Wrap the call in feedback (`pending` → `success`/`fail`) like any call 
 [Feedback for custom saves](#feedback-for-custom-saves-outside-useform).
 
 A **dedicated endpoint** is for a change the server decides — a state transition with rules of its own, such as an
-approval only some roles may make (`Regira.Entities` → `entities.patterns` → *Domain actions on an entity resource*).
+approval only some roles may make (`Regira.Entities` → `entities.patterns` → _Domain actions on an entity resource_).
 Reach it through a method on the service, with the injected `axios` + `config.api`, like any
 [custom endpoint](#custom-endpoints-on-a-service), and call it through the **raw** IoC service, then reload the row:
 
@@ -355,6 +355,13 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 > [Auth reload hooks](#auth-reload-hooks-onauthenticated)). `searchHandler`, `listHandler`, `applySave`
 > and `applyRemove` share that one gate, so a save or a refused delete settling mid-fetch cannot paint over
 > a newer result either.
+
+> **A custom insert on a `/new` route** gets none of `useForm`'s hand-over either. Emit the saved row,
+> `emit("update:modelValue", saved)` (through `service.toEntity(…)` when a custom endpoint answered it), then
+> `router.replace` the route with its id, as `useForm` does (entities.signatures → §6, _What `handleSubmit` does
+> besides saving_). `useDetails` re-loads when `:id` changes on the same route, except when it leaves `new`. Without
+> the emit the page goes on editing the row as it was before the save, without what the server set (a concurrency
+> token; the id too, when a custom endpoint did the insert), and its next save carries no token or inserts again.
 
 ## Entity selector (relation picker) — `selecting/`
 
@@ -854,7 +861,8 @@ both sortable and individually togglable_.
 ### Owned rows with a relation and scalars
 
 A row that picks another entity **and** carries scalars of its own (a line's product with its quantity and price,
-a member's role, a valid-from) keeps the inline table above: the chips have nowhere to put the scalars. Scaffold
+a member's role, a valid-from) keeps the inline table above: the chips have room for one value at most (the `#chip`
+slot receives the row); a scalar to edit per row needs the table. Scaffold
 it with `--owns <Child>` (no `--picker`) and give the relation column the related slice's `InputSelector`, both
 v-models bound. On the add-row, `@select` also fills the defaults the picked row brings; `handleSave` then mints a
 fresh `newItem`, which clears the picker with it:
@@ -968,7 +976,7 @@ protected override prepareItem(item: Owner): Owner {
 The flush helpers save the owner first and upload each file after it, so a new owner with files is several
 requests. The API also takes the files inside the owner's own `POST` or `PUT`: a new link row carrying
 `newFileName` + `newBytes` (base64) gets its file stored by the same save, in the same transaction (back-end
-`entities.instructions` → *Attachments*). Use these overrides **instead of** `insertWithAttachments` /
+`entities.instructions` → _Attachments_). Use these overrides **instead of** `insertWithAttachments` /
 `updateWithAttachments`:
 
 ```ts
@@ -1015,10 +1023,42 @@ few megabytes and the per-file upload for larger ones (the API's request size li
 file sent with an owner that is still being created is stored under the owner's id as it was then, `0`; downloads,
 replacing and deleting work the same.
 
-> **`<img src>` on a guarded download 401s** — the tag sends no `Authorization` header. Either preview from
-> the in-memory `uri` (object URL) before upload, or expose the download **anonymously** on the back-end
-> (`Regira.Entities` → _Public (anonymous) attachment downloads_). The list DTO nests file metadata under
-> `attachment.*` (`item.attachment?.fileName`), not on the row root — read it there.
+> **`<img src>` on a guarded download 401s** — the tag sends no `Authorization` header. Preview a file not yet
+> uploaded from its in-memory `uri` (object URL). Show a stored file that must stay private (a draft's image) from
+> an object URL of a download through the shared axios, which sends the bearer; expose the download **anonymously**
+> on the back-end only for public files (`Regira.Entities` → _Public (anonymous) attachment downloads_):
+>
+> ```ts
+> import { onBeforeUnmount, ref, watch } from "vue"
+> import { useAxios } from "@regira/modules/vue/http"
+>
+> const props = defineProps<{ uri?: string }>() // the link DTO's uri
+> const src = ref<string>()
+> const release = () => {
+>     if (src.value) URL.revokeObjectURL(src.value) // an object URL holds its blob until revoked
+> }
+> let latest = 0
+> watch(
+>     () => props.uri,
+>     async (uri) => {
+>         const load = ++latest
+>         release()
+>         src.value = undefined
+>         if (!uri) return
+>         const url = URL.createObjectURL(await useAxios().getFile(uri))
+>         if (load !== latest) return URL.revokeObjectURL(url) // a newer uri, or the unmount, took over
+>         src.value = url
+>     },
+>     { immediate: true }
+> )
+> onBeforeUnmount(() => {
+>     latest++
+>     release()
+> })
+> // <img v-if="src" :src="src" alt="" />
+> ```
+>
+> The list DTO nests file metadata under `attachment.*` (`item.attachment?.fileName`), not on the row root — read it there.
 
 ## Form validation & error handling
 
@@ -1028,7 +1068,8 @@ directly, without `.value` (`status`/`message`/`error`/`isPending` +
 or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
 directly — branch on `feedback` when you need the outcome. (On a **readonly** form it reports
 `fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
-fixed, for a save and for a delete alike:
+fixed, for a save and for a delete alike; a restore reports any status as `"Restoring failed"`, with what
+`toFeedbackError(ex)` reads (the field map, else the server's text):
 
 | HTTP status | `feedback.message`                                                                                | `feedback.error`                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -1115,6 +1156,41 @@ function fieldError(name: string): string | undefined {
 > is appended to `feedback.message` and `feedback.error` stays empty, so lean on the `<Feedback>` summary instead.
 > `feedback.isPending` — `status` is `FeedbackStatus.pending`, from `@regira/modules/vue/ui` — is the busy flag:
 > `:disabled="feedback.isPending"`, as in the example, prevents double-submits.
+
+**A 409 comes in two kinds**, told apart by the ProblemDetails `title`: `"Concurrency conflict"`, a stale concurrency
+token (the row changed or was removed since it was read), and `"Conflict"`, a database constraint. Both land in
+`feedback.message` as `"Server error: "` plus the server's `detail`; `useForm`'s `failure` tells them apart. To offer
+a Reload for the first kind, re-read the row and pass it up through `update:modelValue`: the details page and the form
+both take it, with its current token, and the user re-applies the edit.
+
+```ts
+import { computed } from "vue"
+import { toFeedbackError } from "@regira/modules/vue/ui"
+import { ArchivedFilter } from "@regira/modules/vue/entities"
+
+const { service: entityService } = useEntityStore()
+const { item, feedback, failure, handleCancel, handleSubmit, handleRemove, handleRestore } = useForm<Entity>({ entityService, props, emit })
+const isStale = computed(() => failure.value?.status === 409 && failure.value.title === "Concurrency conflict")
+
+async function reload() {
+    feedback.pending("Reloading…")
+    try {
+        // the details page's v-model takes the fresh row, and useForm resets item and original to it
+        emit("update:modelValue", await entityService.details(item.value.$id, { archived: ArchivedFilter.included }))
+        feedback.reset()
+    } catch (ex) {
+        feedback.fail("Reloading failed", toFeedbackError(ex))
+    }
+}
+```
+
+```vue
+<button v-if="isStale" type="button" class="btn btn-warning" :disabled="feedback.isPending" @click="reload">Reload</button>
+```
+
+Reload from the form, not through `useDetails().load()`: `load` belongs to the `useDetails` in `Details.vue`, and a
+second `useDetails()` in the form fetches on its own mount and fills an `item` the form does not show. A delete's 409
+shows as `"Deleting failed: …"`, a restore's as `"Restoring failed: …"`.
 
 ## Tabbed forms
 
@@ -1330,12 +1406,12 @@ export function useAccess() {
 }
 ```
 
-| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
-| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
-| `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
-| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether                                                   |
+| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">`                                                                                                                                                   |
+| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                                                                                                                                                                           |
+| `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                                                                                                                                                                         |
+| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether |
 
 A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
 store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
@@ -1431,7 +1507,16 @@ import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 
 // reloads for another account's sign-in, and keeps the form when the same account's token is refreshed
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen
-onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (item.value == null || userId !== shownFor) { shownFor = userId; load() } }, { immediate: false })
+onAuthenticated(
+    () => {
+        const userId = useGlobalAuth()?.authData?.userId
+        if (item.value == null || userId !== shownFor) {
+            shownFor = userId
+            load()
+        }
+    },
+    { immediate: false }
+)
 ```
 
 The same primitive drives any other login-sensitive work — see

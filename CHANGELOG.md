@@ -7,6 +7,34 @@ heading.
 
 ## Unreleased
 
+- `vue/auth`: **behaviour change — `LoginModal` and `ForgotPasswordModal` declare a typed `close`** (the modal's
+  header X) and forward it from the injected modal; `@close` reached the modal by fall-through, which an ejected
+  copy or a swapped-in modal could lose without a type error. `LoginModalEmits` and `ForgotPasswordModalEmits` are
+  exported, and the ejected `_template/ui` copies follow.
+- `vue/entities`: `useForm` returns `failure`, the last refused write's HTTP status and ProblemDetails `title`,
+  cleared when a write starts and by a new `modelValue`, so a form tells a stale concurrency token
+  (`"Concurrency conflict"`) from a database constraint (`"Conflict"`). The patterns guide gains the Reload recipe
+  for the first and lists a restore's failure.
+- Scaffold: an `--owns` child whose sub-slice folder is one of the slice's own (`--owns Detail` → `details/`) stops
+  before anything is written and names the clash; the run went on and the `--overwrite-slice` it suggested removed
+  `Details.vue` and `Form.vue`. `--help` and the flag table say `--as` renames the JSON key only, not the folder.
+- Guides: `auth.instructions` warns that no token manager hides the token from script (`localStorage`, a cookie
+  written by script, memory), that the module keeps one token and never calls `auth/refresh-token`, and that
+  `MemoryTokenManager` takes its token argument; a search default read from a claim is set in `setup` and in the
+  `onAuthenticated` handler, which replaces a default it set when another account signs in and keeps a value the
+  user picked; an `onMounted` fetch beside the hook sends a second request with the stored token rather than a
+  certain `401`; `ForgotPasswordFormEmits` lists its payloads. The auth README's token-manager row carries the first
+  two warnings.
+- Guides: _Sign-up_ covers an API that sets `SignIn.RequireConfirmedEmail` or `RequireConfirmedAccount` (no `login`
+  after the post; signing in answers `401` with `isNotAllowed` until the address is confirmed), a sign-up action with
+  profile fields, and a _Confirm page_ that posts `{ token }` to `users/confirm-email`; the mailed links carry
+  `?token=…` as their whole query string, not appended to one. Both describe `Regira.Security.Authentication.Web`
+  6.6.0.
+- Guides: a private attachment image shows from an object URL of an authenticated `getFile`, revoked when the uri
+  changes or the component unmounts, and a load a newer uri overtook is dropped; a custom insert on a `/new` route
+  emits the saved row and replaces the route; `InputSelectorInline`'s `#chip` slot receives the row;
+  `formatTextPreserveNewLines` escapes nothing, so user text is `htmlEncode`d first.
+
 - `vue/ui`: `toFeedbackError` starts each segment of a field key's path lower-case (`Lines[0].Quantity` →
   `lines[0].quantity`), so a nested field's errors reach `fieldMessages` under the model's own path; only the first
   character was lower-cased.
