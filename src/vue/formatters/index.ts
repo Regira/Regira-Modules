@@ -101,6 +101,10 @@ export const formatShortDate = (date?: Date | string, culture?: string) => {
     return _format(date, "dd/MM")
 }
 
+/**
+ * Formats a number for a culture with fixed decimals: `minDigits` defaults to 2 and `maxDigits` to `minDigits`, so a
+ * count is `formatNumber(n, culture, 0)`. Null yields `""`; `culture` omitted uses the browser's.
+ */
 export function formatNumber(value?: number, culture?: string, minDigits = 2, maxDigits = minDigits) {
     if (value == null) {
         return ""
@@ -116,12 +120,14 @@ export function formatNumberCompact(value?: number, culture?: string) {
     }
     return value.toLocaleString(culture, { notation: "compact" })
 }
+/** Formats an amount as money for a culture; `currency` (an ISO 4217 code) defaults to EUR. Null yields `""`. */
 export function formatCurrency(value?: number, culture?: string, currency: string = "EUR") {
     if (value == null) {
         return ""
     }
     return value.toLocaleString(culture, { style: "currency", currency })
 }
+/** Formats an amount as compact money (`€1.2K`) for a culture; `currency` (an ISO 4217 code) defaults to EUR. Null yields `""`. */
 export function formatCurrencyCompact(value?: number, culture?: string, currency: string = "EUR") {
     if (value == null) {
         return ""

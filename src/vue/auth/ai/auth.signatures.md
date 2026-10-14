@@ -88,7 +88,7 @@ export function onAuthenticated(handler: () => unknown, options?: OnAuthenticate
 ```ts
 export type IAuthenticateInput = { token: string; isAuthenticated: boolean }
 export type IChangePasswordInput = { newPassword: string; currentPassword: string }
-export type IForgotPasswordInput = { username: string; siteUrl: string; siteName?: string }
+export type IForgotPasswordInput = { username: string; siteUrl: string; siteName?: string } // siteName: @deprecated, the API ignores it
 export type IResetPasswordInput = { token: string; password: string }
 
 export interface IAuthService {
@@ -271,7 +271,7 @@ export function useLoginForm(
 export function useForgotPasswordForm(
     props: ForgotPasswordFormProps, // { username?: string }
     emit: ForgotPasswordFormEmits,
-    options: { siteUrl: string; siteName?: string }
+    options: { siteUrl: string; siteName?: string } // siteName: @deprecated, the API ignores it
 ): {
     username: Ref<string>
     isLoading: Ref<boolean>

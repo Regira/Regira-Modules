@@ -38,6 +38,10 @@ export type OnAuthenticatedOptions = {
  * Runs `handler` whenever an authenticated token arrives: signing in, a refresh (a tenant switch included),
  * and a token restored from storage on a hard reload.
  *
+ * It runs only while a token is held (or once, with the plugin disabled). A page on an `allowAnonymous` route that a
+ * signed-out visitor uses loads its public data in `onMounted` and passes `{ immediate: false }` here to re-load it
+ * after sign-in.
+ *
  * It watches the token rather than listening for named store actions, which matters twice over: no action
  * can be missed (restoring a stored token dispatches `validateToken`, not `login`, and views mount before
  * it resolves), and re-validating the *same* token — what the plugin's periodic check does — leaves the

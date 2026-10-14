@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router"
 import { useForgotPasswordForm, type ForgotPasswordFormProps, type ForgotPasswordFormEmits } from "@regira/modules/vue/auth"
-import { useLang } from "@regira/modules/vue/lang"
-import { useConfig } from "@/app-config"
 
 const emit = defineEmits<ForgotPasswordFormEmits>()
 const props = defineProps<ForgotPasswordFormProps>()
 
 const router = useRouter()
-const { title } = useConfig()
 // The API mails `siteUrl` with "?token=…" appended, so it must be the ABSOLUTE url of the reset PAGE.
 // Passing location.origin (a tempting shortcut) lands the recovery link on the dashboard, where nothing
 // reads the token. router.resolve keeps it correct under a non-root Vite base.
 const siteUrl = new URL(router.resolve({ name: "resetPassword" }).href, location.origin).href
-const siteName = useLang().translateMessage(title)
-const { username, isLoading, isFormValid, isSuccess, handleSubmit } = useForgotPasswordForm(props, emit, { siteUrl, siteName })
+const { username, isLoading, isFormValid, isSuccess, handleSubmit } = useForgotPasswordForm(props, emit, { siteUrl })
 </script>
 
 <template>

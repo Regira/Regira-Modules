@@ -103,6 +103,9 @@ hook then loads.
 at the `onAuthenticated(…)` call itself — so in `<script setup>` a `const load = async () => …` declared further
 down is not initialized yet, and the call throws `ReferenceError`.
 
+⚠️ **It fires only while a token is held** (or once, with the plugin disabled), so a page a signed-out visitor
+uses loads in `onMounted` (_What a first load shows_, under Route guard).
+
 With the plugin `enabled: false` no token ever arrives, so it honours `immediate` once and stops — nothing
 is gated in such an app. Pass
 `{ store }` only for a store the plugin knows nothing about; it names the store to watch and is honoured
@@ -137,7 +140,7 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
 | `refresh(queryParams?)`     | POST | `auth/refresh/?{query}`        | —                                                       |
 | `validateToken()`           | POST | `auth/validate`                | — (only when a token exists; 401 clears it)             |
 | `changePassword(input)`     | POST | `auth/password`                | `{ newPassword, currentPassword }`                      |
-| `forgotPassword(input)`     | POST | `auth/password/recover`        | `{ username, siteUrl, siteName? }`                      |
+| `forgotPassword(input)`     | POST | `auth/password/recover`        | `{ username, siteUrl }`                                 |
 | `resetPassword(input)`      | POST | `auth/password/reset`          | `{ token, password }`                                   |
 | `logout()`                  | —    | —                              | client-side only: clears the stored token               |
 
@@ -239,6 +242,27 @@ navbar and the dashboard for everyone else.
 > user a page they cannot use. Without the auth plugin nothing reads `meta.policy` — a `--no-auth` app with roles of
 > its own: `entities.patterns` → _Permission-gated UI_.
 
+### What a first load shows
+
+<!-- how_to: key=public-pages-in-auth-app aliases=public-page,public-pages,anonymous,allowanonymous,landing,catalogue,first-load,cold-load,deep-link,reload,401,403 -->
+
+In-app navigation to a role-gated route is redirected before the target mounts. A first load does not wait for
+the guard:
+
+- **A protected route opened while signed out** mounts its view, and each view's mount fetch answers `401`: one
+  `axios error` line per view in the console, while the login modal opens. Judge the console after sign-in.
+- **A reload or deep link to a role-gated route** mounts the view and fetches with the stored token; its
+  `onAuthenticated` runs once that token is validated, and both answer `403` before the guard redirects to
+  `forbidden`. A view that must not ask checks `store.hasRole(…)` or `routeAllows(route, store)` before
+  fetching.
+- **A page on an `allowAnonymous` route** that a signed-out visitor uses (a landing page) gets no
+  `onAuthenticated` run until someone signs in. It loads its public data in `onMounted` and re-loads after
+  sign-in with `onAuthenticated(() => load(), { immediate: false })`. Every other view keeps the
+  `onAuthenticated` rule.
+
+A "Sign in" button on such a page opens the login on demand (_Show the login form on time_, under Account UI);
+self-registration: _Sign-up_.
+
 ## Account UI — wire the FULL surface, shown on time
 
 **When an app has authentication, build the complete account surface, not just a login form.** The
@@ -251,6 +275,7 @@ components and composables exist for all of it — use them instead of hand-roll
 | Reset password (from the mail link)     | `ResetPasswordForm`                                 | `useResetPasswordForm`  |
 | Change password (signed-in user)        | `ChangePasswordForm`                                | `useChangePasswordForm` |
 | Sign out                                | `LogoutForm` (or `store.logout()` in a header menu) | —                       |
+| Sign up (self-registration)             | none: _Sign-up_ below                               | —                       |
 
 - **The entities app shell wires all five out of the box** (`scaffold.mjs --shell`, auth variant): login +
   recovery modals in `App.vue`, an app-owned `components/users/ForgotPasswordForm.vue` (the library ships
@@ -276,16 +301,59 @@ components and composables exist for all of it — use them instead of hand-roll
     const showLogin = computed(() => authStore.isRequired && !authStore.isAuthenticated)
     ```
 
+    An app whose public pages are `allowAnonymous` opens it on demand too: `isRequired` is set only by a
+    protected route, so a "Sign in" button sets a `loginRequested` ref, the gate reads
+    `(authStore.isRequired || loginRequested.value) && !authStore.isAuthenticated`, and the modal's `@close`
+    and the form's `@success` clear the ref.
+
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,
   leaving an invisible full-screen mask that swallows every click.
 - `useLoginForm(props, emit)` → `{ username, password, failed, signingIn, isLockedOut, handleSubmit, handleForgotPassword }`.
-- `useForgotPasswordForm(props, emit, { siteUrl, siteName? })` → `{ username, isLoading, isFormValid, isSuccess, handleSubmit }`.
+- `useForgotPasswordForm(props, emit, { siteUrl })` → `{ username, isLoading, isFormValid, isSuccess, handleSubmit }`.
 - `useChangePasswordForm(emit)` / `useResetPasswordForm({ token }, emit)` → password fields + match/validity
   state + `handleSubmit` (see [auth.signatures.md](auth.signatures.md)).
 - All form components are plain-Bootstrap reference skins — restyle, wrap, or eject them
   (`scaffold.mjs --ui LoginForm|LoginModal|ForgotPasswordModal|ChangePasswordForm|ResetPasswordForm`); the modals render the app-wide
   modal via `injectModal()`, so a `modalPlugin { Modal }` swap reskins them too.
+
+### Sign-up
+
+An app that lets visitors create their own account posts it to the API's `users` endpoint, then signs in:
+
+```ts
+import { ref } from "vue"
+import { useAuthStore } from "@regira/modules/vue/auth"
+import { useAxios } from "@regira/modules/vue/http"
+import { useFeedback, toFeedbackError } from "@regira/modules/vue/ui"
+
+const username = ref("")
+const password = ref("")
+const authStore = useAuthStore()
+const feedback = useFeedback()
+async function handleSubmit() {
+    feedback.pending("Creating your account")
+    try {
+        // main.ts: add "users" to the auth plugin's credentialUrls; this body holds the password
+        await useAxios().post("users", { username: username.value, password: password.value })
+        await authStore.login({ username: username.value, password: password.value })
+        feedback.reset()
+    } catch (ex) {
+        feedback.fail("Sign-up failed", toFeedbackError(ex))
+    }
+}
+```
+
+- **Add `"users"` to `credentialUrls`** on the auth plugin. The shared axios instance logs every failed request
+  with its body, and this body holds the password.
+- **The API opens `POST users` on an override.** The base action requires a signed-in caller, so a sign-up
+  answers `401` until the app's `UserControllerBase` subclass overrides `Create` with `[AllowAnonymous]`:
+  `Regira.Security` → security.instructions → _Authorization: guarded by default_.
+- **A taken name answers `400`** with ASP.NET Identity's `DuplicateUserName` as the key, like a password the
+  API's rules refuse. `toFeedbackError` reads both, and `<Feedback>` lists them.
+- To have the API mail a confirmation link, post `confirmEmailUrl` too: the absolute URL of the app's confirm
+  page, on an origin the API lists (`Regira.Security` → security.instructions → _Mailed links: allowed origins_).
+  Sign-in does not wait for the confirmation.
 
 ## `$auth` global
 

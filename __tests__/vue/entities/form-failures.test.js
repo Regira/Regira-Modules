@@ -2,7 +2,7 @@ import { describe, test, expect, vi, afterEach } from "vitest"
 import { createApp, defineComponent, h, reactive } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
 import { useForm, FormStates } from "../../../src/vue/entities/form"
-import { FeedbackStatus, toFeedbackError, setErrorTranslator } from "../../../src/vue/ui/feedback"
+import { FeedbackStatus, toFeedbackError, setErrorTranslator, fieldMessages } from "../../../src/vue/ui/feedback"
 import { useLang } from "../../../src/vue/lang/useLang"
 
 // An Entities API answers a rule breach (EntityInputException) and a model binding failure with a ProblemDetails that
@@ -293,6 +293,17 @@ describe("toFeedbackError", () => {
 
     test("answers undefined for a network failure", () => {
         expect(toFeedbackError(new Error("Network Error"))).toBeUndefined()
+    })
+
+    // ASP.NET names a nested field by its path: each segment starts lower-case, as the model's own field names do
+    test("starts every segment of a nested key's path lower-case, from errorDetails as from errors", () => {
+        const fromDetails = toFeedbackError({
+            response: { status: 400, data: { errors: {}, errorDetails: [{ key: "Lines[0].Quantity", message: "Must be positive." }] } },
+        })
+        const fromErrors = toFeedbackError({ response: { status: 400, data: { errors: { "Lines[0].Quantity": ["Must be positive."] } } } })
+
+        expect(fieldMessages(fromDetails, "lines[0].quantity")).toEqual(["Must be positive."])
+        expect(fieldMessages(fromErrors, "lines[0].quantity")).toEqual(["Must be positive."])
     })
 })
 

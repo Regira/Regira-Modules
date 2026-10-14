@@ -18,7 +18,8 @@
   token is validated, so a fetch guarded on `isAuthenticated` never runs and never errors — a blank panel,
   no failed request. Restoring a token is the `validateToken` action, not `login`, so a hand-rolled
   `$onAction(… "login" …)` misses it. Pass `{ immediate: false }` where the view already fetches on mount
-  (`useRouteOverview` / `useDetails` — the scaffolded views do).
+  (`useRouteOverview` / `useDetails` — the scaffolded views do); a page a signed-out visitor uses loads in
+  `onMounted` and re-loads with `{ immediate: false }` (`auth.instructions` → _What a first load shows_).
 - **⚠️ `$auth` is a union** (`IGlobalAuth | { enabled: false }`), so `$auth.isAuthenticated` alone is a
   TS2339 build failure — narrow with `$auth.enabled && …`, as the scaffolded shell does, or read the
   already-resolved `authStore.isAuthenticated`.

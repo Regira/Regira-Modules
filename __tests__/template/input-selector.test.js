@@ -7,7 +7,11 @@ const { list } = vi.hoisted(() => ({ list: vi.fn(async (so) => [{ id: Number(so.
 vi.mock("../../_template/entity-slice/data/store", () => ({ default: () => ({ fromPool: (x) => x, list }) }))
 vi.mock("../../_template/entity-slice/config/config", () => ({ default: { key: "Foo" } }))
 vi.mock("../../_template/entity-slice/data/Entity", () => ({ default: class {} }))
-vi.mock("../../_template/entity-slice/details/FormModalButton.vue", () => ({ default: { render: () => null } }))
+// the edit button renders a marker, so a test can tell whether the control shows it
+vi.mock("../../_template/entity-slice/details/FormModalButton.vue", async () => {
+    const { h } = await import("vue")
+    return { default: { render: () => h("span", { class: "form-modal-button" }) } }
+})
 vi.mock("../../_template/entity-slice/selecting/Autocomplete.vue", () => ({ default: { render: () => null } }))
 vi.mock("../../_template/entity-slice/selecting/SelectorModalButton.vue", () => ({ default: { render: () => null } }))
 vi.mock("@regira/modules/vue/ui", () => ({ Icon: { render: () => null } }))
@@ -18,7 +22,9 @@ const { default: InputSelector } = await import("../../_template/entity-slice/se
 function mountApp(Parent) {
     const app = createApp(Parent)
     app.config.globalProperties.$t = (key) => key
-    app.mount(document.createElement("div"))
+    const el = document.createElement("div")
+    app.mount(el)
+    return el
 }
 
 const flush = async () => {
@@ -26,16 +32,17 @@ const flush = async () => {
 }
 
 /** a parent binding both v-models, the way a scaffolded form does — or only `v-model` with `modelOnly` */
-function mount(state, { modelOnly = false } = {}) {
+function mount(state, { modelOnly = false, readonly = false } = {}) {
     const Parent = defineComponent({
         setup: () => () =>
             h(InputSelector, {
                 modelValue: state.model,
                 "onUpdate:modelValue": (v) => (state.model = v),
                 ...(modelOnly ? {} : { idValue: state.id, "onUpdate:idValue": (v) => (state.id = v) }),
+                readonly,
             }),
     })
-    mountApp(Parent)
+    return mountApp(Parent)
 }
 
 /** the scaffolded FilterAdv: a local entity ref, and the id on a search object the overview rebuilds from the URL */
@@ -182,5 +189,31 @@ describe("generated InputSelector — idValue resolution", () => {
         await flush()
 
         expect(list).not.toHaveBeenCalled()
+    })
+})
+
+// the prepend button opens the selected row, or a new one: a read-only control opens only a row that is there
+describe("generated InputSelector — readonly", () => {
+    const button = (el) => el.querySelector(".form-modal-button")
+
+    test("an empty read-only control shows no button", async () => {
+        const el = mount(reactive({ id: undefined, model: undefined }), { readonly: true })
+        await flush()
+
+        expect(button(el)).toBeNull()
+    })
+
+    test("a read-only control keeps the button while a row is selected", async () => {
+        const el = mount(reactive({ id: 5, model: { id: 5, $title: "Row 5" } }), { readonly: true })
+        await flush()
+
+        expect(button(el)).not.toBeNull()
+    })
+
+    test("an editable empty control shows the button, to create a row", async () => {
+        const el = mount(reactive({ id: undefined, model: undefined }))
+        await flush()
+
+        expect(button(el)).not.toBeNull()
     })
 })

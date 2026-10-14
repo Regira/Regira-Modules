@@ -86,7 +86,8 @@ export type FeedbackIn = { autoHideDelay?: number } // ms before a success() res
 export type FeedbackError = string | Record<string, string | Array<string>>
 // A failed request's field map, else the server's detail/message (or plain-text 400) text, else undefined.
 // Reads the ProblemDetails of a 400 ({ title, status, errors }) and a bare field map ({ CategoryId: [...] }), and
-// starts every key lower-case to match the model's field name ("categoryId"). "" = an error that belongs to no field.
+// starts each segment of a key's path lower-case to match the model's field name ("CategoryId" → "categoryId",
+// "Lines[0].Quantity" → "lines[0].quantity"). "" = an error that belongs to no field.
 // A message that is a key in useLang's messages — or that the translator setErrorTranslator set translates — shows its
 // translation, {name} filled from the args in the body's errorDetails ([{ key, message, args? }]); any other message
 // shows as sent.

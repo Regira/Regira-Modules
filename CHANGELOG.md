@@ -7,6 +7,27 @@ heading.
 
 ## Unreleased
 
+- `vue/ui`: `toFeedbackError` starts each segment of a field key's path lower-case (`Lines[0].Quantity` →
+  `lines[0].quantity`), so a nested field's errors reach `fieldMessages` under the model's own path; only the first
+  character was lower-cased.
+- Scaffold: an empty read-only `InputSelector` shows no edit button, which opened a new row read-only; with a row
+  selected it keeps the button and opens that row read-only.
+- Scaffold: `--rel`, `--owns` and `--attachments` add their model fields after the `id` line, above the placeholder
+  `title` and its TODO block, so removing that block keeps them; a template without that line stops the run.
+- `vue/auth`: `siteName` on `forgotPassword` and `useForgotPasswordForm` is `@deprecated`, as the API ignores it;
+  the shell's `ForgotPasswordForm` and the auth guides no longer send it.
+- `vue/formatters`: `formatNumber`, `formatCurrency` and `formatCurrencyCompact` document their defaults (2 decimals,
+  `maxDigits` = `minDigits`, EUR) in JSDoc.
+- Guides: _Owned rows with a relation and scalars_, the table with an `InputSelector` column whose `@select` fills the
+  add-row's defaults; the form checklist and the `--owns` message point to it.
+- Guides: `entities.signatures` says the overview composables add paging only, so an overview the user sorts declares
+  `sortBy` on its `SearchObject`; the http guide names `saveAs` for a `getFile` Blob; `entities.setup` points to the
+  `$auth` union; a temp id is a small negative integer, as `-Date.now()` overflows the server's `int`.
+- Guides: `auth.instructions` gains _What a first load shows_ (the `401`/`403` of a cold load or a deep link before
+  the guard redirects, and `onMounted` for a page a signed-out visitor uses), a login-on-demand gate for apps with
+  public pages, and _Sign-up_: `POST users` then `login()`, `"users"` added to `credentialUrls`, an
+  `[AllowAnonymous]` `Create` override on the API, the `400` a taken name answers, and `confirmEmailUrl` for a mailed
+  confirmation link. The auth card and README point a page a signed-out visitor uses to `onMounted`.
 - Guides: `auth.instructions` and the auth card say that the API mails the reset link only to a page on an origin it
   lists, the dev server's included, so a `siteUrl` elsewhere answers `400`, and that the API names the mail itself, so
   `siteName` does not reach it. The link carries the token percent-encoded in `siteUrl`'s query, and

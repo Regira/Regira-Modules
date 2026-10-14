@@ -149,7 +149,9 @@ axios `baseURL` (set from app config).
 
 > **Owned/related children can be built on an unsaved parent.** New child rows carry negative temp-id
 > sentinels, so a form may add them _before_ the parent is saved — `save(parent)` inserts the parent and its
-> pending children together. Don't gate "add a child" on saving the parent first. (A child modelled as a
+> pending children together. Don't gate "add a child" on saving the parent first. A temp id you mint yourself is
+> a small negative integer (`-1`, `-2`, … below the lowest id present, as `useOwnedCollection` mints them):
+> `-Date.now()` overflows the server's `int` key and the save answers `400`. (A child modelled as a
 > **first-class entity** with its own service does need the parent's real id, so it saves after — see
 > [entities.patterns.md → Owned (child) collections](entities.patterns.md#owned-child-collections).)
 
@@ -506,7 +508,7 @@ hand-rolling one is a deviation to declare (recipes: [entities.patterns.md](enti
 | 2+ related collections / many fields                                                         | `TabContainer` + `Tab.create` tabs — not one long column or a fixed-width table                                                                                                                                                                                       |
 | an editable child/join **relation** (rows link to another entity)                            | **`InputSelectorInline`** chips (`_deleted` mark + `exclude`) + a `prepareItem` filter — never the hard-removing `Selector`, never per-row `DELETE` calls                                                                                                             |
 | editable owned rows with **scalar fields** (nothing to pick)                                 | an inline **table** via `useOwnedCollection` (add-row + `_deleted`) + the same `prepareItem` filter — [recipe](entities.patterns.md#owned-rows-with-scalar-fields--the-inline-table)                                                                                  |
-| rows carrying **both** — a relation **and** scalars (quantity, sort order, role, valid-from) | the **table**, with an `InputSelector` in the relation column. Very common on join rows; the chips form has nowhere to put the scalars. Scaffold it with `--owns <Child>` (no `--picker`) and replace a placeholder column with the `InputSelector` |
+| rows carrying **both** — a relation **and** scalars (quantity, sort order, role, valid-from) | the **table**, with an `InputSelector` in the relation column. Very common on join rows; the chips form has nowhere to put the scalars — [recipe](entities.patterns.md#owned-rows-with-a-relation-and-scalars) |
 | **files / pictures** on the entity                                                           | the `entity-attachments` slice in a tab: `FileDropZone` drop, offline add/rename/remove (`_deleted`), flush on save via `useAxios().upload` — never `FileHelper.send` — [recipe](entities.patterns.md#attachments-files--offline-add--rename--remove-confirm-on-save) |
 | a related entity displayed anywhere                                                          | that entity's **`FormModalButton`** (chip/badge that opens its form in a modal) — a bare label is the exception, not the default                                                                                                                                      |
 | "add related entity" controls                                                                | `InputSelector` with `:filter-defaults="{ exclude: currentIds }"` (hides already-added rows)                                                                                                                                                                          |

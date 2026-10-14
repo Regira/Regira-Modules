@@ -259,5 +259,6 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
 8. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
    compilation only. Any browser you can drive will do: one your environment provides as a tool, or a short
    headless script with Playwright (`npm i -D playwright`, `npx playwright install chromium`); read its console
-   as well as the page. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
+   as well as the page. Judge the console after sign-in: a first load signed out logs a `401` per view
+   (`auth.instructions` → _What a first load shows_). Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
    empty/new-row paths) and check the main views at a mobile viewport before calling anything responsive.

@@ -167,12 +167,11 @@ export class DefaultSearchObject extends SearchObjectBase {}
 > `isArchived` is the row's own flag that `DELETE` sets and `useForm.handleRestore` clears. Declare
 > `archived?: ArchivedFilter` on your `SearchObject` only when the UI exposes archived rows.
 
-> ⚠️ **Paging and sorting are not members of your `SearchObject` — they ride the call argument.**
+> ⚠️ **Paging and sorting are not members of `SearchObjectBase` — they ride the call argument.**
 > `SearchObjectBase` carries only `q` (+ your filter fields), so `so.pageSize = 25` / `so.sortBy = [...]` on a
-> scaffolded instance does **not** type-check (`TS2339`), and neither belongs on the class. `pageSize`/`page`
+> scaffolded instance does **not** type-check (`TS2339`), and paging never belongs on the class. `pageSize`/`page`
 > come from `IPagingInfo`, `sortBy` from `ISortByInfo`, and the call parameter is their intersection:
-> `search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>)`. The overview composables merge them for
-> you; a view you write passes them inline:
+> `search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>)`. A view you write passes them inline:
 >
 > ```ts
 > const { items, count } = await service.search({ ...searchObject.value, pageSize: 0, sortBy: ["StartDesc"] })
@@ -180,7 +179,12 @@ export class DefaultSearchObject extends SearchObjectBase {}
 >
 > `ISearchObject extends Record<string, any>`, so an API-specific key that is on neither interface reaches the
 > query string just as well — no cast needed (`{ ...so, tenantId: 3 }`). Arrays serialize as repeated keys,
-> which is why `sortBy` accepts an array. `new PagingInfo(pageSize?, page?)` is for the overview composable's
+> which is why `sortBy` accepts an array.
+>
+> The overview composables (`useSearchView`, `useListView`) add the paging only: they send the search object
+> spread flat with `pagingInfo`. An overview the user sorts declares `sortBy?: Array<string>` on its
+> `SearchObject`, and the composables send it with the filters; a sort every request needs belongs in
+> `baseQueryParams` (§4). `new PagingInfo(pageSize?, page?)` is for the overview composable's
 > `pagingInfo` ref, **not** for `search()` — there is no nested `{ paging: … }` shape.
 
 ```ts

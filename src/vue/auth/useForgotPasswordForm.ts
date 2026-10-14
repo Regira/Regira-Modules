@@ -23,7 +23,11 @@ export type ForgotPasswordModalSlots = {
 export function useForgotPasswordForm(
     props: ForgotPasswordFormProps,
     emit: ForgotPasswordFormEmits,
-    options: { siteUrl: string; siteName?: string }
+    options: {
+        siteUrl: string
+        /** @deprecated The API names the mail itself and ignores this. */
+        siteName?: string
+    }
 ) {
     const { service } = useAuth()
 

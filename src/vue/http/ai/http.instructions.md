@@ -35,7 +35,9 @@ Both are attached to the instance _and_ exported as functions:
 
 - **`getFile(url, method?, filename?, type?)`** → `Promise<Blob>`. Requests with `responseType: "blob"`.
   If `type`/`filename` are omitted it reads them from the `content-type` / `content-disposition` headers,
-  and sets `blob.name` to the resolved filename.
+  and sets `blob.name` to the resolved filename. `getFile` returns the Blob; `saveAs(blob)` from
+  `@regira/modules/utilities/file-utility` downloads it under that name
+  ([utilities](../../../utilities/ai/utilities.examples.md)).
 - **`upload(url, files, options?)`** → `Promise<AxiosResponse>`. Sends `multipart/form-data`; the files
   field name defaults to `"file"` (`options.filesParameterName`); `options.data` adds extra form fields;
   `options.method` defaults to `"POST"`.

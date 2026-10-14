@@ -2,7 +2,7 @@
     <div class="input-selector input-group text-nowrap">
         <slot name="prepend">
             <FormModalButton
-                v-if="canEdit"
+                v-if="canEdit && (!readonly || item?.id)"
                 v-model="item"
                 :item-defaults="itemDefaults"
                 :readonly="readonly"

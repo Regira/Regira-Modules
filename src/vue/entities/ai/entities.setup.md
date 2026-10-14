@@ -932,7 +932,8 @@ import { RouterView } from "vue-router"
 
 The library declares its own globals on `@vue/runtime-core` (`$services`, `$configs`, `$icons`,
 `$appStatus`/`$setAppStatus`, `$feedback`, `$t`/`$tm`, `$auth`, …), so those are typed in templates and
-`this` automatically. Only **app-specific** globals need a one-file ambient declaration (TypeScript picks
+`this` automatically. `$auth` is a union to narrow before reading most of its members
+([auth](../../auth/ai/auth.instructions.md) → `$auth` global). Only **app-specific** globals need a one-file ambient declaration (TypeScript picks
 up `src/**/*.d.ts` automatically) — the full template declares the `user-plugin` global:
 
 ```ts

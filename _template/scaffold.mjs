@@ -436,6 +436,9 @@ const insertAfterOrFail = (text, anchor, addition, file) => {
     }
     return insertAfter(text, anchor, addition)
 }
+// the model's fields go right after its `id` line, above the placeholder `title` and its TODO block, so removing
+// those leaves the generated fields in place
+const MODEL_FIELDS_ANCHOR = "id: number = 0"
 const insertAfter = (text, anchor, addition) => {
     if (!addition) return text
     const i = text.indexOf(anchor)
@@ -522,7 +525,7 @@ function applyRelations(relPath, text) {
             return insertAfter(text, `<div class="col">{{ $t("name") }}</div>`, relationBlocks.headers)
         case "data/Entity.ts":
             text = insertAfter(text, `import { EntityBase } from "@regira/modules/vue/entities"`, relationBlocks.modelImports)
-            return insertAfter(text, `title = ""`, relationBlocks.fields)
+            return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, relationBlocks.fields, "data/Entity.ts")
         case "filter/SearchObject.ts":
             return insertAfterOrFail(text, `title?: string`, relationBlocks.searchFields, "filter/SearchObject.ts")
         case "filter/FilterAdv.vue": {
@@ -576,7 +579,8 @@ function applyOwnedCollections(relPath, text) {
             `import { EntityBase } from "@regira/modules/vue/entities"`,
             owns.map((o) => `import type { Entity as ${o.child} } from "../${kebab(pluralize(o.child))}"`).join("\n")
         )
-        return insertAfter(text, `title = ""`, owns.map((o) => `    ${ownedField(o)}?: Array<${o.child}>`).join("\n"))
+        const fields = owns.map((o) => `    ${ownedField(o)}?: Array<${o.child}>`).join("\n")
+        return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, fields, "data/Entity.ts")
     }
     if (path !== "data/EntityService.ts") return text
     const marker = text.match(OWNED_FILTER_TODO)
@@ -623,7 +627,7 @@ function applyAttachments(relPath, text) {
                 `import { EntityBase } from "@regira/modules/vue/entities"`,
                 `import type { Entity as EntityAttachment } from "../../entity-attachments"`
             )
-            return insertAfter(text, `title = ""`, `    attachments?: Array<EntityAttachment>`)
+            return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, `    attachments?: Array<EntityAttachment>`, "data/Entity.ts")
         case "data/EntityService.ts":
             need(ATTACHMENT_ANCHORS.prepareDoc, "data/EntityService.ts")
             need(ATTACHMENT_ANCHORS.superPrepare, "data/EntityService.ts")
@@ -713,8 +717,8 @@ function copyDir(from, to, rootFrom = from) {
         else {
             let content = subst(readFileSync(src, "utf8"))
             if (noAuth) content = stripAuth(content)
-            // attachments first: both it and --rel insert at the same `title = ""` anchor, and the LAST
-            // writer ends up nearest it — this order puts the relation fields above the attachments field
+            // attachments first: it, --rel and --owns insert after the same `id` line, and the LAST writer
+            // ends up nearest it — this order puts the relation fields above the attachments field
             content = applyAttachments(relative(rootFrom, src), content)
             content = applyRelations(relative(rootFrom, src), content)
             content = applyOwnedCollections(relative(rootFrom, src), content)
@@ -936,7 +940,9 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             `  ! The chips import from ${join(baseDir, targetFolder)}, which does not exist yet — scaffold the ${pickerName} slice or vue-tsc will fail.`
         )
     }
-    console.log(`  Wire it into the ${name} slice (the editor is generated; ${sliceGenerated ? "one line connects it" : "these three lines connect it"}):`)
+    console.log(
+        `  Wire it into the ${name} slice (the editor is generated; ${sliceGenerated ? "one line connects it" : "these three lines connect it"}):`
+    )
     console.log(
         sliceGenerated
             ? `    ✓ ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // already written by this run`
@@ -956,7 +962,7 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
     )
     if (!pickerName) {
         console.log(
-            `  Rows with a relation AND scalars (invoice lines): keep this table and put an InputSelector in the relation column — entities.patterns → "Owned rows with scalar fields".`
+            `  Rows with a relation AND scalars (invoice lines): keep this table and put an InputSelector in the relation column — entities.patterns → "Owned rows with a relation and scalars".`
         )
     }
     if (pickerName) {

@@ -767,7 +767,8 @@ New rows mint
 **negative temp ids** and insert with the parent's single `save()`; `_deleted` rows drop in the `prepareItem`
 filter above. Use `useOwnedModal` when each row is edited in a modal instead of inline; `useListInput` /
 `useListItemInput` are the lower-level primitives (`useListItemInput`'s `handleRemove` toggles `_deleted`
-for you). **Table when there's nothing to pick; `InputSelectorInline` chips when rows link to another entity.**
+for you). **Table when there's nothing to pick; `InputSelectorInline` chips when rows link to another entity;**
+**the table with an `InputSelector` column when a row carries both** ([below](#owned-rows-with-a-relation-and-scalars)).
 
 **Owned vs first-class child — and the "add before the parent is saved" consequence.** An **owned** collection
 (`useOwnedCollection`, embedded in the parent DTO, persisted via `e.Related(...)` on save) can be edited on a
@@ -849,6 +850,50 @@ them, so a test that exercises only one proves nothing about the split.
 The server-side half of this contract (which writer owns which field, and the startup warning when two
 of them claim the same rows) is in `Regira.Entities` → `entities.patterns` → _Owned children that are
 both sortable and individually togglable_.
+
+### Owned rows with a relation and scalars
+
+A row that picks another entity **and** carries scalars of its own (a line's product with its quantity and price,
+a member's role, a valid-from) keeps the inline table above: the chips have nowhere to put the scalars. Scaffold
+it with `--owns <Child>` (no `--picker`) and give the relation column the related slice's `InputSelector`, both
+v-models bound. On the add-row, `@select` also fills the defaults the picked row brings; `handleSave` then mints a
+fresh `newItem`, which clears the picker with it:
+
+```vue
+<script setup lang="ts">
+import { computed } from "vue"
+import { useOwnedCollection } from "@regira/modules/vue/entities"
+import { InputSelector as ProductSelector, type Entity as Product } from "@/entities/products"
+import OrderLine from "./Entity" // productId?: number, product?: Product, quantity, unitPrice
+
+const props = defineProps<{ modelValue?: Array<OrderLine> }>()
+const emit = defineEmits<{ "update:modelValue": [Array<OrderLine>] }>()
+const { items, newItem, handleSave } = useOwnedCollection<OrderLine>({ props, emit, createRow: () => OrderLine.create() })
+// a product on the list already is not offered again
+const exclude = computed(() => items.value.filter((x) => !x._deleted).map((x) => x.productId))
+// the picked product brings the line's default price
+function handleSelect(product?: Product) {
+    if (newItem.value && product) newItem.value.unitPrice = product.price
+}
+</script>
+
+<template>
+    <div v-for="row in items" :key="row.id" class="row mb-1" :class="{ 'is-deleted': row._deleted }">
+        <div class="col"><ProductSelector v-model="row.product" v-model:id-value="row.productId" /></div>
+        <div class="col-2"><input type="number" v-model.number="row.quantity" class="form-control" /></div>
+        <div class="col-2"><input type="number" v-model.number="row.unitPrice" class="form-control" /></div>
+        <button type="button" class="btn btn-outline-danger" @click="row._deleted = !row._deleted">×</button>
+    </div>
+    <div v-if="newItem" class="row">
+        <div class="col">
+            <ProductSelector v-model="newItem.product" v-model:id-value="newItem.productId" :filter-defaults="{ exclude }" @select="handleSelect" />
+        </div>
+        <div class="col-2"><input type="number" v-model.number="newItem.quantity" class="form-control" /></div>
+        <div class="col-2"><input type="number" v-model.number="newItem.unitPrice" class="form-control" /></div>
+        <button type="button" class="btn btn-success" :disabled="!newItem.productId" @click="handleSave({ saved: newItem, isNew: true })">+</button>
+    </div>
+</template>
+```
 
 ## Attachments (files) — offline add / rename / remove, confirm on save
 
@@ -1060,8 +1105,9 @@ function fieldError(name: string): string | undefined {
 > A Regira API answers a `400` with a ProblemDetails (`{ title, status, errors: { "Price": ["…"] } }`); a
 > rule refusal (an `EntityInputException`, a validator's among them) adds `errorDetails`, each error with the `args` a
 > translation fills in.
-> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts every key
-> lower-case, so it matches the model's field name. A message that is a key in the app's `useLang` messages —
+> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts each
+> segment of a key's path lower-case, so it matches the model's field name (`CategoryId` → `categoryId`,
+> `Lines[0].Quantity` → `lines[0].quantity`). A message that is a key in the app's `useLang` messages —
 > a validator that returns `ValueTooLarge` rather than a full sentence — shows that translation
 > ([ui](../../ui/ai/ui.instructions.md) → feedback); a body without field errors yields its
 > `detail` (or `message`) text instead. The form
@@ -1289,7 +1335,7 @@ export function useAccess() {
 | `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
 | `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
 | `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
-| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button and opens the entity read-only, while `:can-edit="false"` removes the button altogether                                                   |
+| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether                                                   |
 
 A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
 store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
@@ -1334,6 +1380,8 @@ In an auth-enabled app, data requested before a token arrives fails or comes bac
 ⚠️ **The rule generalises: anything that fetches on mount must use it too.** A dashboard, report or
 home-page widget you write yourself mounts _before_ a stored token is validated, short-circuits on
 `!isAuthenticated`, and nothing re-triggers it — a blank panel, no console error, no failed request.
+A page a signed-out visitor uses is the exception, and what a cold load or a deep link logs before the guard
+redirects is expected: [auth](../../auth/ai/auth.instructions.md) → _What a first load shows_.
 
 ```ts
 import { onAuthenticated } from "@regira/modules/vue/auth"

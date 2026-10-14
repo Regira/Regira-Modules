@@ -115,7 +115,7 @@ const { service } = useAuth()
 await service.changePassword({ currentPassword, newPassword })
 // the API mails `siteUrl` with "?token=…" appended, so it must be the absolute url of YOUR RESET PAGE —
 // passing location.origin lands the recovery link on the dashboard, where nothing reads the token
-await service.forgotPassword({ username, siteUrl: `${location.origin}/reset-password`, siteName })
+await service.forgotPassword({ username, siteUrl: `${location.origin}/reset-password` })
 await service.resetPassword({ token, password }) // token from the reset email link (?token=…)
 ```
 

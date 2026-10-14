@@ -217,6 +217,25 @@ describe("scaffold.mjs --rel", () => {
         expect(listItem).toContain('<ProjectButton v-if="item.project" :model-value="getProject(item.project)" />')
     })
 
+    // the fields scaffold.mjs adds sit with `id`, above the placeholder `title` and its TODO block, so removing that
+    // block leaves them in place
+    test("puts the fields it adds to the model above the placeholder title", () => {
+        run("Parcel", "--attachments", "--rel", "Courier", "--owns", "ParcelLine", "--no-auth")
+        const model = readFileSync(app("src", "entities", "parcels", "data", "Entity.ts"), "utf8")
+        const title = model.indexOf('title = ""')
+
+        expect(title).toBeGreaterThan(-1)
+        for (const field of [
+            "courierId?: number",
+            "courier?: Courier",
+            "parcelLines?: Array<ParcelLine>",
+            "attachments?: Array<EntityAttachment>",
+        ]) {
+            expect(model.indexOf(field), field).toBeGreaterThan(model.indexOf("id: number = 0"))
+            expect(model.indexOf(field), field).toBeLessThan(title)
+        }
+    })
+
     test("--dir is honoured by the lookup as well as by the output", () => {
         run("Country", "--plural", "countries", "--no-auth", "--dir", "src/modules")
         run("City", "--rel", "Country", "--no-auth", "--dir", "src/modules")

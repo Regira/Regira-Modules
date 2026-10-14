@@ -99,8 +99,8 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
   failure shown right after a success stays up.
 - `toFeedbackError(ex)` → what `fail()` should show for a failed request: its field map, else the server's
   `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads the ProblemDetails `errors` an
-  Entities API answers a 400 with, and a bare field map too, and starts every key lower-case to match the model's
-  field names; keys alike once lower-cased share their messages. A field `errors` lists that the body's
+  Entities API answers a 400 with, and a bare field map too, and starts each segment of a key's path lower-case to
+  match the model's field names (`CategoryId` → `categoryId`, `Lines[0].Quantity` → `lines[0].quantity`); keys alike once lower-cased share their messages. A field `errors` lists that the body's
   `errorDetails` does not name shows too.
   **It translates validation errors.** A server validator returns, per error, a text or a translation key
   (`ValueTooLarge`). Every message is looked up in the app's translation messages (`useLang`,
