@@ -18,3 +18,11 @@ app-wide as `$isOnline`. Use it to gate calls to the [HTTP layer](../http/README
 > `online`/`offline` listeners are wired only to the plugin's own instance, so a ref you create
 > yourself never updates. For the live value, read `$isOnline` or `inject("isOnline")` provided by
 > the plugin.
+
+## Writes made while offline
+
+The module detects the connection only: there is no write queue. A request sent offline rejects with an axios
+error that has no `response`. An app that must keep such changes persists `{ method, url, body }` and replays them
+in order on the window's `online` event, parking 4xx refusals for the user. A queued request answered 401 after a
+long offline spell waits for the next sign-in (`onAuthenticated` from `@regira/modules/vue/auth`), since the
+library keeps one token.

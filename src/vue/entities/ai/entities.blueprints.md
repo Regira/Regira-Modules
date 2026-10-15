@@ -286,8 +286,8 @@ Client side of the back-end **Stakeholders** blueprint (or any `[JsonPolymorphic
 export const PartyTypes = { Person: "PERSON", Organization: "ORGANIZATION" } as const
 
 export class Party extends EntityBase {
-    id = 0
     partyType = "" // the discriminator — sent back verbatim on save
+    id = 0
     code?: string
     // organization fields
     name = ""
@@ -317,7 +317,7 @@ export class Party extends EntityBase {
 
 - **Form:** branch the subtype fields on the discriminator (`v-if="item.$isOrganization"` … `v-else`); pick the type once at create time and treat it as immutable afterwards (the back-end discriminator is `init`-only).
 - **Config:** request the owned collections up front — `baseQueryParams: { includes: ["Addresses", "ContactData", "Relationships"] }` (names = the back-end `[Flags]` members).
-- **Save:** the discriminator decides which input DTO the back-end binds (`PersonInputDto` vs `OrganizationInputDto`) — always send `partyType`, and only the fields of that subtype are honored.
+- **Save:** the discriminator decides which input DTO the back-end binds (`PersonInputDto` vs `OrganizationInputDto`) — always send `partyType`, and only the fields of that subtype are honored. The API reads the discriminator only as the first JSON property unless it sets `AllowOutOfOrderMetadataProperties` (back-end _Polymorphic DTOs_); class field order is the JSON order.
 - **Owned collections:** contact data + addresses use the [Contact data & address editors](#contact-data--address-editors) component sets; relations are **two** collections (`parentRelationships`/`childRelationships`), each row nesting its own `contactData`. Strip `_deleted` rows at **every** nesting level before save:
 
 ```ts
@@ -499,7 +499,7 @@ back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "E
 
 ### Switch the active tenant (tenant switcher)
 
-<!-- how_to: key=tenant-switcher aliases=switch-tenant,active-tenant,tenant-selector,tenant-ui,multitenant-ui -->
+<!-- how_to: key=tenant-switcher aliases=switch-tenant,active-tenant,tenant-selector,tenant-ui,multitenant-ui,switch-company,company-switcher,active-company,switch-organisation -->
 
 Copy the **Tenant switcher blueprint**: a pinia store that loads `/tenants` whenever a token arrives
 (`onAuthenticated`), derives `activeTenant` from the JWT —

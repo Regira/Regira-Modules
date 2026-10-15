@@ -40,7 +40,9 @@ Both are attached to the instance _and_ exported as functions:
   ([utilities](../../../utilities/ai/utilities.examples.md)).
 - **`upload(url, files, options?)`** → `Promise<AxiosResponse>`. Sends `multipart/form-data`; the files
   field name defaults to `"file"` (`options.filesParameterName`); `options.data` adds extra form fields;
-  `options.method` defaults to `"POST"`.
+  `options.method` defaults to `"POST"`. `data` is flattened (`a.b`, `a[0]`) and each value goes through
+  `FormData.append`, which stringifies it (a `Blob` excepted): leave `undefined` and `null` out, and send a date
+  as an ISO string.
 
 ## Query strings
 

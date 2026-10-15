@@ -7,6 +7,29 @@ heading.
 
 ## Unreleased
 
+- `vue/ui`: **behaviour change — `FormSection`'s body is padded** (`--rg-form-section-padding`, default
+  `0 0.5rem 0.5rem`), so its fields line up with the title's text and keep clear of a frame the app gives
+  `.form-section`; they sat flush against it. Set the token to `0` for the flush body.
+- Scaffold: the slice form shows Delete by `isNewEntity(item.$id)`, so a slice whose model declares `id: string` (a
+  Guid or code key) passes `vue-tsc`; `:show-delete="item?.id > 0"` failed there with TS2365, while the guide called
+  the slice key-generic. A number key behaves as before.
+- Guides: `entities.blueprints` declares the polymorphic entity's `partyType` before `id` and says why: the API reads
+  the discriminator only as the first JSON property unless it sets `AllowOutOfOrderMetadataProperties`, and class
+  field order is the JSON order, so an update sent `id` first and answered `400`. The tenant-switcher recipe answers
+  company and organisation wording.
+- Guides: `online.instructions` and the module README say `vue/online` detects the connection only and queues no
+  writes; a `how_to` recipe covers an app's own outbox: persist each write, replay in order on `online`, park `4xx`
+  refusals, and hold a `401` for the next sign-in through `onAuthenticated`.
+- Guides: `http.instructions` and the module README say `upload`'s `data` is flattened and each value stringified by
+  `FormData.append`, so `undefined`, `null` and a `Date` arrive as `"undefined"`, `"null"` and `Date.toString()`:
+  leave the first two out and send ISO strings.
+- Guides: the card says `search(so)`/`list(so)` are typed on `EntityServiceBase` only, while the pooled
+  `store.service` takes `object`. `entities.instructions` names string and code keys in the Guid-key row, says a modal
+  slice hides `FilterAdv` unless `FilterInline` gets `:show-toggle-adv="true"`, and that enums arrive as their names,
+  a `[Flags]` value comma-joined; `entities.patterns` says `--fk` is refused with `--picker`. The bootstrap guide
+  expects the `403`s a reload of a role-gated page logs before the guard redirects. `formatters.instructions` passes
+  a full culture (`$culture`, `useAppStore().culture`), not `useLang().langCode`, whose `"en"` formats as en-US.
+  `ui.customize` lists the `form-section-title` and `form-section-body` hooks.
 - `vue/entities`: `useOwnedCollection` leaves an unset collection unset. It wrote `[]` into the parent on mount and
   whenever the prop was `undefined`, so a form that never loaded the collection saved it as `[]` and deleted every
   row. Two appends in one tick keep both rows with distinct temp ids; the second built on the prop the parent had not

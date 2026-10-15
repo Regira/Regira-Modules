@@ -7,6 +7,16 @@ or [HTTP layer](../../http/ai/http.instructions.md) when the network is down.
 
 > **Never guess** a signature — verify in [online.signatures.md](online.signatures.md).
 
+## Writes made while offline
+
+<!-- how_to: key=offline-writes aliases=offline,queue,outbox,reconnect -->
+
+This module detects the connection only: there is no write queue. A request sent offline rejects with an axios
+error that has no `response`. An app that must keep such changes persists `{ method, url, body }` and replays them
+in order on the window's `online` event, parking 4xx refusals for the user. A queued request answered 401 after a
+long offline spell waits for the next sign-in (`onAuthenticated` from `@regira/modules/vue/auth`), since this
+library keeps one token.
+
 ## Import
 
 ```ts

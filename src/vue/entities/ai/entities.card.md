@@ -157,9 +157,11 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       at its inputs gives its `<Feedback>` `:hide-field-errors="true"`, or the summary lists them a second time.
     - `service.search(so?)` / `list(so?)` — **paging and sorting ride the argument, flat**, not your
       `SearchObject` class: `search({ ...so, pageSize: 0, sortBy: ["TitleDesc"] })`. Assigning `so.pageSize = 25`
-      to a scaffolded `SearchObject` instance does not type-check; the param is
-      `ISearchObject & IPagingInfo & Partial<ISortByInfo>`, and `ISearchObject extends Record<string, any>`, so
-      any other key you add reaches the query string too (arrays as repeated keys). `new PagingInfo(pageSize?,
+      to a scaffolded `SearchObject` instance does not type-check; on `EntityServiceBase` the parameter is
+      `ISearchObject & IPagingInfo & Partial<ISortByInfo>`; the pooled `store.service` (`IPoolService`) takes
+      `object`, so type an argument you build yourself (`const so: ISearchObject & IPagingInfo = { … }`).
+      `ISearchObject extends Record<string, any>`, so any other key you add reaches the query string too (arrays
+      as repeated keys). `new PagingInfo(pageSize?,
 page?)` (from `@regira/modules/vue/entities`) is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.

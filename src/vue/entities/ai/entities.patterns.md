@@ -547,8 +547,9 @@ sync overwrites them on every save. The genuine owned-vs-first-class trade-off i
 
 Four numbered steps, one per layer:
 
-`scaffold.mjs <Parent> --owns <Join> --picker <Target>` generates all of this. The steps below are what it
-emits — read them when hand-writing the recipe or adapting the generated files.
+`scaffold.mjs <Parent> --owns <Join> --picker <Target>` generates all of this. Leave out `--fk`: the CLI rejects it
+with `--picker`, since a picker join carries no parent FK on the client; `Related()` sets it on the server. The steps
+below are what it emits — read them when hand-writing the recipe or adapting the generated files.
 
 1. **Model** — the join rows live on the parent: `articleCategories?: Array<ArticleCategory>`. Declare the
    row as a plain **interface**, not an `EntityBase` subclass:

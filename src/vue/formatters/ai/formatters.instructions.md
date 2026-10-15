@@ -19,6 +19,10 @@ There are no granular subpaths — everything lives under `@regira/modules/vue/f
 
 ## Dates & times
 
+Pass a full culture (`en-GB`): `$culture` in a template, `useAppStore().culture` in script (`@regira/modules/vue/app`),
+not `useLang().langCode` — `"en"` formats as en-US. Changing the language leaves the culture as it is; `app.instructions`
+→ _The plugin_ shows how to make `$culture` follow it.
+
 - **`formatDate(date?, culture?)`** — locale-driven via `toLocaleDateString(culture)`.
 - **`formatShortDate(date?, culture?)`** — fixed `dd/MM` (or `MM/dd` when `culture` contains `"US"`), via
   date-fns `format`. Both accept a `Date` or an ISO `string`; `null`/`undefined` → `""`.

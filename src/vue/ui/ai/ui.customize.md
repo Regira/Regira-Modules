@@ -46,16 +46,17 @@ import "@/assets/theme.scss" // the app's theme — always give the app one, eve
 
 Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 
-| Token                      | Default                      | Used by                                                                                                                                                                    |
-| -------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--rg-accent`              | `var(--bs-primary, #0d6efd)` | the library's accent token — **override** it to re-accent the app; it is not a spare slot to invent siblings of                                                            |
-| `--rg-accent-bg`           | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                                                                                        |
-| `--rg-deleted-bg`          | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                                                                                  |
-| `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                                                                                 |
-| `--rg-modal-z`             | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
-| `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index — set it on `:root` or `.autocomplete-items`: the panel lives on `<body>`, so a container's value never reaches it                            |
-| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control; like `--rg-dropdown-z`, set it on `:root` or `.autocomplete-items`    |
-| `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                                                                             |
+| Token                       | Default                      | Used by                                                                                                                                                                    |
+| --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--rg-accent`               | `var(--bs-primary, #0d6efd)` | the library's accent token — **override** it to re-accent the app; it is not a spare slot to invent siblings of                                                            |
+| `--rg-accent-bg`            | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                                                                                        |
+| `--rg-deleted-bg`           | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                                                                                  |
+| `--rg-backdrop`             | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                                                                                 |
+| `--rg-modal-z`              | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
+| `--rg-dropdown-z`           | `99999`                      | autocomplete results z-index — set it on `:root` or `.autocomplete-items`: the panel lives on `<body>`, so a container's value never reaches it                            |
+| `--rg-dropdown-max-height`  | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control; like `--rg-dropdown-z`, set it on `:root` or `.autocomplete-items`    |
+| `--rg-dragging-opacity`     | `0.6`                        | `.is-dragging`                                                                                                                                                             |
+| `--rg-form-section-padding` | `0 0.5rem 0.5rem`            | `.form-section-body` — `FormSection`'s content, lined up with its title's text and clear of a frame an app gives `.form-section`; `0` sets it flush                        |
 
 **The Bootstrap nuance an agent must not get wrong:** apps import _precompiled_ Bootstrap 5.3, whose
 component styles read **component-level** vars baked at compile time (`.btn-primary { --bs-btn-bg: #0d6efd }`).
@@ -107,7 +108,9 @@ them in `theme.scss` — no `::v-deep`, no `!important` needed.
 - **Part hooks** where inner parts are styling targets: `rg-modal__header` / `rg-modal__body` /
   `rg-modal__footer`, `rg-paging__page`, `rg-feedback__pending` / `rg-feedback__success` /
   `rg-feedback__error` / `rg-feedback__close-button`, `rg-loading-fallback` / `rg-loading-spinner`
-  (the unbranded spinner and its wrapper — size or restyle them when no `loadingPlugin` image is set).
+  (the unbranded spinner and its wrapper — size or restyle them when no `loadingPlugin` image is set),
+  `form-section-title` / `form-section-body` (`FormSection`'s header bar and its content, padded by
+  `--rg-form-section-padding`).
 - **State classes** (`is-*`): `is-deleted`, `is-dragging`, `is-selected` (app convention), `.active`
   on the current page.
 - Adding a class to a component's **root** needs no prop — Vue class fallthrough:

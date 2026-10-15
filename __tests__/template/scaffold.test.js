@@ -1,6 +1,18 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest"
 import { execFileSync } from "child_process"
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs"
+import {
+    existsSync,
+    lstatSync,
+    mkdtempSync,
+    mkdirSync,
+    readdirSync,
+    readFileSync,
+    rmSync,
+    statSync,
+    symlinkSync,
+    unlinkSync,
+    writeFileSync,
+} from "fs"
 import { tmpdir } from "os"
 import { dirname, join, resolve } from "path"
 import { fileURLToPath } from "url"
@@ -783,4 +795,63 @@ describe("scaffold.mjs guards", () => {
         mkdirSync(app("ignored"), { recursive: true })
         expect(() => run("Thing", "--api", "/C:/Program Files/Git/products", "--no-auth")).toThrow(/expanded the leading slash/)
     })
+})
+
+describe("scaffold.mjs output type-checks", () => {
+    // vue-tsc over a scaffolded app, which reads @regira/modules through its exports map as an install does: the
+    // built dist/, so the test skips until `npm run build` has run
+    const built = existsSync(join(repoRoot, "dist", "vue", "entities", "index.d.ts"))
+    let root
+    afterAll(() => {
+        if (!root) return
+        // the app's node_modules entries link into this repository: unlink them before the folder is removed
+        const unlinkAll = (dir) => {
+            if (!existsSync(dir)) return
+            for (const entry of readdirSync(dir)) {
+                const abs = join(dir, entry)
+                if (lstatSync(abs).isSymbolicLink()) unlinkSync(abs)
+                else if (entry === "@regira") unlinkAll(abs)
+            }
+        }
+        unlinkAll(join(root, "node_modules"))
+        rmSync(root, { recursive: true, force: true })
+    })
+
+    test.skipIf(!built)(
+        "a slice type-checks with a number key and with a string key",
+        () => {
+            // the slice is key-generic: `id: string = ""` (a Guid or code key) compiles as the default `id: number = 0` does
+            root = mkdtempSync(join(tmpdir(), "regira-typecheck-"))
+            const scaffoldHere = (...args) =>
+                execFileSync(process.execPath, [scaffold, ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+            scaffoldHere("--shell", "--no-auth")
+            scaffoldHere("Note", "--no-auth")
+            scaffoldHere("Tag", "--no-auth")
+            const model = join(root, "src", "entities", "tags", "data", "Entity.ts")
+            writeFileSync(model, readFileSync(model, "utf8").replace(/^(\s*)id: number = 0\b/m, '$1id: string = ""'))
+            expect(readFileSync(model, "utf8")).toMatch(/^\s*id: string = ""/m)
+
+            // the repository's packages, and @regira/modules itself, linked in as an install would place them
+            const modules = join(root, "node_modules")
+            mkdirSync(modules)
+            for (const entry of readdirSync(join(repoRoot, "node_modules"))) {
+                if (!entry.startsWith(".")) symlinkSync(join(repoRoot, "node_modules", entry), join(modules, entry), "junction")
+            }
+            mkdirSync(join(modules, "@regira"))
+            symlinkSync(repoRoot, join(modules, "@regira", "modules"), "junction")
+
+            let errors = ""
+            try {
+                execFileSync(process.execPath, [join(repoRoot, "node_modules", "vue-tsc", "bin", "vue-tsc.js"), "-p", "tsconfig.app.json"], {
+                    cwd: root,
+                    encoding: "utf8",
+                    stdio: ["ignore", "pipe", "pipe"],
+                })
+            } catch (ex) {
+                errors = `${ex.stdout || ""}${ex.stderr || ""}` || String(ex)
+            }
+            expect(errors).toBe("")
+        },
+        120_000
+    )
 })
