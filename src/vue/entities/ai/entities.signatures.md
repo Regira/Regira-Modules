@@ -366,7 +366,8 @@ export function useRouteOverview({ pagingInfo, searchObject, defaultPageSize, ha
 
 ⚠️ **`useRouteOverview` owns the search object.** Every search it runs first replaces `searchObject.value` with a
 plain object parsed from the route query, so the values come back as **strings** (`"true"`, `"5"`, ISO dates —
-the API binds them; a strict `=== true` in the view does not match) and the instance is no longer your
+the API binds them; a strict `=== true` in the view does not match), a repeated key as `string[]` (one value: a
+plain string), and the instance is no longer your
 `SearchObject` class. The one exception is the first search on mount: a URL with no search parameters keeps
 the search object the view passed to `useSearchView`, so its defaults apply. Once the user filters,
 `updateOverviewRoute` writes the whole search object — defaults included — to the URL (a `Date` as ISO-8601

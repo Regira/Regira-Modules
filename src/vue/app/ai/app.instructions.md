@@ -40,6 +40,13 @@ app.use(plugin, { culture: "nl-BE" }) // culture is optional
 
 These are also declared on Vue's `ComponentCustomProperties`, so they are typed in templates and `this`.
 
+`$culture` does not follow `useLang().langCode` (`vue/lang`): switching the language leaves dates and numbers in the
+culture the plugin was given. To have it follow, watch the language in `main.ts` —
+`watch(useLang().langCode, (code) => useAppStore().setCulture(code))`, with `useAppStore` from
+`@regira/modules/vue/app` (`$setCulture` is a global property for templates). `langCode` holds 2 letters, so a
+configured `nl-BE` becomes `nl` on the first switch and loses its regional formats; without `{ immediate: true }`
+the configured culture holds until then.
+
 ## The store
 
 `useAppStore()` is a Pinia store named `"AppStore"`:

@@ -80,14 +80,31 @@ describe("useForm failure mapping", () => {
         expect(form().feedback.error).toBeUndefined()
     })
 
-    test("a 409 ProblemDetails shows its detail", async () => {
+    test("a 409 ProblemDetails shows its detail as a refused save", async () => {
         vi.spyOn(console, "error").mockImplementation(() => {})
         const body = { title: "Conflict", status: 409, detail: "A database constraint rejected the change." }
         const form = mountForm({ modelValue: new Model() }, rejecting(409, body))
 
         await form().handleSubmit()
 
-        expect(form().feedback.message).toBe("Server error: A database constraint rejected the change.")
+        expect(form().feedback.message).toBe("Saving failed: A database constraint rejected the change.")
+    })
+
+    test("a 403 is a refused save, a 5xx or a request without an answer a server error", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const forbidden = mountForm({ modelValue: new Model() }, rejecting(403, { title: "Forbidden", status: 403, detail: "Not yours." }))
+        const crashed = mountForm({ modelValue: new Model() }, rejecting(500, { title: "Internal Server Error", status: 500, detail: "Boom." }))
+        const offline = mountForm({ modelValue: new Model() }, async () => {
+            throw new Error("Network Error")
+        })
+
+        await forbidden().handleSubmit()
+        await crashed().handleSubmit()
+        await offline().handleSubmit()
+
+        expect(forbidden().feedback.message).toBe("Saving failed: Not yours.")
+        expect(crashed().feedback.message).toBe("Server error: Boom.")
+        expect(offline().feedback.message).toBe("Server error: Network Error")
     })
 
     // only a 400 shows a field map: another status shows the server's text, whatever errors its body lists

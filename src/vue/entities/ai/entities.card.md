@@ -108,7 +108,9 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
   (`@/entities/xs/details/FormModalButton.vue`, `@/entities/xs/data/store`) on the second edge.
   `scaffold.mjs` skips a `--rel` naming the entity being scaffolded for the same reason — a self-relation
   (`Employee → manager`) is wired by hand: a plain FK field on the model plus a relative deep import of the
-  slice's own `selecting/InputSelector.vue`.
+  slice's own `selecting/InputSelector.vue`. The SFC cycle that leaves (`Form.vue` → `InputSelector.vue` →
+  `FormModalButton.vue` → `Form.vue`) is safe: a `<script setup>` component reads its imports only at setup and
+  render. Only the barrel cycles, because `data/store.ts` reads `Entity.name` while the module evaluates.
 
 ## Relations & owned collections
 
@@ -188,8 +190,10 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
 - **Counted paging comes from `/search`:** `useSearchView` + `useRouteOverview` → `{ items, count }` —
   on simple and complex entities alike; `list()` has no count. ⚠️ **`useSearchView`/`useListView` do not fetch
   on mount** — the scaffolded overview's first search comes from `useRouteOverview`; a hand-written view owns
-  it (`onAuthenticated(() => searchHandler(true))`, and nothing on mount beside it). `pageSize: 0` returns all rows capped by
-  the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
+  it (`onAuthenticated(() => searchHandler(true))`, and nothing on mount beside it). `useRouteOverview` re-parses the
+  search object from the URL on every search: values come back as strings (`"true"`, `"5"`), a repeated key as
+  `string[]` (one value: a plain string), so compare loosely or normalise (`entities.signatures` §5).
+  `pageSize: 0` returns all rows capped by the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
   `*Url` defaults off `api`, and `saveUrl` must stay the resource base or updates 404 while inserts pass.
 - **Forms show state through feedback.** `useForm` drives it, but only a rendered
   `<Feedback :feedback="feedback" />` shows it; any save you call yourself gets its own `useFeedback()`.
@@ -210,8 +214,12 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
   store itself — `useEntityStore().set(dto)` / `setMany(dtos)` — not on `store.service`, the pooled
   `IPoolService`, which has neither (`entities.patterns` → _Resolving relations with `fromPool`_). The pooled
   `details()`/`list()`/`search()` write every row they return into the pool, so a re-fetch refreshes the
-  cached instances. The pool is per tab, not per user: the shell's `onAuthenticationChange` empties it on
-  sign-out (`defaultPoolCache.clear()`), and a tenant switch clears it too (`entities.blueprints` → _Tenant switcher_).
+  cached instances — but they return hydrated copies, not those instances: wrap the result in the store's
+  `fromPool(items)` for the shared ones. A one-field change (a status move, a toggle) is
+  `useEntityStore().service.patch(id, { field })`, plus `concurrencyToken` only when the entity carries one
+  (`entities.patterns` → _State toggle_). The pool is per tab, not per user: the shell's `onAuthenticationChange`
+  empties it on sign-out (`defaultPoolCache.clear()`), and a tenant switch clears it too (`entities.blueprints` →
+  _Tenant switcher_).
 - **A displayed relation is a component, not text**: the related entity's `FormModalButton` beside its
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK

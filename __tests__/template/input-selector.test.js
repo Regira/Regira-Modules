@@ -190,6 +190,32 @@ describe("generated InputSelector — idValue resolution", () => {
 
         expect(list).not.toHaveBeenCalled()
     })
+
+    test("a row the caller may not read (403) keeps the FK and shows nothing, without an uncaught error", async () => {
+        list.mockRejectedValueOnce(Object.assign(new Error("Request failed with status code 403"), { response: { status: 403 } }))
+        const state = reactive({ id: 5, model: undefined })
+        const errors = []
+        const app = createApp(
+            defineComponent({
+                setup: () => () =>
+                    h(InputSelector, {
+                        modelValue: state.model,
+                        "onUpdate:modelValue": (v) => (state.model = v),
+                        idValue: state.id,
+                        "onUpdate:idValue": (v) => (state.id = v),
+                    }),
+            })
+        )
+        app.config.globalProperties.$t = (key) => key
+        app.config.errorHandler = (err) => errors.push(err)
+        app.mount(document.createElement("div"))
+        await flush()
+
+        expect(list).toHaveBeenCalledTimes(1)
+        expect(errors).toEqual([])
+        expect(state.model).toBeUndefined()
+        expect(state.id).toBe(5)
+    })
 })
 
 // the prepend button opens the selected row, or a new one: a read-only control opens only a row that is there

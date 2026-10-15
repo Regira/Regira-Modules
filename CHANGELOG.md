@@ -7,6 +7,43 @@ heading.
 
 ## Unreleased
 
+- `vue/entities`: `useOwnedCollection` leaves an unset collection unset. It wrote `[]` into the parent on mount and
+  whenever the prop was `undefined`, so a form that never loaded the collection saved it as `[]` and deleted every
+  row. Two appends in one tick keep both rows with distinct temp ids; the second built on the prop the parent had not
+  re-rendered yet, so one row was lost and both got `-1`. `useListInput` appends the same way and reads an unset
+  collection as `[]`, where an append threw; its temp ids stay negative, where a new row next to rows `3` and `4`
+  got `2`, the id a stored row may carry.
+- `vue/auth`: `useLoginForm` returns `isNotAllowed`, set from the `401` body when the password is right but the
+  account is not confirmed yet, and `LoginForm` then asks the user to follow the mailed link instead of showing the
+  generic failure. `isLockedOut` and `isNotAllowed` clear when an attempt starts; `isLockedOut` stayed set. The
+  ejected `_template/ui` copy follows.
+- `vue/entities`: **behaviour change — a save refused with another `4xx` (a `409`, a `403`) reports
+  `"Saving failed: …"`**, as a `400` does; `"Server error: …"` is left to a `5xx` and a request without an answer.
+- `vue/ui`: `DateInputEmits` types `update:modelValue` as `Date | undefined`, what `DateInput` emits; it said
+  `string | Date`.
+- Scaffold: `--picker` naming the slice itself stops before anything is written and points to the hand-written
+  self-referencing many-to-many in the patterns guide; `--dir` must name a folder under `src/` (the `@/` alias),
+  relative or absolute, where a folder elsewhere emitted imports that could not resolve.
+- Scaffold: the slice's `InputSelector` keeps the FK and shows no row when reading the selected row is refused (a
+  caller without read access); the `403` was an uncaught rejection.
+- Scaffold: the shell remembers the chosen language in `infrastructure/lang-plugin.ts`, installed after
+  `langPlugin` in both variants; it lived in the auth-only `user-plugin.ts`, so a `--no-auth` app forgot it on every
+  reload. Blocked storage no longer throws.
+- Guides: `entities.setup` adds the app icons with `loadIcons(appIcons)`, as a second `app.use(iconPlugin, …)` is
+  skipped and never loaded them, and lists the `dev`/`build`/`preview` scripts with the known-good package set; the
+  build check is `npm run build` = `vue-tsc -b && vite build` there and in the bootstrap guide. The `prepareItem`
+  example in _Transient client-only fields_ keeps an unloaded collection absent (`?? []` deleted every row).
+- Guides: `entities.patterns` gains _Refresh the form after a custom endpoint_ (the State toggle's reload through the
+  pooled service), patching a first-class child from its parent's page, a self-referencing many-to-many under
+  _Shapes `--owns` does not scaffold_, `v-model="item.lines"` in _Tabbed forms_, the `4xx`/`5xx` rows of the failure
+  table, read-gating a selector with `v-if`, and says that its `toEntity`/`prepareItem` snippets edit the scaffolded
+  overrides (a second member is TS2393).
+- Guides: the card and `entities.instructions` say `useRouteOverview` brings the search object back from the URL as
+  strings and `string[]`; the card adds that pooled `list()`/`search()` return hydrated copies (`fromPool(items)` for
+  the shared ones), a one-field change through `service.patch`, and why a self-relation's SFC import cycle is safe.
+  `auth.instructions` offers sign-up beside `LoginForm` in `LoginModal`'s slot and narrows `$auth` in a template;
+  `app.instructions` keeps `$culture` in step with `useLang().langCode`; the shell guide right-aligns a dropdown
+  without Bootstrap's JS; `lang.instructions` says `setLangCode` holds the language in memory only.
 - `vue/auth`: **behaviour change — `LoginModal` and `ForgotPasswordModal` declare a typed `close`** (the modal's
   header X) and forward it from the injected modal; `@close` reached the modal by fall-through, which an ejected
   copy or a swapped-in modal could lose without a type error. `LoginModalEmits` and `ForgotPasswordModalEmits` are

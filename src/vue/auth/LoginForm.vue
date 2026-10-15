@@ -2,8 +2,11 @@
     <form class="rg-login-form" @submit.prevent="handleSubmit" ref="loginForm">
         <div class="mb-3 position-relative" v-if="failed">
             <div class="bg-danger border rounded text-light p-2">
-                Unfortunately, signing in failed.
-                <span v-if="isLockedOut">Try again in 5 min.</span>
+                <template v-if="isNotAllowed">This account is not confirmed yet. Follow the link we mailed you.</template>
+                <template v-else>
+                    Unfortunately, signing in failed.
+                    <span v-if="isLockedOut">Try again in 5 min.</span>
+                </template>
             </div>
         </div>
         <div class="row mb-3">
@@ -38,5 +41,5 @@ import { useLoginForm, type LoginFormEmits, type LoginFormProps } from "./useLog
 const emit = defineEmits<LoginFormEmits>()
 const props = defineProps<LoginFormProps>()
 
-const { username, password, signingIn, failed, isLockedOut, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
+const { username, password, signingIn, failed, isLockedOut, isNotAllowed, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
 </script>

@@ -82,6 +82,9 @@ The Pinia store is the reactive source of truth for components:
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 
+In a template, `$auth.isAuthenticated` is TS2339: `$auth` is a union, so narrow it with `$auth.enabled &&`
+([`$auth` global](#auth-global)), or read `const authStore = useAuthStore()` in script.
+
 `authData` (`IAuthData`) is decoded from the JWT: `token` (the raw JWT), `userId`, `name`, `email`,
 `displayName`, `culture`, `role` (the first role found, for display), `expires`, plus `get(claim)`,
 `hasClaim`, `hasPermission`, `hasRole`.
@@ -345,7 +348,9 @@ components and composables exist for all of it — use them instead of hand-roll
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,
   leaving an invisible full-screen mask that swallows every click.
-- `useLoginForm(props, emit)` → `{ username, password, failed, signingIn, isLockedOut, handleSubmit, handleForgotPassword }`.
+- `useLoginForm(props, emit)` → `{ username, password, failed, signingIn, isLockedOut, isNotAllowed, handleSubmit, handleForgotPassword }`.
+  `isLockedOut` and `isNotAllowed` mirror the `401` body of the last attempt; `isNotAllowed` is a right password on
+  an account that is not confirmed yet, and the stock `LoginForm` then asks the user to follow the mailed link.
 - `useForgotPasswordForm(props, emit, { siteUrl })` → `{ username, isLoading, isFormValid, isSuccess, handleSubmit }`.
 - `useChangePasswordForm(emit)` / `useResetPasswordForm({ token }, emit)` → password fields + match/validity
   state + `handleSubmit` (see [auth.signatures.md](auth.signatures.md)).
@@ -380,6 +385,20 @@ async function handleSubmit() {
 }
 ```
 
+Offer it from the login modal. Anything slotted into `LoginModal`'s default slot replaces the stock `LoginForm`, so
+put a `RouterLink` to the sign-up page **beside** `<LoginForm>` inside the slot (the scaffolded `App.vue` already
+slots its own `LoginForm`):
+
+```vue
+<LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+    <LoginForm @forgot-password="handleForgotPassword" />
+    <RouterLink :to="{ name: 'signUp' }">Create an account</RouterLink>
+</LoginModal>
+```
+
+The route is anonymous — `{ path: "/sign-up", name: "signUp", component: SignUpView, meta: { allowAnonymous: true } }`
+— and an `allowAnonymous` route makes `isRequired` false, so the modal closes when the link lands there.
+
 - **Add `"users"` to `credentialUrls`** on the auth plugin. The shared axios instance logs every failed request
   with its body, and this body holds the password.
 - **An API whose sign-up takes profile fields** has an action of its own (`users/sign-up`). Post there with the
@@ -394,7 +413,8 @@ async function handleSubmit() {
   links: allowed origins_). Sign-in does not wait for the confirmation unless the API sets
   `SignIn.RequireConfirmedEmail` or `RequireConfirmedAccount`, which `Regira.Security.Authentication.Web` honours
   from 6.6.0. Then drop the `login` call after the post and tell the visitor to follow the mailed link: signing in
-  answers `401` with `isNotAllowed` until they do, and the stock `LoginForm` shows only its generic failure.
+  answers `401` with `isNotAllowed` until they do, which `useLoginForm` returns as `isNotAllowed` and the stock
+  `LoginForm` shows as "not confirmed yet".
 
 ### Confirm page
 

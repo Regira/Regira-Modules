@@ -261,6 +261,22 @@ describe("scaffold.mjs --rel", () => {
         expect(isDir("src", "modules", "cities")).toBe(true)
         expect(aliasImports(app("src", "modules", "cities"))).toContain("@/modules/countries")
     })
+
+    test("--dir takes an absolute path under src/ too", () => {
+        run("Province", "--rel", "Country", "--no-auth", "--dir", app("src", "modules"))
+
+        expect(aliasImports(app("src", "modules", "provinces"))).toContain("@/modules/countries")
+    })
+
+    test("--dir outside src/, or src/ itself, is refused before anything is written", () => {
+        // the slice imports its siblings through @/, which is src/: a folder elsewhere has no alias to resolve
+        expect(runFailing("Region", "--no-auth", "--dir", "lib/entities")).toContain("is not a folder under src/")
+        expect(runFailing("Region", "--no-auth", "--dir", "src")).toContain("is not a folder under src/")
+        expect(runFailing("Region", "--no-auth", "--dir", "src/../lib")).toContain("is not a folder under src/")
+
+        expect(isDir("lib")).toBe(false)
+        expect(isDir("src", "regions")).toBe(false)
+    })
 })
 
 describe("scaffold.mjs stdout", () => {
@@ -441,6 +457,16 @@ describe("scaffold.mjs owned collections", () => {
     test("--picker names the OTHER side of the join", () => {
         expect(() => run("Article", "--owns", "ArticleCategory", "--picker", "ArticleCategory", "--no-auth")).toThrow(/repeats the --owns class/)
         expect(() => run("Article", "--rel", "Category", "--picker", "Category", "--no-auth")).toThrow(/directly after the --owns/)
+    })
+
+    test("--picker naming the slice itself is refused and points to the hand-written recipe", () => {
+        // the join row's picked FK would be memberId, the parent FK's own name, and the chips would import the
+        // slice's own barrel
+        const err = runFailing("Member", "--owns", "MemberFriend", "--as", "friends", "--picker", "Member", "--no-auth")
+
+        expect(err).toContain("names the Member slice itself")
+        expect(err).toContain("Shapes --owns does not scaffold")
+        expect(isDir("src", "entities", "members")).toBe(false)
     })
 
     test("--fk overrides the child's FK to the parent", () => {
@@ -704,6 +730,17 @@ describe("scaffold.mjs --shell config.json", () => {
 
         expect(read("public", "favicon.svg")).toContain("<svg")
         expect(read("index.html")).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />')
+    })
+
+    test("a --no-auth shell remembers the chosen language too", () => {
+        // the language persistence lived in the auth-only user-plugin, so a --no-auth app forgot it on every reload
+        const read = shell("--no-auth")
+        const main = read("src", "main.ts")
+
+        expect(read("src", "infrastructure", "lang-plugin.ts")).toContain('localStorage.setItem("lang", code)')
+        expect(main).toContain('import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"')
+        expect(main).toMatch(/app\.use\(langPlugin, [^\n]*\)\n\s*app\.use\(langStoragePlugin\)/)
+        expect(main).not.toContain("user-plugin")
     })
 
     test("a --no-auth routes.ts says nothing about sign-in", () => {

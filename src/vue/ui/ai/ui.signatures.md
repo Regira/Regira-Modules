@@ -395,7 +395,8 @@ import {
 //   same confirmation from another affordance (a swipe, a context menu, a shortcut), keep the button in the
 //   tree and call it through a ref: <ConfirmButton ref="confirm" … /> + confirm.value?.open()
 // DateInput contract (DateInputProps/Emits): { modelValue?: string | Date; culture?: string; readonly?: boolean;
-//   showTime?: boolean } (v-model; `readonly` also refuses the emit — a native picker cannot write through it).
+//   showTime?: boolean } (v-model; it reads a string or a Date and emits `Date | undefined`; `readonly` also refuses
+//   the emit — a native picker cannot write through it).
 //   showTime renders <input type="datetime-local"> and keeps the time on the emitted Date; without it the
 //   control picks a date only but still emits a Date — for a C# DateOnly field, which must stay a "yyyy-MM-dd"
 //   string, bind a native <input type="date"> instead. The matching formatters are dateInputString / dateTimeInputString.

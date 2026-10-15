@@ -27,3 +27,7 @@ app.use(plugin, { culture })          →  $appStatus / $culture / $isReady glob
 
 The status is driven by the app's own bootstrap (load config, `initAxios`, prime entities); nothing
 advances to `Ready` until you call `setStatus(AppStatus.Ready)`.
+
+The culture does not follow the language of `vue/lang`: an app whose formats should switch with it calls
+`useAppStore().setCulture(code)` from a watch on `useLang().langCode` — a 2-letter code, so a regional culture
+such as `nl-BE` becomes `nl`.

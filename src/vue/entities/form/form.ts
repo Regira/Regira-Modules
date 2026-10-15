@@ -126,6 +126,9 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
                 feedback.fail("Saving failed", toFeedbackError(error))
             } else if (status == 404) {
                 feedback.fail("Item not found", serverMessage(error))
+            } else if (status < 500) {
+                // the server refused the write (409 conflict, 403): no fault of its own
+                feedback.fail("Saving failed", serverMessage(error))
             } else {
                 feedback.fail("Server error", serverMessage(error))
             }

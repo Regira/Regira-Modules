@@ -50,7 +50,9 @@ so calling it in a component reads/writes the app-wide language:
 - `translate(key, formatArgs?)` — resolves against `langCode`, then automatically retries against
   `fallbackLangCode`.
 - `translateMessage(message, formatArgs?)` — same fallback behavior for an inline message object.
-- `setLangCode(newValue)` — switch language (ignores empty values).
+- `setLangCode(newValue)` — switch language (ignores empty values). The choice lives in memory only, so a reload
+  starts from `defaultLang`; the scaffolded shell's `infrastructure/lang-plugin.ts` restores it from `localStorage`
+  and saves every change.
 - `replaceMessages(values)` — replace the whole dictionary; `loadMessages(values)` — merge into it.
 
 ## The language selector — show it when the app is multilanguage

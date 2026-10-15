@@ -5,7 +5,7 @@ import { initAxios } from "@regira/modules/vue/http"
 import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
 import { plugin as appPlugin, AppStatus, whenAppReady } from "@regira/modules/vue/app"
 import { plugin as langPlugin } from "@regira/modules/vue/lang"
-import { useLang } from "@regira/modules/vue/lang" // used for document.title + (auth) setLangCode
+import { useLang } from "@regira/modules/vue/lang" // document.title, and (auth) the signed-in account's culture
 import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "@regira/modules/vue/ui"
 import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 import "bootstrap/dist/css/bootstrap.min.css"
@@ -14,6 +14,7 @@ import "@regira/modules/style.css"
 import "@/assets/theme.scss" // the app theme — MUST come after bootstrap + regira styles so its overrides win
 import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth" // @auth:only
 import { plugin as userPlugin } from "@/infrastructure/user-plugin" // @auth:only
+import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"
 import { preloaderPlugin, defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
 import { plugin as debugPlugin } from "@regira/modules/vue/debug"
 import dateExtensions from "@regira/modules/extensions/date-extensions"
@@ -43,6 +44,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
         app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
+        app.use(langStoragePlugin) // restores the language picked on an earlier visit and saves every change
 
         document.title = useLang().translateMessage(config.title) || document.title // browser-tab title from config.title (culture-keyed); re-set on culture change if you localize it
 

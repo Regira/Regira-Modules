@@ -265,7 +265,8 @@ export function useLoginForm(
     password: Ref<string>
     failed: Ref<boolean>
     signingIn: Ref<boolean>
-    isLockedOut: Ref<boolean>
+    isLockedOut: Ref<boolean> // the refusal's isLockedOut; cleared when an attempt starts
+    isNotAllowed: Ref<boolean> // the refusal's isNotAllowed: right password, account not confirmed; cleared when an attempt starts
     handleSubmit: () => Promise<void>
     handleForgotPassword: () => void
 }

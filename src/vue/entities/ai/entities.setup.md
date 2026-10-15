@@ -57,6 +57,7 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 
 ```jsonc
 // package.json — known-good set (runtime peers + the build toolchain they require)
+"scripts": { "dev": "vite", "build": "vue-tsc -b && vite build", "preview": "vite preview" },
 "dependencies": {
   "@regira/modules": "*", // the latest release; npm install keeps "*" (the lockfile pins it) — npm install @regira/modules writes "^6.x"
   "vue": "^3.5", "vue-router": "^5", "pinia": "^3",
@@ -128,7 +129,8 @@ export default defineConfig({
 
 > **tsconfig & build note.** On TypeScript 6+ use `paths` **without `baseUrl`** — `vue-tsc -b` (what
 > `npm run build` runs) errors on `baseUrl` (TS5101) even though `vue-tsc --noEmit` tolerates it, so
-> always verify with `npm run build`, not only a `--noEmit` typecheck. `vue-tsc -b` also _emits_ `.js` next
+> always verify with `npm run build` (`vue-tsc -b && vite build`), not only a typecheck: `vue-tsc` alone can pass
+> while the Vite build fails. `vue-tsc -b` also _emits_ `.js` next
 > to your sources unless `compilerOptions.noEmit: true` is set in **both** project tsconfigs (the scaffold's
 > already are; set it if you hand-author them, and add `*.tsbuildinfo` to `.gitignore`). If your tsconfig enables
 > `erasableSyntaxOnly` (the current Vite `vue-ts` template default), define enum-like values as `const`
@@ -374,7 +376,8 @@ src/
     users/                       #   ForgotPasswordForm (auth-on) · (+) the rest of the account UI
   infrastructure/                # small app-wide glue (permissions, plugins) — see App shell (keep it basic)
     permissions.ts               #   role + permission constants (auth builds)
-    user-plugin.ts               #   $isAdmin + persists chosen language
+    lang-plugin.ts               #   restores + saves the chosen language
+    user-plugin.ts               #   $isAdmin (auth builds)
   utilities/                     # (+) larger apps: helpers that import no entity — formatting, date math
   entities/
     index.ts                     # aggregates every entity plugin + collects routes — see Add entities
@@ -795,7 +798,7 @@ fetch("/config.json")
 
 ### Full-shell additions
 
-The full app shell adds two things on top of that canonical file, right after the UI plugins (and the
+The full app shell adds three things on top of that canonical file, right after the UI plugins (and the
 last one after `authPlugin`). Components (`FormSection`, `DescriptionInput`, `Icon`, …) are **not**
 registered globally by default — every view imports what it uses from `@regira/modules/vue/ui`. (To opt
 into app-wide registration for the plugin components, call
@@ -803,11 +806,17 @@ into app-wide registration for the plugin components, call
 `app.use(...)` calls.)
 
 ```ts
-// 1. seed icons from a JSON map (group icons referenced by config.json → navigation.groups[].icon)
+// 1. seed icons from a JSON map (group icons referenced by config.json → navigation.groups[].icon) into the
+//    map iconPlugin already set up — a second app.use(iconPlugin, …) is skipped, as Vue installs a plugin once
+import { loadIcons } from "@regira/modules/vue/ui"
 const appIcons = await fetch(`${appConfig.baseUrl}/data/app-icons.json`).then((r) => r.json())
-app.use(iconPlugin, { icons: appIcons, source: "bs", clearFirst: false })
+loadIcons(appIcons)
 
-// 2. app-wide glue (after authPlugin, since it reads the auth store)
+// 2. the remembered language (right after langPlugin)
+import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"
+app.use(langStoragePlugin)
+
+// 3. app-wide glue (after authPlugin, since it reads the auth store)
 import { plugin as userPlugin } from "@/infrastructure/user-plugin"
 app.use(userPlugin)
 ```
@@ -1193,9 +1202,10 @@ and each `node.value` is an `INavItem` (`routeName` / `initialQuery` / `icon` / 
 
 ### `src/infrastructure/` (keep it basic)
 
-App-wide glue only — the role/permission names and a small plugin that exposes `$isAdmin` from the auth
-store and persists the chosen language. Skip both for a no-auth app. In a larger app, helpers that import no entity
-(formatting, date math) go in `src/utilities/`, not here.
+App-wide glue only — a plugin that remembers the chosen language, the role/permission names, and a small plugin
+that exposes `$isAdmin` from the auth store. A no-auth app keeps the first and skips the other two. `setLangCode`
+holds the language in memory only, so without the first the app opens in its default language on every visit. In a
+larger app, helpers that import no entity (formatting, date math) go in `src/utilities/`, not here.
 
 ```ts
 // src/infrastructure/permissions.ts — erasableSyntaxOnly-safe const maps (not enums)
@@ -1207,10 +1217,36 @@ export type Permission = (typeof Permissions)[keyof typeof Permissions]
 ```
 
 ```ts
-// src/infrastructure/user-plugin.ts
-import { type App, watch } from "vue"
-import { useAuthStore } from "@regira/modules/vue/auth"
+// src/infrastructure/lang-plugin.ts — installed right after langPlugin; a signed-in account's culture still wins
+import { watch } from "vue"
 import { useLang } from "@regira/modules/vue/lang"
+
+export const plugin = {
+    install() {
+        const { langCode, setLangCode } = useLang()
+        try {
+            const last = localStorage.getItem("lang")?.substring(0, 2)
+            if (last && last !== langCode.value) setLangCode(last)
+        } catch {
+            // storage is blocked (a privacy setting): the default language stands
+        }
+        watch(langCode, (code) => {
+            try {
+                localStorage.setItem("lang", code)
+            } catch {
+                // nowhere to keep it: the choice lasts this visit
+            }
+        })
+    },
+}
+
+export default plugin
+```
+
+```ts
+// src/infrastructure/user-plugin.ts
+import type { App } from "vue"
+import { useAuthStore } from "@regira/modules/vue/auth"
 import { Roles } from "@/infrastructure/permissions"
 
 export const plugin = {
@@ -1222,12 +1258,6 @@ export const plugin = {
             enumerable: true,
             configurable: true,
         })
-
-        // persist the language choice across reloads
-        const { langCode, setLangCode } = useLang()
-        const last = localStorage.getItem("lang")
-        if (!authStore.isAuthenticated && last && last !== langCode.value) setLangCode(last.substring(0, 2))
-        watch(langCode, (code) => localStorage.setItem("lang", code))
     },
 }
 

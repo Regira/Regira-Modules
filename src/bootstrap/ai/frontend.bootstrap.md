@@ -121,7 +121,8 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
 - [ ] **Restyling never requires forking the library.** Theme tokens, stable `rg-*`/`is-*` css hooks,
       typed slots, contract-typed replacement skins, and `scaffold.mjs --ui <Component>` ejects cover
       every customization level — see `regira_modules.vue.ui` → `ui.customize`.
-- [ ] Verify the SPA with `npm run build` (`vue-tsc -b`) in the generated app — not only a `--noEmit` typecheck.
+- [ ] Verify the SPA with `npm run build` (`vue-tsc -b && vite build`) in the generated app — not only a typecheck:
+      `vue-tsc` alone can pass while the Vite build fails.
 
 ## Reading order (start here)
 
@@ -256,7 +257,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
 7. Close every scaffold `TODO` — `grep -rn TODO src` comes back empty. Each marks what the scaffold could not
    guess (model and form fields, list and selector columns, filter fields, the config's icon); fill it in or
    delete it, along with the hint comment around it.
-8. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
+8. Verify with `npm run build` (`vue-tsc -b && vite build`; `vue-tsc` alone can pass while Vite fails), then
+   **drive the app in a browser** — a green build proves
    compilation only. Any browser you can drive will do: one your environment provides as a tool, or a short
    headless script with Playwright (`npm i -D playwright`, `npx playwright install chromium`); read its console
    as well as the page. Judge the console after sign-in: a first load signed out logs a `401` per view

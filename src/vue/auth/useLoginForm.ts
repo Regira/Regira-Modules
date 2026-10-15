@@ -37,12 +37,16 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
     const failed = ref(false)
     const signingIn = ref(false)
     const isLockedOut = ref(false)
+    /** the password was right but the account (or its e-mail/phone) is not confirmed yet */
+    const isNotAllowed = ref(false)
 
     const store = useAuthStore()
 
     async function handleSubmit() {
         signingIn.value = true
         failed.value = false
+        isLockedOut.value = false
+        isNotAllowed.value = false
 
         emit("signingIn", username.value)
         try {
@@ -56,7 +60,8 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
             // the error carries the request that produced it — the posted { username, password } included
             console.error("login failed", maskAxiosError(ex))
             failed.value = true
-            isLockedOut.value = ex.response?.data?.isLockedOut
+            isLockedOut.value = !!ex.response?.data?.isLockedOut
+            isNotAllowed.value = !!ex.response?.data?.isNotAllowed
             emit("fail", username.value)
         } finally {
             signingIn.value = false
@@ -73,6 +78,7 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
         failed,
         signingIn,
         isLockedOut,
+        isNotAllowed,
 
         handleSubmit,
         handleForgotPassword,

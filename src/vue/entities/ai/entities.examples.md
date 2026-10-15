@@ -1159,7 +1159,12 @@ watch(
             return
         }
         if (props.modelValue?.id == id) return
-        const model = await list({ id })
+        let model
+        try {
+            model = await list({ id })
+        } catch {
+            return // a caller who may not read this entity (403) keeps the FK and shows no row
+        }
         if (props.idValue == id) emit("update:modelValue", model[0]) // a newer FK arrived meanwhile: drop this answer
     },
     { immediate: true }

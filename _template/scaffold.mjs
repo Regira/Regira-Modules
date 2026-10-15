@@ -25,7 +25,8 @@
 //                       Person --plural people, still resolves). A differently-named FK
 //                       takes an optional trailing `--as <field>`: `--rel Employee --as assignedToEmployee`
 //                       binds assignedToEmployee(Id) instead of the default employee(Id), still the Employee slice.
-//   --dir <path>        target base folder for a slice (default: src/entities) or an ejected skin (default: src/components/ui)
+//   --dir <path>        target base folder for a slice (default: src/entities; under src/, the @/ alias) or an ejected
+//                       skin (default: src/components/ui)
 //   --owns <Child>      also scaffold an editable owned-collection sub-slice (a `_deleted`-marked scalar-row
 //                       table via useOwnedCollection) under the entity, for a back-end `e.Related(...)` child.
 //                       Repeatable. PascalCase, e.g. --owns OrderLine --owns OrderNote. Works on an existing
@@ -73,7 +74,7 @@
 //   node .../scaffold.mjs --ui DefaultModal
 
 import { readdirSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "fs"
-import { resolve, dirname, join, relative } from "path"
+import { resolve, dirname, join, relative, isAbsolute } from "path"
 import { fileURLToPath } from "url"
 
 const argv = process.argv.slice(2)
@@ -342,6 +343,12 @@ for (let i = 0; i < argv.length; i++) {
             )
             process.exit(1)
         }
+        if (value === name) {
+            console.error(
+                `✗ --picker ${value} names the ${name} slice itself. A self-referencing many-to-many is written by hand: the join row's picked FK would be ${lowerFirst(name)}Id, the parent FK's own name, and the chips would import the slice's own barrel. See the entities patterns guide → "Shapes --owns does not scaffold".`
+            )
+            process.exit(1)
+        }
         pending.entry.picker = value
         pending.picker = true
         pending.valueIndex = i + 1
@@ -383,11 +390,16 @@ for (const r of rels) warnDomGlobal(r.name, " (--rel)")
 const ownedField = ({ child, field }) => field ?? lowerFirst(pluralize(child))
 
 // The import alias mirrors the target folder: `--dir src/modules` must emit "@/modules/...", not the
-// default "@/entities/...", or the generated slice cannot resolve its imports.
-const aliasRoot = baseDir
-    .replace(/\\/g, "/")
-    .replace(/^\.?\/?src\//, "")
-    .replace(/\/+$/, "")
+// default "@/entities/...", or the generated slice cannot resolve its imports. `@/` is src/, so a folder
+// outside it (or src/ itself) has no alias to import through.
+const aliasRel = relative(resolve(process.cwd(), "src"), resolve(process.cwd(), baseDir))
+if (!aliasRel || aliasRel.startsWith("..") || isAbsolute(aliasRel)) {
+    console.error(
+        `✗ --dir ${baseDir} is not a folder under src/. The slice imports its siblings through the @/ alias, which is src/ (e.g. --dir src/modules).`
+    )
+    process.exit(1)
+}
+const aliasRoot = aliasRel.replace(/\\/g, "/")
 // A --rel's slice folder is looked UP, not re-derived: the related slice may have been scaffolded with its own
 // --plural (`Person --plural people` lives in "people"), and re-deriving it emits imports from a folder that
 // does not exist. Every generated config.ts carries `key: "<PascalCase class>"`, so the folder holding that
@@ -1233,7 +1245,8 @@ Entity slice:
   --rel <Entity>      overview column for a to-one relation (the related entity's FormModalButton + a label
                       resolved through its pool). Repeatable; the related slice must already be scaffolded.
                       A differently-named FK takes a trailing --as <field> (--rel Employee --as assignedToEmployee)
-  --dir <path>        target base folder (slice default: src/entities; ejected skin default: src/components/ui)
+  --dir <path>        target base folder (slice default: src/entities, under src/ — the @/ alias; ejected skin
+                      default: src/components/ui)
 
 Owned collections (a back-end e.Related(...) child):
   --owns <Child>      also scaffold an editable owned-collection sub-slice. Repeatable, PascalCase, e.g.

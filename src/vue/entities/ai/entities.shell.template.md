@@ -44,7 +44,9 @@ re-implement the behaviour in your own:
 - **Navbar dropdowns are a self-contained Vue toggle** (`NavBar.vue`: an `openId` ref + `v-click-outside`),
   not Bootstrap's JS — the shell imports Bootstrap **CSS only** (see [Bootstrap](#bootstrap) below). If you
   re-author them with `data-bs-toggle="dropdown"` you must also `import "bootstrap/dist/js/bootstrap.bundle.min.js"`;
-  the CSS alone never opens a dropdown. Simplest: keep `NavBar.vue` and restyle around it.
+  the CSS alone never opens a dropdown. Simplest: keep `NavBar.vue` and restyle around it. Without Bootstrap's JS,
+  `.dropdown-menu-end` alone does not right-align a menu either: its CSS keys on the `data-bs-popper` attribute
+  that JS sets, so add `data-bs-popper="static"` to the menu, or use `end-0`.
 - **Nav/dashboard entries are `router-link`s to `{ name: routeName, query: initialQuery }`** — keep the
   `initialQuery` (an entry can carry a preset filter), and when you render a link as a tile/card keep
   `text-decoration-none`, or the nav collapses to bare underlined `<a>`s.
@@ -222,7 +224,7 @@ import { initAxios } from "@regira/modules/vue/http"
 import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
 import { plugin as appPlugin, AppStatus, whenAppReady } from "@regira/modules/vue/app"
 import { plugin as langPlugin } from "@regira/modules/vue/lang"
-import { useLang } from "@regira/modules/vue/lang" // used for document.title + (auth) setLangCode
+import { useLang } from "@regira/modules/vue/lang" // document.title, and (auth) the signed-in account's culture
 import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "@regira/modules/vue/ui"
 import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 import "bootstrap/dist/css/bootstrap.min.css"
@@ -231,6 +233,7 @@ import "@regira/modules/style.css"
 import "@/assets/theme.scss" // the app theme — MUST come after bootstrap + regira styles so its overrides win
 import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth" // @auth:only
 import { plugin as userPlugin } from "@/infrastructure/user-plugin" // @auth:only
+import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"
 import { preloaderPlugin, defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
 import { plugin as debugPlugin } from "@regira/modules/vue/debug"
 import dateExtensions from "@regira/modules/extensions/date-extensions"
@@ -260,6 +263,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
         app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
+        app.use(langStoragePlugin) // restores the language picked on an earlier visit and saves every change
 
         document.title = useLang().translateMessage(config.title) || document.title // browser-tab title from config.title (culture-keyed); re-set on culture change if you localize it
 
@@ -1052,6 +1056,36 @@ defineProps<{ url?: string }>()
 
 # Infrastructure
 
+## `src/infrastructure/lang-plugin.ts`
+
+```ts
+import { watch } from "vue"
+import { useLang } from "@regira/modules/vue/lang"
+
+// Remembers the chosen language: restores it on the next visit and saves every change. A signed-in account's
+// culture, set in main.ts once the token is validated, still wins over it.
+export const plugin = {
+    install() {
+        const { langCode, setLangCode } = useLang()
+        try {
+            const last = localStorage.getItem("lang")?.substring(0, 2)
+            if (last && last !== langCode.value) setLangCode(last)
+        } catch {
+            // storage is blocked (a privacy setting): the default language stands
+        }
+        watch(langCode, (code) => {
+            try {
+                localStorage.setItem("lang", code)
+            } catch {
+                // nowhere to keep it: the choice lasts this visit
+            }
+        })
+    },
+}
+
+export default plugin
+```
+
 ## `src/infrastructure/permissions.ts`
 
 ```ts
@@ -1068,12 +1102,11 @@ export type Permission = (typeof Permissions)[keyof typeof Permissions]
 ## `src/infrastructure/user-plugin.ts`
 
 ```ts
-import { type App, watch } from "vue"
+import type { App } from "vue"
 import { useAuthStore } from "@regira/modules/vue/auth"
-import { useLang } from "@regira/modules/vue/lang"
 import { Roles } from "@/infrastructure/permissions"
 
-// $isAdmin from the auth store + persists the chosen language (auth-only — omitted on --no-auth)
+// $isAdmin from the auth store (auth-only — omitted on --no-auth)
 export const plugin = {
     install(app: App) {
         const authStore = useAuthStore()
@@ -1084,11 +1117,6 @@ export const plugin = {
             enumerable: true,
             configurable: true,
         })
-
-        const { langCode, setLangCode } = useLang()
-        const last = localStorage.getItem("lang")
-        if (!authStore.isAuthenticated && last && last !== langCode.value) setLangCode(last.substring(0, 2))
-        watch(langCode, (code) => localStorage.setItem("lang", code))
     },
 }
 

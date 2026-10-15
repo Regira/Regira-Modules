@@ -94,14 +94,15 @@ Or build a custom form with the composable:
 import { useLoginForm, type LoginFormEmits } from "@regira/modules/vue/auth"
 const emit = defineEmits<LoginFormEmits>()
 const props = defineProps<{ username?: string }>()
-const { username, password, failed, signingIn, isLockedOut, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
+const { username, password, failed, signingIn, isLockedOut, isNotAllowed, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
 </script>
 <template>
     <form @submit.prevent="handleSubmit">
         <input v-model="username" /> <input v-model="password" type="password" />
-        <button :disabled="signingIn || isLockedOut">Sign in</button>
+        <button :disabled="signingIn">Sign in</button>
         <a @click="handleForgotPassword">Forgot password?</a>
-        <p v-if="failed">Sign-in failed</p>
+        <p v-if="failed && isNotAllowed">This account is not confirmed yet. Follow the link we mailed you.</p>
+        <p v-else-if="failed">Sign-in failed<template v-if="isLockedOut">, try again in 5 min</template></p>
     </form>
 </template>
 ```
