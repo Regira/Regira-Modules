@@ -795,6 +795,9 @@ Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines"
 parent's `<form>`, which the browser submits on the Enter keydown, so its Enter handler is `@keydown.enter.prevent`:
 a `@keyup.enter` adds the row only after the parent has started saving without it.
 
+Rows the server freezes once the parent exists (an order's lines): bind `:readonly="readonly || item.id > 0"`. The
+scaffolded editor's `readonly` makes the inputs read-only and hides the add-row and the remove buttons.
+
 > ⚠️ **The rows are raw objects, not model instances.** `items` comes straight off `props.modelValue` and only
 > the **root** item passes through `toEntity`, so a stored child arrives as the plain JSON the API sent. Class
 > getters read `undefined` and field defaults are absent on those rows — the scaffolded editor only works because

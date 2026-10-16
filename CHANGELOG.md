@@ -7,275 +7,35 @@ heading.
 
 ## Unreleased
 
-- Guides: the front-end bootstrap imports the route views eagerly too, not only the slices: a view loaded with
-  `() => import(…)` that uses a slice can move slice modules into a shared chunk, where two slices keyed on their
-  minified `Entity.name` could share an IoC service and a store. `entities.setup`'s minimal router imports its views
-  eagerly, as the scaffolded routes do, and a single app chunk's 500 kB notice is answered with
-  `build.chunkSizeWarningLimit`.
-- `vue/auth`: the `LoginModalEmits` and `ForgotPasswordModalEmits` comments say `close` is the header X or Esc;
-  `auth.instructions` and `auth.signatures` say a required sign-in that binds no `@close` ignores both.
-- Scaffold: `--rel` says the API's SearchObject must filter on the field too, or the filter returns every row; the
-  owned sub-slice barrel names the value import the owning service's `toEntity` needs; the join slice's `#selector`,
-  the slice form's TODO and the shell header's `$auth` checks carry a pointer to the guide (gating the selector's
-  "new" button, a new row pre-filled from the route, the `GlobalAuth` union); `routePrefix` takes one segment or
-  several (`IConfig` doc comment, slice `config.ts`).
-- Guides: `entities.patterns` remounts the add-row picker after an add, since a focused picker keeps its text when
-  its model clears, gives _A new row pre-filled from the route_ a section of its own, and gates a `--picker`
-  selector's "new" button under _Permission-gated UI_; the card names the `useSearchView`/`useListView` exception
-  for a view's own `sortBy` and `includes`; the attachments template says the first file is the owner's primary one;
-  the front-end pre-flight makes OpenAPI-generated types optional; `ui.signatures` says what `Paging`'s anchor and
-  button modes do and that `useAppFeedback()` is called during setup.
-- `vue/auth`: **behaviour change — `$auth.isRequired` is the store's route-driven `isRequired`** (auth enabled and the
-  current route not `allowAnonymous`), as `useAuthStore().isRequired` reads it; it returned the store's `authRequired`
-  flag, which the guard and the 401 interceptor set and nothing clears. `LoginModal` takes `showClose` (default
-  `true`), and the shell's `App.vue` passes `!authStore.isRequired`, so the sign-in modal shows no X while sign-in is
-  required, where the X closed nothing.
-- `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog when it opens**, unless an element inside it already
-  has focus, so Esc closes it without a click into it first. The `footer-submit-button` slot passes `handleSubmit`;
-  `handleClose` there stays one release as a deprecated alias of it (it always submitted). The ejectable copy in
-  `_template/ui/DefaultModal` follows; a copy ejected earlier that declares `ModalSlots` passes `:handleSubmit` on that
-  slot too, or vue-tsc reports TS2345 there.
-- Scaffold: **behaviour change — the owned editor's add row adds on `@keydown.enter.prevent`**, so Enter in it no
-  longer submits the parent form too. Its `@keyup.enter` ran after the browser had submitted the enclosing `<form>` on
-  the keydown, and the parent saved without the new row. `entities.patterns` → _Owned rows with scalar fields_ shows
-  the same handler; a slice scaffolded earlier takes the change in its owned `Overview.vue`.
-- Guides: `auth.instructions` covers a sign-in endpoint of the app's own (a PIN, a one-time code), handed to the store
-  through `useAuth().service.authenticate`, and a server cookie session, which needs none of the token handling; it
-  names the claim behind each `authData` field. `auth.signatures` lists the password forms in its import block and
-  calls `expires` a lifetime in seconds.
-- Guides: every `meta.policy` example types its store, `(store: IAuthStore) => store.hasRole(…)`, which compiles under
-  `strict` where the untyped one is TS7006; the auth examples drop the `/login` route (sign-in is a modal) and gate
-  `LoginModal` with `v-if`.
-- Guides: `entities.patterns` shares the store's pooled service between two presentations (the raw IoC service
-  bypasses the pool), shows `upload(url, [blob], { data })`, and says that removing an attachment needs `Attachments`
-  on the owner's input DTO and that the API leaves null fields out. `entities.template` gains a _scaffold.mjs flags_
-  heading with `--plural`, `--singular`, `--dir` and the Git Bash note on `--api`; `entities.instructions` installs
-  `debugPlugin` after the router; the advanced example imports `EntityAttachment` as a value; `frontend.bootstrap`
-  says `Entity.name` keys are safe only while every slice sits in one chunk.
-- Guides: `vue/ui` says `DefaultModal` renders in place (its callers teleport it into `#modals`); `FileDropZone` has
-  no browse control (pair it with `browse()`); `ui.customize` re-accents `.btn-info` / `.btn-outline-info` and says
-  why the hidden-label override needs `!important`.
-- Guides: `http.instructions` and the module README say a cross-origin download needs `Content-Disposition` exposed by
-  the API's CORS policy, and that `getFile` sends no body (a POST export uses `post(…, { responseType: "blob" })`).
-- Guides: the front-end bootstrap's pre-flight checklist sends the SPA's facts (the `@regira/modules` version, the dev
-  server port, the scaffolded slices and the ejected components) to the app's `AGENTS.md`, written from the back-end
-  bootstrap's template (`get_bootstrap_guide(heading: "The app's own AGENTS.md")`); a SPA without a Regira API writes
-  the same file.
-- `vue/ui`: **behaviour change — `FormSection`'s body is padded** (`--rg-form-section-padding`, default
-  `0 0.5rem 0.5rem`), so its fields line up with the title's text and keep clear of a frame the app gives
-  `.form-section`; they sat flush against it. Set the token to `0` for the flush body.
-- Scaffold: the slice form shows Delete by `isNewEntity(item.$id)`, so a slice whose model declares `id: string` (a
-  Guid or code key) passes `vue-tsc`; `:show-delete="item?.id > 0"` failed there with TS2365, while the guide called
-  the slice key-generic. A number key behaves as before.
-- Guides: `entities.blueprints` declares the polymorphic entity's `partyType` before `id` and says why: the API reads
-  the discriminator only as the first JSON property unless it sets `AllowOutOfOrderMetadataProperties`, and class
-  field order is the JSON order, so an update sent `id` first and answered `400`. The tenant-switcher recipe answers
-  company and organisation wording.
-- Guides: `online.instructions` and the module README say `vue/online` detects the connection only and queues no
-  writes; a `how_to` recipe covers an app's own outbox: persist each write, replay in order on `online`, park `4xx`
-  refusals, and hold a `401` for the next sign-in through `onAuthenticated`.
-- Guides: `http.instructions` and the module README say `upload`'s `data` is flattened and each value stringified by
-  `FormData.append`, so `undefined`, `null` and a `Date` arrive as `"undefined"`, `"null"` and `Date.toString()`:
-  leave the first two out and send ISO strings.
-- Guides: the card says `search(so)`/`list(so)` are typed on `EntityServiceBase` only, while the pooled
-  `store.service` takes `object`. `entities.instructions` names string and code keys in the Guid-key row, says a modal
-  slice hides `FilterAdv` unless `FilterInline` gets `:show-toggle-adv="true"`, and that enums arrive as their names,
-  a `[Flags]` value comma-joined; `entities.patterns` says `--fk` is refused with `--picker`. The bootstrap guide
-  expects the `403`s a reload of a role-gated page logs before the guard redirects. `formatters.instructions` passes
-  a full culture (`$culture`, `useAppStore().culture`), not `useLang().langCode`, whose `"en"` formats as en-US.
-  `ui.customize` lists the `form-section-title` and `form-section-body` hooks.
-- `vue/entities`: `useOwnedCollection` leaves an unset collection unset. It wrote `[]` into the parent on mount and
-  whenever the prop was `undefined`, so a form that never loaded the collection saved it as `[]` and deleted every
-  row. Two appends in one tick keep both rows with distinct temp ids; the second built on the prop the parent had not
-  re-rendered yet, so one row was lost and both got `-1`. `useListInput` appends the same way and reads an unset
-  collection as `[]`, where an append threw; its temp ids stay negative, where a new row next to rows `3` and `4`
-  got `2`, the id a stored row may carry.
-- `vue/auth`: `useLoginForm` returns `isNotAllowed`, set from the `401` body when the password is right but the
-  account is not confirmed yet, and `LoginForm` then asks the user to follow the mailed link instead of showing the
-  generic failure. `isLockedOut` and `isNotAllowed` clear when an attempt starts; `isLockedOut` stayed set. The
-  ejected `_template/ui` copy follows.
-- `vue/entities`: **behaviour change — a save refused with another `4xx` (a `409`, a `403`) reports
-  `"Saving failed: …"`**, as a `400` does; `"Server error: …"` is left to a `5xx` and a request without an answer.
-- `vue/ui`: `DateInputEmits` types `update:modelValue` as `Date | undefined`, what `DateInput` emits; it said
-  `string | Date`.
-- Scaffold: `--picker` naming the slice itself stops before anything is written and points to the hand-written
-  self-referencing many-to-many in the patterns guide; `--dir` must name a folder under `src/` (the `@/` alias),
-  relative or absolute, where a folder elsewhere emitted imports that could not resolve.
-- Scaffold: the slice's `InputSelector` keeps the FK and shows no row when reading the selected row is refused (a
-  caller without read access); the `403` was an uncaught rejection.
-- Scaffold: the shell remembers the chosen language in `infrastructure/lang-plugin.ts`, installed after
-  `langPlugin` in both variants; it lived in the auth-only `user-plugin.ts`, so a `--no-auth` app forgot it on every
-  reload. Blocked storage no longer throws.
-- Guides: `entities.setup` adds the app icons with `loadIcons(appIcons)`, as a second `app.use(iconPlugin, …)` is
-  skipped and never loaded them, and lists the `dev`/`build`/`preview` scripts with the known-good package set; the
-  build check is `npm run build` = `vue-tsc -b && vite build` there and in the bootstrap guide. The `prepareItem`
-  example in _Transient client-only fields_ keeps an unloaded collection absent (`?? []` deleted every row).
-- Guides: `entities.patterns` gains _Refresh the form after a custom endpoint_ (the State toggle's reload through the
-  pooled service), patching a first-class child from its parent's page, a self-referencing many-to-many under
-  _Shapes `--owns` does not scaffold_, `v-model="item.lines"` in _Tabbed forms_, the `4xx`/`5xx` rows of the failure
-  table, read-gating a selector with `v-if`, and says that its `toEntity`/`prepareItem` snippets edit the scaffolded
-  overrides (a second member is TS2393).
-- Guides: the card and `entities.instructions` say `useRouteOverview` brings the search object back from the URL as
-  strings and `string[]`; the card adds that pooled `list()`/`search()` return hydrated copies (`fromPool(items)` for
-  the shared ones), a one-field change through `service.patch`, and why a self-relation's SFC import cycle is safe.
-  `auth.instructions` offers sign-up beside `LoginForm` in `LoginModal`'s slot and narrows `$auth` in a template;
-  `app.instructions` keeps `$culture` in step with `useLang().langCode`; the shell guide right-aligns a dropdown
-  without Bootstrap's JS; `lang.instructions` says `setLangCode` holds the language in memory only.
-- `vue/auth`: **behaviour change — `LoginModal` and `ForgotPasswordModal` declare a typed `close`** (the modal's
-  header X) and forward it from the injected modal; `@close` reached the modal by fall-through, which an ejected
-  copy or a swapped-in modal could lose without a type error. `LoginModalEmits` and `ForgotPasswordModalEmits` are
-  exported, and the ejected `_template/ui` copies follow.
-- `vue/entities`: `useForm` returns `failure`, the last refused write's HTTP status and ProblemDetails `title`,
-  cleared when a write starts and by a new `modelValue`, so a form tells a stale concurrency token
-  (`"Concurrency conflict"`) from a database constraint (`"Conflict"`). The patterns guide gains the Reload recipe
-  for the first and lists a restore's failure.
-- Scaffold: an `--owns` child whose sub-slice folder is one of the slice's own (`--owns Detail` → `details/`) stops
-  before anything is written and names the clash; the run went on and the `--overwrite-slice` it suggested removed
-  `Details.vue` and `Form.vue`. `--help` and the flag table say `--as` renames the JSON key only, not the folder.
-- Guides: `auth.instructions` warns that no token manager hides the token from script (`localStorage`, a cookie
-  written by script, memory), that the module keeps one token and never calls `auth/refresh-token`, and that
-  `MemoryTokenManager` takes its token argument; a search default read from a claim is set in `setup` and in the
-  `onAuthenticated` handler, which replaces a default it set when another account signs in and keeps a value the
-  user picked; an `onMounted` fetch beside the hook sends a second request with the stored token rather than a
-  certain `401`; `ForgotPasswordFormEmits` lists its payloads. The auth README's token-manager row carries the first
-  two warnings.
-- Guides: _Sign-up_ covers an API that sets `SignIn.RequireConfirmedEmail` or `RequireConfirmedAccount` (no `login`
-  after the post; signing in answers `401` with `isNotAllowed` until the address is confirmed), a sign-up action with
-  profile fields, and a _Confirm page_ that posts `{ token }` to `users/confirm-email`; the mailed links carry
-  `?token=…` as their whole query string, not appended to one. Both describe `Regira.Security.Authentication.Web`
-  6.6.0.
-- Guides: a private attachment image shows from an object URL of an authenticated `getFile`, revoked when the uri
-  changes or the component unmounts, and a load a newer uri overtook is dropped; a custom insert on a `/new` route
-  emits the saved row and replaces the route; `InputSelectorInline`'s `#chip` slot receives the row;
-  `formatTextPreserveNewLines` escapes nothing, so user text is `htmlEncode`d first.
-
-- `vue/ui`: `toFeedbackError` starts each segment of a field key's path lower-case (`Lines[0].Quantity` →
-  `lines[0].quantity`), so a nested field's errors reach `fieldMessages` under the model's own path; only the first
-  character was lower-cased.
-- Scaffold: an empty read-only `InputSelector` shows no edit button, which opened a new row read-only; with a row
-  selected it keeps the button and opens that row read-only.
-- Scaffold: `--rel`, `--owns` and `--attachments` add their model fields after the `id` line, above the placeholder
-  `title` and its TODO block, so removing that block keeps them; a template without that line stops the run.
-- `vue/auth`: `siteName` on `forgotPassword` and `useForgotPasswordForm` is `@deprecated`, as the API ignores it;
-  the shell's `ForgotPasswordForm` and the auth guides no longer send it.
-- `vue/formatters`: `formatNumber`, `formatCurrency` and `formatCurrencyCompact` document their defaults (2 decimals,
-  `maxDigits` = `minDigits`, EUR) in JSDoc.
-- Guides: _Owned rows with a relation and scalars_, the table with an `InputSelector` column whose `@select` fills the
-  add-row's defaults; the form checklist and the `--owns` message point to it.
-- Guides: `entities.signatures` says the overview composables add paging only, so an overview the user sorts declares
-  `sortBy` on its `SearchObject`; the http guide names `saveAs` for a `getFile` Blob; `entities.setup` points to the
-  `$auth` union; a temp id is a small negative integer, as `-Date.now()` overflows the server's `int`.
-- Guides: `auth.instructions` gains _What a first load shows_ (the `401`/`403` of a cold load or a deep link before
-  the guard redirects, and `onMounted` for a page a signed-out visitor uses), a login-on-demand gate for apps with
-  public pages, and _Sign-up_: `POST users` then `login()`, `"users"` added to `credentialUrls`, an
-  `[AllowAnonymous]` `Create` override on the API, the `400` a taken name answers, and `confirmEmailUrl` for a mailed
-  confirmation link. The auth card and README point a page a signed-out visitor uses to `onMounted`.
-- Guides: `auth.instructions` and the auth card say that the API mails the reset link only to a page on an origin it
-  lists, the dev server's included, so a `siteUrl` elsewhere answers `400`, and that the API names the mail itself, so
-  `siteName` does not reach it. The link carries the token percent-encoded in `siteUrl`'s query, and
-  `route.query.token` decodes it as `URLSearchParams` does; the guide said vue-router kept a `+` that `URLSearchParams`
-  turned into a space, and put the token at the site root. Both describe `Regira.Security.Authentication.Web` 6.6.0.
-- Guides: the route pre-fill recipe re-applies the FK to every item the form is given, so a reload of the Details page
-  keeps it; `patch` is marked optional on the raw `IEntityService` in the API table; the card names where `PagingInfo`
-  comes from; the picker example resets its `<select>`; `ui.signatures` names the Autocomplete's rendered roles; the
-  shell template notes that its search box is a `<form>` of its own; `entities.signatures` says that the pooled reads
-  return hydrated instances that are not the cached ones; `prepareItem`'s copy is shallow, so the Party blueprint
-  filters nested rows onto new objects.
-- Scaffold: the shell's `vite.config.ts` carries a `strictPort` line; `scaffold.mjs --attachments` points to _Files in
-  the creating request_ for sending the files inside the owner's own save.
-- Guides: a cleared date or number input binds `""`, which the service's `prepareItem` sends as absent; the card's
-  `onAuthenticated` rule names `onMounted` for a `--no-auth` app; a refused page lands on `forbidden`; `--bs-body-bg`
-  tints inputs too; separate slices per role over one role-discriminated resource; the bootstrap's reading rule
-  matches its _Reading order_.
-- Scaffold: the shell's `config.json` carries `"culture": "en-US"`, which `main.ts` reads; the list header's delete
-  spacer shows no border; the `--owns` message points a row with a relation and scalars to the table with an
-  `InputSelector` column, as the form checklist now does.
-- Guides: a `--no-auth` hand-written view's first fetch (`onMounted`); the pooled service implements `patch`;
-  `this.axios` in a service is the IoC instance; entity names that shadow DOM globals; the shell's `server.port`.
-- `vue/entities`: `insert` and `update` hand `prepareItem` a copy of the item (its prototype kept, `copyForSave`), so
-  a save the server refuses leaves the form model's `_deleted` marks and staged `_` fields in place for the next try,
-  where the purge had already removed them.
-- Scaffold: the attachments row declares `newBytes`, and the guide gains _Files in the creating request_: overrides
-  that send staged files inside the owner's own `POST`/`PUT` as `newFileName` + `newBytes`. The `--owns` message
-  points to _Shapes `--owns` does not scaffold_.
-- Guides: showing a `DateOnly` string as its own day; a new row pre-filled from the route (`?vehicleId=3`); the FK of
-  a new inner row under a new outer row; `readonly` versus `can-edit` on an `InputSelector`; `Entity.name` as an IoC
-  key (safe) versus a navigation key (a literal); each slice's `config.key` as an icon key; and the advanced example
-  builds its join row in a script function, which `vue-tsc` accepts.
-- `vue/entities`: a search object's field left `undefined` no longer erases the matching `config.baseQueryParams`
-  default. A slice's `SearchObject` class that declares `includes?` or `sortBy?` without a value holds them as own
-  properties set to `undefined`, and spreading it over the base params dropped the defaults from every list and search.
-- Guides: _Owned rows — the inline table_ says that the add-row comes from `createRow`, on mount and after every
-  append, where it described a bare `{ id: 0 }` and a `watch` to fix it. `entities.setup` calls the icon-only button
-  labels translation keys, not icon names, and `utilities.signatures` marks `blobToBase64` as returning a data URL.
-- `vue/entities`: `EntityServiceBase.patch(id, changes)` sends a JSON merge patch (`PATCH /{id}`,
-  `application/merge-patch+json`) of the given fields and answers the saved row; the pooled service's `patch` writes
-  it into the pool, and `JSONService` applies it to its cached row. `patch` is optional on `IEntityService`, so a
-  service of your own keeps compiling; on `IPoolService` it is required, which only a class implementing that
-  interface itself would notice. ⚠️ A subclass of `EntityServiceBase` that already declares a `patch` of another
-  shape now fails to compile (TS2416): rename it. The _State toggle_ recipe changes a field with it, and keeps a dedicated
-  endpoint for a change the server decides.
-- `vue/auth`: `routeAllows(route, store)` is the route guard's verdict for a signed-in user — `allowAnonymous`, then
-  every matched `meta.policy` and `meta.permissions` — as a boolean, for hiding what the guard would refuse. The
-  guard itself uses it.
-- Scaffold: the shell's navigation drops an entry whose Overview route `routeAllows` refuses, so a slice gated by
-  `meta.policy` leaves the navbar and the dashboard for everyone else, where `hasAccess` returned `true` and the
-  entry led to `forbidden`. ⚠️ Upgrade: copy `hasAccess` from the template into an existing shell's
-  `components/entity-navigation/functions.ts`.
-- Scaffold: `--owns` declares each owned field, with its type import, in the parent's `data/Entity.ts` when the run
-  also scaffolds the parent, as `--rel` declares its fields; the generated `prepareItem` filter type-checks as
-  scaffolded, and one wiring line is left to add. The guide shows the two shapes `--owns` does not scaffold: picking
-  another aggregate's owned rows, which have no slice, and nested owned rows.
-- `vue/ui`: `useAppFeedback()` called outside setup — in an event handler, after an `await` — throws "must be called
-  during setup", where it claimed the feedback plugin was missing. The guide and the JSDoc say to call it during setup
-  and keep the result, and report through that from a handler.
-- `utilities`: the guide and the JSDoc say that `blobToBase64` resolves to a data URL, and that a JSON `byte[]` field
-  such as an attachment's `newBytes` takes only the part after the comma.
-- `vue/entities`: `InputSelectorInline` takes `readonly`: a read-only form shows the chips without their
-  remove/restore toggle and without the `#selector` slot, and the `#chip` slot receives `readonly` for the button it
-  renders. The `--picker` chips editor takes the parent form's `readonly` and passes it on to `InputSelectorInline` and
-  each chip's button, and `scaffold.mjs` prints the wiring line with `:readonly="readonly"`.
-- Scaffold: the slice and shell messages, and the shell's `vite.config.ts`, name the route prefix of mapped entity
-  endpoints (`MapEntityEndpoints(o => o.Prefix = "api")`) beside the controllers' one, and the proxy target of an API
-  that serves HTTP only in development.
-- Guides: _Permission-gated UI_ keys its `WRITERS` map by `config.key`, the entity class name the slices pass to
-  `canWrite`; a related entity's button in a `--rel` column or a `--picker` chip gates on that entity; and a
-  role-gated page puts its `meta.policy` on the routes in the slice's `setup.ts`. _The URL contract_ names the prefix
-  of mapped entity endpoints and the proxy target of an HTTP-only development API. The card says how a modal entity
-  turns the advanced filter on and that the pool writes `set`/`setMany` are on the store, not on `store.service`; the
-  project tree marks `src/shims.d.ts` as auth-only. A `--no-auth` app with roles of its own gates a route with
-  `beforeEnter`, since nothing reads `meta.policy` without the auth plugin. Defaults for every new item go in the
-  slice service's `newEntity` override, which the Details page and the modal both reach, and `LoadingContainer` is
-  documented as dimming its slot, not holding it back.
-- `vue/auth`: **the route guard follows the identity.** The plugin runs its check again for the route on screen on
-  every new token — another account signing in on the page, a refresh, a tenant switch — so a page the new identity
-  may not see goes to `forbidden`. It ran on navigation and once after the first one, so signing out on a role-gated
-  page and in as a lower role left that page mounted.
-- Scaffold: the Details page reloads its row when another account signs in behind the login modal, where it kept the
-  previous account's row on screen because it reloaded only while it had none. A refresh of the same account's token
-  still keeps the form and its unsaved edits. The guides' copies of the hook match. ⚠️ Upgrade: in an existing slice's
-  `details/Details.vue`, replace the `onAuthenticated` line with the two lines the template now has.
-- Scaffold: `scaffold.mjs <Entity>` names a missing `search` translation key with the other chrome keys, since the
-  slice's inline filter labels its search button with it; the `--picker` header comment and the advanced example pass
-  `:readonly="readonly"` to the chips editor.
-- `vue/entities`: `PoolCache.clear()` drops every cached row (optional on `IPoolCache`, so a custom cache keeps
-  compiling). The scaffolded shell calls it on sign-out, so the next account does not see the previous one's pooled
-  rows, and the tenant-switcher blueprint calls it after a switch.
-- `vue/ui`: **icon-only buttons have accessible names.** Icons render `aria-hidden`. `FormButtonsRow` names each
-  button after its label, which hides below `md`, and a `TabNavigation` tab with an icon after its title, which hides
-  below `lg`; the `Feedback` close button, `CopyToClipboardButton` and the `FormSection`/`ErrorSummary` toggles carry
-  an `aria-label`. `ConfirmButton` declares `disabled` and no longer renders a `name` attribute.
-- Scaffold: every icon-only control of the shell and the entity and attachments slices — and every button or link
-  whose label hides at a breakpoint (New, Overview, the navbar items) — carries an `aria-label`, through new translation keys (`edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`), and the
-  `FormModalButton`/`SelectorModalButton` defaults are named after the dialog they open. `scaffold.mjs <Entity>`
-  names the keys an older shell's `translations.json` lacks. ⚠️ Upgrade: add those keys to an existing app's
-  `translations.json`, or `$t` renders them raw as the button names.
-- Scaffold: the shell's `Roles.ADMIN` is `"Administrator"`, the role the back-end guides seed; the front-end
-  examples gate on it too.
-- Guides: the front-end workflow resolves every scaffold `TODO` before the build-and-browser check; the chrome
-  translation keys include the icon-button names; the icon-only button rule
-  (`ui.instructions` → Gotchas); the pooled `details`/`list`/`search` refresh cached rows; `useAccess()` is app
-  code from the *Permission-gated UI* pattern; the `"*"` dependency spec and what `npm install` writes.
+- `vue/auth`: **behaviour change — `$auth.isRequired` is the route-driven `isRequired`** (it was the sticky
+  `authRequired` flag); **behaviour change — the route guard re-checks the page on screen on every new token**, so a
+  page the new identity may not see goes to `forbidden`. New: `routeAllows(route, store)`, `LoginModal`'s `showClose`,
+  a typed `close` on `LoginModal`/`ForgotPasswordModal` (`LoginModalEmits`, `ForgotPasswordModalEmits`),
+  `useLoginForm().isNotAllowed` (unconfirmed account). `siteName` on `forgotPassword` is `@deprecated`. Fixes:
+  `isLockedOut` clears on a new attempt; `LoginForm`'s inputs get ids, names and valid `autocomplete` tokens.
+- `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog on open** (Esc closes it at once); **behaviour
+  change — `FormSection`'s body is padded** (`--rg-form-section-padding`, `0` for flush); icon-only buttons get
+  accessible names; `ConfirmButton` declares `disabled`. `footer-submit-button` passes `handleSubmit` (`handleClose`
+  there is deprecated); ⚠️ an ejected `DefaultModal` that declares `ModalSlots` passes it too, or TS2345. Fixes:
+  `toFeedbackError` lower-cases each segment of a nested field key; `DateInputEmits` is `Date | undefined`.
+- `vue/entities`: **behaviour change — a save refused with any `4xx` reports "Saving failed: …"** ("Server error" is
+  left to a `5xx` or no answer). New: `EntityServiceBase.patch(id, changes)` (JSON merge patch; optional on
+  `IEntityService`, required on `IPoolService`; ⚠️ a subclass with its own `patch` of another shape fails with TS2416),
+  `useForm().failure`, `PoolCache.clear()`, `InputSelectorInline`'s `readonly`. Fixes: `useOwnedCollection` leaves an
+  unset collection unset (a save deleted every row); it and `useListInput` keep two appends in one tick and negative
+  temp ids; a refused save keeps its `_deleted` marks; an `undefined` search field keeps its `baseQueryParams` default.
+- Scaffold: **behaviour change — Enter in the owned editor's add row no longer submits the parent form**;
+  `Roles.ADMIN` is `"Administrator"`; navigation hides what `routeAllows` refuses; Details reloads when another
+  account signs in; sign-out clears the pool; the sign-in modal shows no X while sign-in is required; icon-only
+  controls get `aria-label`s (new keys `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`); the
+  language is remembered without auth too; the shell sets `strictPort` and `"culture"`; `--owns` declares its fields
+  on the parent; string-key slices pass `vue-tsc`; attachments rows carry `newBytes`; `--picker` chips take
+  `readonly`; `InputSelector` survives a `403`; a self `--picker`, a `--dir` outside `src/` or an `--owns` folder
+  clash stops before writing. ⚠️ Upgrade: copy `hasAccess` (`entity-navigation/functions.ts`), the `onAuthenticated`
+  lines (`details/Details.vue`), the add row's `@keydown.enter.prevent` (owned `Overview.vue`) and the new keys.
+- Guides — corrected and extended from the 6.6.0 test runs (also JSDoc, READMEs and template comments): sign-up,
+  confirm and reset links, own sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill,
+  permission-gated UI, attachments, patching; eager route imports; http downloads and uploads; an offline outbox.
 
 ## 6.5.0 — 2026-10-04
 

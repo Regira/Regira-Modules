@@ -8,7 +8,8 @@ export default defineConfig({
     define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version) },
     server: {
         port: Number(process.env.PORT) || 5173, // honor a harness/preview-assigned PORT (Vite ignores it by default)
-        strictPort: false, // true when the port is prescribed: fail rather than move to the next free one
+        strictPort: false, // true when the port is prescribed: fail rather than move to the next free one, and when it is
+        // listed in the API's AccountEmails:AllowedOrigins: a moved port is another origin, and password recovery answers 400
         // config.json → api is "/api": the SPA calls its own origin, in development as in production, and this
         // forwards /api to the API. Set the target to the API's launch URL (launchSettings.json → applicationUrl): its HTTPS
         // one, or its http:// one for an API that serves HTTP only in development. The API serves its routes under the

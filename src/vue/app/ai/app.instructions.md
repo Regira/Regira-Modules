@@ -51,7 +51,9 @@ the configured culture holds until then.
 
 `useAppStore()` is a Pinia store named `"AppStore"`:
 
-- **`status`** — current `AppStatus`, starts at `AppStatus.Init`.
+- **`status`** — current `AppStatus`, starts at `AppStatus.Init`. With auth, the shell sets `Ready` only once a user is
+  signed in: on a public page an anonymous visitor's status stays `Init`, so start what a public page needs without
+  the `onAppReady` gate.
 - **`culture`** — defaults to `navigator.language`.
 - **`logo`** — optional logo string.
 - **`isReady`** — computed, `true` only when `status === AppStatus.Ready`.
