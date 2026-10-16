@@ -24,6 +24,8 @@ position**: the server assigns `SortOrder = index` over the incoming collection 
 (`SetSortOrder()`, wired by `HasAttachments` — its input DTO has no sort field). The client sorts by the
 server-sent `sortOrder` on load and mirrors the array index back into it after every change, so a re-map
 (a host `prepareItem` assigning a fresh array) re-sorts to the same order instead of reverting a drag.
+The first file is the owner's primary one (a product's main picture): drag it to the top, and the parent's save
+stores that order.
 
 > **Shared slice — no per-entity tokens.** Unlike an entity slice, this is copied verbatim (one folder per
 > app). You do not customize its files; you customize which entities _use_ it (the 3-line host wiring below).

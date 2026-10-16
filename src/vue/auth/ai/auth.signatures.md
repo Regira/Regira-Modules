@@ -321,9 +321,9 @@ export function useResetPasswordForm(
 // LoginForm props: LoginFormProps { username?: string } ; emits: LoginFormEmits
 // LoginModal props: LoginModalProps { username?; title?; isVisible?; showClose? } ; slots: LoginModalSlots = default{ username } (replace the form)
 //   showClose (default true): the header's X; pass false while sign-in is required — it fills the modal's header-close-button slot
-//   emits: LoginModalEmits = LoginFormEmits (from its default form only; a slotted form emits its own) + close (header X)
+//   emits: LoginModalEmits = LoginFormEmits (from its default form only; a slotted form emits its own) + close (header X or Esc; a required gate binds none)
 // ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
-//   emits: ForgotPasswordModalEmits = close (header X)
+//   emits: ForgotPasswordModalEmits = close (header X or Esc)
 // Both slot and emits types are exported from the barrel — import them when you type a wrapper that forwards the slot
 // or the events
 // ChangePasswordForm props: ChangePasswordFormProps { username?: string }, emits: ChangePasswordFormEmits

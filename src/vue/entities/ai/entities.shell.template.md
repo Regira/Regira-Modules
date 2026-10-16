@@ -428,7 +428,7 @@ watch(showLogin, (gateOpen) => {
             <!-- the library ships the recovery MODAL, not the form — slot in the app's own (users/).
                  `showLogin &&` matters: without it, authenticating by another path (token refresh, a sign-in
                  in a second tab) leaves this modal stranded over an authenticated app.
-                 @close is the modal's header X, which would otherwise be a dead button. -->
+                 @close is the modal's header X or Esc, which would otherwise do nothing. -->
             <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">
                 <ForgotPasswordForm :username="username" @login="showForgot = false" />
             </ForgotPasswordModal>
@@ -835,6 +835,7 @@ const accountLabel = computed(() => getAccountName()) // @auth:only
                 <div class="d-flex ms-auto align-items-center gap-2">
                     <NavSearch @search="closeMenu" />
                     <!-- @auth:block-start -->
+                    <!-- $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
                     <router-link v-if="$auth.enabled && $auth.isAuthenticated" class="nav-link" :to="{ name: 'account' }" @click="closeMenu">
                         <!-- the $t fallback guards a token with no name claims at all — never an empty (invisible) link -->
                         {{ accountLabel ?? $t("account") }}

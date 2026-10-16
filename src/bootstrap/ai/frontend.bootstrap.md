@@ -51,7 +51,9 @@ in the slice's `config.ts` (conventionally the class name, e.g. `"Product"`), no
 skipped with a console warning. The slice keys its IoC service, its `$configs` entry and its Pinia store id on
 `Entity.name`, which is safe only while every slice sits in one chunk: a minifier names classes per chunk, so two
 lazily loaded slices can get the same name and share an IoC key and a store id. Import slices eagerly, as the
-scaffold's routes do. Hand-rolling a navbar
+scaffold's routes do, and the route views too: a view loaded with `() => import(…)` that uses a slice can move slice
+modules into a shared chunk of their own. `vite build` should list one app chunk; raise
+`build.chunkSizeWarningLimit` for its 500 kB notice rather than split. Hand-rolling a navbar
 instead of `useNavigation()` forfeits that config-driven shell; only `users/` + `user-plugin` are auth-coupled.
 
 **Token economy.** Prefer heading-scoped reads — `get_package(id, section, heading)` — over pulling a whole
@@ -115,8 +117,9 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
       `vue-tsc 3`); do not resolve them one `ERESOLVE` at a time.
 - [ ] **Authentication is optional.** Do not assume the auth plugin is required; follow the _Running
       without authentication_ recipe in `entities.setup` to run without a login.
-- [ ] **Type the client from the API's OpenAPI.** When the API exposes OpenAPI, generate TypeScript types
-      from it and feed them into the hand-written entity models (you still hand-write the model classes).
+- [ ] **Optional: type the client from the API's OpenAPI** (`entities.patterns` → _Type the client from the
+      API's OpenAPI_). Generated types keep nested fields in step with the server; the scaffolded slices build
+      without them, and you hand-write the model classes either way.
 - [ ] The primary guides **for the chosen tier** (full tier: `entities.instructions` + `entities.setup`) are read
       before generating slices, services, composables, or the app shell — their workflow sections in full, the
       rest by heading as the task needs it (_Reading order_ below).
@@ -125,6 +128,11 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
       every customization level — see `regira_modules.vue.ui` → `ui.customize`.
 - [ ] Verify the SPA with `npm run build` (`vue-tsc -b && vite build`) in the generated app — not only a typecheck:
       `vue-tsc` alone can pass while the Vite build fails.
+- [ ] **The app's `AGENTS.md`** at the repository root records the SPA's facts beside the API's: the
+      `@regira/modules` version, the dev server port, the scaffolded slices and the ejected components. Read it
+      first in an existing app; a new app writes it from the template in the back-end bootstrap,
+      `get_bootstrap_guide(heading: "The app's own AGENTS.md")`. A SPA without a Regira API writes the same file and
+      leaves out the back-end lines.
 
 ## Reading order (start here)
 

@@ -10,6 +10,7 @@ export interface IConfig extends Record<string, any> {
     requires?: Array<string>
     isComplex?: boolean
 
+    /** the slice's URL path, without the leading "/": one segment ("products") or several ("admin/products") */
     routePrefix: string
     baseQueryParams?: Record<string, unknown>
     initialQuery?: Record<string, unknown>

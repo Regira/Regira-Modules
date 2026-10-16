@@ -531,6 +531,30 @@ const toggle = (s: Status) => (model.value = model.value.includes(s) ? model.val
 For a chip UI instead of checkboxes, feed the same static array to an `Autocomplete` (options from the array,
 not `service.search`) and bind the picked list — same model, richer control.
 
+## A new row pre-filled from the route
+
+A link such as `/interventions/new?vehicleId=3` (a "new intervention" button on a vehicle) starts the new row on
+that vehicle. `Form.vue` knows the route, so set the FK there, for a new item only — and on every item it is given,
+since the Details page loads the item again (after a sign-in behind the login modal, say) and `useForm` takes the new
+one. Defaults every new row shares belong in the service's `newEntity` override instead.
+
+```ts
+// details/Form.vue, after useForm(...)
+import { watch } from "vue"
+import { useRoute } from "vue-router"
+import { isNewEntity } from "@regira/modules/vue/entities"
+
+const route = useRoute()
+const vehicleId = Number(route.query.vehicleId)
+watch(
+    () => item.value,
+    (it) => {
+        if (it && isNewEntity(it.$id) && vehicleId > 0 && !it.vehicleId) it.vehicleId = vehicleId
+    },
+    { immediate: true }
+)
+```
+
 ## Owned (child) collections
 
 **This is the blessed end-to-end pattern for every collection edited inside a parent's form** (order
@@ -644,30 +668,6 @@ below are what it emits — read them when hand-writing the recipe or adapting t
 
 4. **Verify** — save the **same record twice** and reopen the form: the second save is where a mis-modelled
    join re-syncs and 500s, and reopening proves the Details eager-load returns the rows.
-
-### A new row pre-filled from the route
-
-A link such as `/interventions/new?vehicleId=3` (a "new intervention" button on a vehicle) starts the new row on
-that vehicle. `Form.vue` knows the route, so set the FK there, for a new item only — and on every item it is given,
-since the Details page loads the item again (after a sign-in behind the login modal, say) and `useForm` takes the new
-one. Defaults every new row shares belong in the service's `newEntity` override instead.
-
-```ts
-// details/Form.vue, after useForm(...)
-import { watch } from "vue"
-import { useRoute } from "vue-router"
-import { isNewEntity } from "@regira/modules/vue/entities"
-
-const route = useRoute()
-const vehicleId = Number(route.query.vehicleId)
-watch(
-    () => item.value,
-    (it) => {
-        if (it && isNewEntity(it.$id) && vehicleId > 0 && !it.vehicleId) it.vehicleId = vehicleId
-    },
-    { immediate: true }
-)
-```
 
 ### Shapes `--owns` does not scaffold
 
@@ -806,6 +806,8 @@ a `@keyup.enter` adds the row only after the parent has started saving without i
 >
 > ```ts
 > // data/EntityService.ts — the owning entity's service
+> import { Entity as OrderLine } from "../order-lines" // a value import: toEntity calls OrderLine.create
+>
 > override toEntity(item: object): Entity {
 >     const entity = item instanceof Entity ? item : Object.assign(this.createInstance(Entity), item || {})
 >     // OrderLine.create is the child's named constructor (scaffolded with the owned slice). Only reassign
@@ -957,11 +959,12 @@ a member's role, a valid-from) keeps the inline table above: the chips have room
 slot receives the row); a scalar to edit per row needs the table. Scaffold
 it with `--owns <Child>` (no `--picker`) and give the relation column the related slice's `InputSelector`, both
 v-models bound. On the add-row, `@select` also fills the defaults the picked row brings; `handleSave` then mints a
-fresh `newItem`, which clears the picker with it:
+fresh `newItem`. That clears the picker's model, but not its text while the picker has focus, and Enter in the picker
+is the usual way to add: key the add-row picker and bump the key when a row is added, so it remounts empty:
 
 ```vue
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useOwnedCollection } from "@regira/modules/vue/entities"
 import { InputSelector as ProductSelector, type Entity as Product } from "@/entities/products"
 import OrderLine from "./Entity" // productId?: number, product?: Product, quantity, unitPrice
@@ -975,6 +978,12 @@ const exclude = computed(() => items.value.filter((x) => !x._deleted).map((x) =>
 function handleSelect(product?: Product) {
     if (newItem.value && product) newItem.value.unitPrice = product.price
 }
+// a new key remounts the add-row picker empty: a focused picker keeps its text when its model clears
+const addRowKey = ref(0)
+function add() {
+    handleSave({ saved: newItem.value!, isNew: true })
+    addRowKey.value++
+}
 </script>
 
 <template>
@@ -986,11 +995,11 @@ function handleSelect(product?: Product) {
     </div>
     <div v-if="newItem" class="row">
         <div class="col">
-            <ProductSelector v-model="newItem.product" v-model:id-value="newItem.productId" :filter-defaults="{ exclude }" @select="handleSelect" />
+            <ProductSelector :key="addRowKey" v-model="newItem.product" v-model:id-value="newItem.productId" :filter-defaults="{ exclude }" @select="handleSelect" />
         </div>
         <div class="col-2"><input type="number" v-model.number="newItem.quantity" class="form-control" /></div>
         <div class="col-2"><input type="number" v-model.number="newItem.unitPrice" class="form-control" /></div>
-        <button type="button" class="btn btn-success" :disabled="!newItem.productId" @click="handleSave({ saved: newItem, isNew: true })">+</button>
+        <button type="button" class="btn btn-success" :disabled="!newItem.productId" @click="add">+</button>
     </div>
 </template>
 ```
@@ -1506,7 +1515,7 @@ export function useAccess() {
 | `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">`                                                                                                                                                   |
 | `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                                                                                                                                                                           |
 | `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                                                                                                                                                                         |
-| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether |
+| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether. A `--picker`'s `#selector` slot (the join slice's `Overview.vue`) renders the related slice's `InputSelector`, whose empty control offers a "new" button that creates that entity: give it `:can-edit="canWrite('Employee')"` |
 
 A selector for an entity the caller may not **read** at all goes behind `v-if` (a `canRead` beside `canWrite`): a
 read-only `InputSelector` still reads the selected row to show it. The scaffolded one shows nothing on that `403`, but

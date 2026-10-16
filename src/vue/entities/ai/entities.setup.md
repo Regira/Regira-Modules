@@ -634,10 +634,13 @@ token is restored ([auth](../../auth/ai/auth.instructions.md) → Route guard).
 
 ```ts
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
+// eager, as the slices are: a lazy view can split slice modules into a chunk of their own
+import Home from "@/views/Home.vue"
+import Forbidden from "@/views/Forbidden.vue"
 
 const staticRoutes: Array<RouteRecordRaw> = [
-    { path: "/", name: "home", component: () => import("@/views/Home.vue"), meta: { allowAnonymous: true } },
-    { path: "/forbidden", name: "forbidden", component: () => import("@/views/Forbidden.vue"), meta: { allowAnonymous: true } },
+    { path: "/", name: "home", component: Home, meta: { allowAnonymous: true } },
+    { path: "/forbidden", name: "forbidden", component: Forbidden, meta: { allowAnonymous: true } },
 ]
 
 export function routerFactory(entityRoutes: Array<RouteRecordRaw>) {

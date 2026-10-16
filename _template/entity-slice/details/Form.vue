@@ -42,7 +42,8 @@
         <!-- Heavier form? Wrap sections in <TabContainer :tabs="tabs" :active="initialTab" :use-route-nav="!isPopup">
              with one <template #key> per Tab.create(...) — see entities.advanced.example.md §5. -->
         <FormSection :title="$t(config.detailsTitle || '')" :readonly="readonly">
-            <!-- TODO: your fields, e.g. -->
+            <!-- TODO: your fields (a new item pre-filled from the route, ?ownerId=…, is a watch on item, not onMounted:
+                 entities.patterns → A new row pre-filled from the route), e.g. -->
             <div class="mb-2">
                 <input v-model="item.title" :readonly="readonly" class="form-control" />
                 <FormLabel :label="$t('name')" />

@@ -24,6 +24,7 @@ const accountLabel = computed(() => getAccountName()) // @auth:only
                 <div class="d-flex ms-auto align-items-center gap-2">
                     <NavSearch @search="closeMenu" />
                     <!-- @auth:block-start -->
+                    <!-- $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
                     <router-link v-if="$auth.enabled && $auth.isAuthenticated" class="nav-link" :to="{ name: 'account' }" @click="closeMenu">
                         <!-- the $t fallback guards a token with no name claims at all — never an empty (invisible) link -->
                         {{ accountLabel ?? $t("account") }}

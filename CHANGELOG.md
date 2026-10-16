@@ -7,6 +7,24 @@ heading.
 
 ## Unreleased
 
+- Guides: the front-end bootstrap imports the route views eagerly too, not only the slices: a view loaded with
+  `() => import(…)` that uses a slice can move slice modules into a shared chunk, where two slices keyed on their
+  minified `Entity.name` could share an IoC service and a store. `entities.setup`'s minimal router imports its views
+  eagerly, as the scaffolded routes do, and a single app chunk's 500 kB notice is answered with
+  `build.chunkSizeWarningLimit`.
+- `vue/auth`: the `LoginModalEmits` and `ForgotPasswordModalEmits` comments say `close` is the header X or Esc;
+  `auth.instructions` and `auth.signatures` say a required sign-in that binds no `@close` ignores both.
+- Scaffold: `--rel` says the API's SearchObject must filter on the field too, or the filter returns every row; the
+  owned sub-slice barrel names the value import the owning service's `toEntity` needs; the join slice's `#selector`,
+  the slice form's TODO and the shell header's `$auth` checks carry a pointer to the guide (gating the selector's
+  "new" button, a new row pre-filled from the route, the `GlobalAuth` union); `routePrefix` takes one segment or
+  several (`IConfig` doc comment, slice `config.ts`).
+- Guides: `entities.patterns` remounts the add-row picker after an add, since a focused picker keeps its text when
+  its model clears, gives _A new row pre-filled from the route_ a section of its own, and gates a `--picker`
+  selector's "new" button under _Permission-gated UI_; the card names the `useSearchView`/`useListView` exception
+  for a view's own `sortBy` and `includes`; the attachments template says the first file is the owner's primary one;
+  the front-end pre-flight makes OpenAPI-generated types optional; `ui.signatures` says what `Paging`'s anchor and
+  button modes do and that `useAppFeedback()` is called during setup.
 - `vue/auth`: **behaviour change — `$auth.isRequired` is the store's route-driven `isRequired`** (auth enabled and the
   current route not `allowAnonymous`), as `useAuthStore().isRequired` reads it; it returned the store's `authRequired`
   flag, which the guard and the 401 interceptor set and nothing clears. `LoginModal` takes `showClose` (default
@@ -39,6 +57,10 @@ heading.
   why the hidden-label override needs `!important`.
 - Guides: `http.instructions` and the module README say a cross-origin download needs `Content-Disposition` exposed by
   the API's CORS policy, and that `getFile` sends no body (a POST export uses `post(…, { responseType: "blob" })`).
+- Guides: the front-end bootstrap's pre-flight checklist sends the SPA's facts (the `@regira/modules` version, the dev
+  server port, the scaffolded slices and the ejected components) to the app's `AGENTS.md`, written from the back-end
+  bootstrap's template (`get_bootstrap_guide(heading: "The app's own AGENTS.md")`); a SPA without a Regira API writes
+  the same file.
 - `vue/ui`: **behaviour change — `FormSection`'s body is padded** (`--rg-form-section-padding`, default
   `0 0.5rem 0.5rem`), so its fields line up with the title's text and keep clear of a frame the app gives
   `.form-section`; they sat flush against it. Set the token to `0` for the flush body.

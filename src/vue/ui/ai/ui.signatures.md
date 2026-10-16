@@ -117,8 +117,9 @@ export interface FeedbackOut {
     reset(): void
 }
 export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
-// the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own; throws
-// when the plugin was never installed
+// the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own. Call it during
+// setup (in a component, or a composable a component calls) and keep the result: outside setup, and without the
+// plugin, it throws
 export function useAppFeedback(): FeedbackOut
 
 // Feedback component contract:
@@ -144,6 +145,8 @@ export type FeedbackSlots = { "close-button"?(): any; pending?(): any; success?(
 
 ```ts
 import { Paging, ButtonType, usePaging, pagingDefaults, type PagingProps, type PagingEmits, type PagingSlots, type PagingComponent } from "@regira/modules/vue/ui"
+// anchor (default): each page is a RouterLink to the current route with ?page=n, for an overview whose search
+// follows the route; button: emits update:modelValue and change only, for a view that keeps the URL itself
 export enum ButtonType {
     anchor = "Anchor",
     button = "Button",

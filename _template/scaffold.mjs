@@ -815,7 +815,7 @@ if (sliceGenerated) {
     }
     for (const r of relations) {
         console.log(
-            `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key; the API filters on it via its SearchObject.`
+            `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key. The API must filter on it too: its SearchObject needs ICollection<int>? ${upperFirst(r.field)}Id and a filter (back-end entities.instructions → Steps 2 and 6), or remove this filter — a parameter the SearchObject lacks is ignored and every row comes back.`
         )
         // the list, filter and model are written for the relation, the form is not — say so, or the run reads as done
         // and a required FK scaffolds into a form that cannot save

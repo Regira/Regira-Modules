@@ -182,8 +182,8 @@ export class DefaultSearchObject extends SearchObjectBase {}
 > which is why `sortBy` accepts an array.
 >
 > The overview composables (`useSearchView`, `useListView`) add the paging only: they send the search object
-> spread flat with `pagingInfo`. An overview the user sorts declares `sortBy?: Array<string>` on its
-> `SearchObject`, and the composables send it with the filters; a sort every request needs belongs in
+> spread flat with `pagingInfo`. An overview the user sorts declares `sortBy?: Array<string>` (one with its own
+> includes, `includes?: Array<string>`) on its `SearchObject`, and the composables send it with the filters; a sort every request needs belongs in
 > `baseQueryParams` (§4). `new PagingInfo(pageSize?, page?)` is for the overview composable's
 > `pagingInfo` ref, **not** for `search()` — there is no nested `{ paging: … }` shape.
 
@@ -225,7 +225,7 @@ export interface IConfig extends Record<string, any> {
     isComplex?: boolean // form on a Details PAGE (default true) vs a modal; also gates the FilterAdv toggle.
     //                     >~6 fields, any relation or any collection → page. Distinct from the back-end
     //                     simple/complex split, which is about For<> generic arity.
-    routePrefix: string // URL path segment
+    routePrefix: string // the slice's URL path, without the leading "/": one segment ("products") or several ("admin/products")
     baseQueryParams?: Record<string, unknown> // merged into every list/search request
     initialQuery?: Record<string, unknown> // seeds the generated nav link's route query — nothing else reads it
     overviewTitle?: string

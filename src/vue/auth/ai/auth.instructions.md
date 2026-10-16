@@ -365,7 +365,9 @@ components and composables exist for all of it — use them instead of hand-roll
     protected route, so a "Sign in" button sets a `loginRequested` ref, the gate reads
     `(authStore.isRequired || loginRequested.value) && !authStore.isAuthenticated`, and the modal's `@close`
     and the form's `@success` clear the ref. `showClose` hides the header's X while sign-in is required, where
-    closing would leave a page that needs it; on demand the X stays and its `@close` clears the request.
+    closing would leave a page that needs it. Esc emits the same `close`, since the modal takes focus when it opens,
+    so a required gate that binds no `@close`, as the shell's `App.vue` does, ignores both; on demand the X stays,
+    and its `@close` (X or Esc) clears the request.
 
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,

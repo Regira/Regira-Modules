@@ -31,6 +31,7 @@ const hydrate = (x?: Partial<__Target__>) => fromPool(x as __Target__)
             <__Target__Button :modelValue="hydrate(row.__target__)" :readonly="readonly" />
             {{ hydrate(row.__target__)?.$title }}
         </template>
+        <!-- its "new" button creates a new __Target__: where writes are gated, add :can-edit="canWrite('__Target__')" (entities.patterns → Permission-gated UI) -->
         <template #selector="{ add, exclude }">
             <__Target__Selector :filter-defaults="{ exclude }" @select="(x?: __Target__) => x && add({ __target__Id: x.id!, __target__: x })" />
         </template>

@@ -7,7 +7,7 @@ export interface ForgotPasswordFormEmits {
     (e: "fail", ex?: any): void
     (e: "login", username?: string): void
 }
-/** the modal's header X */
+/** the modal's close: its header X or Esc */
 export interface ForgotPasswordModalEmits {
     (e: "close"): void
 }

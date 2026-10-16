@@ -161,7 +161,9 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       `ISearchObject & IPagingInfo & Partial<ISortByInfo>`; the pooled `store.service` (`IPoolService`) takes
       `object`, so type an argument you build yourself (`const so: ISearchObject & IPagingInfo = { … }`).
       `ISearchObject extends Record<string, any>`, so any other key you add reaches the query string too (arrays
-      as repeated keys). `new PagingInfo(pageSize?,
+      as repeated keys). A `useSearchView` or `useListView` overview is the exception: it sends its search object,
+      so that view's own sort or includes is a `sortBy?` or `includes?` declared on its `SearchObject`
+      (`entities.signatures` §3). `new PagingInfo(pageSize?,
 page?)` (from `@regira/modules/vue/entities`) is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
