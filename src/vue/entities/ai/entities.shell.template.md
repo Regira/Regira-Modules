@@ -419,8 +419,10 @@ watch(showLogin, (gateOpen) => {
 
         <!-- @auth:block-start -->
         <Teleport to="#loginModal">
-            <!-- v-if (not :is-visible): unmounting removes mask + dialog atomically — no stranded overlay -->
-            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+            <!-- v-if (not :is-visible): unmounting removes mask + dialog atomically — no stranded overlay.
+                 No X while sign-in is required: closing would leave a page that needs it. A gate widened to an
+                 on-demand sign-in (a loginRequested ref) shows the X there; clear the request on @close. -->
+            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
                 <LoginForm @forgot-password="handleForgotPassword" />
             </LoginModal>
             <!-- the library ships the recovery MODAL, not the form — slot in the app's own (users/).

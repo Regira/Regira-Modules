@@ -70,6 +70,12 @@ single token and never calls the API's `auth/refresh-token`, so a short access-t
 when it runs out (`auth/refresh` renews only a token that is still valid). Keep script injection out: no `v-html` on
 unescaped user content, and a Content-Security-Policy.
 
+**A server cookie session** (`AddCookieAuthentication` on the API, no token in the browser) needs none of this
+module's token handling. Send its requests with credentials (`initAxios({ api, includeCredentials: true })`, or
+`withCredentials: true` per request) and ask the API who is signed in (a `GET` on its session endpoint). Keep the auth
+plugin off it: an app that signs in only this way installs no auth plugin; one that also uses tokens marks that area's
+routes `allowAnonymous` and sends its requests on an axios instance the plugin was not given.
+
 The bearer interceptor reads `tokenManager.token`; you never set headers manually.
 
 ## Auth store (`useAuthStore`)
@@ -85,9 +91,11 @@ The Pinia store is the reactive source of truth for components:
 In a template, `$auth.isAuthenticated` is TS2339: `$auth` is a union, so narrow it with `$auth.enabled &&`
 ([`$auth` global](#auth-global)), or read `const authStore = useAuthStore()` in script.
 
-`authData` (`IAuthData`) is decoded from the JWT: `token` (the raw JWT), `userId`, `name`, `email`,
-`displayName`, `culture`, `role` (the first role found, for display), `expires`, plus `get(claim)`,
-`hasClaim`, `hasPermission`, `hasRole`.
+`authData` (`IAuthData`) is decoded from the JWT's claims: `token` (the raw JWT), `userId` ← `sub`, `name` ← `name`,
+`email` ← `email`, `displayName` ← `displayName` (or `display_name`), `culture` ← `culture`, `role` ← the first of
+`role`, `roles` or the `ClaimTypes.Role` URI (for display), `expires` ← `exp` − `nbf` (the lifetime in seconds), plus
+`get(claim)`, `hasClaim`, `hasPermission`, `hasRole`. The API emits `culture` and `displayName` only when its claims
+principal factory adds them.
 
 ### Reacting to a token — `onAuthenticated`
 
@@ -185,6 +193,18 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
 `authenticate({ token, isAuthenticated })` stores the token and returns an `AuthData`; a falsy
 `isAuthenticated` clears the token.
 
+**A sign-in endpoint of your own** (a PIN, a one-time code) that answers `{ token, isAuthenticated }`: post to it
+with the shared axios and hand the answer to the store as `login()` does.
+
+```ts
+const authStore = useAuthStore()
+const { data } = await useAxios().post("auth/pin", input, { params: { clientApp: authStore.clientApp } })
+authStore.authData = useAuth().service.authenticate(data)
+```
+
+`clientApp` is appended only to the login URL, so pass it yourself. A path under `auth/` is already masked in the
+error log and exempt from the 401 auto-logout; register any other with `registerCredentialUrls`.
+
 ## Interceptors
 
 - **`addBearerHeader(axios, tokenManager)`** — request interceptor; sets `Authorization: Bearer <token>`
@@ -256,8 +276,9 @@ never the token.
 - `meta.allowAnonymous` → always allowed.
 - Authenticated: each matched route's `meta.policy(store)` and `meta.permissions: string[]`
   (via `store.hasPermission`) must pass, else redirect to route **`forbidden`** (`query.url` = target).
-  Role-gated routes use a policy — `meta.policy: (store) => store.hasRole("Administrator")` — since
-  `meta.permissions` checks the `permissions` claim, not roles.
+  Role-gated routes use a policy — `meta.policy: (store: IAuthStore) => store.hasRole("Administrator")`, with
+  `import type { IAuthStore } from "@regira/modules/vue/auth"` — since `meta.permissions` checks the `permissions`
+  claim, not roles. The guard hands the policy the plugin's auth store.
 - Not authenticated: sets `authRequired` and **allows navigation** (the app shows a login popup rather
   than redirecting). Define an `allowAnonymous` route for public pages and a `forbidden` route.
 
@@ -333,7 +354,7 @@ components and composables exist for all of it — use them instead of hand-roll
 
     ```vue
     <LoadingContainer :isLoading="$appStatus != AppStatus.Ready && (!$auth.enabled || $auth.isAuthenticated)"><Main /></LoadingContainer>
-    <LoginModal v-if="showLogin" ... />
+    <LoginModal v-if="showLogin" :show-close="!authStore.isRequired" ... />
     ```
 
     ```ts
@@ -343,7 +364,8 @@ components and composables exist for all of it — use them instead of hand-roll
     An app whose public pages are `allowAnonymous` opens it on demand too: `isRequired` is set only by a
     protected route, so a "Sign in" button sets a `loginRequested` ref, the gate reads
     `(authStore.isRequired || loginRequested.value) && !authStore.isAuthenticated`, and the modal's `@close`
-    and the form's `@success` clear the ref.
+    and the form's `@success` clear the ref. `showClose` hides the header's X while sign-in is required, where
+    closing would leave a page that needs it; on demand the X stays and its `@close` clears the request.
 
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,
@@ -390,7 +412,7 @@ put a `RouterLink` to the sign-up page **beside** `<LoginForm>` inside the slot 
 slots its own `LoginForm`):
 
 ```vue
-<LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+<LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
     <LoginForm @forgot-password="handleForgotPassword" />
     <RouterLink :to="{ name: 'signUp' }">Create an account</RouterLink>
 </LoginModal>
@@ -462,7 +484,8 @@ When enabled the plugin sets `app.config.globalProperties.$auth` (`IGlobalAuth`:
 `tokenManager`, `service`, `authData`, `isAuthenticated`, `isRequired`). Outside components,
 `useGlobalAuth()` returns that same `$auth` object; `useAuth()` returns the narrower `IAuth`
 (`enabled`, `clientApp`, `tokenManager`, `service` — no `authData`/`isAuthenticated`/`isRequired`).
-Prefer the store in components.
+Prefer the store in components. `$auth.isRequired` is the store's route-driven `isRequired`: auth is enabled and the
+current route is not `allowAnonymous`.
 
 ⚠️ **`$auth` is a discriminated union**, `IGlobalAuth | { enabled: false }` — every member beyond `enabled`
 and `authData` lives on the enabled arm only. So `v-if="$auth.isAuthenticated"` is a **TS2339 build failure**;

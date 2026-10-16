@@ -237,9 +237,13 @@ export type ModalSlots = {
     default?(): any
     buttons?(): any
     "footer-close-button"?(props: { handleCancel: () => void }): any
-    "footer-submit-button"?(props: { handleClose: () => void }): any
+    "footer-submit-button"?(props: { handleSubmit: () => void; handleClose: () => void }): any // handleSubmit emits "submit";
+    //   handleClose is a @deprecated alias of handleSubmit (it submits, it does not close) — use handleSubmit
 }
 export const modalDefaults: { showHeader: true; showFooter: true; type: ModalType.normal }
+// DefaultModal renders in place (no Teleport): FormModalButton, ConfirmButton and the slice's other dialogs wrap it
+// in <Teleport to="#modals">, and a modal of your own does the same. Its body renders only while isVisible (v-if).
+// On open it focuses its dialog (unless an element inside already has focus), so Esc closes it without a click first.
 export type ModalComponent // any component implementing ModalProps — modalPlugin's option type (compile-checked)
 
 // resolves the app-wide modal (the modalPlugin swap-in, DefaultModal otherwise); call in setup:
@@ -417,6 +421,8 @@ import {
 //   <label class="form-check-label" for> there, and use the `label` prop everywhere else.
 // DescriptionInput contract (DescriptionInputProps): { label?: string; readonly?: boolean }   (v-model: string)
 // FileDropZone contract (FileDropZoneEmits/Slots): emits "drop-files" (files: Array<Blob>) ; default slot scoped { isDropping }
+//   It renders no <input> or browse button: pair it with browse() from @regira/modules/utilities/file-utility for
+//   click and keyboard users.
 // FormButtonsRow contract (FormButtonsRowProps/Emits/Slots): { item?: unknown; readonly?: boolean; feedback?: FeedbackOut; showDelete?: boolean; labels?: { save?: string; cancel?: string; delete?: string; restore?: string }; modalTitle?: string } (reads item.isArchived — truthy, 0/1 ok — to gate Restore, item.$title for the delete prompt; feedback busy-gates Save/Delete/Restore against double-submits; labels/modalTitle override the English defaults for i18n — `labels.cancel`/`labels.delete` also label the confirm dialog's buttons; `readonly` renders NO buttons — nothing to save, delete or restore, and no edits for Cancel to discard; the way back is the page's navigation or the modal's close button) ; emits: cancel | remove | restore ; slots: delete (delete-confirm body; defaults to "Delete {$title}?")
 ```
 

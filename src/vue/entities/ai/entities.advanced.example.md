@@ -177,7 +177,7 @@ slice's own save flush makes — and maps the returned `{ data: { item } }` to a
 ```ts
 import { type AxiosWithFilesInstance, createQueryString, useAxios } from "@regira/modules/vue/http"
 import { EntityServiceBase, type ListResult, type IConfig } from "@regira/modules/vue/entities"
-import type { Entity as EntityAttachment } from "../../entity-attachments"
+import { Entity as EntityAttachment } from "../../entity-attachments" // a value import: EntityAttachment.create() runs below
 import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments"
 import Entity from "./Entity"
 

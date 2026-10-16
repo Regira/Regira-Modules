@@ -19,10 +19,14 @@ import {
     LocalStorageTokenManager,
     useLoginForm,
     useForgotPasswordForm,
+    useChangePasswordForm,
+    useResetPasswordForm,
     LoginForm,
     LoginModal,
     LogoutForm,
     ForgotPasswordModal,
+    ChangePasswordForm,
+    ResetPasswordForm,
     registerCredentialUrls,
     type IAuthOptions,
     type IGlobalAuth,
@@ -38,7 +42,7 @@ import {
 ```ts
 export interface IAuthData {
     isAuthenticated: boolean
-    expires: number
+    expires: number // the token's lifetime in seconds (exp − nbf), not a timestamp
     readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated.
     // NON-ENUMERABLE: absent from { ...authData } and JSON.stringify(authData), so the credential cannot ride
     // along into a log or a telemetry payload. Reading authData.token still works.
@@ -130,7 +134,7 @@ export interface IGlobalAuth {
     service: IAuthService
     authData: IAuthData
     isAuthenticated: boolean
-    isRequired: boolean
+    isRequired: boolean // the store's route-driven isRequired: auth enabled and the current route not allowAnonymous
 }
 export function createAuth(options: IAuthOptions & { enabled: boolean; tokenManager: ITokenManager; axios: AxiosInstance }): IAuth // createAuth is internal — NOT re-exported from the barrel; the IAuth type is exported
 export const useAuth: () => IAuth
@@ -246,6 +250,7 @@ export const routeGuard: (args: {
     store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean }
 }) => (to: RouteLocationNormalized) => true | RouteLocationRaw
 // reads route meta: allowAnonymous, policy(store) => boolean, permissions: string[]
+// meta is untyped: write a policy (store: IAuthStore) => store.hasRole("…") — it receives the plugin's auth store
 // registers the check as a beforeEach guard and returns it; the plugin also runs it for the route already shown,
 // after the first navigation and on every new token
 export function routeAllows(to: Pick<RouteLocationNormalized, "matched" | "meta">, store: { hasPermission(value: string): boolean }): boolean
@@ -314,7 +319,8 @@ export function useResetPasswordForm(
 // Components (default exports): LoginForm, LoginModal, LogoutForm, ForgotPasswordModal,
 //                                ChangePasswordForm, ResetPasswordForm
 // LoginForm props: LoginFormProps { username?: string } ; emits: LoginFormEmits
-// LoginModal props: LoginModalProps { username?; title?; isVisible? } ; slots: LoginModalSlots = default{ username } (replace the form)
+// LoginModal props: LoginModalProps { username?; title?; isVisible?; showClose? } ; slots: LoginModalSlots = default{ username } (replace the form)
+//   showClose (default true): the header's X; pass false while sign-in is required — it fills the modal's header-close-button slot
 //   emits: LoginModalEmits = LoginFormEmits (from its default form only; a slotted form emits its own) + close (header X)
 // ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
 //   emits: ForgotPasswordModalEmits = close (header X)

@@ -24,6 +24,8 @@ export type LoginModalProps = {
     /** visibility is a real prop (defaults on); prefer gating the whole component with v-if —
      * it unmounts mask + dialog in one go and cannot strand a leave-transition */
     isVisible?: boolean
+    /** the header's close button (X), default on; pass false while sign-in is required, where closing leads nowhere */
+    showClose?: boolean
 }
 export type LoginModalSlots = {
     /** replace the whole login form; scoped with the initial username */

@@ -2,7 +2,7 @@
     <transition name="modal">
         <div v-if="isVisible" class="rg-modal modal-mask" @keydown.esc="handleClose">
             <div class="modal-wrapper">
-                <div class="modal show d-block" tabindex="-1">
+                <div ref="dialog" class="modal show d-block" tabindex="-1">
                     <div class="modal-dialog modal-dialog-scrollable" :class="[sizeClass, { 'full-width': fullWidth }]">
                         <div class="modal-content" :style="{ 'min-height': fullWidth ? '60vh' : 'inherit' }">
                             <div v-if="showHeader" class="rg-modal__header modal-header py-2" :class="titleClass">
@@ -43,7 +43,7 @@
                                                 }}</IconButton>
                                             </div>
                                         </slot>
-                                        <slot name="footer-submit-button" :handleClose="handleSubmit">
+                                        <slot name="footer-submit-button" :handleSubmit="handleSubmit" :handleClose="handleSubmit">
                                             <div>
                                                 <IconButton icon="submit" :class="isDanger ? 'btn-danger' : 'btn-success'" @click="handleSubmit">{{
                                                     labels?.submit ?? "Submit"
@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import "./style.scss"
-import { computed } from "vue"
+import { computed, nextTick, ref, watch } from "vue"
 import Icon from "../icons/Icon.vue"
 import IconButton from "../icons/IconButton.vue"
 import { ModalType, modalDefaults, type ModalProps, type ModalEmits, type ModalSlots } from "./modal"
@@ -93,4 +93,18 @@ const footerClass = computed(() => ({}))
 const handleClose = () => emit("close")
 const handleCancel = () => emit("cancel")
 const handleSubmit = () => emit("submit")
+
+// Esc is heard on the mask, so it needs focus inside the modal: take it when the modal opens, unless an element in it
+// already has it (an input the content focused itself)
+const dialog = ref<HTMLElement>()
+watch(
+    () => props.isVisible,
+    async (isVisible) => {
+        if (!isVisible) return
+        await nextTick()
+        const el = dialog.value
+        if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
+    },
+    { immediate: true }
+)
 </script>

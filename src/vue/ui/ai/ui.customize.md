@@ -76,12 +76,29 @@ Overriding `:root { --bs-primary: … }` alone recolors almost nothing. Re-theme
     --bs-btn-hover-bg: #6d28d9;
     --bs-btn-hover-border-color: #6d28d9;
 }
+.btn-info,
+.btn-outline-info {
+    --bs-btn-border-color: var(--rg-accent);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #6d28d9;
+    --bs-btn-hover-border-color: #6d28d9;
+}
+.btn-info {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--rg-accent);
+}
+.btn-outline-info {
+    --bs-btn-color: var(--rg-accent);
+}
 .pagination {
     --bs-pagination-active-bg: var(--rg-accent);
     --bs-pagination-active-border-color: var(--rg-accent);
     --bs-pagination-color: var(--rg-accent);
 }
 ```
+
+Re-accent `.btn-info` / `.btn-outline-info` with `.btn-primary`: the scaffolded New, filter and selector buttons and
+the form's overview link use them, and they stay Bootstrap cyan otherwise.
 
 Tinting the page with `--bs-body-bg` also tints every `.form-control` and `.form-select`: precompiled Bootstrap paints
 inputs with the body background, so set their `background-color` back when only the page should change.
@@ -142,14 +159,15 @@ phone-first app they are a functional decision, and they show up at 375 px, neve
 | `FormLabel`      | the label                         | `md`  | only with `auto-hide` (default `false`) |
 
 To keep a tab's title, omit its `icon` in `Tab.create`. Otherwise override `.rg-tab-nav .nav-link span` /
-`.form-buttons .btn span` — one of the cases where `!important` is required (see L0).
+`.form-buttons .btn span` — one of the cases where `!important` is required: Bootstrap hides the label with its
+`d-none` utility, which carries `!important` (`.rg-tab-nav .nav-link span { display: inline !important; }`).
 
 ## L2 — Recompose with slots
 
 Slots are typed (`XxxSlots`, visible via `get_type`) — the main seams:
 
 - `DefaultModal`: `title`, `header-close-button{handleClose}`, default, `buttons`,
-  `footer-close-button{handleCancel}`, `footer-submit-button{handleClose}`
+  `footer-close-button{handleCancel}`, `footer-submit-button{handleSubmit}` (`handleClose`: deprecated alias)
 - `Paging`: `firstPage{page}`, default `{page, route, handleChange}`, `lastPage{page}`
 - `Autocomplete`: scoped default `{item, q}` — **the** result-item rendering seam
 - `Feedback`: `close-button`, `pending`, `success`, `error`
@@ -237,8 +255,9 @@ slots. Every replacement/ejected skin MUST:
    variants), `d-none d-md-inline` on button labels, `d-none d-md-block` to drop columns on small
    screens, `$screen` for JS-side switches.
 4. Render every slot and fire every emit of the contract, per component:
-    - **Modal**: render the default slot when `isVisible`; emit `close` on Esc and the header close;
-      emit `cancel`/`submit` from the footer actions; honor `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
+    - **Modal**: render the default slot when `isVisible`; focus the dialog when it opens and emit `close` on Esc
+      and the header close; emit `cancel`/`submit` from the footer actions; honor
+      `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
     - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default

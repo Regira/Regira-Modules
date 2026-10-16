@@ -25,3 +25,7 @@ initAxios({ api, includeCredentials })  →  one AxiosWithFilesInstance
 
 Create exactly one instance and reuse it so credentials and auth apply uniformly. Entity `IConfig.*Url`
 values are relative paths resolved against the `baseURL` set here.
+
+`getFile` reads the file name from `Content-Disposition`; cross-origin (no dev proxy) the API must expose that header
+(`.WithExposedHeaders("Content-Disposition")` on its CORS policy), or `blob.name` stays unset. It sends no body: a
+POST export uses `useAxios().post(url, body, { responseType: "blob" })`.

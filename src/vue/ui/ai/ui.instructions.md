@@ -196,7 +196,11 @@ it before writing a new component.
 - **Modal is a component, not a composable.** There is no `openModal()` here — use `DefaultModal` with
   `:is-visible` (one-way; it has no `update:isVisible` emit) plus `@close`/`@cancel` to flip your own state
   (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from
-  the [entities](../../entities/ai/entities.signatures.md) module.
+  the [entities](../../entities/ai/entities.signatures.md) module. It renders in place, so put it inside
+  `<Teleport to="#modals">`. It focuses its dialog when it opens, so Esc closes it; the `footer-submit-button` slot's
+  `handleSubmit` prop submits (`handleClose` there is a deprecated alias of it).
+- **`FileDropZone` takes drops only.** It renders no `<input>` or browse button: pair it with `browse()` from
+  `@regira/modules/utilities/file-utility` for click and keyboard users.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an
   overview/form composable), not a string.
 - **`Autocomplete`'s result panel places itself.** It is teleported to `<body>` and `position: fixed`, so a

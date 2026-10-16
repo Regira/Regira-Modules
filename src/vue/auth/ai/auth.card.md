@@ -28,7 +28,7 @@
   probes all three. `hasPermission` reads a **`permissions`** claim the standard Identity recipe never
   mints; role-gating with it silently answers `false` (invisible buttons, forbidden redirects).
 - **Route guard** (installed by the plugin): `meta.allowAnonymous` bypasses; `meta.permissions: string[]`
-  checks `hasPermission`; role-gated routes use `meta.policy: (store) => store.hasRole("Administrator")`, never
+  checks `hasPermission`; role-gated routes use `meta.policy: (store: IAuthStore) => store.hasRole("Administrator")`, never
   `beforeEnter`, which runs before a stored token is restored; the plugin re-checks the route on screen once it is,
   and on every new token (another account, a refresh, a tenant switch).
   Unauthenticated navigation is **allowed** (popup model — gate content and show `LoginModal`); only

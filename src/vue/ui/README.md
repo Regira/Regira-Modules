@@ -120,6 +120,8 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   mixes labelled fields with buttons to `flex-start`.
 - `FormButtonsRow` with `readonly` renders no buttons: nothing can be saved, deleted or restored, and there
   are no edits for Cancel to discard. The way back is the page's navigation or the modal's close button.
+- `FileDropZone` takes drops only: it renders no `<input>` or browse button, so pair it with `browse()` from
+  `@regira/modules/utilities/file-utility` for click and keyboard users.
 - `TabContainer` shows the first visible, enabled tab among the URL hash (with `use-route-nav`) or the last
   selection (without), then `active`, and otherwise the default tab. `active` is read once, when the container
   is created. With `use-route-nav` the hash is written only when a tab is selected — mounting never navigates.
@@ -127,7 +129,9 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   tab is ignored.
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
-  `useModal` from the entities module.
+  `useModal` from the entities module. It renders in place, so put it inside `<Teleport to="#modals">`. It focuses
+  its dialog when it opens, so Esc closes it; the `footer-submit-button` slot's `handleSubmit` prop submits
+  (`handleClose` there is a deprecated alias of it).
 - `Autocomplete` renders its result panel on `<body>` (a `Teleport`) with `position: fixed`, so no
   ancestor's `overflow` — a scrollable modal body, an `overflow: hidden` card — clips it. It places the panel
   against the viewport itself: it opens below the control, flips **above** it when the results do not fit

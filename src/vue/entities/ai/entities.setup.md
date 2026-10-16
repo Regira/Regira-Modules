@@ -159,9 +159,10 @@ export default defineConfig({
 </body>
 ```
 
-> **The `#modals` host is required — a missing one silently breaks every popup.** `DefaultModal` (hence
-> `FormModalButton`, `ConfirmButton`, and every edit/create dialog) teleports into `#modals`; with no such
-> `<div>` the teleport target is absent and the modal never mounts — no error, the trigger just looks dead.
+> **The `#modals` host is required — a missing one silently breaks every popup.** `FormModalButton`,
+> `ConfirmButton` and the slice's other dialogs teleport `DefaultModal` into `#modals`; `DefaultModal` itself renders
+> in place, so a modal of your own goes inside `<Teleport to="#modals">`. With no such `<div>` the teleport target
+> is absent and the modal never mounts — no error, the trigger just looks dead.
 > Two traps: `scaffold.mjs --shell` **won't overwrite** an existing (`npm create vue`) `index.html` without
 > `--force`, and hand-authored files routinely omit the host. After scaffolding, confirm `#modals` (and
 > `#loginModal` when auth is on) exist, then verify a modal actually opens.
@@ -626,7 +627,7 @@ matches no registered slice (`"products"` instead of `"Product"`) is skipped wit
 
 Split the static (app-owned) routes from the entity routes the slices push at startup. The minimal form is
 a single `routerFactory`; the full template splits it across `src/router/`. A route only some roles may open is
-gated with `meta.policy` — `(store) => store.hasRole("Administrator")` — not `beforeEnter`, which runs before a stored
+gated with `meta.policy` — `(store: IAuthStore) => store.hasRole("Administrator")` — not `beforeEnter`, which runs before a stored
 token is restored ([auth](../../auth/ai/auth.instructions.md) → Route guard).
 
 **Minimal:**
@@ -858,8 +859,9 @@ watch(showLogin, (gateOpen) => {
     </LoadingContainer>
 
     <!-- v-if, not :is-visible — unmounting removes mask + dialog atomically; a bound-but-mounted
-         modal can strand its leave-transition and leave an invisible click-swallowing mask -->
-    <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+         modal can strand its leave-transition and leave an invisible click-swallowing mask; no X while sign-in
+         is required -->
+    <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
         <LoginForm @forgot-password="handleForgotPassword" />
     </LoginModal>
     <!-- `showLogin &&` keeps the recovery modal from stranding over an app authenticated by another path -->
@@ -916,7 +918,7 @@ watch(showLogin, (gateOpen) => {
         <footer class="container-fluid bg-light"><TheFooter /></footer>
 
         <Teleport to="#loginModal">
-            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
                 <LoginForm @forgot-password="handleForgotPassword" />
             </LoginModal>
             <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">

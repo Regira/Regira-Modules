@@ -29,7 +29,12 @@ export type ModalSlots = {
     default?(): any
     buttons?(): any
     "footer-close-button"?(props: { handleCancel: () => void }): any
-    "footer-submit-button"?(props: { handleClose: () => void }): any
+    "footer-submit-button"?(props: {
+        /** submits: emits `submit` */
+        handleSubmit: () => void
+        /** @deprecated use `handleSubmit` — the same function: it submits, it does not close */
+        handleClose: () => void
+    }): any
 }
 export const modalDefaults = {
     showHeader: true,

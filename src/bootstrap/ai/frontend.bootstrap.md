@@ -47,9 +47,11 @@ The app shell — the config-driven **dashboard + navbar** (`entity-navigation/`
 **auth-independent**: it builds from `$configs` + `config.json → navigation`, not the auth store, so build it
 even for a no-auth app. Navigation entries reference each entity by its **`config.key`** — the literal string
 in the slice's `config.ts` (conventionally the class name, e.g. `"Product"`), not the route/kebab plural and
-**not** `Entity.name`: `config.json` holds a literal, and a minified build renames the class. `Entity.name` stays safe
-where both sides read it from the class — the IoC key `setup.ts` registers the service under and
-`get<EntityService>(Entity.name)` reads. An unmatched key is skipped with a console warning. Hand-rolling a navbar
+**not** `Entity.name`: `config.json` holds a literal, and a minified build renames the class. An unmatched key is
+skipped with a console warning. The slice keys its IoC service, its `$configs` entry and its Pinia store id on
+`Entity.name`, which is safe only while every slice sits in one chunk: a minifier names classes per chunk, so two
+lazily loaded slices can get the same name and share an IoC key and a store id. Import slices eagerly, as the
+scaffold's routes do. Hand-rolling a navbar
 instead of `useNavigation()` forfeits that config-driven shell; only `users/` + `user-plugin` are auth-coupled.
 
 **Token economy.** Prefer heading-scoped reads — `get_package(id, section, heading)` — over pulling a whole

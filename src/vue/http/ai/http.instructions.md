@@ -37,7 +37,10 @@ Both are attached to the instance _and_ exported as functions:
   If `type`/`filename` are omitted it reads them from the `content-type` / `content-disposition` headers,
   and sets `blob.name` to the resolved filename. `getFile` returns the Blob; `saveAs(blob)` from
   `@regira/modules/utilities/file-utility` downloads it under that name
-  ([utilities](../../../utilities/ai/utilities.examples.md)).
+  ([utilities](../../../utilities/ai/utilities.examples.md)). Cross-origin (no dev proxy), the API must expose
+  the header — `.WithExposedHeaders("Content-Disposition")` on its CORS policy — or `blob.name` stays unset.
+  `getFile` sends no body: for a POST export use `useAxios().post(url, body, { responseType: "blob" })` and
+  name the file from `Content-Disposition` yourself.
 - **`upload(url, files, options?)`** → `Promise<AxiosResponse>`. Sends `multipart/form-data`; the files
   field name defaults to `"file"` (`options.filesParameterName`); `options.data` adds extra form fields;
   `options.method` defaults to `"POST"`. `data` is flattened (`a.b`, `a[0]`) and each value goes through

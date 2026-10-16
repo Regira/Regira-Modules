@@ -7,6 +7,38 @@ heading.
 
 ## Unreleased
 
+- `vue/auth`: **behaviour change — `$auth.isRequired` is the store's route-driven `isRequired`** (auth enabled and the
+  current route not `allowAnonymous`), as `useAuthStore().isRequired` reads it; it returned the store's `authRequired`
+  flag, which the guard and the 401 interceptor set and nothing clears. `LoginModal` takes `showClose` (default
+  `true`), and the shell's `App.vue` passes `!authStore.isRequired`, so the sign-in modal shows no X while sign-in is
+  required, where the X closed nothing.
+- `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog when it opens**, unless an element inside it already
+  has focus, so Esc closes it without a click into it first. The `footer-submit-button` slot passes `handleSubmit`;
+  `handleClose` there stays one release as a deprecated alias of it (it always submitted). The ejectable copy in
+  `_template/ui/DefaultModal` follows; a copy ejected earlier that declares `ModalSlots` passes `:handleSubmit` on that
+  slot too, or vue-tsc reports TS2345 there.
+- Scaffold: **behaviour change — the owned editor's add row adds on `@keydown.enter.prevent`**, so Enter in it no
+  longer submits the parent form too. Its `@keyup.enter` ran after the browser had submitted the enclosing `<form>` on
+  the keydown, and the parent saved without the new row. `entities.patterns` → _Owned rows with scalar fields_ shows
+  the same handler; a slice scaffolded earlier takes the change in its owned `Overview.vue`.
+- Guides: `auth.instructions` covers a sign-in endpoint of the app's own (a PIN, a one-time code), handed to the store
+  through `useAuth().service.authenticate`, and a server cookie session, which needs none of the token handling; it
+  names the claim behind each `authData` field. `auth.signatures` lists the password forms in its import block and
+  calls `expires` a lifetime in seconds.
+- Guides: every `meta.policy` example types its store, `(store: IAuthStore) => store.hasRole(…)`, which compiles under
+  `strict` where the untyped one is TS7006; the auth examples drop the `/login` route (sign-in is a modal) and gate
+  `LoginModal` with `v-if`.
+- Guides: `entities.patterns` shares the store's pooled service between two presentations (the raw IoC service
+  bypasses the pool), shows `upload(url, [blob], { data })`, and says that removing an attachment needs `Attachments`
+  on the owner's input DTO and that the API leaves null fields out. `entities.template` gains a _scaffold.mjs flags_
+  heading with `--plural`, `--singular`, `--dir` and the Git Bash note on `--api`; `entities.instructions` installs
+  `debugPlugin` after the router; the advanced example imports `EntityAttachment` as a value; `frontend.bootstrap`
+  says `Entity.name` keys are safe only while every slice sits in one chunk.
+- Guides: `vue/ui` says `DefaultModal` renders in place (its callers teleport it into `#modals`); `FileDropZone` has
+  no browse control (pair it with `browse()`); `ui.customize` re-accents `.btn-info` / `.btn-outline-info` and says
+  why the hidden-label override needs `!important`.
+- Guides: `http.instructions` and the module README say a cross-origin download needs `Content-Disposition` exposed by
+  the API's CORS policy, and that `getFile` sends no body (a POST export uses `post(…, { responseType: "blob" })`).
 - `vue/ui`: **behaviour change — `FormSection`'s body is padded** (`--rg-form-section-padding`, default
   `0 0.5rem 0.5rem`), so its fields line up with the title's text and keep clear of a frame the app gives
   `.form-section`; they sat flush against it. Set the token to `0` for the flush body.

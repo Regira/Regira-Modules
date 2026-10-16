@@ -31,16 +31,18 @@ The guard reads route `meta`. Mark public pages `allowAnonymous`, gate others wi
 `policy` function), and provide a `forbidden` route to redirect to:
 
 ```ts
+import type { IAuthStore } from "@regira/modules/vue/auth"
+
 const routes = [
-    { path: "/login", name: "login", component: LoginView, meta: { allowAnonymous: true } },
     { path: "/forbidden", name: "forbidden", component: ForbiddenView, meta: { allowAnonymous: true } },
     { path: "/users", name: "UserOverview", component: UserOverview, meta: { permissions: ["users.read"] } },
-    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store) => store.hasRole("Administrator") } },
+    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store: IAuthStore) => store.hasRole("Administrator") } },
 ]
 ```
 
 `permissions` checks the `permissions` claim; a role-gated route (Identity roles in the JWT) uses a
-`policy` with `store.hasRole(...)`, which probes all three role-claim spellings.
+`policy` with `store.hasRole(...)`, which probes all three role-claim spellings. Sign-in needs no route: it is the
+`LoginModal` below.
 
 ## Use the store in a component
 
@@ -80,10 +82,13 @@ Drop-in modal:
 
 ```vue
 <script setup lang="ts">
-import { LoginModal } from "@regira/modules/vue/auth"
+import { computed } from "vue"
+import { LoginModal, useAuthStore } from "@regira/modules/vue/auth"
+const authStore = useAuthStore()
+const showLogin = computed(() => authStore.isRequired && !authStore.isAuthenticated)
 </script>
 <template>
-    <LoginModal title="Sign in" @success="onSuccess" @forgot-password="showForgot" />
+    <LoginModal v-if="showLogin" title="Sign in" @success="onSuccess" @forgot-password="showForgot" />
 </template>
 ```
 

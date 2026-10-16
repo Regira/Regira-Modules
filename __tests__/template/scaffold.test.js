@@ -429,6 +429,20 @@ describe("scaffold.mjs owned collections", () => {
         expect(overview).toContain('v-model="item.menuItems"') // the BINDING stays the camelCase JSON key
     })
 
+    test("the add row's Enter adds the row without submitting the parent form", () => {
+        // The editor renders inside the parent Form.vue's <form>, whose FormButtonsRow carries a submit button, so the
+        // browser submits that form on the Enter keydown. A keyup handler runs after it: the parent saved without the
+        // row. Only a keydown handler with .prevent stops the implicit submission.
+        run("Basket", "--owns", "BasketLine", "--no-auth")
+        const overview = readFileSync(app("src", "entities", "baskets", "basket-lines", "Overview.vue"), "utf8")
+        const addRow = overview.slice(overview.indexOf('<div v-if="newItem'))
+        const inputs = addRow.match(/<input\b[^>]*>/g) ?? []
+
+        expect(inputs.length).toBeGreaterThan(0)
+        for (const input of inputs) expect(input).toContain('@keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })"')
+        expect(overview).not.toContain("@keyup.enter")
+    })
+
     // the generated prepareItem filter reads the field, so the parent model declares it — as --rel declares its own
     test("declares each owned field on the parent model it scaffolds", () => {
         const out = run("Workshop", "--owns", "WorkshopLine", "--owns", "WorkshopTag", "--as", "tags", "--picker", "Tag", "--no-auth")

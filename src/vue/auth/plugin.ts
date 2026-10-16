@@ -63,8 +63,10 @@ export default {
                 get isAuthenticated() {
                     return !!store.authData?.isAuthenticated
                 },
+                // the store's route-driven flag (auth enabled, current route not allowAnonymous), as
+                // useAuthStore().isRequired reads it
                 get isRequired() {
-                    return store.authRequired
+                    return store.isRequired
                 },
             }
 

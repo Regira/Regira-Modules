@@ -283,7 +283,9 @@ plain view under your own folder (`src/shop/views/CatalogView.vue`), routed by y
 reuses the slice's machinery rather than re-implementing it:
 
 ```ts
-const service = get<EntityService>(Product.name) // the same registered service the slice uses
+import { useEntityStore as useProductStore } from "@/entities/products"
+
+const { service } = useProductStore() // the slice's pooled service
 const { items, pagingInfo, itemsCount, isLoading, searchHandler } = useSearchView<Product, SearchObject>({
     service,
     searchObject, // your own shape — facets, a slug from the path, whatever the page needs
@@ -291,8 +293,10 @@ const { items, pagingInfo, itemsCount, isLoading, searchHandler } = useSearchVie
 })
 ```
 
-- **Share the service, not the components.** Resolve it from the container under `Entity.name` so both faces
-  read through one pooled cache — a save in the back office is visible to the storefront without a refetch.
+- **Share the store's pooled service, not the components.** `useProductStore().service` reads through the slice's
+  pooled cache, so a save in the back office is visible to the storefront without a refetch. The raw
+  `get<EntityService>(Product.name)` bypasses the pool; keep it for bespoke endpoints (_Custom endpoints on a
+  service_).
 - **`useSearchView` carries over; `useRouteOverview` does not** (it assumes the slice's route names). Sync
   your own URL and keep the fetch/paging/loading/feedback plumbing — see §Overview: `useListView` vs
   `useSearchView` in the instructions.
@@ -481,7 +485,9 @@ so forms do `import { Selector as CategorySelector } from "@/entities/categories
 > [Owned collections](#owned-child-collections) — filtered out in `EntityService.prepareItem`.
 
 Type optional relations `Category | undefined`, not `| null` — selector/autocomplete `v-model`s are
-`T | undefined` (JSON `null` still deserializes fine).
+`T | undefined` (JSON `null` still deserializes fine). A Regira API leaves null properties out
+(`ConfigureDefaultJsonOptions()` → `WhenWritingNull`), so a nullable FK arrives `undefined`: bind a native
+`<select>`'s empty option `:value="undefined"`, not `null`, or normalise in `toEntity`.
 
 ### Editing a many-to-many join — use `InputSelectorInline`
 
@@ -777,13 +783,17 @@ const { items, newItem, handleSave } = useOwnedCollection<OrderLine>({ props, em
     </div>
     <div v-if="newItem" class="row">
         <!-- add-row -->
-        <div class="col"><input v-model="newItem.description" class="form-control" @keyup.enter="handleSave({ saved: newItem, isNew: true })" /></div>
+        <div class="col">
+            <input v-model="newItem.description" class="form-control" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" />
+        </div>
         <button type="button" class="btn btn-success" @click="handleSave({ saved: newItem, isNew: true })">+</button>
     </div>
 </template>
 ```
 
-Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines" />`.
+Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines" />`. The add row sits inside the
+parent's `<form>`, which the browser submits on the Enter keydown, so its Enter handler is `@keydown.enter.prevent`:
+a `@keyup.enter` adds the row only after the parent has started saving without it.
 
 > ⚠️ **The rows are raw objects, not model instances.** `items` comes straight off `props.modelValue` and only
 > the **root** item passes through `toEntity`, so a stored child arrives as the plain JSON the API sent. Class
@@ -1001,12 +1011,12 @@ The generated slice (full source: [entities.attachments.template.md](entities.at
 builds on four **shipped** primitives — never hand-roll them (verify in
 [namespaces](entities.namespaces.md) / [signatures](entities.signatures.md)):
 
-| Primitive                               | From                                     | Role                                                                                         |
-| --------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `FileDropZone`                          | `@regira/modules/vue/ui`                 | drag-drop zone — emits `drop-files: Array<Blob>`, scoped slot `{ isDropping }`               |
-| `useAxios().upload(url, [blob], data?)` | `@regira/modules/vue/http`               | multipart upload on the **shared, baseURL-aware** axios; field name defaults to **`"file"`** |
-| `useAxios().getFile(url)`               | `@regira/modules/vue/http`               | authenticated download → `Blob`                                                              |
-| `formatFileSize`, `fileToBlob`          | `@regira/modules/utilities/file-utility` | size label; re-wrap a blob under a new name                                                  |
+| Primitive                                  | From                                     | Role                                                                                         |
+| ------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `FileDropZone`                             | `@regira/modules/vue/ui`                 | drag-drop zone — emits `drop-files: Array<Blob>`, scoped slot `{ isDropping }`               |
+| `useAxios().upload(url, [blob], { data })` | `@regira/modules/vue/http`               | multipart upload on the **shared, baseURL-aware** axios; field name defaults to **`"file"`** |
+| `useAxios().getFile(url)`                  | `@regira/modules/vue/http`               | authenticated download → `Blob`                                                              |
+| `formatFileSize`, `fileToBlob`             | `@regira/modules/utilities/file-utility` | size label; re-wrap a blob under a new name                                                  |
 
 > **Use `useAxios().upload`, not `FileHelper.send`.** `FileHelper.send` uses a **bare axios** — no
 > `baseURL`, no auth interceptor — and its field name defaults to **`"files"`**. The attachment endpoint
@@ -1017,7 +1027,9 @@ builds on four **shipped** primitives — never hand-roll them (verify in
 row), its raw `Blob` held in memory, and an object `uri` for instant preview. Rename edits `newFileName`
 (existing file) or `fileName` (new); remove toggles `_deleted` (undoable). On the parent's save, the flush
 helpers re-wrap each blob under its edited name and `POST` it to `{api}/{id}/files`; existing rows marked
-`_deleted` drop from the payload and are deleted by omission.
+`_deleted` drop from the payload and are deleted by omission — when the owner's input DTO on the API declares
+`ICollection<EntityAttachmentInputDto>? Attachments` (back-end `entities.instructions` → Attachments, step 3). Without
+it a removal answers 200 and changes nothing.
 
 **Wire it into each file-owning entity** — the join field, the flush overrides + `_deleted` filter, and a
 tab. The service needs no change beyond the overrides: the helpers upload through `useAxios()`. The slice
@@ -1500,8 +1512,8 @@ A selector for an entity the caller may not **read** at all goes behind `v-if` (
 read-only `InputSelector` still reads the selected row to show it. The scaffolded one shows nothing on that `403`, but
 the request still goes out.
 
-A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
-store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
+A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store: IAuthStore) =>
+store.hasRole("Administrator")` (`import type { IAuthStore } from "@regira/modules/vue/auth"`), never a `beforeEnter` check: that runs before a stored token is restored and sends an
 administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard). A slice's routes
 are built in its `setup.ts` (`createRoutes()`), so that is where the policy goes — `meta: { policy }` on the Overview
 route and on the Details route, whose children inherit it. The scaffolded navigation follows it: `hasAccess` in
