@@ -733,8 +733,8 @@ export class PoolService<T extends IEntity> implements IPoolService<T> {
 }
 ```
 
-The pooled `details` / `list` / `search` write every row they receive into the cache (refreshing a cached row in
-place) but **return hydrated instances** — through `toEntity` (`$id`, `$title` work; `details` hands a fresh copy), yet not
+The pooled `details` / `list` / `search` write every row they receive into the cache (the cached `Ref` stays and
+gets the new object: `set` replaces `ref.value`, so never `set` a partial row) but **return hydrated instances** — through `toEntity` (`$id`, `$title` work; `details` hands a fresh copy), yet not
 the cached ones, so an edit elsewhere does not reach them. Run them through `fromPool` to get the shared instances. The cache is a
 plain `Map`, so `fromCache()` read inside a `computed` does not see ids added after it first ran: a component
 that lists a type loads the rows itself rather than reading the cache.

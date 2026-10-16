@@ -420,8 +420,9 @@ protected override prepareItem(item: Owner): Owner {
 <!-- import { Overview as EntityAttachments } from "../../entity-attachments" -->
 ```
 
-> **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`); order the
-> attachments include by sort order — `x.Attachments!.OrderBy(a => a.SortOrder)` — so the list loads in the
+> **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`), and give the owner's input
+> DTO `ICollection<EntityAttachmentInputDto>? Attachments`: the slice sends renames, order and removals in the owner's
+> `PUT`. Order the attachments include by sort order — `x.Attachments!.OrderBy(a => a.SortOrder)` — so the list loads in the
 > saved order (`HasAttachments` assigns `SortOrder` from the incoming array position on every parent
 > save). Expose the download **anonymously** if
 > `<img src>` tags render thumbnails (a guarded download 401s — the tag sends no `Authorization` header).

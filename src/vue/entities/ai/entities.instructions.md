@@ -447,8 +447,8 @@ Most entities follow the same 12 steps below — one file per step. **Scaffold a
 `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`, then fill the `(c)` files in this order.
 The folder, client route and `api` path derive as the kebab-case plural of the class name, matching the
 conventional `[Route(...)]`; pass `--api <path>` when the server exposes the resource under a different name,
-and `--rel <Related>` per to-one relation shown in the overview — it generates the pooled column and the model
-fields, and leaves `baseQueryParams` empty because a to-one on every row should be eager-loaded server-side
+and `--rel <Related>` per to-one relation shown in the overview — it generates the pooled column, the model
+fields and the advanced filter, and leaves `baseQueryParams` empty because a to-one on every row should be eager-loaded server-side
 (`e.Includes(...)`), not requested per call. A differently-named FK takes a trailing `--as <field>`
 (`--rel Employee --as assignedToEmployee` binds `assignedToEmployeeId`/`assignedToEmployee`, still the Employee slice).
 A **lookup** entity keeps the folders but drops the list UI (omit the views and `createRoutes()`; the

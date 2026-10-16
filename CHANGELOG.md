@@ -24,15 +24,18 @@ heading.
   `useForm().failure`, `PoolCache.clear()`, `InputSelectorInline`'s `readonly`. Fixes: `useOwnedCollection` leaves an
   unset collection unset (a save deleted every row); it and `useListInput` keep two appends in one tick and negative
   temp ids; a refused save keeps its `_deleted` marks; an `undefined` search field keeps its `baseQueryParams` default.
+- `vue/http`: Fix: an error without a request or response (a network failure) passes the blob-error interceptor
+  unchanged, where it threw a `TypeError`.
 - Scaffold: **behaviour change — Enter in the owned editor's add row no longer submits the parent form**;
   `Roles.ADMIN` is `"Administrator"`; navigation hides what `routeAllows` refuses; Details reloads when another
   account signs in; sign-out clears the pool; the sign-in modal shows no X while sign-in is required; icon-only
   controls get `aria-label`s (new keys `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`); the
   language is remembered without auth too; the shell sets `strictPort` and `"culture"`; `--owns` declares its fields
-  on the parent; string-key slices pass `vue-tsc`; attachments rows carry `newBytes`; `--picker` chips take
-  `readonly`; `InputSelector` survives a `403`; a self `--picker`, a `--dir` outside `src/` or an `--owns` folder
-  clash stops before writing. ⚠️ Upgrade: copy `hasAccess` (`entity-navigation/functions.ts`), the `onAuthenticated`
-  lines (`details/Details.vue`), the add row's `@keydown.enter.prevent` (owned `Overview.vue`) and the new keys.
+  on the parent and prints the `toEntity` lift; string-key slices pass `vue-tsc`; attachments rows carry `newBytes`;
+  `--picker` chips take `readonly`; `InputSelector` survives a `403`; the advanced filter's Cancel closes it; a self
+  `--picker`, a `--dir` outside `src/` or an `--owns` folder clash stops before writing. ⚠️ Upgrade: copy `hasAccess`
+  (`entity-navigation/functions.ts`), the `onAuthenticated` lines (`details/Details.vue`), the add row's
+  `@keydown.enter.prevent` (owned `Overview.vue`), the modal's `@cancel` (`filter/Filter.vue`) and the new keys.
 - Guides — corrected and extended from the 6.6.0 test runs (also JSDoc, READMEs and template comments): sign-up,
   confirm and reset links, own sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill,
   permission-gated UI, attachments, patching; eager route imports; http downloads and uploads; an offline outbox.

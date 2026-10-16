@@ -17,8 +17,8 @@
 //                       party-relationship-types slice served under --api relationship-types. The leading
 //                       slash is optional — omit it under Git Bash, which rewrites /foo into a file path.
 //   --singular <name>   singular i18n key, camelCased (default: the camelCased Entity)
-//   --rel <Entity>      generate an overview column for a to-one relation: the related entity's
-//                       FormModalButton + a label resolved through its pool (never the raw nested DTO, which
+//   --rel <Entity>      generate an overview column and a FilterAdv filter for a to-one relation: the related
+//                       entity's FormModalButton + a label resolved through its pool (never the raw nested DTO, which
 //                       has no $title, nor item.rel.title, which goes stale). Repeatable. The related slice
 //                       must already be scaffolded — the column imports from its barrel, and its folder is
 //                       looked up from the scaffolded slices (so a related slice with its own --plural, e.g.
@@ -968,8 +968,10 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             `  ! The chips import from ${join(baseDir, targetFolder)}, which does not exist yet — scaffold the ${pickerName} slice or vue-tsc will fail.`
         )
     }
+    // a --picker row is a plain interface: there is no create() to lift it with
+    const lines = ["one line connects it", "these two lines connect it", "these three lines connect it", "these four lines connect it"]
     console.log(
-        `  Wire it into the ${name} slice (the editor is generated; ${sliceGenerated ? "one line connects it" : "these three lines connect it"}):`
+        `  Wire it into the ${name} slice (the editor is generated; ${lines[(sliceGenerated ? 0 : 2) + (pickerName ? 0 : 1)]}):`
     )
     console.log(
         sliceGenerated
@@ -984,6 +986,11 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             ? `    ✓ ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // already written by this run`
             : `    3. ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // add it yourself: the existing service was left untouched`
     )
+    if (!pickerName) {
+        console.log(
+            `    ${sliceGenerated ? "2" : "4"}. ${p("data/EntityService.ts")}  toEntity      lift item.${childField} with ${childName}.create, guarded, as ${join(childFolder, "Entity.ts")} shows`
+        )
+    }
     console.log(`    back-end: e.Related(x => x.${ChildrenPascal}) on ${name} (owned child — no For<>()/controller/budget slot).`)
     console.log(
         `  Nested owned rows, or picking another aggregate's owned rows (no slice to pick from): entities.patterns → "Shapes --owns does not scaffold".`
@@ -1242,8 +1249,8 @@ Entity slice:
   --singular <name>   singular i18n key, camelCased (default: the camelCased Entity)
   --api <path>        API resource path relative to the axios baseURL (default: /<plural>). Must equal the
                       server's [Route(...)] exactly; leading slash optional (omit it under Git Bash)
-  --rel <Entity>      overview column for a to-one relation (the related entity's FormModalButton + a label
-                      resolved through its pool). Repeatable; the related slice must already be scaffolded.
+  --rel <Entity>      overview column and a FilterAdv filter for a to-one relation (the related entity's
+                      FormModalButton + a label resolved through its pool). Repeatable; the related slice must already be scaffolded.
                       A differently-named FK takes a trailing --as <field> (--rel Employee --as assignedToEmployee)
   --dir <path>        target base folder (slice default: src/entities, under src/ — the @/ alias; ejected skin
                       default: src/components/ui)

@@ -277,7 +277,8 @@ substitute: it refetches on every keystroke.
         <!-- keywords (free-text q) -->
         <input v-model.lazy.trim="searchObject.q" class="form-control mb-2" :placeholder="$t('keywords')" @change="handleUpdate" />
 
-        <!-- TODO: one input per SearchObject filter field (placeholder `title` — keep in sync with SearchObject.ts).
+        <!-- TODO: one input per OTHER SearchObject filter field (scaffold.mjs --rel <Related> already wrote one below
+             per relation; placeholder `title` — keep in sync with SearchObject.ts).
              Native <input> → @change="handleUpdate". A custom component (InputSelector, NullableCheckBox,
              DateInput) emits Vue events only → @select="handleUpdate" / @update:modelValue="handleUpdate",
              or the results and the count go stale. A checkbox filter needs its own label — pass `label`

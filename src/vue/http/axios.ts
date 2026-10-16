@@ -31,8 +31,8 @@ export function initAxios(config: { api: string; includeCredentials?: boolean })
         (response) => response,
         (error) => {
             if (
-                error.request.responseType === "blob" &&
-                error.response.data instanceof Blob &&
+                error.request?.responseType === "blob" &&
+                error.response?.data instanceof Blob &&
                 error.response.data.type &&
                 error.response.data.type.toLowerCase().indexOf("json") != -1
             ) {

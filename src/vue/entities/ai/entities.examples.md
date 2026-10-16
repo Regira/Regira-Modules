@@ -220,6 +220,7 @@ export default EntitySearchObject
                 :show-footer="true"
                 :full-width="true"
                 @close="handleClose"
+                @cancel="handleClose"
                 @submit="handleSubmit"
             >
                 <slot name="title"></slot>
