@@ -225,6 +225,12 @@ const kebab = (s) =>
         .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
         .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
         .toLowerCase()
+// --plural becomes a folder under --dir, so it must be one kebab-case word: a path (`--plural ../../lib/x`) would
+// write outside it, and with --overwrite-slice clear template-named entries there.
+if (argv.includes("--plural") && !/^[a-z][a-z0-9-]*$/i.test(opt("--plural", ""))) {
+    console.error("✗ --plural requires a kebab-case folder name — letters, digits and hyphens (e.g. --plural people).")
+    process.exit(1)
+}
 const plural = lowerFirst(opt("--plural", kebab(pluralize(name))))
 // The API resource path defaults to the folder name, but the two are separable: the server may expose a
 // resource under a different name than the slice is filed under (--api /relationship-types).
@@ -264,7 +270,7 @@ for (let i = 0; i < argv.length; i++) {
     const value = argv[i + 1]
     const hasValue = !!value && !value.startsWith("--")
     if (flag === "--owns") {
-        if (!hasValue) {
+        if (!hasValue || !/^[A-Z][A-Za-z0-9]*$/.test(value)) {
             console.error("✗ --owns requires a PascalCase child class name (e.g. --owns OrderLine).")
             process.exit(1)
         }
@@ -895,10 +901,6 @@ if (attachmentsOwner && !sliceGenerated) {
 }
 
 function scaffoldOwned(childName, fieldName, pickerName, fkName) {
-    if (!/^[A-Z]/.test(childName)) {
-        console.error(`✗ --owns ${childName}: expected a PascalCase child name, e.g. --owns OrderLine`)
-        return
-    }
     const srcRoot = pickerName ? ownedJoinSrcRoot : ownedSrcRoot
     if (!existsSync(srcRoot)) {
         console.error(`✗ ${srcRoot} not found — regira is missing the ${pickerName ? "owned-slice-join" : "owned-slice"} template.`)

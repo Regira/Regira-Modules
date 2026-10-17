@@ -65,6 +65,8 @@ which the server would bind to `default`.
   `initApiAxios`; the real function is `initAxios`.
 - **Blob errors.** When a request uses `responseType: "blob"` and the server returns a JSON error, the
   response interceptor parses the blob back to JSON so error handlers see the real payload (not a Blob).
+  A JSON-typed body that does not parse (an empty `application/problem+json`) stays a Blob, and the request
+  still rejects.
 - **One instance.** Do not `axios.create` your own — register and reuse the `initAxios` instance so auth
   and credentials apply uniformly.
 

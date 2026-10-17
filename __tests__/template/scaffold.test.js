@@ -809,6 +809,20 @@ describe("scaffold.mjs guards", () => {
         mkdirSync(app("ignored"), { recursive: true })
         expect(() => run("Thing", "--api", "/C:/Program Files/Git/products", "--no-auth")).toThrow(/expanded the leading slash/)
     })
+
+    test("refuses a non-PascalCase --owns child before the parent is written", () => {
+        // the parent would import a child slice that is never scaffolded, and vue-tsc fails on it (TS2307)
+        expect(runFailing("Waybill", "--owns", "waybillLine", "--no-auth")).toContain("--owns requires a PascalCase child class name")
+        expect(isDir("src", "entities", "waybills")).toBe(false)
+    })
+
+    test("refuses a --plural that is not a kebab-case folder name before anything is written", () => {
+        // --plural becomes a folder under --dir: a path writes outside it, and a following flag is not a name
+        expect(runFailing("Coupon", "--plural", "../../lib/coupons", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+        expect(runFailing("Coupon", "--plural", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+        expect(isDir("lib")).toBe(false)
+        expect(isDir("src", "entities", "coupons")).toBe(false)
+    })
 })
 
 describe("scaffold.mjs output type-checks", () => {

@@ -1598,6 +1598,13 @@ onAuthenticated(() => load())
 > a newer one superseded writes neither rows nor feedback
 > ([Feedback](#feedback-for-custom-saves-outside-useform) covers why the banner matters), and `useDetails`'s
 > `item.value == null` guard is the Details equivalent.
+>
+> ⚠️ **Clear another account's data before the reload.** A failed search or load keeps what is on screen,
+> which is right for a dropped connection. It is wrong when someone else signed in behind the LoginModal:
+> their refused reload (403/404) would leave the previous account's rows under the error banner. So the
+> scaffolded views remember the account whose data they show (`shownFor`) and clear `items`/`itemsCount` or
+> `item` when a token for another account arrives. A refresh of the same account's token keeps them, form
+> edits included.
 
 Slices scaffolded with `--no-auth` have these hooks stripped — and because `load` is destructured from
 `useDetails` **only** to feed the Details hook, `--no-auth` also drops `load` from that destructure
@@ -1605,10 +1612,23 @@ Slices scaffolded with `--no-auth` have these hooks stripped — and because `lo
 binding when the app enables the auth plugin later:
 
 ```ts
-// overview/Overview.vue — `searchHandler` is already in the useSearchView destructure (useRouteOverview needs it).
-import { onAuthenticated } from "@regira/modules/vue/auth"
+// overview/Overview.vue — `items`, `itemsCount` and `searchHandler` are already in the useSearchView destructure.
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 
-onAuthenticated(() => searchHandler(false), { immediate: false })
+// re-searches on every token, clearing the previous account's rows first when another account signed in
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen
+onAuthenticated(
+    () => {
+        const userId = useGlobalAuth()?.authData?.userId
+        if (userId !== shownFor) {
+            shownFor = userId
+            items.value = undefined
+            itemsCount.value = undefined
+        }
+        searchHandler(false)
+    },
+    { immediate: false }
+)
 ```
 
 ```ts
@@ -1616,12 +1636,14 @@ onAuthenticated(() => searchHandler(false), { immediate: false })
 // const { item, …, load, feedback } = useDetails(service)
 import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 
-// reloads for another account's sign-in, and keeps the form when the same account's token is refreshed
+// reloads for another account's sign-in, clearing the previous account's row first so a refused reload (403/404)
+// never leaves it on screen, and keeps the form when the same account's token is refreshed
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen
 onAuthenticated(
     () => {
         const userId = useGlobalAuth()?.authData?.userId
-        if (item.value == null || userId !== shownFor) {
+        if (userId !== shownFor) item.value = undefined
+        if (item.value == null) {
             shownFor = userId
             load()
         }

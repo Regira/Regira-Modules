@@ -39,7 +39,13 @@ export function initAxios(config: { api: string; includeCredentials?: boolean })
                 return new Promise((_, reject) => {
                     let reader = new FileReader()
                     reader.onload = () => {
-                        error.response.data = JSON.parse(reader.result as string)
+                        // a body that is not JSON after all (empty, truncated) keeps the blob — the request must still reject,
+                        // or the download never settles
+                        try {
+                            error.response.data = JSON.parse(reader.result as string)
+                        } catch {
+                            // keep the blob
+                        }
                         reject(error)
                     }
 
