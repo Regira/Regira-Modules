@@ -30,6 +30,9 @@ app.use(plugin, { defaultLang, messages })   →  drives the singleton useLang()
 `useLang().translate` (and `$t`); the bare exported `translate` only falls back to the 2-letter
 language prefix (`en-US` → `en`).
 
+`setLangCode` keeps the choice in memory only, so a reload starts from `defaultLang` again. An app that remembers it
+stores `langCode` itself (in `localStorage`, say) and restores it right after installing the plugin.
+
 The same messages translate the validation errors an Entities API sends: a server validator can return a
 translation key (`ValueTooLarge`) instead of a full message, and `toFeedbackError` (from `vue/ui`, used by every entity
 form) shows its translation — `{param}` placeholders filled from the error's args — or the message as sent when the

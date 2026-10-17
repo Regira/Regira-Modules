@@ -7,7 +7,12 @@ import type { IAuthOptions } from "./auth"
 
 export type IAuthenticateInput = { token: string; isAuthenticated: boolean }
 export type IChangePasswordInput = { newPassword: string; currentPassword: string }
-export type IForgotPasswordInput = { username: string; siteUrl: string; siteName?: string }
+export type IForgotPasswordInput = {
+    username: string
+    siteUrl: string
+    /** @deprecated The API names the mail itself and ignores this. */
+    siteName?: string
+}
 export type IResetPasswordInput = { token: string; password: string }
 
 export interface IAuthService {

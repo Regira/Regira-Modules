@@ -13,11 +13,19 @@
                             v-if="!readonly && $slots.summary"
                             type="button"
                             class="btn btn-default my-1 px-2 py-1 opacity-50"
+                            aria-label="Summary"
+                            :aria-pressed="showSummary"
                             @click.stop="showSummary = !showSummary"
                         >
                             <Icon :name="showSummary ? 'look' : 'edit'" />
                         </button>
-                        <button type="button" class="btn btn-default my-1 px-2 py-1 opacity-50" @click.stop="toggleCollapsed">
+                        <button
+                            type="button"
+                            class="btn btn-default my-1 px-2 py-1 opacity-50"
+                            :aria-label="collapsed ? 'Expand' : 'Collapse'"
+                            :aria-expanded="!collapsed"
+                            @click.stop="toggleCollapsed"
+                        >
                             <Icon :name="collapsed ? 'maximize' : 'minimize'" />
                         </button>
                     </div>

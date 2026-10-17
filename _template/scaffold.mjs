@@ -17,15 +17,16 @@
 //                       party-relationship-types slice served under --api relationship-types. The leading
 //                       slash is optional — omit it under Git Bash, which rewrites /foo into a file path.
 //   --singular <name>   singular i18n key, camelCased (default: the camelCased Entity)
-//   --rel <Entity>      generate an overview column for a to-one relation: the related entity's
-//                       FormModalButton + a label resolved through its pool (never the raw nested DTO, which
+//   --rel <Entity>      generate an overview column and a FilterAdv filter for a to-one relation: the related
+//                       entity's FormModalButton + a label resolved through its pool (never the raw nested DTO, which
 //                       has no $title, nor item.rel.title, which goes stale). Repeatable. The related slice
 //                       must already be scaffolded — the column imports from its barrel, and its folder is
 //                       looked up from the scaffolded slices (so a related slice with its own --plural, e.g.
 //                       Person --plural people, still resolves). A differently-named FK
 //                       takes an optional trailing `--as <field>`: `--rel Employee --as assignedToEmployee`
 //                       binds assignedToEmployee(Id) instead of the default employee(Id), still the Employee slice.
-//   --dir <path>        target base folder for a slice (default: src/entities) or an ejected skin (default: src/components/ui)
+//   --dir <path>        target base folder for a slice (default: src/entities; under src/, the @/ alias) or an ejected
+//                       skin (default: src/components/ui)
 //   --owns <Child>      also scaffold an editable owned-collection sub-slice (a `_deleted`-marked scalar-row
 //                       table via useOwnedCollection) under the entity, for a back-end `e.Related(...)` child.
 //                       Repeatable. PascalCase, e.g. --owns OrderLine --owns OrderNote. Works on an existing
@@ -35,6 +36,8 @@
 //                       plural of the child, OrderLine → orderLines). After --rel: the to-one navigation property
 //                       (default camelCase of the class, Employee → employee; its FK is that + Id). Place it right after its --owns/--rel:
 //                       --owns Row --as orderRows  /  --rel Employee --as assignedToEmployee
+//                       It renames the key only: an --owns sub-slice folder stays the kebab-cased class plural
+//                       (OrderLine → order-lines/).
 //   --picker <Target>   the --owns before it is a PURE JOIN onto <Target> — only the two FKs, no scalar fields
 //                       of its own: emit InputSelectorInline chips selecting <Target> instead of an editable
 //                       table, over a plain join-row interface. Chains after --as; the picked slice must
@@ -71,13 +74,20 @@
 //   node .../scaffold.mjs --ui DefaultModal
 
 import { readdirSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "fs"
-import { resolve, dirname, join, relative } from "path"
+import { resolve, dirname, join, relative, isAbsolute } from "path"
 import { fileURLToPath } from "url"
 
 const argv = process.argv.slice(2)
 const opt = (flag, fallback) => {
     const i = argv.indexOf(flag)
-    return i >= 0 && argv[i + 1] ? argv[i + 1] : fallback
+    if (i < 0) return fallback
+    const value = argv[i + 1]
+    // a flag without its value, or followed by the next flag: `--api --no-auth` would emit `const api = "/--no-auth"`
+    if (!value || value.startsWith("--")) {
+        console.error(`✗ ${flag} requires a value${value ? `, but is followed by ${value}` : ""}.`)
+        process.exit(1)
+    }
+    return value
 }
 // The entity name is the first bare token — but a flag's VALUE is bare too, so `--dir src/modules` would
 // otherwise be read as the entity (and `--attachments --dir x` would die on "SrcModules is not PascalCase").
@@ -128,7 +138,7 @@ function scaffoldUi(component) {
         process.exit(1)
     }
     const manifest = JSON.parse(readFileSync(join(uiRoot, "manifest.json"), "utf8"))
-    if (!component || component === "list") {
+    if (component === "list") {
         console.log("Ejectable UI components (scaffold.mjs --ui <Component>):")
         for (const entry of manifest) console.log(`  · ${entry.name}  (${entry.files.join(", ")})`)
         return
@@ -222,6 +232,12 @@ const kebab = (s) =>
         .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
         .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
         .toLowerCase()
+// --plural becomes a folder under --dir, so it must be one kebab-case word: a path (`--plural ../../lib/x`) would
+// write outside it, and with --overwrite-slice clear template-named entries there.
+if (argv.includes("--plural") && !/^[a-z][a-z0-9-]*$/.test(argv[argv.indexOf("--plural") + 1] ?? "")) {
+    console.error("✗ --plural requires a kebab-case folder name — lower-case letters, digits and hyphens (e.g. --plural people).")
+    process.exit(1)
+}
 const plural = lowerFirst(opt("--plural", kebab(pluralize(name))))
 // The API resource path defaults to the folder name, but the two are separable: the server may expose a
 // resource under a different name than the slice is filed under (--api /relationship-types).
@@ -261,7 +277,7 @@ for (let i = 0; i < argv.length; i++) {
     const value = argv[i + 1]
     const hasValue = !!value && !value.startsWith("--")
     if (flag === "--owns") {
-        if (!hasValue) {
+        if (!hasValue || !/^[A-Z][A-Za-z0-9]*$/.test(value)) {
             console.error("✗ --owns requires a PascalCase child class name (e.g. --owns OrderLine).")
             process.exit(1)
         }
@@ -340,6 +356,12 @@ for (let i = 0; i < argv.length; i++) {
             )
             process.exit(1)
         }
+        if (value === name) {
+            console.error(
+                `✗ --picker ${value} names the ${name} slice itself. A self-referencing many-to-many is written by hand: the join row's picked FK would be ${lowerFirst(name)}Id, the parent FK's own name, and the chips would import the slice's own barrel. See the entities patterns guide → "Shapes --owns does not scaffold".`
+            )
+            process.exit(1)
+        }
         pending.entry.picker = value
         pending.picker = true
         pending.valueIndex = i + 1
@@ -357,6 +379,20 @@ for (const o of owns) {
     }
 }
 
+// An owned sub-slice lives in the slice's folder, named after the child class (Detail → details/). A name that is
+// one of the slice's own entries would share that folder: the parent's model imports a folder with no barrel, and
+// --overwrite-slice would remove the slice's own files to make room. Refused before anything is written.
+const sliceEntries = existsSync(srcRoot) ? new Set(readdirSync(srcRoot)) : new Set()
+for (const o of owns) {
+    const folder = kebab(pluralize(o.child))
+    if (sliceEntries.has(folder)) {
+        console.error(
+            `✗ --owns ${o.child}: its sub-slice folder "${folder}/" is one of the slice's own. The folder is the kebab-cased class plural, and --as renames the JSON key only, so give the child class another name (--owns ${name}${o.child} --as ${o.field ?? lowerFirst(pluralize(o.child))} keeps the key).`
+        )
+        process.exit(1)
+    }
+}
+
 warnDomGlobal(name, "")
 for (const o of owns) warnDomGlobal(o.child, " (--owns)")
 for (const r of rels) warnDomGlobal(r.name, " (--rel)")
@@ -367,11 +403,16 @@ for (const r of rels) warnDomGlobal(r.name, " (--rel)")
 const ownedField = ({ child, field }) => field ?? lowerFirst(pluralize(child))
 
 // The import alias mirrors the target folder: `--dir src/modules` must emit "@/modules/...", not the
-// default "@/entities/...", or the generated slice cannot resolve its imports.
-const aliasRoot = baseDir
-    .replace(/\\/g, "/")
-    .replace(/^\.?\/?src\//, "")
-    .replace(/\/+$/, "")
+// default "@/entities/...", or the generated slice cannot resolve its imports. `@/` is src/, so a folder
+// outside it (or src/ itself) has no alias to import through.
+const aliasRel = relative(resolve(process.cwd(), "src"), resolve(process.cwd(), baseDir))
+if (!aliasRel || aliasRel.startsWith("..") || isAbsolute(aliasRel)) {
+    console.error(
+        `✗ --dir ${baseDir} is not a folder under src/. The slice imports its siblings through the @/ alias, which is src/ (e.g. --dir src/modules).`
+    )
+    process.exit(1)
+}
+const aliasRoot = aliasRel.replace(/\\/g, "/")
 // A --rel's slice folder is looked UP, not re-derived: the related slice may have been scaffolded with its own
 // --plural (`Person --plural people` lives in "people"), and re-deriving it emits imports from a folder that
 // does not exist. Every generated config.ts carries `key: "<PascalCase class>"`, so the folder holding that
@@ -436,6 +477,9 @@ const insertAfterOrFail = (text, anchor, addition, file) => {
     }
     return insertAfter(text, anchor, addition)
 }
+// the model's fields go right after its `id` line, above the placeholder `title` and its TODO block, so removing
+// those leaves the generated fields in place
+const MODEL_FIELDS_ANCHOR = "id: number = 0"
 const insertAfter = (text, anchor, addition) => {
     if (!addition) return text
     const i = text.indexOf(anchor)
@@ -522,7 +566,7 @@ function applyRelations(relPath, text) {
             return insertAfter(text, `<div class="col">{{ $t("name") }}</div>`, relationBlocks.headers)
         case "data/Entity.ts":
             text = insertAfter(text, `import { EntityBase } from "@regira/modules/vue/entities"`, relationBlocks.modelImports)
-            return insertAfter(text, `title = ""`, relationBlocks.fields)
+            return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, relationBlocks.fields, "data/Entity.ts")
         case "filter/SearchObject.ts":
             return insertAfterOrFail(text, `title?: string`, relationBlocks.searchFields, "filter/SearchObject.ts")
         case "filter/FilterAdv.vue": {
@@ -567,7 +611,19 @@ function withFilterReset(text) {
 // with nothing owned the marker is dead weight in a file the user is told to leave alone, so drop it.
 const OWNED_FILTER_TODO = /^[^\S\r\n]*\/\/ TODO \(owned collections only\):.*\r?\n/m
 function applyOwnedCollections(relPath, text) {
-    if (relPath.replace(/\\/g, "/") !== "data/EntityService.ts") return text
+    const path = relPath.replace(/\\/g, "/")
+    // the field each editor binds, so the prepareItem filter below type-checks as scaffolded — as --rel declares
+    // its fields. `import type`: an owned row never needs the parent at runtime, and the erased form cannot cycle
+    if (path === "data/Entity.ts" && owns.length) {
+        text = insertAfter(
+            text,
+            `import { EntityBase } from "@regira/modules/vue/entities"`,
+            owns.map((o) => `import type { Entity as ${o.child} } from "../${kebab(pluralize(o.child))}"`).join("\n")
+        )
+        const fields = owns.map((o) => `    ${ownedField(o)}?: Array<${o.child}>`).join("\n")
+        return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, fields, "data/Entity.ts")
+    }
+    if (path !== "data/EntityService.ts") return text
     const marker = text.match(OWNED_FILTER_TODO)
     if (!marker) {
         console.error(
@@ -612,7 +668,7 @@ function applyAttachments(relPath, text) {
                 `import { EntityBase } from "@regira/modules/vue/entities"`,
                 `import type { Entity as EntityAttachment } from "../../entity-attachments"`
             )
-            return insertAfter(text, `title = ""`, `    attachments?: Array<EntityAttachment>`)
+            return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, `    attachments?: Array<EntityAttachment>`, "data/Entity.ts")
         case "data/EntityService.ts":
             need(ATTACHMENT_ANCHORS.prepareDoc, "data/EntityService.ts")
             need(ATTACHMENT_ANCHORS.superPrepare, "data/EntityService.ts")
@@ -702,8 +758,8 @@ function copyDir(from, to, rootFrom = from) {
         else {
             let content = subst(readFileSync(src, "utf8"))
             if (noAuth) content = stripAuth(content)
-            // attachments first: both it and --rel insert at the same `title = ""` anchor, and the LAST
-            // writer ends up nearest it — this order puts the relation fields above the attachments field
+            // attachments first: it, --rel and --owns insert after the same `id` line, and the LAST writer
+            // ends up nearest it — this order puts the relation fields above the attachments field
             content = applyAttachments(relative(rootFrom, src), content)
             content = applyRelations(relative(rootFrom, src), content)
             content = applyOwnedCollections(relative(rootFrom, src), content)
@@ -763,7 +819,7 @@ if (sliceGenerated) {
     for (const f of customize) console.log(`    · ${join(baseDir, plural, f)}`)
     console.log(`  Then register its plugin in ${join(baseDir, "index.ts")} (see the entities setup guide → Add entities).`)
     console.log(
-        `  Confirm api "${api}" equals the server route — [Route("${api.slice(1)}")] on ${name}Controller. A mismatch 404s every call; re-run with --api <path> to change it.`
+        `  Confirm api "${api}" equals the server route — [Route("${api.slice(1)}")] on ${name}Controller, or with mapped entity endpoints (MapEntityEndpoints) the route of ${name}'s registration. A mismatch 404s every call; re-run with --api <path> to change it.`
     )
     missingChromeKeys()
     if (attachmentsOwner) {
@@ -772,7 +828,7 @@ if (sliceGenerated) {
     }
     for (const r of relations) {
         console.log(
-            `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key; the API filters on it via its SearchObject.`
+            `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key. The API must filter on it too: its SearchObject needs ICollection<int>? ${upperFirst(r.field)}Id and a filter (back-end entities.instructions → Steps 2 and 6), or remove this filter — a parameter the SearchObject lacks is ignored and every row comes back.`
         )
         // the list, filter and model are written for the relation, the form is not — say so, or the run reads as done
         // and a required FK scaffolds into a form that cannot save
@@ -798,9 +854,9 @@ if (sliceGenerated) {
     console.log(`· ${join(baseDir, plural)} exists — leaving the slice as-is, adding ${adding} only.`)
 }
 
-// The keys a slice's chrome translates (form buttons, the delete dialog). `scaffold.mjs --shell` seeds them, but a
-// shell scaffolded by an older version lacks the newer ones, and $t renders a missing key raw — so name the ones this
-// app's translations do not have instead of leaving buttons reading "save" / "delete".
+// The keys a slice's chrome translates (form buttons, the names of its icon-only buttons, the delete dialog).
+// `scaffold.mjs --shell` seeds them, but a shell scaffolded by an older version lacks the newer ones, and $t renders a
+// missing key raw — so name the ones this app's translations do not have instead of leaving buttons reading "save".
 function missingChromeKeys() {
     const file = resolve(process.cwd(), "public", "data", "translations.json")
     if (!existsSync(file)) return
@@ -810,11 +866,24 @@ function missingChromeKeys() {
     } catch {
         return // unreadable — nothing to compare against
     }
-    const seeds = { save: "Save", cancel: "Cancel", delete: "Delete", restore: "Restore", deleteItem: "Delete {title}?" }
+    const seeds = {
+        save: "Save",
+        cancel: "Cancel",
+        delete: "Delete",
+        restore: "Restore",
+        deleteItem: "Delete {title}?",
+        edit: "Edit",
+        clear: "Clear",
+        filter: "Filter",
+        search: "Search",
+        select: "Select",
+        remove: "Remove",
+        download: "Download",
+    }
     const missing = Object.keys(seeds).filter((key) => !(key in translations))
     if (missing.length) {
         console.log(
-            `! public/data/translations.json has no ${missing.map((k) => `"${k}"`).join(", ")} — the slice's form buttons and delete dialog would render ${missing.length === 1 ? "it" : "them"} raw. Add: ${missing.map((k) => `"${k}": { "en": "${seeds[k]}" }`).join(", ")}`
+            `! public/data/translations.json has no ${missing.map((k) => `"${k}"`).join(", ")} — the slice's buttons and delete dialog would render ${missing.length === 1 ? "it" : "them"} raw. Add: ${missing.map((k) => `"${k}": { "en": "${seeds[k]}" }`).join(", ")}`
         )
     }
     if (translations.deleteItem && !JSON.stringify(translations.deleteItem).includes("{title}")) {
@@ -839,10 +908,6 @@ if (attachmentsOwner && !sliceGenerated) {
 }
 
 function scaffoldOwned(childName, fieldName, pickerName, fkName) {
-    if (!/^[A-Z]/.test(childName)) {
-        console.error(`✗ --owns ${childName}: expected a PascalCase child name, e.g. --owns OrderLine`)
-        return
-    }
     const srcRoot = pickerName ? ownedJoinSrcRoot : ownedSrcRoot
     if (!existsSync(srcRoot)) {
         console.error(`✗ ${srcRoot} not found — regira is missing the ${pickerName ? "owned-slice-join" : "owned-slice"} template.`)
@@ -912,19 +977,38 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
             `  ! The chips import from ${join(baseDir, targetFolder)}, which does not exist yet — scaffold the ${pickerName} slice or vue-tsc will fail.`
         )
     }
-    console.log(`  Wire it into the ${name} slice (the editor is generated; these ${sliceGenerated ? "two" : "three"} lines connect it):`)
+    // a --picker row is a plain interface: there is no create() to lift it with
+    const lines = ["one line connects it", "these two lines connect it", "these three lines connect it", "these four lines connect it"]
     console.log(
-        `    1. ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // import type { Entity as ${childName} } from "../${childFolder}"`
-    )
-    console.log(
-        `    2. ${p("details/Form.vue")}       render  <${childName}Overview v-model="item.${childField}" />   // import { ${childName}Overview } from "../${childFolder}"`
+        `  Wire it into the ${name} slice (the editor is generated; ${lines[(sliceGenerated ? 0 : 2) + (pickerName ? 0 : 1)]}):`
     )
     console.log(
         sliceGenerated
-            ? `    ✓ ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // already written by this run — it type-checks as soon as step 1 declares the field`
+            ? `    ✓ ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // already written by this run`
+            : `    1. ${p("data/Entity.ts")}         field   ${childField}?: Array<${childName}>   // import type { Entity as ${childName} } from "../${childFolder}"`
+    )
+    console.log(
+        `    ${sliceGenerated ? "1" : "2"}. ${p("details/Form.vue")}       render  <${childName}Overview v-model="item.${childField}" :readonly="readonly" />   // import { ${childName}Overview } from "../${childFolder}"`
+    )
+    console.log(
+        sliceGenerated
+            ? `    ✓ ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // already written by this run`
             : `    3. ${p("data/EntityService.ts")}  prepareItem   ${filterLine}   // add it yourself: the existing service was left untouched`
     )
+    if (!pickerName) {
+        console.log(
+            `    ${sliceGenerated ? "2" : "4"}. ${p("data/EntityService.ts")}  toEntity      lift item.${childField} with ${childName}.create, guarded, as ${join(childFolder, "Entity.ts")} shows`
+        )
+    }
     console.log(`    back-end: e.Related(x => x.${ChildrenPascal}) on ${name} (owned child — no For<>()/controller/budget slot).`)
+    console.log(
+        `  Nested owned rows, or picking another aggregate's owned rows (no slice to pick from): entities.patterns → "Shapes --owns does not scaffold".`
+    )
+    if (!pickerName) {
+        console.log(
+            `  Rows with a relation AND scalars (invoice lines): keep this table and put an InputSelector in the relation column — entities.patterns → "Owned rows with a relation and scalars".`
+        )
+    }
     if (pickerName) {
         console.log(
             `    back-end: eager-load the nested ${pickerName} too — .Include(x => x.${ChildrenPascal}).ThenInclude(r => r.${pickerName}) — or every chip renders blank.`
@@ -1002,9 +1086,10 @@ function scaffoldShell() {
     console.log("  Next: ensure package.json has the known-good dependency set (entities.setup.md → Install),")
     console.log("  then scaffold entities and register them in src/entities/index.ts.")
     if (written.includes("vite.config.ts")) {
-        console.log(`  config.json → api is "/api", and vite.config.ts proxies /api to https://localhost:7001: set that target to`)
-        console.log(`  the API's HTTPS launch URL, and serve the API's controllers under the "api" route prefix (entities.setup.md →`)
-        console.log(`  The URL contract).`)
+        console.log(`  config.json → api is "/api", and vite.config.ts proxies /api to https://localhost:7001: set that target to the`)
+        console.log(`  API's launch URL (its http:// one when the API serves HTTP only in development), and serve the API under the "api"`)
+        console.log(`  route prefix — UseCentralRoutePrefix for controllers, MapEntityEndpoints(o => o.Prefix = "api") for mapped entity`)
+        console.log(`  endpoints (entities.setup.md → The URL contract).`)
     }
     console.log("  The layout/navigation components are default implementations, not a prescribed design — restyle them,")
     console.log("  or replace any of them with your own as long as the functionality stays available")
@@ -1012,8 +1097,8 @@ function scaffoldShell() {
     if (!noAuth) {
         console.log(`  public/config.json → clientApp is "my-app": set it to the API's JWT audience (Authentication:Jwt:Audience),`)
         console.log(`  or every authenticated call 401s. Sign-in posts to "auth" under the API base — add a loginUrl only for another endpoint.`)
-        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Admin") — the Identity + AddRoles`)
-        console.log(`  default. The match is exact and case-sensitive, so confirm the role name against the API (and`)
+        console.log(`  src/infrastructure/user-plugin.ts wires $isAdmin to hasRole("Administrator") — the role the back-end`)
+        console.log(`  guides seed. The match is exact and case-sensitive, so confirm the role name against the API (and`)
         console.log(`  switch to hasPermission on a permissions-claim backend), or $isAdmin stays false for everyone.`)
     }
 }
@@ -1032,6 +1117,9 @@ function attachmentsTodo() {
         `    public/data/translations.json  the shell ships "files" and "addNewFile(s)" (literal key, parentheses included) in English — add the other languages from config.json → langs`
     )
     console.log(`    back-end: register the owner's files (WithAttachments + HasAttachments<>).`)
+    console.log(
+        `    The overrides save the owner, then upload each file. To send the files inside the owner's own POST/PUT instead (one request): entities.patterns → "Files in the creating request".`
+    )
     console.log(
         `    Adding getAttachments/addAttachment of your own? upload/getFile live on AxiosWithFilesInstance - call useAxios() inside the method; this.axios stays a plain AxiosInstance.`
     )
@@ -1170,17 +1258,20 @@ Entity slice:
   --singular <name>   singular i18n key, camelCased (default: the camelCased Entity)
   --api <path>        API resource path relative to the axios baseURL (default: /<plural>). Must equal the
                       server's [Route(...)] exactly; leading slash optional (omit it under Git Bash)
-  --rel <Entity>      overview column for a to-one relation (the related entity's FormModalButton + a label
-                      resolved through its pool). Repeatable; the related slice must already be scaffolded.
+  --rel <Entity>      overview column and a FilterAdv filter for a to-one relation (the related entity's
+                      FormModalButton + a label resolved through its pool). Repeatable; the related slice must already be scaffolded.
                       A differently-named FK takes a trailing --as <field> (--rel Employee --as assignedToEmployee)
-  --dir <path>        target base folder (slice default: src/entities; ejected skin default: src/components/ui)
+  --dir <path>        target base folder (slice default: src/entities, under src/ — the @/ alias; ejected skin
+                      default: src/components/ui)
 
 Owned collections (a back-end e.Related(...) child):
   --owns <Child>      also scaffold an editable owned-collection sub-slice. Repeatable, PascalCase, e.g.
                       --owns OrderLine. Works on an existing slice too (only the sub-slice is generated then)
   --as <fieldName>    JSON key for the --owns OR --rel directly before it — must match the back-end navigation's
                       camelCase key. After --owns: the collection field (default camelCase plural, OrderLine →
-                      orderLines). After --rel: the to-one nav property (default camelCase class, Employee → employee)
+                      orderLines). After --rel: the to-one nav property (default camelCase class, Employee → employee).
+                      It renames the key only: an --owns sub-slice folder stays the kebab-cased class plural
+                      (OrderLine → order-lines/)
   --picker <Entity>   the --owns before it is a PURE JOIN onto <Entity> (only the two FKs, no scalar fields of
                       its own): emit chips selecting <Entity> instead of an editable table. Chains after --as.
                       The picked slice must already be scaffolded. A join row that also carries a scalar

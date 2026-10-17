@@ -44,8 +44,10 @@ Then register the slice's `plugin` in `src/entities/index.ts` (see the entities 
 ## Owned collections (`--owns <Child>`)
 
 `--owns <Child>` also scaffolds `owned-slice/` under the entity — an editable, `_deleted`-marked scalar-row
-table (`useOwnedCollection`) for a back-end `e.Related(...)` child. It prints the three lines that wire it into
-the parent (`Array<Child>` field, `<ChildOverview>` in the form, and the `prepareItem` `_deleted` filter). The
+table (`useOwnedCollection`) for a back-end `e.Related(...)` child. Three lines wire it into the parent: the
+`Array<Child>` field, `<ChildOverview>` in the form, and the `prepareItem` `_deleted` filter. A run that also
+scaffolds the parent writes the field and the filter itself and prints the form line; against an existing parent
+it prints all three. The
 child model carries a `static create(values?)` named constructor: stored rows arrive as plain JSON (only the
 root item passes through a service's `toEntity`), so lift them with it in the **owning** service's `toEntity`.
 Use `InputSelectorInline` chips instead when the rows link to another entity (see the entities patterns guide).

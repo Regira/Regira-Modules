@@ -46,16 +46,17 @@ import "@/assets/theme.scss" // the app's theme — always give the app one, eve
 
 Library tokens (shipped in `@regira/modules/style.css`, all overridable):
 
-| Token                      | Default                      | Used by                                                                                                                                                                    |
-| -------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--rg-accent`              | `var(--bs-primary, #0d6efd)` | the library's accent token — **override** it to re-accent the app; it is not a spare slot to invent siblings of                                                            |
-| `--rg-accent-bg`           | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                                                                                        |
-| `--rg-deleted-bg`          | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                                                                                  |
-| `--rg-backdrop`            | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                                                                                 |
-| `--rg-modal-z`             | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
-| `--rg-dropdown-z`          | `99999`                      | autocomplete results z-index — set it on `:root` or `.autocomplete-items`: the panel lives on `<body>`, so a container's value never reaches it                            |
-| `--rg-dropdown-max-height` | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control; like `--rg-dropdown-z`, set it on `:root` or `.autocomplete-items`    |
-| `--rg-dragging-opacity`    | `0.6`                        | `.is-dragging`                                                                                                                                                             |
+| Token                       | Default                      | Used by                                                                                                                                                                    |
+| --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--rg-accent`               | `var(--bs-primary, #0d6efd)` | the library's accent token — **override** it to re-accent the app; it is not a spare slot to invent siblings of                                                            |
+| `--rg-accent-bg`            | `rgba(0, 0, 255, 0.1)`       | `.rg-accent-bg` — the normal-type modal header tint                                                                                                                        |
+| `--rg-deleted-bg`           | `rgba(220, 53, 69, 0.25)`    | `.is-deleted` (pending-delete chips/rows)                                                                                                                                  |
+| `--rg-backdrop`             | `rgba(0, 0, 0, 0.5)`         | modal mask                                                                                                                                                                 |
+| `--rg-modal-z`              | `9998`                       | modal mask z-index — and the `#modals` teleport host, which the library lifts out of `.fixed-top`'s band so app chrome cannot cover a modal (`#loginModal` sits one above) |
+| `--rg-dropdown-z`           | `99999`                      | autocomplete results z-index — set it on `:root` or `.autocomplete-items`: the panel lives on `<body>`, so a container's value never reaches it                            |
+| `--rg-dropdown-max-height`  | `13rem`                      | autocomplete results — a ceiling: the panel clamps further to the room left above/below the control; like `--rg-dropdown-z`, set it on `:root` or `.autocomplete-items`    |
+| `--rg-dragging-opacity`     | `0.6`                        | `.is-dragging`                                                                                                                                                             |
+| `--rg-form-section-padding` | `0 0.5rem 0.5rem`            | `.form-section-body` — `FormSection`'s content, lined up with its title's text and clear of a frame an app gives `.form-section`; `0` sets it flush                        |
 
 **The Bootstrap nuance an agent must not get wrong:** apps import _precompiled_ Bootstrap 5.3, whose
 component styles read **component-level** vars baked at compile time (`.btn-primary { --bs-btn-bg: #0d6efd }`).
@@ -75,12 +76,32 @@ Overriding `:root { --bs-primary: … }` alone recolors almost nothing. Re-theme
     --bs-btn-hover-bg: #6d28d9;
     --bs-btn-hover-border-color: #6d28d9;
 }
+.btn-info,
+.btn-outline-info {
+    --bs-btn-border-color: var(--rg-accent);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #6d28d9;
+    --bs-btn-hover-border-color: #6d28d9;
+}
+.btn-info {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--rg-accent);
+}
+.btn-outline-info {
+    --bs-btn-color: var(--rg-accent);
+}
 .pagination {
     --bs-pagination-active-bg: var(--rg-accent);
     --bs-pagination-active-border-color: var(--rg-accent);
     --bs-pagination-color: var(--rg-accent);
 }
 ```
+
+Re-accent `.btn-info` / `.btn-outline-info` with `.btn-primary`: the scaffolded New, filter and selector buttons and
+the form's overview link use them, and they stay Bootstrap cyan otherwise.
+
+Tinting the page with `--bs-body-bg` also tints every `.form-control` and `.form-select`: precompiled Bootstrap paints
+inputs with the body background, so set their `background-color` back when only the page should change.
 
 Theming belongs in `theme.scss` — never fork or patch the library css.
 
@@ -104,7 +125,9 @@ them in `theme.scss` — no `::v-deep`, no `!important` needed.
 - **Part hooks** where inner parts are styling targets: `rg-modal__header` / `rg-modal__body` /
   `rg-modal__footer`, `rg-paging__page`, `rg-feedback__pending` / `rg-feedback__success` /
   `rg-feedback__error` / `rg-feedback__close-button`, `rg-loading-fallback` / `rg-loading-spinner`
-  (the unbranded spinner and its wrapper — size or restyle them when no `loadingPlugin` image is set).
+  (the unbranded spinner and its wrapper — size or restyle them when no `loadingPlugin` image is set),
+  `form-section-title` / `form-section-body` (`FormSection`'s header bar and its content, padded by
+  `--rg-form-section-padding`).
 - **State classes** (`is-*`): `is-deleted`, `is-dragging`, `is-selected` (app convention), `.active`
   on the current page.
 - Adding a class to a component's **root** needs no prop — Vue class fallthrough:
@@ -136,14 +159,15 @@ phone-first app they are a functional decision, and they show up at 375 px, neve
 | `FormLabel`      | the label                         | `md`  | only with `auto-hide` (default `false`) |
 
 To keep a tab's title, omit its `icon` in `Tab.create`. Otherwise override `.rg-tab-nav .nav-link span` /
-`.form-buttons .btn span` — one of the cases where `!important` is required (see L0).
+`.form-buttons .btn span` — one of the cases where `!important` is required: Bootstrap hides the label with its
+`d-none` utility, which carries `!important` (`.rg-tab-nav .nav-link span { display: inline !important; }`).
 
 ## L2 — Recompose with slots
 
 Slots are typed (`XxxSlots`, visible via `get_type`) — the main seams:
 
 - `DefaultModal`: `title`, `header-close-button{handleClose}`, default, `buttons`,
-  `footer-close-button{handleCancel}`, `footer-submit-button{handleClose}`
+  `footer-close-button{handleCancel}`, `footer-submit-button{handleSubmit}` (`handleClose`: deprecated alias)
 - `Paging`: `firstPage{page}`, default `{page, route, handleChange}`, `lastPage{page}`
 - `Autocomplete`: scoped default `{item, q}` — **the** result-item rendering seam
 - `Feedback`: `close-button`, `pending`, `success`, `error`
@@ -231,8 +255,9 @@ slots. Every replacement/ejected skin MUST:
    variants), `d-none d-md-inline` on button labels, `d-none d-md-block` to drop columns on small
    screens, `$screen` for JS-side switches.
 4. Render every slot and fire every emit of the contract, per component:
-    - **Modal**: render the default slot when `isVisible`; emit `close` on Esc and the header close;
-      emit `cancel`/`submit` from the footer actions; honor `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
+    - **Modal**: render the default slot when `isVisible`; focus the dialog when it opens and emit `close` on Esc
+      and the header close; emit `cancel`/`submit` from the footer actions; honor
+      `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
     - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default

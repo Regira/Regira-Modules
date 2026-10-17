@@ -39,9 +39,25 @@ archived rows server-side, so the save needs no query parameter.
 ## State toggle (activate / deactivate)
 
 A visible status flag like `isActive` differs from archiving: the row stays in lists, just marked. Give it
-its own search-object field for filtering, and flip it through a **dedicated endpoint** so the update
-touches that one field server-side and leaves the entity's other fields intact. The method reuses the
-injected `axios` + `config.api`, like any [custom endpoint](#custom-endpoints-on-a-service):
+its own search-object field for filtering, and change it with **`patch`**: a JSON merge patch of that one field,
+which the API merges onto the stored row, validates as it validates a save, and answers with the saved row. The
+other fields, owned collections included, stay as they are. Nothing on the service needs writing — the field only
+has to be on the API's input DTO:
+
+```ts
+const { service } = useEntityStore() // the pooled service: the saved row is written into the pool, so every view of it updates
+await service.patch(item.id, { isActive: !item.isActive })
+```
+
+The keys are the input DTO's JSON names, and `null` clears a field. A value the DTO cannot hold — a string for a
+number, an enum name the API does not know — answers the same 400 as a save, so `toFeedbackError` maps it onto the
+field. Wrap the call in feedback (`pending` → `success`/`fail`) like any call outside `useForm` — see
+[Feedback for custom saves](#feedback-for-custom-saves-outside-useform).
+
+A **dedicated endpoint** is for a change the server decides — a state transition with rules of its own, such as an
+approval only some roles may make (`Regira.Entities` → `entities.patterns` → _Domain actions on an entity resource_).
+Reach it through a method on the service, with the injected `axios` + `config.api`, like any
+[custom endpoint](#custom-endpoints-on-a-service), and call it through the **raw** IoC service, then reload the row:
 
 ```ts
 export class EntityService extends EntityServiceBase<Entity> {
@@ -49,32 +65,56 @@ export class EntityService extends EntityServiceBase<Entity> {
         /* … */
     }
 
-    async setActive(id: number, isActive: boolean): Promise<void> {
-        await this.axios.post(`${this.config.api}/${id}/${isActive ? "activate" : "deactivate"}`)
+    async approve(id: number): Promise<void> {
+        await this.axios.post(`${this.config.api}/${id}/approve`)
+    }
+}
+
+const svc = get<EntityService>(Entity.name)!
+await svc.approve(item.id)
+```
+
+`isArchived` / `handleRestore` ([Soft delete](#soft-delete--archived-rows)) stay reserved for true removal.
+
+### Refresh the form after a custom endpoint
+
+<!-- how_to: key=refresh-form-after-custom-endpoint aliases=refresh,reload,stale,re-read -->
+
+A custom endpoint changes the row behind the form's back, so the form goes on showing it as it was. Re-read it
+through the **pooled** service, which also writes the fresh row into the pool, and pass it up with
+`update:modelValue`: the details page and `useForm` both take it, as in the Reload recipe of
+*Form validation & error handling* in this guide.
+
+```ts
+// details/Form.vue — it already has entityService (useEntityStore()'s pooled service), item, feedback and emit
+import { get } from "@regira/modules/vue/ioc"
+import { toFeedbackError } from "@regira/modules/vue/ui"
+import EntityService from "../data/EntityService"
+
+const svc = get<EntityService>(Entity.name)! // raw: the custom endpoint
+
+async function approve() {
+    feedback.pending("Approving…")
+    try {
+        await svc.approve(item.value.id)
+        emit("update:modelValue", await entityService.details(item.value.id))
+        feedback.success("Approved")
+    } catch (ex) {
+        feedback.fail("Approving failed", toFeedbackError(ex))
     }
 }
 ```
-
-Call it through the **raw** IoC service (the pooled store exposes only the `IEntityService` surface), then
-reload the row:
-
-```ts
-const svc = get<EntityService>(Entity.name)!
-await svc.setActive(item.id, !item.isActive)
-```
-
-This is a custom save, so wrap it in feedback (`pending` → `success`/`fail`) like any call outside `useForm` —
-see [Feedback for custom saves](#feedback-for-custom-saves-outside-useform).
-
-`isArchived` / `handleRestore` ([Soft delete](#soft-delete--archived-rows)) stay reserved for true removal.
 
 ## Date hydration
 
 `EntityServiceBase.processItem` converts the server strings **`created`** and **`lastModified`** to
 `Date` automatically. Type them as `Date` on the model; do not parse them yourself. Any other date
-field arrives as a string — convert it in `toEntity`:
+field arrives as a string — convert it in `toEntity`. Edit the override the scaffolded `data/EntityService.ts`
+already has: it overrides `toEntity` and `prepareItem` both, and a second member of the same name is TS2393
+(_Duplicate function implementation_). The same goes for every `toEntity` and `prepareItem` snippet below.
 
 ```ts
+// data/EntityService.ts — the scaffolded toEntity
 override toEntity(item: object): Entity {
     const e = item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
     if (typeof (e as any).publishedOn === "string") e.publishedOn = new Date((e as any).publishedOn)
@@ -87,6 +127,35 @@ override toEntity(item: object): Entity {
 `DateOnly` only as `yyyy-MM-dd`, so a `Date` sent back answers 400. Bind a native
 `<input type="date" v-model="item.day" class="form-control">` (`type="time"` emits `"09:30"`, which the API also
 reads) — `DateInput` emits a `Date`, so it is for `DateTime` fields.
+
+To **show** one, build a local date from its parts: `formatDate("2026-09-21")` parses the string as UTC midnight
+too, a day early west of UTC.
+
+```ts
+import { formatDate } from "@regira/modules/vue/formatters"
+
+// "2026-09-21" → that day at local midnight, so it formats as that day everywhere
+function fromDateOnly(value?: string): Date | undefined {
+    if (!value) return undefined
+    const [year, month, day] = value.split("-").map(Number)
+    return new Date(year, month - 1, day)
+}
+const shown = formatDate(fromDateOnly(item.value.day))
+```
+
+**A cleared input binds `""`.** Emptying an `<input type="date">`, or an `<input type="number" v-model.number>`, sets
+the field to `""`, which the API cannot read as a `DateOnly?` or a `decimal?`: the save answers 400. Send those fields
+as absent from the service's `prepareItem` (it works on a copy, so the form keeps what the user typed):
+
+```ts
+// data/EntityService.ts — the scaffolded prepareItem, for the model's optional date and number fields
+protected override prepareItem(item: Entity): Entity {
+    for (const key of ["day", "budget"] as const) {
+        if ((item[key] as unknown) === "") item[key] = undefined
+    }
+    return super.prepareItem(item)
+}
+```
 
 ⚠️ The `typeof … === "string"` guard is mandatory, not style. `toEntity` runs inside computeds
 (`fromPool`, the library `FormModalButton.modalTitle`), so an unconditional `new Date(x)` mutates the
@@ -119,11 +188,17 @@ marked rows out so they are **absent** from the payload, then `Related(...)` rem
 per-collection `prepareItem` override on the parent's service:
 
 ```ts
+// data/EntityService.ts — the scaffolded prepareItem, one line per owned collection
 protected override prepareItem(item: Order): Order {
-    item.orderLines = item.orderLines?.filter((x) => !x._deleted) ?? []
+    item.orderLines = item.orderLines?.filter((x) => !x._deleted) // unloaded stays absent: [] deletes every row
     return super.prepareItem(item) // keep the root `_`-strip
 }
 ```
+
+`prepareItem` gets a **shallow** copy of the item, so a refused save leaves the form as it was — as long as the
+override reassigns collections, as above. A nested level is filtered onto new objects
+(`.map((r) => ({ ...r, contactData: r.contactData?.filter((c) => !c._deleted) }))`), never by changing the rows
+themselves: those are still the form's.
 
 For an owned/join collection like this, removal is a **mark**, not a splice — but only `useListItemInput` toggles `_deleted` for you (on a
 per-row `handleRemove`). `useOwnedCollection` / `useListInput` just expose the writable collection, so you set
@@ -208,7 +283,9 @@ plain view under your own folder (`src/shop/views/CatalogView.vue`), routed by y
 reuses the slice's machinery rather than re-implementing it:
 
 ```ts
-const service = get<EntityService>(Product.name) // the same registered service the slice uses
+import { useEntityStore as useProductStore } from "@/entities/products"
+
+const { service } = useProductStore() // the slice's pooled service
 const { items, pagingInfo, itemsCount, isLoading, searchHandler } = useSearchView<Product, SearchObject>({
     service,
     searchObject, // your own shape — facets, a slug from the path, whatever the page needs
@@ -216,8 +293,10 @@ const { items, pagingInfo, itemsCount, isLoading, searchHandler } = useSearchVie
 })
 ```
 
-- **Share the service, not the components.** Resolve it from the container under `Entity.name` so both faces
-  read through one pooled cache — a save in the back office is visible to the storefront without a refetch.
+- **Share the store's pooled service, not the components.** `useProductStore().service` reads through the slice's
+  pooled cache, so a save in the back office is visible to the storefront without a refetch. The raw
+  `get<EntityService>(Product.name)` bypasses the pool; keep it for bespoke endpoints (_Custom endpoints on a
+  service_).
 - **`useSearchView` carries over; `useRouteOverview` does not** (it assumes the slice's route names). Sync
   your own URL and keep the fetch/paging/loading/feedback plumbing — see §Overview: `useListView` vs
   `useSearchView` in the instructions.
@@ -241,7 +320,9 @@ const { items, count } = await service.searchUnion(
 
 ## Custom endpoints on a service
 
-Add methods that reuse the injected axios and `config.api`:
+Add methods that reuse the injected axios and `config.api`. `this.axios` is the IoC `"axios"` instance — the one
+`initAxios` built, with the app's `baseURL` and auth header — so a relative URL and a `FormData` body work as they do
+through `useAxios()`:
 
 ```ts
 export class EntityService extends EntityServiceBase<Entity> {
@@ -311,6 +392,13 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 > [Auth reload hooks](#auth-reload-hooks-onauthenticated)). `searchHandler`, `listHandler`, `applySave`
 > and `applyRemove` share that one gate, so a save or a refused delete settling mid-fetch cannot paint over
 > a newer result either.
+
+> **A custom insert on a `/new` route** gets none of `useForm`'s hand-over either. Emit the saved row,
+> `emit("update:modelValue", saved)` (through `service.toEntity(…)` when a custom endpoint answered it), then
+> `router.replace` the route with its id, as `useForm` does (entities.signatures → §6, _What `handleSubmit` does
+> besides saving_). `useDetails` re-loads when `:id` changes on the same route, except when it leaves `new`. Without
+> the emit the page goes on editing the row as it was before the save, without what the server set (a concurrency
+> token; the id too, when a custom endpoint did the insert), and its next save carries no token or inserts again.
 
 ## Entity selector (relation picker) — `selecting/`
 
@@ -397,7 +485,9 @@ so forms do `import { Selector as CategorySelector } from "@/entities/categories
 > [Owned collections](#owned-child-collections) — filtered out in `EntityService.prepareItem`.
 
 Type optional relations `Category | undefined`, not `| null` — selector/autocomplete `v-model`s are
-`T | undefined` (JSON `null` still deserializes fine).
+`T | undefined` (JSON `null` still deserializes fine). A Regira API leaves null properties out
+(`ConfigureDefaultJsonOptions()` → `WhenWritingNull`), so a nullable FK arrives `undefined`: bind a native
+`<select>`'s empty option `:value="undefined"`, not `null`, or normalise in `toEntity`.
 
 ### Editing a many-to-many join — use `InputSelectorInline`
 
@@ -441,6 +531,30 @@ const toggle = (s: Status) => (model.value = model.value.includes(s) ? model.val
 For a chip UI instead of checkboxes, feed the same static array to an `Autocomplete` (options from the array,
 not `service.search`) and bind the picked list — same model, richer control.
 
+## A new row pre-filled from the route
+
+A link such as `/interventions/new?vehicleId=3` (a "new intervention" button on a vehicle) starts the new row on
+that vehicle. `Form.vue` knows the route, so set the FK there, for a new item only — and on every item it is given,
+since the Details page loads the item again (after a sign-in behind the login modal, say) and `useForm` takes the new
+one. Defaults every new row shares belong in the service's `newEntity` override instead.
+
+```ts
+// details/Form.vue, after useForm(...)
+import { watch } from "vue"
+import { useRoute } from "vue-router"
+import { isNewEntity } from "@regira/modules/vue/entities"
+
+const route = useRoute()
+const vehicleId = Number(route.query.vehicleId)
+watch(
+    () => item.value,
+    (it) => {
+        if (it && isNewEntity(it.$id) && vehicleId > 0 && !it.vehicleId) it.vehicleId = vehicleId
+    },
+    { immediate: true }
+)
+```
+
 ## Owned (child) collections
 
 **This is the blessed end-to-end pattern for every collection edited inside a parent's form** (order
@@ -463,8 +577,9 @@ sync overwrites them on every save. The genuine owned-vs-first-class trade-off i
 
 Four numbered steps, one per layer:
 
-`scaffold.mjs <Parent> --owns <Join> --picker <Target>` generates all of this. The steps below are what it
-emits — read them when hand-writing the recipe or adapting the generated files.
+`scaffold.mjs <Parent> --owns <Join> --picker <Target>` generates all of this. Leave out `--fk`: the CLI rejects it
+with `--picker`, since a picker join carries no parent FK on the client; `Related()` sets it on the server. The steps
+below are what it emits — read them when hand-writing the recipe or adapting the generated files.
 
 1. **Model** — the join rows live on the parent: `articleCategories?: Array<ArticleCategory>`. Declare the
    row as a plain **interface**, not an `EntityBase` subclass:
@@ -493,7 +608,9 @@ emits — read them when hand-writing the recipe or adapting the generated files
    delete button (persisted rows toggle the `_deleted` mark — tinted, click again to restore; rows added
    this session via `add` are removed outright — tracked by identity, so the join-row shape needs no `id`)
    and hands the `#selector` slot an `add` function plus the `exclude` id list. The button's title reads
-   "Remove" / "Restore"; pass translated ones as `:labels="{ remove: …, restore: … }"`:
+   "Remove" / "Restore"; pass translated ones as `:labels="{ remove: …, restore: … }"`. In a read-only form
+   pass `:readonly="readonly"`: the chips lose their toggle, the `#selector` slot is left out, and the `#chip`
+   slot receives `readonly` for the button it renders:
 
     ```vue
     <script setup lang="ts">
@@ -539,6 +656,7 @@ emits — read them when hand-writing the recipe or adapting the generated files
    level** that carries the flag:
 
     ```ts
+    // data/EntityService.ts — the scaffolded prepareItem
     protected override prepareItem(item: Party): Party {
         item.addresses = item.addresses?.filter((x) => !x._deleted)
         item.parentRelationships = item.parentRelationships
@@ -550,6 +668,88 @@ emits — read them when hand-writing the recipe or adapting the generated files
 
 4. **Verify** — save the **same record twice** and reopen the form: the second save is where a mis-modelled
    join re-syncs and 500s, and reopening proves the Details eager-load returns the rows.
+
+### Shapes `--owns` does not scaffold
+
+`--owns` emits one level, and `--picker` picks from another scaffolded slice. Three shapes are written by hand on the
+same pieces — `InputSelectorInline`, the `_deleted` mark and the `prepareItem` purge:
+
+- **Picking rows that have no slice** — another aggregate's _owned_ rows, such as a registration picking sessions its
+  event owns. `InputSelectorInline` needs no slice: fill the `#selector` slot from rows you load yourself (here the
+  event's, read with it), and key the join row on the FK. The chip labels off the same rows:
+
+    ```vue
+    <script setup lang="ts">
+    // sessions: the event's owned rows — (await eventService.details(item.value.eventId))?.sessions ?? []
+    const sessions = ref<Array<{ id: number; title: string }>>([])
+    const title = (id: number) => sessions.value.find((s) => s.id === id)?.title
+    // adds the chosen session, then resets the select so it offers the next one
+    function pick(event: Event, add: (row: { sessionId: number }) => void) {
+        const select = event.target as HTMLSelectElement
+        add({ sessionId: Number(select.value) })
+        select.value = ""
+    }
+    </script>
+
+    <template>
+        <InputSelectorInline v-model="item.registrationSessions" :row-key="(r) => r.sessionId" :exclude-key="(r) => r.sessionId" :readonly="readonly">
+            <template #chip="{ row }">{{ title(row.sessionId) }}</template>
+            <template #selector="{ add, exclude }">
+                <select class="form-select" @change="pick($event, add)">
+                    <option value="">{{ $t("select") }}</option>
+                    <option v-for="s in sessions.filter((s) => !exclude.includes(s.id))" :key="s.id" :value="s.id">{{ s.title }}</option>
+                </select>
+            </template>
+        </InputSelectorInline>
+    </template>
+    ```
+
+- **A self-referencing many-to-many** — a person's friends, through a `PersonFriend` join keyed `personId` +
+  `friendId`. `--picker Person` on the `Person` slice is refused: the picked FK would be `personId`, the parent FK's
+  own name, and the chips would import the slice's own barrel, which cycles (`data/store.ts` reads `Entity.name`
+  while it evaluates). Write the join row (`{ id?: number; friendId: number; friend?: Person; _deleted?: boolean }`)
+  and its editor in `people/person-friends/` by hand, importing the slice's own modules by relative path, picking
+  on `friendId`, and keeping the person out of their own picker:
+
+    ```vue
+    <script setup lang="ts">
+    import { InputSelectorInline } from "@regira/modules/vue/entities"
+    import PersonSelector from "../selecting/InputSelector.vue"
+    import PersonButton from "../details/FormModalButton.vue"
+    import useEntityStore from "../data/store"
+    import type Person from "../data/Entity"
+    import type { PersonFriend } from "./Entity"
+
+    const model = defineModel<Array<PersonFriend>>()
+    defineProps<{ personId?: number; readonly?: boolean }>() // the owner, excluded from the picker
+    const { fromPool } = useEntityStore()
+    const hydrate = (x?: Partial<Person>) => fromPool(x as Person)
+    </script>
+
+    <template>
+        <InputSelectorInline v-model="model" :row-key="(r) => r.friendId" :exclude-key="(r) => r.friendId" :readonly="readonly">
+            <template #chip="{ row }">
+                <PersonButton :modelValue="hydrate(row.friend)" :readonly="readonly" />
+                {{ hydrate(row.friend)?.$title }}
+            </template>
+            <template #selector="{ add, exclude }">
+                <PersonSelector
+                    :filter-defaults="{ exclude: personId ? [...exclude, personId] : exclude }"
+                    @select="(x?: Person) => x && add({ friendId: x.id!, friend: x })"
+                />
+            </template>
+        </InputSelectorInline>
+    </template>
+    ```
+
+    Bind it in `Form.vue` as `<PersonFriendOverview v-model="item.personFriends" :person-id="item.id" :readonly="readonly" />`
+    and purge the collection in `prepareItem` as for any owned rows.
+
+- **Nested owned rows** — a session owns its speakers. Scaffold the outer table with `--owns Session`, then render an
+  `InputSelectorInline` bound to `row.sessionSpeakers` inside each row of the generated `Overview.vue`, and purge both
+  levels in `prepareItem` (step 3 above). On the API the inner collection is a nested `Related()` on the same
+  registration (`Regira.Entities` → `entities.patterns` → the `nested-related` recipe). A new inner row under a new
+  outer row has no outer id yet: send its FK as `0` and the save assigns it through the navigation.
 
 ### Owned rows with scalar fields — the inline table
 
@@ -583,18 +783,25 @@ const { items, newItem, handleSave } = useOwnedCollection<OrderLine>({ props, em
     </div>
     <div v-if="newItem" class="row">
         <!-- add-row -->
-        <div class="col"><input v-model="newItem.description" class="form-control" @keyup.enter="handleSave({ saved: newItem, isNew: true })" /></div>
+        <div class="col">
+            <input v-model="newItem.description" class="form-control" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" />
+        </div>
         <button type="button" class="btn btn-success" @click="handleSave({ saved: newItem, isNew: true })">+</button>
     </div>
 </template>
 ```
 
-Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines" />`.
+Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines" />`. The add row sits inside the
+parent's `<form>`, which the browser submits on the Enter keydown, so its Enter handler is `@keydown.enter.prevent`:
+a `@keyup.enter` adds the row only after the parent has started saving without it.
+
+Rows the server freezes once the parent exists (an order's lines): bind `:readonly="readonly || item.id > 0"`. The
+scaffolded editor's `readonly` makes the inputs read-only and hides the add-row and the remove buttons.
 
 > ⚠️ **The rows are raw objects, not model instances.** `items` comes straight off `props.modelValue` and only
-> the **root** item passes through `toEntity`, so a stored child arrives as the plain JSON the API sent; and
-> `newItem` is minted as a literal `{ id: 0 }`, never `new Child()`. Class getters read `undefined` and field
-> defaults are absent — the scaffolded editor only works because it binds plain scalars.
+> the **root** item passes through `toEntity`, so a stored child arrives as the plain JSON the API sent. Class
+> getters read `undefined` and field defaults are absent on those rows — the scaffolded editor only works because
+> it binds plain scalars. (The add-row is different: see below.)
 >
 > **Lift the collection in the parent service's `toEntity`** — the one hook every read path already goes
 > through (`details`/`list`/`search` all call it, and so does `fromPool`), so one override covers the whole
@@ -602,6 +809,8 @@ Parent form binds it to the array: `<OrderLineOverview v-model="item.orderLines"
 >
 > ```ts
 > // data/EntityService.ts — the owning entity's service
+> import { Entity as OrderLine } from "../order-lines" // a value import: toEntity calls OrderLine.create
+>
 > override toEntity(item: object): Entity {
 >     const entity = item instanceof Entity ? item : Object.assign(this.createInstance(Entity), item || {})
 >     // OrderLine.create is the child's named constructor (scaffolded with the owned slice). Only reassign
@@ -622,14 +831,11 @@ instanceof OrderLine))`** — this is the collection form of the
 > `Maximum recursive updates exceeded` **against the library component**. The slice builds green and every
 > page renders; the error names the wrong file.
 >
-> ⚠️ **That covers the stored rows, not the add-row.** `newItem` never passes through any `toEntity` — it is
-> minted by the composable — so if it needs defaults or a real prototype, seed it after **both** mount and
-> every add, because `handleSave` calls `resetNewItem()` on each successful append and puts a bare
-> `{ id: 0 }` back:
->
-> ```ts
-> watch(newItem, (row) => row && !(row instanceof OrderLine) && (newItem.value = OrderLine.create(row)))
-> ```
+> **That covers the stored rows; the add-row comes from `createRow`.** `newItem` never passes through
+> `toEntity` — the composable mints it, on mount and again after every append (`handleSave` calls
+> `resetNewItem()`), from `createRow` with `id` set to `0`. Pass the child's factory and every add-row has its
+> defaults and prototype: `useOwnedCollection({ props, emit, createRow: () => OrderLine.create() })`. Without
+> `createRow` it is a bare `{ id: 0 }`.
 >
 > Or skip `newItem` altogether, as the demo apps do: add through the child's `FormModalButton` with
 > `defaultValues`, and `handleSave` appends the result.
@@ -659,7 +865,8 @@ New rows mint
 **negative temp ids** and insert with the parent's single `save()`; `_deleted` rows drop in the `prepareItem`
 filter above. Use `useOwnedModal` when each row is edited in a modal instead of inline; `useListInput` /
 `useListItemInput` are the lower-level primitives (`useListItemInput`'s `handleRemove` toggles `_deleted`
-for you). **Table when there's nothing to pick; `InputSelectorInline` chips when rows link to another entity.**
+for you). **Table when there's nothing to pick; `InputSelectorInline` chips when rows link to another entity;**
+**the table with an `InputSelector` column when a row carries both** ([below](#owned-rows-with-a-relation-and-scalars)).
 
 **Owned vs first-class child — and the "add before the parent is saved" consequence.** An **owned** collection
 (`useOwnedCollection`, embedded in the parent DTO, persisted via `e.Related(...)` on save) can be edited on a
@@ -669,6 +876,12 @@ toggle one row with a single `PATCH`) instead needs the parent's real id for its
 after the parent exists. Pick owned for "edit the whole graph in one form" (no save-first gate); pick
 first-class for "operate on one row independently" (accept the save-first step, or persist the parent silently
 on open).
+
+**Patching a first-class child from its parent's page** (attach a task to this project, move it to another): patch
+the **child** through its own pooled store, `useTaskStore().service.patch(taskId, { projectId })` (the key is the
+child input DTO's JSON name), then re-read the parent through its pooled `useEntityStore().service.details(id)` and
+emit it with `update:modelValue` — [Refresh the form after a custom endpoint](#refresh-the-form-after-a-custom-endpoint).
+The raw IoC services would leave the pool stale.
 
 **Both at once — reordered through the parent, one field patched on its own.** The common business shape
 (list items that drag to reorder but toggle active individually; invoice lines that reorder but flip a
@@ -742,6 +955,58 @@ The server-side half of this contract (which writer owns which field, and the st
 of them claim the same rows) is in `Regira.Entities` → `entities.patterns` → _Owned children that are
 both sortable and individually togglable_.
 
+### Owned rows with a relation and scalars
+
+A row that picks another entity **and** carries scalars of its own (a line's product with its quantity and price,
+a member's role, a valid-from) keeps the inline table above: the chips have room for one value at most (the `#chip`
+slot receives the row); a scalar to edit per row needs the table. Scaffold
+it with `--owns <Child>` (no `--picker`) and give the relation column the related slice's `InputSelector`, both
+v-models bound. On the add-row, `@select` also fills the defaults the picked row brings; `handleSave` then mints a
+fresh `newItem`. That clears the picker's model, but not its text while the picker has focus, and Enter in the picker
+is the usual way to add: key the add-row picker and bump the key when a row is added, so it remounts empty:
+
+```vue
+<script setup lang="ts">
+import { computed, ref } from "vue"
+import { useOwnedCollection } from "@regira/modules/vue/entities"
+import { InputSelector as ProductSelector, type Entity as Product } from "@/entities/products"
+import OrderLine from "./Entity" // productId?: number, product?: Product, quantity, unitPrice
+
+const props = defineProps<{ modelValue?: Array<OrderLine> }>()
+const emit = defineEmits<{ "update:modelValue": [Array<OrderLine>] }>()
+const { items, newItem, handleSave } = useOwnedCollection<OrderLine>({ props, emit, createRow: () => OrderLine.create() })
+// a product on the list already is not offered again
+const exclude = computed(() => items.value.filter((x) => !x._deleted).map((x) => x.productId))
+// the picked product brings the line's default price
+function handleSelect(product?: Product) {
+    if (newItem.value && product) newItem.value.unitPrice = product.price
+}
+// a new key remounts the add-row picker empty: a focused picker keeps its text when its model clears
+const addRowKey = ref(0)
+function add() {
+    handleSave({ saved: newItem.value!, isNew: true })
+    addRowKey.value++
+}
+</script>
+
+<template>
+    <div v-for="row in items" :key="row.id" class="row mb-1" :class="{ 'is-deleted': row._deleted }">
+        <div class="col"><ProductSelector v-model="row.product" v-model:id-value="row.productId" /></div>
+        <div class="col-2"><input type="number" v-model.number="row.quantity" class="form-control" /></div>
+        <div class="col-2"><input type="number" v-model.number="row.unitPrice" class="form-control" /></div>
+        <button type="button" class="btn btn-outline-danger" @click="row._deleted = !row._deleted">×</button>
+    </div>
+    <div v-if="newItem" class="row">
+        <div class="col">
+            <ProductSelector :key="addRowKey" v-model="newItem.product" v-model:id-value="newItem.productId" :filter-defaults="{ exclude }" @select="handleSelect" />
+        </div>
+        <div class="col-2"><input type="number" v-model.number="newItem.quantity" class="form-control" /></div>
+        <div class="col-2"><input type="number" v-model.number="newItem.unitPrice" class="form-control" /></div>
+        <button type="button" class="btn btn-success" :disabled="!newItem.productId" @click="add">+</button>
+    </div>
+</template>
+```
+
 ## Attachments (files) — offline add / rename / remove, confirm on save
 
 File/picture management on an entity, staged **offline**: the user adds (browse or drop), renames, and
@@ -758,12 +1023,12 @@ The generated slice (full source: [entities.attachments.template.md](entities.at
 builds on four **shipped** primitives — never hand-roll them (verify in
 [namespaces](entities.namespaces.md) / [signatures](entities.signatures.md)):
 
-| Primitive                               | From                                     | Role                                                                                         |
-| --------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `FileDropZone`                          | `@regira/modules/vue/ui`                 | drag-drop zone — emits `drop-files: Array<Blob>`, scoped slot `{ isDropping }`               |
-| `useAxios().upload(url, [blob], data?)` | `@regira/modules/vue/http`               | multipart upload on the **shared, baseURL-aware** axios; field name defaults to **`"file"`** |
-| `useAxios().getFile(url)`               | `@regira/modules/vue/http`               | authenticated download → `Blob`                                                              |
-| `formatFileSize`, `fileToBlob`          | `@regira/modules/utilities/file-utility` | size label; re-wrap a blob under a new name                                                  |
+| Primitive                                  | From                                     | Role                                                                                         |
+| ------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `FileDropZone`                             | `@regira/modules/vue/ui`                 | drag-drop zone — emits `drop-files: Array<Blob>`, scoped slot `{ isDropping }`               |
+| `useAxios().upload(url, [blob], { data })` | `@regira/modules/vue/http`               | multipart upload on the **shared, baseURL-aware** axios; field name defaults to **`"file"`** |
+| `useAxios().getFile(url)`                  | `@regira/modules/vue/http`               | authenticated download → `Blob`                                                              |
+| `formatFileSize`, `fileToBlob`             | `@regira/modules/utilities/file-utility` | size label; re-wrap a blob under a new name                                                  |
 
 > **Use `useAxios().upload`, not `FileHelper.send`.** `FileHelper.send` uses a **bare axios** — no
 > `baseURL`, no auth interceptor — and its field name defaults to **`"files"`**. The attachment endpoint
@@ -774,7 +1039,9 @@ builds on four **shipped** primitives — never hand-roll them (verify in
 row), its raw `Blob` held in memory, and an object `uri` for instant preview. Rename edits `newFileName`
 (existing file) or `fileName` (new); remove toggles `_deleted` (undoable). On the parent's save, the flush
 helpers re-wrap each blob under its edited name and `POST` it to `{api}/{id}/files`; existing rows marked
-`_deleted` drop from the payload and are deleted by omission.
+`_deleted` drop from the payload and are deleted by omission — when the owner's input DTO on the API declares
+`ICollection<EntityAttachmentInputDto>? Attachments` (back-end `entities.instructions` → Attachments, step 3). Without
+it a removal answers 200 and changes nothing.
 
 **Wire it into each file-owning entity** — the join field, the flush overrides + `_deleted` filter, and a
 tab. The service needs no change beyond the overrides: the helpers upload through `useAxios()`. The slice
@@ -789,7 +1056,7 @@ attachments?: Array<EntityAttachment>
 ```
 
 ```ts
-// data/EntityService.ts — flush on save; drop marked rows (deleted by omission)
+// data/EntityService.ts — flush on save; drop marked rows (deleted by omission) in the scaffolded prepareItem
 import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"
 override async insert(item: Owner): Promise<Owner | undefined> {
     // the follow-up update sends the attachments in display order — the server assigns SortOrder from array position
@@ -810,10 +1077,94 @@ protected override prepareItem(item: Owner): Owner {
 <!-- import { Overview as EntityAttachments } from "../../entity-attachments" -->
 ```
 
-> **`<img src>` on a guarded download 401s** — the tag sends no `Authorization` header. Either preview from
-> the in-memory `uri` (object URL) before upload, or expose the download **anonymously** on the back-end
-> (`Regira.Entities` → _Public (anonymous) attachment downloads_). The list DTO nests file metadata under
-> `attachment.*` (`item.attachment?.fileName`), not on the row root — read it there.
+### Files in the creating request
+
+The flush helpers save the owner first and upload each file after it, so a new owner with files is several
+requests. The API also takes the files inside the owner's own `POST` or `PUT`: a new link row carrying
+`newFileName` + `newBytes` (base64) gets its file stored by the same save, in the same transaction (back-end
+`entities.instructions` → _Attachments_). Use these overrides **instead of** `insertWithAttachments` /
+`updateWithAttachments`:
+
+```ts
+// data/EntityService.ts
+import { blobToBase64 } from "@regira/modules/utilities/file-utility"
+import type { Entity as EntityAttachment } from "../../entity-attachments"
+
+async function inlineStagedFiles(rows?: Array<EntityAttachment>) {
+    for (const row of rows ?? []) {
+        const file = row.attachment?._file
+        if (file && !row._deleted) {
+            // a data URL ("data:<type>;base64,<data>"): the JSON byte[] takes only the part after the comma
+            row.newBytes = (await blobToBase64(file)).split(",")[1]
+            row.newFileName = row.fileName
+        }
+    }
+}
+function releaseStagedFiles(rows?: Array<EntityAttachment>) {
+    rows?.forEach((row) => {
+        delete row.newBytes
+        delete row.attachment?._file
+    })
+}
+
+export class EntityService extends EntityServiceBase<Owner> {
+    override async insert(item: Owner): Promise<Owner | undefined> {
+        await inlineStagedFiles(item.attachments)
+        const saved = await super.insert(item)
+        if (saved) releaseStagedFiles(item.attachments) // a refused save keeps the staged files for the next attempt
+        return saved
+    }
+    override async update(item: Owner): Promise<Owner | undefined> {
+        await inlineStagedFiles(item.attachments)
+        const saved = await super.update(item)
+        if (saved) releaseStagedFiles(item.attachments)
+        return saved
+    }
+    // prepareItem keeps the `_deleted` filter shown above
+}
+```
+
+The whole file travels as base64 in the JSON body, a third larger than the file, so keep this for files of a
+few megabytes and the per-file upload for larger ones (the API's request size limit applies to the whole save). A
+file sent with an owner that is still being created is stored under the owner's id as it was then, `0`; downloads,
+replacing and deleting work the same.
+
+> **`<img src>` on a guarded download 401s** — the tag sends no `Authorization` header. Preview a file not yet
+> uploaded from its in-memory `uri` (object URL). Show a stored file that must stay private (a draft's image) from
+> an object URL of a download through the shared axios, which sends the bearer; expose the download **anonymously**
+> on the back-end only for public files (`Regira.Entities` → _Public (anonymous) attachment downloads_):
+>
+> ```ts
+> import { onBeforeUnmount, ref, watch } from "vue"
+> import { useAxios } from "@regira/modules/vue/http"
+>
+> const props = defineProps<{ uri?: string }>() // the link DTO's uri
+> const src = ref<string>()
+> const release = () => {
+>     if (src.value) URL.revokeObjectURL(src.value) // an object URL holds its blob until revoked
+> }
+> let latest = 0
+> watch(
+>     () => props.uri,
+>     async (uri) => {
+>         const load = ++latest
+>         release()
+>         src.value = undefined
+>         if (!uri) return
+>         const url = URL.createObjectURL(await useAxios().getFile(uri))
+>         if (load !== latest) return URL.revokeObjectURL(url) // a newer uri, or the unmount, took over
+>         src.value = url
+>     },
+>     { immediate: true }
+> )
+> onBeforeUnmount(() => {
+>     latest++
+>     release()
+> })
+> // <img v-if="src" :src="src" alt="" />
+> ```
+>
+> The list DTO nests file metadata under `attachment.*` (`item.attachment?.fileName`), not on the row root — read it there.
 
 ## Form validation & error handling
 
@@ -823,13 +1174,15 @@ directly, without `.value` (`status`/`message`/`error`/`isPending` +
 or on failure `fail(...)`. A failed save does not re-throw, so `@submit.prevent="handleSubmit"` binds
 directly — branch on `feedback` when you need the outcome. (On a **readonly** form it reports
 `fail("Readonly")` and returns without attempting a save — same for `handleRemove`.) The failure mapping is
-fixed, for a save and for a delete alike:
+fixed, for a save and for a delete alike; a restore reports any status as `"Restoring failed"`, with what
+`toFeedbackError(ex)` reads (the field map, else the server's text):
 
-| HTTP status | `feedback.message`                                                                                | `feedback.error`                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `400`       | `"Saving failed"` / `"Deleting failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
-| `404`       | `"Item not found: …"`                                                                             | —                                                                       |
-| other       | `"Server error: …"` / `"Deleting failed: …"` (409: the ProblemDetails `detail`)                   | —                                                                       |
+| HTTP status        | `feedback.message`                                                                                | `feedback.error`                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `400`              | `"Saving failed"` / `"Deleting failed"` (`: …` with the server's `detail` when no field is named) | the field map `toFeedbackError(ex)` reads — `{ field: ["message", …] }` |
+| `404`              | `"Item not found: …"`                                                                             | —                                                                       |
+| other `4xx`        | `"Saving failed: …"` / `"Deleting failed: …"` (409: the ProblemDetails `detail`)                  | —                                                                       |
+| `5xx` or no answer | `"Server error: …"` / `"Deleting failed: …"`                                                      | —                                                                       |
 
 A delete answers `400` when a validator refuses it; a rule on the whole entity arrives under the `""` key. So only a
 `400` puts a per-field map on the form's `feedback.error`. The overview's `applyRemove` maps no status: it reports any
@@ -900,8 +1253,9 @@ function fieldError(name: string): string | undefined {
 > A Regira API answers a `400` with a ProblemDetails (`{ title, status, errors: { "Price": ["…"] } }`); a
 > rule refusal (an `EntityInputException`, a validator's among them) adds `errorDetails`, each error with the `args` a
 > translation fills in.
-> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts every key
-> lower-case, so it matches the model's field name. A message that is a key in the app's `useLang` messages —
+> `toFeedbackError(ex)` (`@regira/modules/vue/ui`) reads it — a bare field map too — and starts each
+> segment of a key's path lower-case, so it matches the model's field name (`CategoryId` → `categoryId`,
+> `Lines[0].Quantity` → `lines[0].quantity`). A message that is a key in the app's `useLang` messages —
 > a validator that returns `ValueTooLarge` rather than a full sentence — shows that translation
 > ([ui](../../ui/ai/ui.instructions.md) → feedback); a body without field errors yields its
 > `detail` (or `message`) text instead. The form
@@ -909,6 +1263,41 @@ function fieldError(name: string): string | undefined {
 > is appended to `feedback.message` and `feedback.error` stays empty, so lean on the `<Feedback>` summary instead.
 > `feedback.isPending` — `status` is `FeedbackStatus.pending`, from `@regira/modules/vue/ui` — is the busy flag:
 > `:disabled="feedback.isPending"`, as in the example, prevents double-submits.
+
+**A 409 comes in two kinds**, told apart by the ProblemDetails `title`: `"Concurrency conflict"`, a stale concurrency
+token (the row changed or was removed since it was read), and `"Conflict"`, a database constraint. Both land in
+`feedback.message` as `"Saving failed: "` plus the server's `detail`; `useForm`'s `failure` tells them apart. To offer
+a Reload for the first kind, re-read the row and pass it up through `update:modelValue`: the details page and the form
+both take it, with its current token, and the user re-applies the edit.
+
+```ts
+import { computed } from "vue"
+import { toFeedbackError } from "@regira/modules/vue/ui"
+import { ArchivedFilter } from "@regira/modules/vue/entities"
+
+const { service: entityService } = useEntityStore()
+const { item, feedback, failure, handleCancel, handleSubmit, handleRemove, handleRestore } = useForm<Entity>({ entityService, props, emit })
+const isStale = computed(() => failure.value?.status === 409 && failure.value.title === "Concurrency conflict")
+
+async function reload() {
+    feedback.pending("Reloading…")
+    try {
+        // the details page's v-model takes the fresh row, and useForm resets item and original to it
+        emit("update:modelValue", await entityService.details(item.value.$id, { archived: ArchivedFilter.included }))
+        feedback.reset()
+    } catch (ex) {
+        feedback.fail("Reloading failed", toFeedbackError(ex))
+    }
+}
+```
+
+```vue
+<button v-if="isStale" type="button" class="btn btn-warning" :disabled="feedback.isPending" @click="reload">Reload</button>
+```
+
+Reload from the form, not through `useDetails().load()`: `load` belongs to the `useDetails` in `Details.vue`, and a
+second `useDetails()` in the form fetches on its own mount and fills an `item` the form does not show. A delete's 409
+shows as `"Deleting failed: …"`, a restore's as `"Restoring failed: …"`.
 
 ## Tabbed forms
 
@@ -931,8 +1320,8 @@ the `:tabs` binding:
 ```vue
 <TabContainer :tabs="tabs" :active="initialTab" :use-route-nav="!isPopup">
     <template #form><FormSection>…</FormSection></template>
-    <template #lines><LineOverview v-model="item" /></template>
-    <template #files><AttachmentOverview v-model="item" /></template>
+    <template #lines><LineOverview v-model="item.lines" :readonly="readonly" /></template>
+    <template #files><AttachmentOverview v-model="item.attachments" :readonly="readonly" /></template>
 </TabContainer>
 ```
 
@@ -1110,9 +1499,10 @@ then gate three affordances per slice — nothing else changes.
 // src/access.ts — the SPA's single mirror of the API's write tiers; keep it next to the filter it mirrors.
 import { useAuthStore } from "@regira/modules/vue/auth"
 
+// keyed by config.key — the entity class name, as the scaffold sets it — since that is what the slices pass
 const WRITERS: Record<string, Array<string>> = {
-    departments: ["Administrator"],
-    employees: ["Administrator", "Manager"],
+    Department: ["Administrator"],
+    Employee: ["Administrator", "Manager"],
     // an entity the API only ever writes itself (notifications, audit rows) is simply absent → nobody writes it
 }
 
@@ -1123,15 +1513,30 @@ export function useAccess() {
 }
 ```
 
-| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">` |
-| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                         |
-| `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                       |
+| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">`                                                                                                                                                   |
+| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                                                                                                                                                                           |
+| `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                                                                                                                                                                         |
+| a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether. A `--picker`'s `#selector` slot (the join slice's `Overview.vue`) renders the related slice's `InputSelector`, whose empty control offers a "new" button that creates that entity: give it `:can-edit="canWrite('Employee')"` |
 
-A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store) =>
-store.hasRole("Administrator")`, never a `beforeEnter` check: that runs before a stored token is restored and sends an
-administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard).
+A selector for an entity the caller may not **read** at all goes behind `v-if` (a `canRead` beside `canWrite`): a
+read-only `InputSelector` still reads the selected row to show it. The scaffolded one shows nothing on that `403`, but
+the request still goes out.
+
+A whole page only some roles may open (an approvals inbox) is gated on its route with `meta.policy: (store: IAuthStore) =>
+store.hasRole("Administrator")` (`import type { IAuthStore } from "@regira/modules/vue/auth"`), never a `beforeEnter` check: that runs before a stored token is restored and sends an
+administrator who reloads to `forbidden` ([auth](../../auth/ai/auth.instructions.md) → Route guard). A slice's routes
+are built in its `setup.ts` (`createRoutes()`), so that is where the policy goes — `meta: { policy }` on the Overview
+route and on the Details route, whose children inherit it. The scaffolded navigation follows it: `hasAccess` in
+`components/entity-navigation/functions.ts` asks `routeAllows` (`@regira/modules/vue/auth`) about each entry's
+Overview route, so the slice leaves the navbar and the dashboard for a user the guard would send to `forbidden`. A
+shell scaffolded before 6.5.1 has `hasAccess` return `true`; copy the current one in.
+
+`meta.policy` is read by the auth plugin's route guard, so in a `--no-auth` app it gates nothing. One that still has
+roles — an identity source of its own, a demo role switch — resolves that identity in `main.ts` before `app.mount()`
+and gates the route with `beforeEnter` (or one `router.beforeEach`) reading it. The race that rules `beforeEnter` out
+above is the auth plugin's token restore, which such an app does not have.
 
 ⚠️ **Gating is not authorization.** It removes a button, not a capability; the server filter stays the only
 enforcement point. Do it because a 403 the user could not have predicted is a bug report, not because it
@@ -1162,6 +1567,8 @@ In an auth-enabled app, data requested before a token arrives fails or comes bac
 ⚠️ **The rule generalises: anything that fetches on mount must use it too.** A dashboard, report or
 home-page widget you write yourself mounts _before_ a stored token is validated, short-circuits on
 `!isAuthenticated`, and nothing re-triggers it — a blank panel, no console error, no failed request.
+A page a signed-out visitor uses is the exception, and what a cold load or a deep link logs before the guard
+redirects is expected: [auth](../../auth/ai/auth.instructions.md) → _What a first load shows_.
 
 ```ts
 import { onAuthenticated } from "@regira/modules/vue/auth"
@@ -1191,6 +1598,13 @@ onAuthenticated(() => load())
 > a newer one superseded writes neither rows nor feedback
 > ([Feedback](#feedback-for-custom-saves-outside-useform) covers why the banner matters), and `useDetails`'s
 > `item.value == null` guard is the Details equivalent.
+>
+> ⚠️ **Clear another account's data before the reload.** A failed search or load keeps what is on screen,
+> which is right for a dropped connection. It is wrong when someone else signed in behind the LoginModal:
+> their refused reload (403/404) would leave the previous account's rows under the error banner. So the
+> scaffolded views remember the account whose data they show (`shownFor`) and clear `items`/`itemsCount` or
+> `item` when a token for another account arrives. A refresh of the same account's token keeps them, form
+> edits included.
 
 Slices scaffolded with `--no-auth` have these hooks stripped — and because `load` is destructured from
 `useDetails` **only** to feed the Details hook, `--no-auth` also drops `load` from that destructure
@@ -1198,18 +1612,44 @@ Slices scaffolded with `--no-auth` have these hooks stripped — and because `lo
 binding when the app enables the auth plugin later:
 
 ```ts
-// overview/Overview.vue — `searchHandler` is already in the useSearchView destructure (useRouteOverview needs it).
-import { onAuthenticated } from "@regira/modules/vue/auth"
+// overview/Overview.vue — `items`, `itemsCount` and `searchHandler` are already in the useSearchView destructure.
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 
-onAuthenticated(() => searchHandler(false), { immediate: false })
+// re-searches on every token, clearing the previous account's rows first when another account signed in
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen
+onAuthenticated(
+    () => {
+        const userId = useGlobalAuth()?.authData?.userId
+        if (userId !== shownFor) {
+            shownFor = userId
+            items.value = undefined
+            itemsCount.value = undefined
+        }
+        searchHandler(false)
+    },
+    { immediate: false }
+)
 ```
 
 ```ts
 // details/Details.vue — add `load` back to the existing useDetails destructure:
 // const { item, …, load, feedback } = useDetails(service)
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 
-onAuthenticated(() => item.value == null && load(), { immediate: false })
+// reloads for another account's sign-in, clearing the previous account's row first so a refused reload (403/404)
+// never leaves it on screen, and keeps the form when the same account's token is refreshed
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen
+onAuthenticated(
+    () => {
+        const userId = useGlobalAuth()?.authData?.userId
+        if (userId !== shownFor) item.value = undefined
+        if (item.value == null) {
+            shownFor = userId
+            load()
+        }
+    },
+    { immediate: false }
+)
 ```
 
 The same primitive drives any other login-sensitive work — see

@@ -110,6 +110,7 @@ import { ref, computed } from "vue"
 import { defineStore } from "pinia"
 import { useAxios } from "@regira/modules/vue/http"
 import { useAuthStore, onAuthenticated } from "@regira/modules/vue/auth"
+import { defaultPoolCache } from "@regira/modules/vue/entities"
 import Entity from "./Entity"
 
 export const useEntityStore = defineStore(Entity.name, () => {
@@ -123,6 +124,7 @@ export const useEntityStore = defineStore(Entity.name, () => {
     }
     async function setActiveTenant(id: string) {
         await refreshToken({ tenantId: id }) // POST auth/refresh/?tenantId=… → new JWT with the new `tenant` claim
+        defaultPoolCache.clear() // pooled rows belong to the previous tenant
     }
     const activeTenant = computed(() => items.value?.find((x) => x.id == getClaimValue("tenant")))
 
@@ -149,7 +151,7 @@ app.config.globalProperties.$activeTenant = computed(() => useEntityStore().acti
 - `authStore.refresh(o)` passes `o` as query parameters to the refresh endpoint; the back-end reads `tenantId`, rebuilds the claims for that tenant (membership verified server-side), and returns a fresh token. The axios interceptor keeps sending `Authorization: Bearer` — nothing else changes client-side.
 - `activeTenant` is **derived, not stored** — `getClaimValue("tenant")` decodes the current token, so a page reload keeps the right tenant automatically.
 - Per-tenant permissions arrive as claims in the same token — gate UI with `getClaimValue("permissions")` (e.g. hide write actions without `can_write`).
-- After a switch, tenant-scoped stores hold rows of the _previous_ tenant — refresh them (the `onAuthenticated` hook above fires on the re-minted token, so stores wired the same way reload themselves).
+- After a switch, tenant-scoped stores hold rows of the _previous_ tenant — refresh them (the `onAuthenticated` hook above fires on the re-minted token, so stores wired the same way reload themselves). `setActiveTenant` empties the entity pool for the same reason.
 
 ---
 
@@ -273,14 +275,19 @@ Container niceties from the reference apps (`Overview.vue`):
 
 ## Polymorphic entity (single class over a TPH back-end)
 
+> **Separate screens per role over one resource** (Employees and Suppliers over one `/parties`, after the back-end
+> collapsed them into a role-discriminated party): scaffold one slice per role with `--api parties`, give each
+> config `baseQueryParams: { role: "Employee" }` (the API's role filter) and the model a fixed `role` default. Each
+> slice keeps its own pool, IoC key, navigation entry and picker.
+
 Client side of the back-end **Stakeholders** blueprint (or any `[JsonPolymorphic]` TPH endpoint): the API serves one route (`/parties`) with a discriminator (`partyType`) selecting the subtype payload. On the client, **don't mirror the class hierarchy** — one flattened entity class carrying the union of subtype fields keeps every composable, store, and picker working unchanged:
 
 ```ts
 export const PartyTypes = { Person: "PERSON", Organization: "ORGANIZATION" } as const
 
 export class Party extends EntityBase {
-    id = 0
     partyType = "" // the discriminator — sent back verbatim on save
+    id = 0
     code?: string
     // organization fields
     name = ""
@@ -310,18 +317,18 @@ export class Party extends EntityBase {
 
 - **Form:** branch the subtype fields on the discriminator (`v-if="item.$isOrganization"` … `v-else`); pick the type once at create time and treat it as immutable afterwards (the back-end discriminator is `init`-only).
 - **Config:** request the owned collections up front — `baseQueryParams: { includes: ["Addresses", "ContactData", "Relationships"] }` (names = the back-end `[Flags]` members).
-- **Save:** the discriminator decides which input DTO the back-end binds (`PersonInputDto` vs `OrganizationInputDto`) — always send `partyType`, and only the fields of that subtype are honored.
+- **Save:** the discriminator decides which input DTO the back-end binds (`PersonInputDto` vs `OrganizationInputDto`) — always send `partyType`, and only the fields of that subtype are honored. The API reads the discriminator only as the first JSON property unless it sets `AllowOutOfOrderMetadataProperties` (back-end _Polymorphic DTOs_); class field order is the JSON order.
 - **Owned collections:** contact data + addresses use the [Contact data & address editors](#contact-data--address-editors) component sets; relations are **two** collections (`parentRelationships`/`childRelationships`), each row nesting its own `contactData`. Strip `_deleted` rows at **every** nesting level before save:
 
 ```ts
 protected override prepareItem(item: Party): Party {
     item.addresses = item.addresses?.filter((x) => !x._deleted)
     item.contactData = item.contactData?.filter((x) => !x._deleted)
-    for (const relations of [item.parentRelationships, item.childRelationships]) {
-        relations?.forEach((r) => (r.contactData = r.contactData?.filter((c) => !c._deleted)))
-    }
-    item.parentRelationships = item.parentRelationships?.filter((x) => !x._deleted)
-    item.childRelationships = item.childRelationships?.filter((x) => !x._deleted)
+    // the copy is shallow: give each kept relation a new object rather than changing the form's own row
+    const keep = (relations?: PartyRelationship[]) =>
+        relations?.filter((x) => !x._deleted).map((r) => ({ ...r, contactData: r.contactData?.filter((c) => !c._deleted) }))
+    item.parentRelationships = keep(item.parentRelationships)
+    item.childRelationships = keep(item.childRelationships)
     return super.prepareItem(item)
 }
 ```
@@ -492,13 +499,13 @@ back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "E
 
 ### Switch the active tenant (tenant switcher)
 
-<!-- how_to: key=tenant-switcher aliases=switch-tenant,active-tenant,tenant-selector,tenant-ui,multitenant-ui -->
+<!-- how_to: key=tenant-switcher aliases=switch-tenant,active-tenant,tenant-selector,tenant-ui,multitenant-ui,switch-company,company-switcher,active-company,switch-organisation -->
 
 Copy the **Tenant switcher blueprint**: a pinia store that loads `/tenants` whenever a token arrives
 (`onAuthenticated`), derives `activeTenant` from the JWT —
 `items.find(x => x.id == getClaimValue("tenant"))` — and switches with
-`authStore.refresh({ tenantId })`, which re-mints the token server-side. No tenant header: the bearer
-token _is_ the tenant context.
+`authStore.refresh({ tenantId })`, which re-mints the token server-side, then empties the entity pool
+(`defaultPoolCache.clear()`). No tenant header: the bearer token _is_ the tenant context.
 
 **See:** `get_package(id: "regira_modules.vue.entities", section: "blueprints", heading: "Tenant switcher")`;
 back-end: `get_package(id: "Regira.Entities", section: "blueprints", heading: "Multi-tenancy")`.

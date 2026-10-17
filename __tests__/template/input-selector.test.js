@@ -7,28 +7,42 @@ const { list } = vi.hoisted(() => ({ list: vi.fn(async (so) => [{ id: Number(so.
 vi.mock("../../_template/entity-slice/data/store", () => ({ default: () => ({ fromPool: (x) => x, list }) }))
 vi.mock("../../_template/entity-slice/config/config", () => ({ default: { key: "Foo" } }))
 vi.mock("../../_template/entity-slice/data/Entity", () => ({ default: class {} }))
-vi.mock("../../_template/entity-slice/details/FormModalButton.vue", () => ({ default: { render: () => null } }))
+// the edit button renders a marker, so a test can tell whether the control shows it
+vi.mock("../../_template/entity-slice/details/FormModalButton.vue", async () => {
+    const { h } = await import("vue")
+    return { default: { render: () => h("span", { class: "form-modal-button" }) } }
+})
 vi.mock("../../_template/entity-slice/selecting/Autocomplete.vue", () => ({ default: { render: () => null } }))
 vi.mock("../../_template/entity-slice/selecting/SelectorModalButton.vue", () => ({ default: { render: () => null } }))
 vi.mock("@regira/modules/vue/ui", () => ({ Icon: { render: () => null } }))
 
 const { default: InputSelector } = await import("../../_template/entity-slice/selecting/InputSelector.vue")
 
+// a slice runs under langPlugin, which provides $t (the clear button's accessible name)
+function mountApp(Parent) {
+    const app = createApp(Parent)
+    app.config.globalProperties.$t = (key) => key
+    const el = document.createElement("div")
+    app.mount(el)
+    return el
+}
+
 const flush = async () => {
     for (let i = 0; i < 5; i++) await nextTick()
 }
 
 /** a parent binding both v-models, the way a scaffolded form does — or only `v-model` with `modelOnly` */
-function mount(state, { modelOnly = false } = {}) {
+function mount(state, { modelOnly = false, readonly = false } = {}) {
     const Parent = defineComponent({
         setup: () => () =>
             h(InputSelector, {
                 modelValue: state.model,
                 "onUpdate:modelValue": (v) => (state.model = v),
                 ...(modelOnly ? {} : { idValue: state.id, "onUpdate:idValue": (v) => (state.id = v) }),
+                readonly,
             }),
     })
-    createApp(Parent).mount(document.createElement("div"))
+    return mountApp(Parent)
 }
 
 /** the scaffolded FilterAdv: a local entity ref, and the id on a search object the overview rebuilds from the URL */
@@ -42,7 +56,7 @@ function mountFilter(state) {
                 "onUpdate:idValue": (v) => (state.searchObject.barId = v),
             }),
     })
-    createApp(Parent).mount(document.createElement("div"))
+    mountApp(Parent)
 }
 
 describe("generated InputSelector — as an overview filter", () => {
@@ -175,5 +189,57 @@ describe("generated InputSelector — idValue resolution", () => {
         await flush()
 
         expect(list).not.toHaveBeenCalled()
+    })
+
+    test("a row the caller may not read (403) keeps the FK and shows nothing, without an uncaught error", async () => {
+        list.mockRejectedValueOnce(Object.assign(new Error("Request failed with status code 403"), { response: { status: 403 } }))
+        const state = reactive({ id: 5, model: undefined })
+        const errors = []
+        const app = createApp(
+            defineComponent({
+                setup: () => () =>
+                    h(InputSelector, {
+                        modelValue: state.model,
+                        "onUpdate:modelValue": (v) => (state.model = v),
+                        idValue: state.id,
+                        "onUpdate:idValue": (v) => (state.id = v),
+                    }),
+            })
+        )
+        app.config.globalProperties.$t = (key) => key
+        app.config.errorHandler = (err) => errors.push(err)
+        app.mount(document.createElement("div"))
+        await flush()
+
+        expect(list).toHaveBeenCalledTimes(1)
+        expect(errors).toEqual([])
+        expect(state.model).toBeUndefined()
+        expect(state.id).toBe(5)
+    })
+})
+
+// the prepend button opens the selected row, or a new one: a read-only control opens only a row that is there
+describe("generated InputSelector — readonly", () => {
+    const button = (el) => el.querySelector(".form-modal-button")
+
+    test("an empty read-only control shows no button", async () => {
+        const el = mount(reactive({ id: undefined, model: undefined }), { readonly: true })
+        await flush()
+
+        expect(button(el)).toBeNull()
+    })
+
+    test("a read-only control keeps the button while a row is selected", async () => {
+        const el = mount(reactive({ id: 5, model: { id: 5, $title: "Row 5" } }), { readonly: true })
+        await flush()
+
+        expect(button(el)).not.toBeNull()
+    })
+
+    test("an editable empty control shows the button, to create a row", async () => {
+        const el = mount(reactive({ id: undefined, model: undefined }))
+        await flush()
+
+        expect(button(el)).not.toBeNull()
     })
 })

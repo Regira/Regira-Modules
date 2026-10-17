@@ -19,7 +19,7 @@ function mount(rowsRef, extraProps = {}) {
                             ...extraProps,
                         },
                         {
-                            chip: ({ row }) => h("span", { class: "chip-label" }, row.title),
+                            chip: ({ row, readonly }) => h("span", { class: "chip-label", "data-readonly": String(readonly) }, row.title),
                             selector: (scope) => {
                                 slotScope = scope
                                 return h("span", { class: "selector-slot" })
@@ -121,5 +121,16 @@ describe("InputSelectorInline", () => {
         await nextTick()
 
         expect(rows.value.length).toBe(0) // spliced despite never going through add()
+    })
+
+    test("readonly shows the chips without their toggle or the picker, and tells the chip slot", async () => {
+        const rows = ref(reactive([{ facetId: 1, title: "Red" }]))
+        const { host } = mount(rows, { readonly: true })
+        await nextTick()
+
+        expect(host.querySelector(".chip-label").textContent).toBe("Red")
+        expect(host.querySelector(".chip-label").dataset.readonly).toBe("true")
+        expect(host.querySelector("button")).toBeFalsy()
+        expect(host.querySelector(".selector-slot")).toBeFalsy()
     })
 })

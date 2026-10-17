@@ -37,7 +37,8 @@ IoC registration in `setup.ts`. Useful members (`toEntity` / `newEntity` are pub
 `IEntityService`; `prepareItem` / `processItem` / `createInstance` are protected):
 
 - **`toEntity(item)`** _(abstract)_ — converts a plain server object into a model instance.
-- **`prepareItem(item)`** — runs before save; strips **top-level** properties whose key starts with `_`
+- **`prepareItem(item)`** — runs before save, on a shallow copy of the item (`copyForSave`), so a refused save
+  leaves the form alone; reassign collections there rather than changing their rows. Strips **top-level** properties whose key starts with `_`
   (transient client state). The strip does not recurse, so a `_deleted` child row is still sent — override
   and filter such rows out per collection to drop soft-deleted children.
 - **`processItem(item)`** — runs after fetch/save; hydrates `created` / `lastModified` strings to `Date`.

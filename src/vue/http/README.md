@@ -5,14 +5,14 @@
 
 ## What it provides
 
-| Export                                   | Purpose                                                                                                    |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `initAxios({ api, includeCredentials })` | Create the shared instance once at startup (`baseURL`, credentials, file helpers, blob-error interceptor). |
-| `useAxios()`                             | Get that singleton anywhere (throws if not yet initialized).                                               |
-| `getFile(url, …)`                        | Download a `Blob`; resolves filename/type from response headers.                                           |
-| `upload(url, files, options?)`           | `multipart/form-data` upload (field name defaults to `file`).                                              |
-| `createQueryString(obj)`                 | Build `URLSearchParams`; arrays → repeated keys, `Date` → ISO-8601 + local offset (invalid → omitted).     |
-| `AxiosWithFilesInstance`                 | The augmented axios type (plain axios + `getFile`/`upload`).                                               |
+| Export                                   | Purpose                                                                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `initAxios({ api, includeCredentials })` | Create the shared instance once at startup (`baseURL`, credentials, file helpers, blob-error interceptor).            |
+| `useAxios()`                             | Get that singleton anywhere (throws if not yet initialized).                                                          |
+| `getFile(url, …)`                        | Download a `Blob`; resolves filename/type from response headers.                                                      |
+| `upload(url, files, options?)`           | `multipart/form-data` upload (field name defaults to `file`); `options.data` is flattened and each value stringified. |
+| `createQueryString(obj)`                 | Build `URLSearchParams`; arrays → repeated keys, `Date` → ISO-8601 + local offset (invalid → omitted).                |
+| `AxiosWithFilesInstance`                 | The augmented axios type (plain axios + `getFile`/`upload`).                                                          |
 
 ## How it fits
 
@@ -25,3 +25,7 @@ initAxios({ api, includeCredentials })  →  one AxiosWithFilesInstance
 
 Create exactly one instance and reuse it so credentials and auth apply uniformly. Entity `IConfig.*Url`
 values are relative paths resolved against the `baseURL` set here.
+
+`getFile` reads the file name from `Content-Disposition`; cross-origin (no dev proxy) the API must expose that header
+(`.WithExposedHeaders("Content-Disposition")` on its CORS policy), or `blob.name` stays unset. It sends no body: a
+POST export uses `useAxios().post(url, body, { responseType: "blob" })`.

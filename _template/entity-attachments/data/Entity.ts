@@ -9,6 +9,7 @@ export class EntityAttachment extends EntityBase {
     uri?: string
     sortOrder = 0 // list position — mirrored from the array index client-side (keeps re-maps stable); the server derives SortOrder from the array order on save (its input DTO has no sort field, so the serialized value is informational)
     newFileName?: string // edited name for an existing file — applied on flush
+    newBytes?: string // base64 file content, for a host that sends its files in the owner's own save (entities.patterns → Files in the creating request)
     attachment?: Attachment
     _deleted = false // marked-delete (undoable) — filtered out in the host service's prepareItem
 

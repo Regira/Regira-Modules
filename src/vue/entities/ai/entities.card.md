@@ -55,7 +55,9 @@
   relations, no tabs. A modal per real entity does not scale (no deep-link, no tabs, cramped on mobile).
   **When it is a coin flip, use the page.** Concretely: more than ~6 editable fields, _any_ relation, or
   _any_ collection → page. Modal only for the flat lookup tables (a title, maybe a code and a colour).
-  `isComplex` also gates the advanced-filter toggle on the overview, so a modal entity gets no `FilterAdv`.
+  `isComplex` also gates the advanced-filter toggle on the overview, so a modal entity gets no `FilterAdv` — unless
+  it turns the toggle on itself: a read-only log that needs filters stays modal with
+  `<FilterInline … :show-toggle-adv="true" />` in its `filter/Filter.vue`.
 - **A displayed _related_ entity defaults to its `FormModalButton`** — every chip, badge, or list cell that
   shows a related row opens that row's form in a modal (quick-edit), whatever that entity's own `isComplex`;
   a bare text label is the exception. This is distinct from the rule above: it edits a _neighbour_, not the
@@ -106,7 +108,9 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
   (`@/entities/xs/details/FormModalButton.vue`, `@/entities/xs/data/store`) on the second edge.
   `scaffold.mjs` skips a `--rel` naming the entity being scaffolded for the same reason — a self-relation
   (`Employee → manager`) is wired by hand: a plain FK field on the model plus a relative deep import of the
-  slice's own `selecting/InputSelector.vue`.
+  slice's own `selecting/InputSelector.vue`. The SFC cycle that leaves (`Form.vue` → `InputSelector.vue` →
+  `FormModalButton.vue` → `Form.vue`) is safe: a `<script setup>` component reads its imports only at setup and
+  render. Only the barrel cycles, because `data/store.ts` reads `Entity.name` while the module evaluates.
 
 ## Relations & owned collections
 
@@ -153,10 +157,14 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       at its inputs gives its `<Feedback>` `:hide-field-errors="true"`, or the summary lists them a second time.
     - `service.search(so?)` / `list(so?)` — **paging and sorting ride the argument, flat**, not your
       `SearchObject` class: `search({ ...so, pageSize: 0, sortBy: ["TitleDesc"] })`. Assigning `so.pageSize = 25`
-      to a scaffolded `SearchObject` instance does not type-check; the param is
-      `ISearchObject & IPagingInfo & Partial<ISortByInfo>`, and `ISearchObject extends Record<string, any>`, so
-      any other key you add reaches the query string too (arrays as repeated keys). `new PagingInfo(pageSize?,
-page?)` is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
+      to a scaffolded `SearchObject` instance does not type-check; on `EntityServiceBase` the parameter is
+      `ISearchObject & IPagingInfo & Partial<ISortByInfo>`; the pooled `store.service` (`IPoolService`) takes
+      `object`, so type an argument you build yourself (`const so: ISearchObject & IPagingInfo = { … }`).
+      `ISearchObject extends Record<string, any>`, so any other key you add reaches the query string too (arrays
+      as repeated keys). A `useSearchView` or `useListView` overview is the exception: it sends its search object,
+      so that view's own sort or includes is a `sortBy?` or `includes?` declared on its `SearchObject`
+      (`entities.signatures` §3). `new PagingInfo(pageSize?,
+page?)` (from `@regira/modules/vue/entities`) is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
       `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"`; give it a locale tag instead and it
@@ -171,7 +179,8 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
       titles render untranslated unless you pass one. `icon` is a registered key (all listed in `ui.signatures`
       → _Icons_) or a raw `bi bi-*` class — any other name renders nothing.
 - **Anything that fetches on mount must go through `onAuthenticated(() => load())`** (from
-  `@regira/modules/vue/auth`). Views mount _before_ a stored token is validated, so a fetch guarded on
+  `@regira/modules/vue/auth`) — in an app with the auth plugin; a `--no-auth` app fetches in `onMounted`, since
+  nothing calls the hook there. Views mount _before_ a stored token is validated, so a fetch guarded on
   `isAuthenticated` leaves a blank panel with no error and no failed request; `onAuthenticated` covers
   sign-in, refresh, a restored token, and already being signed in. A hand-rolled `$onAction` must list all
   three actions (`["login", "refresh", "validateToken"]`) — the third is the one that fires on reload.
@@ -185,8 +194,12 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
 - **Counted paging comes from `/search`:** `useSearchView` + `useRouteOverview` → `{ items, count }` —
   on simple and complex entities alike; `list()` has no count. ⚠️ **`useSearchView`/`useListView` do not fetch
   on mount** — the scaffolded overview's first search comes from `useRouteOverview`; a hand-written view owns
-  it (`onAuthenticated(() => searchHandler(true))`, and nothing on mount beside it). `pageSize: 0` returns all rows capped by
-  the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
+  it (`onAuthenticated(() => searchHandler(true))`, and nothing on mount beside it). `useRouteOverview` re-parses the
+  search object from the URL on every search: values come back as strings (`"true"`, `"5"`), a repeated key as
+  `string[]` (one value: a plain string), so compare loosely or normalise (`entities.signatures` §5). A filter the
+  view sets in code (a "mine" view's `userId`) is replaced by the URL's copy as well: set it in the search handler,
+  or use `useSearchView` without `useRouteOverview`.
+  `pageSize: 0` returns all rows capped by the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
   `*Url` defaults off `api`, and `saveUrl` must stay the resource base or updates 404 while inserts pass.
 - **Forms show state through feedback.** `useForm` drives it, but only a rendered
   `<Feedback :feedback="feedback" />` shows it; any save you call yourself gets its own `useFeedback()`.
@@ -203,8 +216,16 @@ page?)` is positional, and is for the overview composable's `pagingInfo` ref —
   **detached copy that goes stale** — use it only when a snapshot is what you want. Custom endpoints live on
   the raw `get<EntityService>(Entity.name)`, not the pooled store. ⚠️ `fromPool` is **read-through**: for an
   id already cached it returns the cached instance and **discards its input**, so landing the payload of a
-  custom endpoint with it silently keeps the stale row — 200, no error, unchanged UI. `set(dto)` /
-  `setMany(dtos)` are the writes (`entities.patterns` → _Resolving relations with `fromPool`_).
+  custom endpoint with it silently keeps the stale row — 200, no error, unchanged UI. The writes are on the
+  store itself — `useEntityStore().set(dto)` / `setMany(dtos)` — not on `store.service`, the pooled
+  `IPoolService`, which has neither (`entities.patterns` → _Resolving relations with `fromPool`_). The pooled
+  `details()`/`list()`/`search()` write every row they return into the pool, so a re-fetch refreshes the
+  cached instances — but they return hydrated copies, not those instances: wrap the result in the store's
+  `fromPool(items)` for the shared ones. A one-field change (a status move, a toggle) is
+  `useEntityStore().service.patch(id, { field })`, plus `concurrencyToken` only when the entity carries one
+  (`entities.patterns` → _State toggle_). The pool is per tab, not per user: the shell's `onAuthenticationChange`
+  empties it on sign-out (`defaultPoolCache.clear()`), and a tenant switch clears it too (`entities.blueprints` →
+  _Tenant switcher_).
 - **A displayed relation is a component, not text**: the related entity's `FormModalButton` beside its
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK

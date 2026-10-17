@@ -1,6 +1,18 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest"
 import { execFileSync } from "child_process"
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs"
+import {
+    existsSync,
+    lstatSync,
+    mkdtempSync,
+    mkdirSync,
+    readdirSync,
+    readFileSync,
+    rmSync,
+    statSync,
+    symlinkSync,
+    unlinkSync,
+    writeFileSync,
+} from "fs"
 import { tmpdir } from "os"
 import { dirname, join, resolve } from "path"
 import { fileURLToPath } from "url"
@@ -152,7 +164,20 @@ describe("scaffold.mjs derived paths", () => {
 
             writeFileSync(
                 join(appRoot, "public", "data", "translations.json"),
-                JSON.stringify({ save: 1, cancel: 1, delete: 1, restore: 1, deleteItem: { en: "Delete {title}?" } })
+                JSON.stringify({
+                    save: 1,
+                    cancel: 1,
+                    delete: 1,
+                    restore: 1,
+                    deleteItem: { en: "Delete {title}?" },
+                    edit: 1,
+                    clear: 1,
+                    filter: 1,
+                    search: 1,
+                    select: 1,
+                    remove: 1,
+                    download: 1,
+                })
             )
             const current = runIn("Receipt", "--no-auth")
             expect(current).not.toContain("translations.json has no")
@@ -167,6 +192,24 @@ describe("scaffold.mjs derived paths", () => {
 
         expect(isDir("src", "entities", "invoices", "invoice-rows")).toBe(true)
         expect(readFileSync(app("src", "entities", "invoices", "invoice-rows", "Entity.ts"), "utf8")).toContain("invoiceId")
+    })
+
+    test("refuses an owned child whose folder is one of the slice's own, and writes nothing", () => {
+        // --owns Detail → details/, the slice's own details folder: Entity.ts imported a folder with no barrel, and
+        // the --overwrite-slice the run then suggested removed Details.vue and Form.vue
+        const err = runFailing("Receipt", "--owns", "Detail", "--no-auth")
+
+        expect(err).toContain('"details/"')
+        expect(err).toContain("--as")
+        expect(isDir("src", "entities", "receipts")).toBe(false)
+    })
+
+    test("leaves an existing slice's own folder alone when the owned child's folder matches it", () => {
+        run("Voucher", "--no-auth")
+        const err = runFailing("Voucher", "--owns", "Detail", "--overwrite-slice", "--no-auth")
+
+        expect(err).toContain('"details/"')
+        expect(readdirSync(app("src", "entities", "vouchers", "details"))).toContain("Details.vue")
     })
 })
 
@@ -204,12 +247,47 @@ describe("scaffold.mjs --rel", () => {
         expect(listItem).toContain('<ProjectButton v-if="item.project" :model-value="getProject(item.project)" />')
     })
 
+    // the fields scaffold.mjs adds sit with `id`, above the placeholder `title` and its TODO block, so removing that
+    // block leaves them in place
+    test("puts the fields it adds to the model above the placeholder title", () => {
+        run("Parcel", "--attachments", "--rel", "Courier", "--owns", "ParcelLine", "--no-auth")
+        const model = readFileSync(app("src", "entities", "parcels", "data", "Entity.ts"), "utf8")
+        const title = model.indexOf('title = ""')
+
+        expect(title).toBeGreaterThan(-1)
+        for (const field of [
+            "courierId?: number",
+            "courier?: Courier",
+            "parcelLines?: Array<ParcelLine>",
+            "attachments?: Array<EntityAttachment>",
+        ]) {
+            expect(model.indexOf(field), field).toBeGreaterThan(model.indexOf("id: number = 0"))
+            expect(model.indexOf(field), field).toBeLessThan(title)
+        }
+    })
+
     test("--dir is honoured by the lookup as well as by the output", () => {
         run("Country", "--plural", "countries", "--no-auth", "--dir", "src/modules")
         run("City", "--rel", "Country", "--no-auth", "--dir", "src/modules")
 
         expect(isDir("src", "modules", "cities")).toBe(true)
         expect(aliasImports(app("src", "modules", "cities"))).toContain("@/modules/countries")
+    })
+
+    test("--dir takes an absolute path under src/ too", () => {
+        run("Province", "--rel", "Country", "--no-auth", "--dir", app("src", "modules"))
+
+        expect(aliasImports(app("src", "modules", "provinces"))).toContain("@/modules/countries")
+    })
+
+    test("--dir outside src/, or src/ itself, is refused before anything is written", () => {
+        // the slice imports its siblings through @/, which is src/: a folder elsewhere has no alias to resolve
+        expect(runFailing("Region", "--no-auth", "--dir", "lib/entities")).toContain("is not a folder under src/")
+        expect(runFailing("Region", "--no-auth", "--dir", "src")).toContain("is not a folder under src/")
+        expect(runFailing("Region", "--no-auth", "--dir", "src/../lib")).toContain("is not a folder under src/")
+
+        expect(isDir("lib")).toBe(false)
+        expect(isDir("src", "regions")).toBe(false)
     })
 })
 
@@ -303,6 +381,8 @@ describe("scaffold.mjs stdout", () => {
 
         expect(out).toContain("Usage:")
         expect(out).toContain("--overwrite-slice")
+        // --as renames the JSON key only: the sub-slice folder stays the kebab-cased class plural
+        expect(out).toContain("order-lines/")
         expect(readdirSync(cwd)).toEqual(before)
     })
 })
@@ -349,6 +429,41 @@ describe("scaffold.mjs owned collections", () => {
         expect(overview).toContain('v-model="item.menuItems"') // the BINDING stays the camelCase JSON key
     })
 
+    test("the add row's Enter adds the row without submitting the parent form", () => {
+        // The editor renders inside the parent Form.vue's <form>, whose FormButtonsRow carries a submit button, so the
+        // browser submits that form on the Enter keydown. A keyup handler runs after it: the parent saved without the
+        // row. Only a keydown handler with .prevent stops the implicit submission.
+        run("Basket", "--owns", "BasketLine", "--no-auth")
+        const overview = readFileSync(app("src", "entities", "baskets", "basket-lines", "Overview.vue"), "utf8")
+        const addRow = overview.slice(overview.indexOf('<div v-if="newItem'))
+        const inputs = addRow.match(/<input\b[^>]*>/g) ?? []
+
+        expect(inputs.length).toBeGreaterThan(0)
+        for (const input of inputs) expect(input).toContain('@keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })"')
+        expect(overview).not.toContain("@keyup.enter")
+    })
+
+    // the generated prepareItem filter reads the field, so the parent model declares it — as --rel declares its own
+    test("declares each owned field on the parent model it scaffolds", () => {
+        const out = run("Workshop", "--owns", "WorkshopLine", "--owns", "WorkshopTag", "--as", "tags", "--picker", "Tag", "--no-auth")
+        const model = readFileSync(app("src", "entities", "workshops", "data", "Entity.ts"), "utf8")
+
+        expect(model).toContain('import type { Entity as WorkshopLine } from "../workshop-lines"')
+        expect(model).toContain('import type { Entity as WorkshopTag } from "../workshop-tags"')
+        expect(model).toContain("    workshopLines?: Array<WorkshopLine>")
+        expect(model).toContain("    tags?: Array<WorkshopTag>")
+        expect(out).toMatch(/✓ .*Entity\.ts\s+field\s+tags\?: Array<WorkshopTag>/)
+    })
+
+    test("leaves an existing parent's model alone and prints the field to add", () => {
+        run("Vendor", "--no-auth")
+        const before = readFileSync(app("src", "entities", "vendors", "data", "Entity.ts"), "utf8")
+        const out = run("Vendor", "--owns", "VendorLine", "--no-auth")
+
+        expect(readFileSync(app("src", "entities", "vendors", "data", "Entity.ts"), "utf8")).toBe(before)
+        expect(out).toMatch(/1\. .*Entity\.ts\s+field\s+vendorLines\?: Array<VendorLine>/)
+    })
+
     test("--picker emits chips over a plain join row, not the scalar editable table", () => {
         // A pure join has nothing to type into, and InputSelectorInline constrains rows to
         // `{ _deleted?, id? }` — giving it the EntityBase row class is what makes add({...}) fail to compile.
@@ -368,6 +483,16 @@ describe("scaffold.mjs owned collections", () => {
     test("--picker names the OTHER side of the join", () => {
         expect(() => run("Article", "--owns", "ArticleCategory", "--picker", "ArticleCategory", "--no-auth")).toThrow(/repeats the --owns class/)
         expect(() => run("Article", "--rel", "Category", "--picker", "Category", "--no-auth")).toThrow(/directly after the --owns/)
+    })
+
+    test("--picker naming the slice itself is refused and points to the hand-written recipe", () => {
+        // the join row's picked FK would be memberId, the parent FK's own name, and the chips would import the
+        // slice's own barrel
+        const err = runFailing("Member", "--owns", "MemberFriend", "--as", "friends", "--picker", "Member", "--no-auth")
+
+        expect(err).toContain("names the Member slice itself")
+        expect(err).toContain("Shapes --owns does not scaffold")
+        expect(isDir("src", "entities", "members")).toBe(false)
     })
 
     test("--fk overrides the child's FK to the parent", () => {
@@ -534,6 +659,19 @@ describe("scaffold.mjs --shell config.json", () => {
         return shell(...args)("public", "config.json")
     }
 
+    // _template/app-shell is generated from entities.shell.template.md: an edit made only in the generated file is lost
+    // on the next build, so pin what the navigation ships in both variants
+    test("the navigation hides an entry the route guard would refuse, and a --no-auth shell shows every entry", () => {
+        const nav = ["src", "components", "entity-navigation", "functions.ts"]
+        const withAuth = shell()(...nav)
+        const noAuth = shell("--no-auth")(...nav)
+
+        expect(withAuth).toContain("routeAllows(router.resolve({ name }), authStore)")
+        expect(withAuth).not.toContain("=> true")
+        expect(noAuth).toContain("const hasAccess = (_config: IConfig) => true")
+        expect(noAuth).not.toMatch(/auth|router/i)
+    })
+
     test("--no-auth drops the auth-only keys — no marker can live in JSON, so the file is edited by key", () => {
         const raw = shellConfig("--no-auth")
         const config = JSON.parse(raw)
@@ -620,6 +758,17 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(read("index.html")).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />')
     })
 
+    test("a --no-auth shell remembers the chosen language too", () => {
+        // the language persistence lived in the auth-only user-plugin, so a --no-auth app forgot it on every reload
+        const read = shell("--no-auth")
+        const main = read("src", "main.ts")
+
+        expect(read("src", "infrastructure", "lang-plugin.ts")).toContain('localStorage.setItem("lang", code)')
+        expect(main).toContain('import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"')
+        expect(main).toMatch(/app\.use\(langPlugin, [^\n]*\)\n\s*app\.use\(langStoragePlugin\)/)
+        expect(main).not.toContain("user-plugin")
+    })
+
     test("a --no-auth routes.ts says nothing about sign-in", () => {
         expect(shell("--no-auth")("src", "router", "routes.ts")).not.toMatch(/login|auth-on/i)
     })
@@ -660,4 +809,91 @@ describe("scaffold.mjs guards", () => {
         mkdirSync(app("ignored"), { recursive: true })
         expect(() => run("Thing", "--api", "/C:/Program Files/Git/products", "--no-auth")).toThrow(/expanded the leading slash/)
     })
+
+    test("refuses a non-PascalCase --owns child before the parent is written", () => {
+        // the parent would import a child slice that is never scaffolded, and vue-tsc fails on it (TS2307)
+        expect(runFailing("Waybill", "--owns", "waybillLine", "--no-auth")).toContain("--owns requires a PascalCase child class name")
+        expect(isDir("src", "entities", "waybills")).toBe(false)
+    })
+
+    test("refuses a --plural that is not a kebab-case folder name before anything is written", () => {
+        // --plural becomes a folder under --dir: a path writes outside it, and a following flag is not a name
+        expect(runFailing("Coupon", "--plural", "../../lib/coupons", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+        expect(runFailing("Coupon", "--plural", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+        expect(isDir("lib")).toBe(false)
+        expect(isDir("src", "entities", "coupons")).toBe(false)
+    })
+
+    test("refuses an upper-case --plural", () => {
+        // the folder and route prefix would be pEOPLE: only the first letter is lowered
+        expect(runFailing("Person", "--plural", "PEOPLE", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+        expect(runFailing("Person", "--plural", "People", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+    })
+
+    test("refuses a value flag without its value before anything is written", () => {
+        // the next flag was read as the value: `--api --no-auth` emitted const api = "/--no-auth", and every request 404s
+        expect(runFailing("Rebate", "--api", "--no-auth")).toContain("--api requires a value, but is followed by --no-auth")
+        expect(runFailing("Rebate", "--no-auth", "--singular")).toContain("--singular requires a value.")
+        expect(runFailing("--ui", "--dir", "src/components/ui")).toContain("--ui requires a value, but is followed by --dir")
+        expect(isDir("src", "entities", "rebates")).toBe(false)
+    })
+})
+
+describe("scaffold.mjs output type-checks", () => {
+    // vue-tsc over a scaffolded app, which reads @regira/modules through its exports map as an install does: the
+    // built dist/, so the test skips until `npm run build` has run
+    const built = existsSync(join(repoRoot, "dist", "vue", "entities", "index.d.ts"))
+    let root
+    afterAll(() => {
+        if (!root) return
+        // the app's node_modules entries link into this repository: unlink them before the folder is removed
+        const unlinkAll = (dir) => {
+            if (!existsSync(dir)) return
+            for (const entry of readdirSync(dir)) {
+                const abs = join(dir, entry)
+                if (lstatSync(abs).isSymbolicLink()) unlinkSync(abs)
+                else if (entry === "@regira") unlinkAll(abs)
+            }
+        }
+        unlinkAll(join(root, "node_modules"))
+        rmSync(root, { recursive: true, force: true })
+    })
+
+    test.skipIf(!built)(
+        "a slice type-checks with a number key and with a string key",
+        () => {
+            // the slice is key-generic: `id: string = ""` (a Guid or code key) compiles as the default `id: number = 0` does
+            root = mkdtempSync(join(tmpdir(), "regira-typecheck-"))
+            const scaffoldHere = (...args) =>
+                execFileSync(process.execPath, [scaffold, ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+            scaffoldHere("--shell", "--no-auth")
+            scaffoldHere("Note", "--no-auth")
+            scaffoldHere("Tag", "--no-auth")
+            const model = join(root, "src", "entities", "tags", "data", "Entity.ts")
+            writeFileSync(model, readFileSync(model, "utf8").replace(/^(\s*)id: number = 0\b/m, '$1id: string = ""'))
+            expect(readFileSync(model, "utf8")).toMatch(/^\s*id: string = ""/m)
+
+            // the repository's packages, and @regira/modules itself, linked in as an install would place them
+            const modules = join(root, "node_modules")
+            mkdirSync(modules)
+            for (const entry of readdirSync(join(repoRoot, "node_modules"))) {
+                if (!entry.startsWith(".")) symlinkSync(join(repoRoot, "node_modules", entry), join(modules, entry), "junction")
+            }
+            mkdirSync(join(modules, "@regira"))
+            symlinkSync(repoRoot, join(modules, "@regira", "modules"), "junction")
+
+            let errors = ""
+            try {
+                execFileSync(process.execPath, [join(repoRoot, "node_modules", "vue-tsc", "bin", "vue-tsc.js"), "-p", "tsconfig.app.json"], {
+                    cwd: root,
+                    encoding: "utf8",
+                    stdio: ["ignore", "pipe", "pipe"],
+                })
+            } catch (ex) {
+                errors = `${ex.stdout || ""}${ex.stderr || ""}` || String(ex)
+            }
+            expect(errors).toBe("")
+        },
+        120_000
+    )
 })

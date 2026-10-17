@@ -49,7 +49,7 @@
                     <div v-show="!feedback.status" class="row g-0">
                         <div class="col-auto">
                             <div v-if="selected?.id" class="form-control bg-info py-0">
-                                <IconButton icon="selected" class="px-1 me-1" @click="handleSelect(undefined)" />
+                                <IconButton icon="selected" class="px-1 me-1" :aria-label="$t('clear')" @click="handleSelect(undefined)" />
                                 <FormModalButton v-model="selected" class="px-1" />
                                 {{ selected.$title }}
                             </div>
@@ -58,7 +58,13 @@
                 </div>
             </div>
             <div class="col-auto order-2 mb-2">
-                <FormModalButton :item-defaults="itemDefaults" :close-on-save="true" @save="({ saved }) => handleSelect(saved)" class="btn btn-info">
+                <FormModalButton
+                    :item-defaults="itemDefaults"
+                    :close-on-save="true"
+                    @save="({ saved }) => handleSelect(saved)"
+                    class="btn btn-info"
+                    :aria-label="$t('new')"
+                >
                     <Icon name="new" />
                     <span class="d-none d-sm-inline">{{ $t("new") }}</span>
                 </FormModalButton>

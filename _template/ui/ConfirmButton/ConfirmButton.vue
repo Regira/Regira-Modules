@@ -1,5 +1,5 @@
 <template>
-    <button type="button" class="rg-confirm-button btn" :name="icon" @click="handleOpen">
+    <button type="button" class="rg-confirm-button btn" :disabled="disabled" @click="handleOpen">
         <slot name="button-content">
             <Icon v-if="icon != null" :name="icon" />
             <span v-if="buttonLabel" class="ms-1">{{ buttonLabel }}</span>

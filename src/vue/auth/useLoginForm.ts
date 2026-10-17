@@ -10,6 +10,10 @@ export interface LoginFormEmits {
     (e: "success", username?: string): void
     (e: "fail", username?: string): void
 }
+/** the default form's events, forwarded (a slotted form emits its own), plus the modal's close: its header X or Esc */
+export interface LoginModalEmits extends LoginFormEmits {
+    (e: "close"): void
+}
 export interface LoginFormProps {
     username?: string
 }
@@ -20,6 +24,8 @@ export type LoginModalProps = {
     /** visibility is a real prop (defaults on); prefer gating the whole component with v-if —
      * it unmounts mask + dialog in one go and cannot strand a leave-transition */
     isVisible?: boolean
+    /** the header's close button (X), default on; pass false while sign-in is required, where closing leads nowhere */
+    showClose?: boolean
 }
 export type LoginModalSlots = {
     /** replace the whole login form; scoped with the initial username */
@@ -33,12 +39,16 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
     const failed = ref(false)
     const signingIn = ref(false)
     const isLockedOut = ref(false)
+    /** the password was right but the account (or its e-mail/phone) is not confirmed yet */
+    const isNotAllowed = ref(false)
 
     const store = useAuthStore()
 
     async function handleSubmit() {
         signingIn.value = true
         failed.value = false
+        isLockedOut.value = false
+        isNotAllowed.value = false
 
         emit("signingIn", username.value)
         try {
@@ -52,7 +62,8 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
             // the error carries the request that produced it — the posted { username, password } included
             console.error("login failed", maskAxiosError(ex))
             failed.value = true
-            isLockedOut.value = ex.response?.data?.isLockedOut
+            isLockedOut.value = !!ex.response?.data?.isLockedOut
+            isNotAllowed.value = !!ex.response?.data?.isNotAllowed
             emit("fail", username.value)
         } finally {
             signingIn.value = false
@@ -69,6 +80,7 @@ export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
         failed,
         signingIn,
         isLockedOut,
+        isNotAllowed,
 
         handleSubmit,
         handleForgotPassword,

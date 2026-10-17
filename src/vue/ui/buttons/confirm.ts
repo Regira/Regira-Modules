@@ -3,6 +3,7 @@ import { ModalType } from "../modal/modal"
 export type ConfirmButtonProps = {
     icon?: string
     buttonLabel?: string
+    disabled?: boolean
     modalTitle?: string
     modalType?: ModalType
     /** confirm-modal footer labels (i18n); defaults are English "Cancel" / "Submit" */

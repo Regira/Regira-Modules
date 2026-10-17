@@ -220,6 +220,7 @@ export default EntitySearchObject
                 :show-footer="true"
                 :full-width="true"
                 @close="handleClose"
+                @cancel="handleClose"
                 @submit="handleSubmit"
             >
                 <slot name="title"></slot>
@@ -281,10 +282,16 @@ function handleSubmit() {
     <div class="row">
         <div class="col-auto">
             <div class="input-group">
-                <IconButton icon="clear" class="btn-outline-secondary" @click="handleReset" />
+                <IconButton icon="clear" class="btn-outline-secondary" :aria-label="$t('clear')" @click="handleReset" />
                 <input v-model.lazy.trim="searchObject.q" class="form-control" :placeholder="$t('keywords')" @change="handleUpdate" />
-                <IconButton icon="search" class="btn-outline-primary d-none d-sm-block" @click="handleUpdate" />
-                <IconButton v-if="showToggleAdv" icon="filter" :class="filterIsActive ? 'btn-info' : 'btn-outline-info'" @click="handleToggle" />
+                <IconButton icon="search" class="btn-outline-primary d-none d-sm-block" :aria-label="$t('search')" @click="handleUpdate" />
+                <IconButton
+                    v-if="showToggleAdv"
+                    icon="filter"
+                    :aria-label="$t('filter')"
+                    :class="filterIsActive ? 'btn-info' : 'btn-outline-info'"
+                    @click="handleToggle"
+                />
             </div>
             <small v-if="filterIsActive" class="d-none d-sm-inline italic-muted">{{ $t("filtersAreApplied") }}</small>
         </div>
@@ -346,7 +353,7 @@ const { filterIsActive, handleReset, handleUpdate, handleToggle } = useFilter({
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
         <div class="row">
@@ -436,12 +443,12 @@ const { filterIsActive, handleReset, handleUpdate } = useFilter({
         <div class="row pb-2 border-bottom border-bottom-1">
             <div class="col-auto fw-bold">
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col-2 col-lg-1 fw-bold">{{ $t("code") }}</div>
             <div class="col fw-bold">{{ $t("name") }}</div>
             <div class="col-auto fw-bold">
-                <span class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <template v-for="(item, i) in items" :key="item.$id">
@@ -495,7 +502,7 @@ const items = computed<Array<Entity>>({
         <div class="col-auto">
             <template v-if="config.isComplex">
                 <!-- Complex entity: Link to input page -->
-                <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+                <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1" :aria-label="$t('edit')">
                     <Icon :name="config.key" />
                 </router-link>
             </template>
@@ -513,6 +520,7 @@ const items = computed<Array<Entity>>({
         <div class="col-auto">
             <ConfirmButton
                 icon="delete"
+                :aria-label="$t('delete')"
                 class="m-0 p-1"
                 :modal-type="ModalType.danger"
                 :modal-title="$t('delete')"
@@ -586,12 +594,12 @@ const item = defineModel<Entity>({ required: true })
             </div>
             <div class="col-auto order-2 order-lg-3 ps-2">
                 <template v-if="config.isComplex">
-                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info">
+                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </RouterLink>
                 </template>
                 <template v-else>
-                    <FormModalButton class="btn btn-info" @save="searchHandler(false)">
+                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </FormModalButton>
                 </template>
@@ -657,7 +665,7 @@ const item = defineModel<Entity>({ required: true })
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -685,10 +693,12 @@ const { updateOverviewRoute } = useRouteOverview({
     defaultPageSize: config.defaultPageSize,
 })
 
-// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload.
-// immediate: false — useRouteOverview already fetches on mount, and firing in setup would race it with an
-// unpopulated search object. No-auth app: delete this line AND its import above (scaffold.mjs --no-auth strips both; see entities.setup.md#running-without-authentication)
-onAuthenticated(() => searchHandler(false), { immediate: false })
+// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload. A sign-in as another
+// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen. immediate: false —
+// useRouteOverview already fetches on mount, and firing in setup would race it with an unpopulated search object.
+// No-auth app: delete these two lines AND their import above (scaffold.mjs --no-auth strips all three; see entities.setup.md#running-without-authentication)
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen, for onAuthenticated below
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)
@@ -729,7 +739,7 @@ async function handleRequestRemove(item: Entity) {
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
 import { useDetails } from "@regira/modules/vue/entities/details"
 import { FormStates } from "@regira/modules/vue/entities/form"
@@ -740,9 +750,12 @@ const { service } = useEntityStore()
 
 const { item, isLoading, overviewUrl, load, feedback } = useDetails(service)
 
-// load whenever a token arrives, unless something was loaded already. immediate: false — useDetails already
-// fetches on mount. No-auth app: delete this line AND its import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
-onAuthenticated(() => item.value == null && load(), { immediate: false })
+// load whenever a token arrives and the row on screen is none, or another account's: someone else signing in behind the
+// LoginModal gets their own row, and the previous one is cleared first, so a reload refused for them (403/404) never leaves
+// it on screen; a refresh of the same account's token keeps the form and its edits. immediate: false — useDetails already
+// fetches on mount. No-auth app: delete these two lines AND their import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen, for onAuthenticated below
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) item.value = undefined; if (item.value == null) { shownFor = userId; load() } }, { immediate: false })
 
 const router = useRouter()
 function handleRemove() {
@@ -786,7 +799,7 @@ function handleRemove() {
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1" :aria-label="$t('overview')">
                     <Icon name="list" />
                     <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
@@ -869,7 +882,12 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
 
 ```vue
 <template>
-    <button type="button" class="btn btn-default" @click="open">
+    <button
+        type="button"
+        class="btn btn-default"
+        :aria-label="$slots.default ? undefined : modalTitle || $t(config.detailsTitle || '')"
+        @click="open"
+    >
         <slot>
             <Icon :name="config.key" />
         </slot>
@@ -1037,7 +1055,7 @@ const displayItemFormatter = (item?: Entity) => item?.$title as string
     <div class="input-selector input-group text-nowrap">
         <slot name="prepend">
             <FormModalButton
-                v-if="canEdit"
+                v-if="canEdit && (!readonly || item?.id)"
                 v-model="item"
                 :item-defaults="itemDefaults"
                 :readonly="readonly"
@@ -1062,7 +1080,14 @@ const displayItemFormatter = (item?: Entity) => item?.$title as string
         </slot>
         <slot name="append">
             <template v-if="!readonly">
-                <button v-if="!readonly" type="button" v-show="item != null" class="btn btn-outline-secondary" @click="handleSelect(undefined)">
+                <button
+                    v-if="!readonly"
+                    type="button"
+                    v-show="item != null"
+                    class="btn btn-outline-secondary"
+                    :aria-label="$t('clear')"
+                    @click="handleSelect(undefined)"
+                >
                     <Icon name="clear" />
                 </button>
                 <SelectorModalButton
@@ -1138,7 +1163,12 @@ watch(
             return
         }
         if (props.modelValue?.id == id) return
-        const model = await list({ id })
+        let model
+        try {
+            model = await list({ id })
+        } catch {
+            return // a caller who may not read this entity (403) keeps the FK and shows no row
+        }
         if (props.idValue == id) emit("update:modelValue", model[0]) // a newer FK arrived meanwhile: drop this answer
     },
     { immediate: true }
@@ -1165,7 +1195,7 @@ onMounted(() => {
             <div class="text-nowrap p-2 border rounded-1">
                 <FormModalButton v-model="items![i]" class="m-0 p-0" />
                 {{ item.$title }}
-                <IconButton icon="delete" class="m-0 py-0 px-1" @click="handleRemove(item)" />
+                <IconButton icon="delete" class="m-0 py-0 px-1" :aria-label="$t('remove')" @click="handleRemove(item)" />
             </div>
         </div>
         <div class="col-auto">
@@ -1272,6 +1302,8 @@ async function load() {
             selectedItem.value = items.value.find((x) => x.id == selectedId.value)
         }
     } catch (ex: any) {
+        // a refused load leaves no options: another account signing in must not be offered the previous one's rows
+        items.value = []
         // a 401 is a load that ran before sign-in and is repeated after it; anything else is worth a look
         if (ex?.response?.status !== 401) console.error("Loading the dropdown failed", ex)
     }
@@ -1352,7 +1384,12 @@ function handleSelect(item?: Entity) {
 
 ```vue
 <template>
-    <button type="button" class="btn btn-default" @click="open">
+    <button
+        type="button"
+        class="btn btn-default"
+        :aria-label="$slots.default ? undefined : modalTitle || $t(config.overviewTitle || '')"
+        @click="open"
+    >
         <slot><Icon name="search" /></slot>
         <Teleport to="#modals">
             <component
@@ -1476,7 +1513,7 @@ watchEffect(() => (selected.value = props.modelValue))
                     <div v-show="!feedback.status" class="row g-0">
                         <div class="col-auto">
                             <div v-if="selected?.id" class="form-control bg-info py-0">
-                                <IconButton icon="selected" class="px-1 me-1" @click="handleSelect(undefined)" />
+                                <IconButton icon="selected" class="px-1 me-1" :aria-label="$t('clear')" @click="handleSelect(undefined)" />
                                 <FormModalButton v-model="selected" class="px-1" />
                                 {{ selected.$title }}
                             </div>
@@ -1485,7 +1522,13 @@ watchEffect(() => (selected.value = props.modelValue))
                 </div>
             </div>
             <div class="col-auto order-2 mb-2">
-                <FormModalButton :item-defaults="itemDefaults" :close-on-save="true" @save="({ saved }) => handleSelect(saved)" class="btn btn-info">
+                <FormModalButton
+                    :item-defaults="itemDefaults"
+                    :close-on-save="true"
+                    @save="({ saved }) => handleSelect(saved)"
+                    class="btn btn-info"
+                    :aria-label="$t('new')"
+                >
                     <Icon name="new" />
                     <span class="d-none d-sm-inline">{{ $t("new") }}</span>
                 </FormModalButton>
@@ -1905,7 +1948,7 @@ export default EntitySearchObject
                 <span v-if="isLoading" class="ms-2 text-muted"><Loading style="height: 1.5rem" /></span>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
         <div class="row">
@@ -2317,7 +2360,7 @@ watchEffect(async () => {
         <div class="row pb-2 border-bottom border-bottom-1">
             <div class="col-auto">
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col fw-bold">{{ $t("name") }}</div>
             <div class="d-none d-lg-block col-lg col-xl-3 fw-bold">
@@ -2328,7 +2371,7 @@ watchEffect(async () => {
             </div>
             <div class="col-2 d-none d-md-block fw-bold">{{ $t("unitType") }}</div>
             <div class="col-auto fw-bold">
-                <span class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <template v-for="(item, i) in items" :key="item.$id">
@@ -2388,7 +2431,7 @@ const items = computed<Array<Entity>>({
             <div class="col-auto">
                 <template v-if="config.isComplex">
                     <!-- Complex entity: Link to input page -->
-                    <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+                    <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1" :aria-label="$t('edit')">
                         <Icon :name="config.key" />
                     </router-link>
                 </template>
@@ -2416,6 +2459,7 @@ const items = computed<Array<Entity>>({
             <div class="col-auto">
                 <ConfirmButton
                     icon="delete"
+                    :aria-label="$t('delete')"
                     class="m-0 p-1"
                     :modal-type="ModalType.danger"
                     :modal-title="$t('delete')"
@@ -2500,7 +2544,7 @@ const { fromPool: getFacet } = useFacetStore()
                 <Feedback v-bind="{ feedback }" :hideCloseButton="true" />
             </div>
             <div class="col-auto order-2 order-lg-3 ps-2">
-                <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info">
+                <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                     <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                 </RouterLink>
             </div>
@@ -2572,7 +2616,7 @@ const { fromPool: getFacet } = useFacetStore()
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -2604,10 +2648,12 @@ const { updateOverviewRoute } = useRouteOverview({
     defaultPageSize: config.defaultPageSize,
 })
 
-// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload.
-// immediate: false — useRouteOverview already fetches on mount, and firing in setup would race it with an
-// unpopulated search object. No-auth app: delete this line AND its import above (scaffold.mjs --no-auth strips both; see entities.setup.md#running-without-authentication)
-onAuthenticated(() => searchHandler(false), { immediate: false })
+// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload. A sign-in as another
+// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen. immediate: false —
+// useRouteOverview already fetches on mount, and firing in setup would race it with an unpopulated search object.
+// No-auth app: delete these two lines AND their import above (scaffold.mjs --no-auth strips all three; see entities.setup.md#running-without-authentication)
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen, for onAuthenticated below
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)
@@ -2662,7 +2708,7 @@ async function handleRequestRemove(item: Entity) {
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1" :aria-label="$t('overview')">
                     <Icon name="list" />
                     <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>

@@ -44,7 +44,9 @@ re-implement the behaviour in your own:
 - **Navbar dropdowns are a self-contained Vue toggle** (`NavBar.vue`: an `openId` ref + `v-click-outside`),
   not Bootstrap's JS — the shell imports Bootstrap **CSS only** (see [Bootstrap](#bootstrap) below). If you
   re-author them with `data-bs-toggle="dropdown"` you must also `import "bootstrap/dist/js/bootstrap.bundle.min.js"`;
-  the CSS alone never opens a dropdown. Simplest: keep `NavBar.vue` and restyle around it.
+  the CSS alone never opens a dropdown. Simplest: keep `NavBar.vue` and restyle around it. Without Bootstrap's JS,
+  `.dropdown-menu-end` alone does not right-align a menu either: its CSS keys on the `data-bs-popper` attribute
+  that JS sets, so add `data-bs-popper="static"` to the menu, or use `end-0`.
 - **Nav/dashboard entries are `router-link`s to `{ name: routeName, query: initialQuery }`** — keep the
   `initialQuery` (an entry can carry a preset filter), and when you render a link as a tile/card keep
   `text-decoration-none`, or the nav collapses to bare underlined `<a>`s.
@@ -121,9 +123,12 @@ export default defineConfig({
     define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version) },
     server: {
         port: Number(process.env.PORT) || 5173, // honor a harness/preview-assigned PORT (Vite ignores it by default)
+        strictPort: false, // true when the port is prescribed: fail rather than move to the next free one, and when it is
+        // listed in the API's AccountEmails:AllowedOrigins: a moved port is another origin, and password recovery answers 400
         // config.json → api is "/api": the SPA calls its own origin, in development as in production, and this
-        // forwards /api to the API. Set the target to the API's HTTPS launch URL (launchSettings.json → applicationUrl);
-        // the API serves its controllers under the "api" route prefix. See entities.setup.md → The URL contract
+        // forwards /api to the API. Set the target to the API's launch URL (launchSettings.json → applicationUrl): its HTTPS
+        // one, or its http:// one for an API that serves HTTP only in development. The API serves its routes under the
+        // "api" prefix. See entities.setup.md → The URL contract
         proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } },
     },
 })
@@ -220,7 +225,7 @@ import { initAxios } from "@regira/modules/vue/http"
 import { plugin as servicesPlugin, type IServiceProvider } from "@regira/modules/vue/ioc"
 import { plugin as appPlugin, AppStatus, whenAppReady } from "@regira/modules/vue/app"
 import { plugin as langPlugin } from "@regira/modules/vue/lang"
-import { useLang } from "@regira/modules/vue/lang" // used for document.title + (auth) setLangCode
+import { useLang } from "@regira/modules/vue/lang" // document.title, and (auth) the signed-in account's culture
 import { iconPlugin, screenPlugin, loadingPlugin, feedbackPlugin } from "@regira/modules/vue/ui"
 import { focus, grow, clickOutside } from "@regira/modules/vue/directives"
 import "bootstrap/dist/css/bootstrap.min.css"
@@ -229,6 +234,7 @@ import "@regira/modules/style.css"
 import "@/assets/theme.scss" // the app theme — MUST come after bootstrap + regira styles so its overrides win
 import { plugin as authPlugin, LocalStorageTokenManager } from "@regira/modules/vue/auth" // @auth:only
 import { plugin as userPlugin } from "@/infrastructure/user-plugin" // @auth:only
+import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"
 import { preloaderPlugin, defaultPoolCache, PoolCache } from "@regira/modules/vue/entities"
 import { plugin as debugPlugin } from "@regira/modules/vue/debug"
 import dateExtensions from "@regira/modules/extensions/date-extensions"
@@ -258,6 +264,7 @@ fetch(`${appConfig.baseUrl}/config.json`)
         app.use(loadingPlugin) // the built-in spinner; pass { img } to show your own image instead
         app.use(feedbackPlugin, { autoHideDelay: 2500 })
         app.use(langPlugin, { defaultLang: "en", messages: translations })
+        app.use(langStoragePlugin) // restores the language picked on an earlier visit and saves every change
 
         document.title = useLang().translateMessage(config.title) || document.title // browser-tab title from config.title (culture-keyed); re-set on culture change if you localize it
 
@@ -281,6 +288,8 @@ fetch(`${appConfig.baseUrl}/config.json`)
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
+                // the pool is per tab: the next account must not see the previous one's rows
+                if (!auth.isAuthenticated) defaultPoolCache.clear()
             },
         })
         app.use(userPlugin)
@@ -411,14 +420,16 @@ watch(showLogin, (gateOpen) => {
 
         <!-- @auth:block-start -->
         <Teleport to="#loginModal">
-            <!-- v-if (not :is-visible): unmounting removes mask + dialog atomically — no stranded overlay -->
-            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+            <!-- v-if (not :is-visible): unmounting removes mask + dialog atomically — no stranded overlay.
+                 No X while sign-in is required: closing would leave a page that needs it. A gate widened to an
+                 on-demand sign-in (a loginRequested ref) shows the X there; clear the request on @close. -->
+            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
                 <LoginForm @forgot-password="handleForgotPassword" />
             </LoginModal>
             <!-- the library ships the recovery MODAL, not the form — slot in the app's own (users/).
                  `showLogin &&` matters: without it, authenticating by another path (token refresh, a sign-in
                  in a second tab) leaves this modal stranded over an authenticated app.
-                 @close falls through to the modal's header X, which would otherwise be a dead button. -->
+                 @close is the modal's header X or Esc, which would otherwise do nothing. -->
             <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">
                 <ForgotPasswordForm :username="username" @login="showForgot = false" />
             </ForgotPasswordModal>
@@ -440,6 +451,7 @@ watch(showLogin, (gateOpen) => {
     "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
+    "culture": "en-US",
     "title": { "en": "My App" },
     "navigation": {
         "groups": [{ "id": "Main", "title": "main", "icon": "bi bi-grid" }],
@@ -471,14 +483,19 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "cancel": { "en": "Cancel" },
     "changePassword": { "en": "Change password" },
     "chooseNewPassword": { "en": "Choose a new password" },
+    "clear": { "en": "Clear" },
     "created": { "en": "Created" },
     "delete": { "en": "Delete" },
     "deleteItem": { "en": "Delete {title}?" },
+    "download": { "en": "Download" },
+    "edit": { "en": "Edit" },
     "files": { "en": "Files" },
+    "filter": { "en": "Filter" },
     "filtersAreApplied": { "en": "Filters are applied" },
     "invalidResetLink": { "en": "This recovery link is invalid or incomplete. Request a new one from the sign-in screen." },
     "keywords": { "en": "Keywords" },
     "main": { "en": "Main" },
+    "menu": { "en": "Menu" },
     "name": { "en": "Name" },
     "new": { "en": "New" },
     "noResults": { "en": "No results" },
@@ -486,11 +503,13 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "popOut": { "en": "Open in new tab" },
     "recoveryMailFailed": { "en": "Sending the recovery link failed. Please try again." },
     "recoveryMailSent": { "en": "If that account exists, a recovery link is on its way." },
+    "remove": { "en": "Remove" },
     "resetPassword": { "en": "Reset password" },
     "restore": { "en": "Restore" },
     "results": { "en": "results" },
     "save": { "en": "Save" },
     "search": { "en": "Search" },
+    "select": { "en": "Select" },
     "sendRecoveryLink": { "en": "Send recovery link" },
     "signIn": { "en": "Sign in" },
     "signOut": { "en": "Sign out" },
@@ -567,7 +586,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: "/:pathMatch(.*)*",
         name: "catchAll",
-        redirect: (from) => ({ name: "notFound", query: { url: from.fullPath } }),
+        redirect: (from) => ({ name: "notFound", params: {}, query: { url: from.fullPath } }),
         meta: { allowAnonymous: true },
     },
 ]
@@ -605,7 +624,9 @@ export default {
 
 ```ts
 import { computed, getCurrentInstance } from "vue"
+import { useRouter } from "vue-router" // @auth:only
 import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
+import { routeAllows, useAuthStore } from "@regira/modules/vue/auth" // @auth:only
 import { useConfig } from "@/app-config"
 
 // reads config.json → navigation + the collected $configs, builds the dashboard/navbar trees
@@ -616,7 +637,18 @@ export function useNavigation() {
     } = useConfig()
 
     const configs = Object.values(app.appContext.config.globalProperties.$configs) as Array<IConfig>
-    const hasAccess = (_config: IConfig) => true // gate by permissions here if needed
+    // @auth:block-start
+    // an entry shows when the route guard would let this user open its overview: the meta.policy / meta.permissions a
+    // slice's setup.ts puts on its routes. Recomputed on sign-in, since the policies read the auth store
+    const router = useRouter()
+    const authStore = useAuthStore()
+    const hasAccess = (config: IConfig) => {
+        const name = `${config.key}Overview`
+        return !router.hasRoute(name) || routeAllows(router.resolve({ name }), authStore)
+    }
+    // @auth:block-end
+    // gate entries by anything of your own here // @noauth:only
+    const hasAccess = (_config: IConfig) => true // @noauth:only
 
     const dashboardTree = computed(() => buildNavigationTree(importDashboard({ groups, entities: dashboard, configs, hasAccess })))
     const navbarTree = computed(() => buildNavigationTree(importNavbar({ groups, entities: navbar, configs, hasAccess })))
@@ -704,11 +736,16 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
                 }
             "
         >
-            <router-link v-if="isNavItem(node.value)" class="nav-link" :to="to(node.value as INavItem)">
+            <router-link v-if="isNavItem(node.value)" class="nav-link" :to="to(node.value as INavItem)" :aria-label="$t(node.value.title)">
                 <Icon :name="node.value.icon ?? ''" /><span class="d-sm-none d-lg-inline ms-1">{{ $t(node.value.title) }}</span>
             </router-link>
             <template v-else>
-                <a class="nav-link dropdown-toggle" href="#" @click.prevent="openId = openId === node.value.id ? undefined : node.value.id">
+                <a
+                    class="nav-link dropdown-toggle"
+                    href="#"
+                    :aria-label="$t(node.value.title)"
+                    @click.prevent="openId = openId === node.value.id ? undefined : node.value.id"
+                >
                     <Icon :name="node.value.icon ?? ''" /><span class="d-sm-none d-lg-inline ms-1">{{ $t(node.value.title) }}</span>
                 </a>
                 <ul class="dropdown-menu" :class="{ show: openId === node.value.id }">
@@ -723,6 +760,9 @@ const to = (v: INavItem): RouteLocationRaw => ({ name: v.routeName, query: (v.in
 ```
 
 ## `src/components/entity-navigation/NavSearch.vue`
+
+The header's search box is a `<form>` with a submit button of its own, so a test or a style addressing "the form's
+submit button" reaches it first: scope to `main form`.
 
 ```vue
 <script setup lang="ts">
@@ -749,7 +789,7 @@ function handleSearch() {
             class="form-control me-2"
             :placeholder="`${$t('search')} ${$t(searchItemConfig.overviewTitle || '')}`"
         />
-        <IconButton icon="search" class="btn-outline-primary" type="submit" />
+        <IconButton icon="search" class="btn-outline-primary" type="submit" :aria-label="$t('search')" />
     </form>
 </template>
 ```
@@ -788,12 +828,15 @@ const accountLabel = computed(() => getAccountName()) // @auth:only
     <nav class="navbar navbar-expand-sm" v-click-outside="closeMenu">
         <div class="container-fluid">
             <router-link class="navbar-brand" :to="{ name: 'home' }">{{ $tm(title) }}</router-link>
-            <button class="navbar-toggler" type="button" @click.stop="open = !open"><span class="navbar-toggler-icon"></span></button>
+            <button class="navbar-toggler" type="button" :aria-label="$t('menu')" :aria-expanded="open" @click.stop="open = !open">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" :class="{ show: open }">
                 <NavBar @select="closeMenu" />
                 <div class="d-flex ms-auto align-items-center gap-2">
                     <NavSearch @search="closeMenu" />
                     <!-- @auth:block-start -->
+                    <!-- $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
                     <router-link v-if="$auth.enabled && $auth.isAuthenticated" class="nav-link" :to="{ name: 'account' }" @click="closeMenu">
                         <!-- the $t fallback guards a token with no name claims at all — never an empty (invisible) link -->
                         {{ accountLabel ?? $t("account") }}
@@ -837,20 +880,16 @@ reset half is `views/ResetPasswordView.vue` on the `/reset-password` route.
 <script setup lang="ts">
 import { useRouter } from "vue-router"
 import { useForgotPasswordForm, type ForgotPasswordFormProps, type ForgotPasswordFormEmits } from "@regira/modules/vue/auth"
-import { useLang } from "@regira/modules/vue/lang"
-import { useConfig } from "@/app-config"
 
 const emit = defineEmits<ForgotPasswordFormEmits>()
 const props = defineProps<ForgotPasswordFormProps>()
 
 const router = useRouter()
-const { title } = useConfig()
-// The API mails `siteUrl` with "?token=…" appended, so it must be the ABSOLUTE url of the reset PAGE.
+// The API mails `siteUrl` with "?token=…" as its query string, so it must be the ABSOLUTE url of the reset PAGE.
 // Passing location.origin (a tempting shortcut) lands the recovery link on the dashboard, where nothing
 // reads the token. router.resolve keeps it correct under a non-root Vite base.
 const siteUrl = new URL(router.resolve({ name: "resetPassword" }).href, location.origin).href
-const siteName = useLang().translateMessage(title)
-const { username, isLoading, isFormValid, isSuccess, handleSubmit } = useForgotPasswordForm(props, emit, { siteUrl, siteName })
+const { username, isLoading, isFormValid, isSuccess, handleSubmit } = useForgotPasswordForm(props, emit, { siteUrl })
 </script>
 
 <template>
@@ -1021,13 +1060,43 @@ defineProps<{ url?: string }>()
 
 # Infrastructure
 
+## `src/infrastructure/lang-plugin.ts`
+
+```ts
+import { watch } from "vue"
+import { useLang } from "@regira/modules/vue/lang"
+
+// Remembers the chosen language: restores it on the next visit and saves every change. A signed-in account's
+// culture, set in main.ts once the token is validated, still wins over it.
+export const plugin = {
+    install() {
+        const { langCode, setLangCode } = useLang()
+        try {
+            const last = localStorage.getItem("lang")?.substring(0, 2)
+            if (last && last !== langCode.value) setLangCode(last)
+        } catch {
+            // storage is blocked (a privacy setting): the default language stands
+        }
+        watch(langCode, (code) => {
+            try {
+                localStorage.setItem("lang", code)
+            } catch {
+                // nowhere to keep it: the choice lasts this visit
+            }
+        })
+    },
+}
+
+export default plugin
+```
+
 ## `src/infrastructure/permissions.ts`
 
 ```ts
 // erasableSyntaxOnly-safe const maps (not enums)
 // Roles match the names the API's Identity roles carry; permissions match a "permissions" claim, which a
 // standard Identity backend does not mint — see user-plugin.ts.
-export const Roles = { ADMIN: "Admin" } as const
+export const Roles = { ADMIN: "Administrator" } as const
 export type Role = (typeof Roles)[keyof typeof Roles]
 
 export const Permissions = { CAN_READ: "can_read", CAN_WRITE: "can_write", ADMIN: "admin" } as const
@@ -1037,12 +1106,11 @@ export type Permission = (typeof Permissions)[keyof typeof Permissions]
 ## `src/infrastructure/user-plugin.ts`
 
 ```ts
-import { type App, watch } from "vue"
+import type { App } from "vue"
 import { useAuthStore } from "@regira/modules/vue/auth"
-import { useLang } from "@regira/modules/vue/lang"
 import { Roles } from "@/infrastructure/permissions"
 
-// $isAdmin from the auth store + persists the chosen language (auth-only — omitted on --no-auth)
+// $isAdmin from the auth store (auth-only — omitted on --no-auth)
 export const plugin = {
     install(app: App) {
         const authStore = useAuthStore()
@@ -1053,11 +1121,6 @@ export const plugin = {
             enumerable: true,
             configurable: true,
         })
-
-        const { langCode, setLangCode } = useLang()
-        const last = localStorage.getItem("lang")
-        if (!authStore.isAuthenticated && last && last !== langCode.value) setLangCode(last.substring(0, 2))
-        watch(langCode, (code) => localStorage.setItem("lang", code))
     },
 }
 

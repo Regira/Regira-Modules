@@ -30,12 +30,12 @@
             </div>
             <div class="col-auto order-2 order-lg-3 ps-2">
                 <template v-if="config.isComplex">
-                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info">
+                    <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </RouterLink>
                 </template>
                 <template v-else>
-                    <FormModalButton class="btn btn-info" @save="searchHandler(false)">
+                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </FormModalButton>
                 </template>
@@ -101,7 +101,7 @@
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -129,10 +129,12 @@ const { updateOverviewRoute } = useRouteOverview({
     defaultPageSize: config.defaultPageSize,
 })
 
-// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload.
-// immediate: false — useRouteOverview already fetches on mount, and firing in setup would race it with an
-// unpopulated search object. No-auth app: delete this line AND its import above (scaffold.mjs --no-auth strips both; see entities.setup.md#running-without-authentication)
-onAuthenticated(() => searchHandler(false), { immediate: false })
+// re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload. A sign-in as another
+// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen. immediate: false —
+// useRouteOverview already fetches on mount, and firing in setup would race it with an unpopulated search object.
+// No-auth app: delete these two lines AND their import above (scaffold.mjs --no-auth strips all three; see entities.setup.md#running-without-authentication)
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen, for onAuthenticated below
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)

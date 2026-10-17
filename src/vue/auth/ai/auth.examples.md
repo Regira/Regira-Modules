@@ -31,16 +31,18 @@ The guard reads route `meta`. Mark public pages `allowAnonymous`, gate others wi
 `policy` function), and provide a `forbidden` route to redirect to:
 
 ```ts
+import type { IAuthStore } from "@regira/modules/vue/auth"
+
 const routes = [
-    { path: "/login", name: "login", component: LoginView, meta: { allowAnonymous: true } },
     { path: "/forbidden", name: "forbidden", component: ForbiddenView, meta: { allowAnonymous: true } },
     { path: "/users", name: "UserOverview", component: UserOverview, meta: { permissions: ["users.read"] } },
-    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store) => store.hasRole("Admin") } },
+    { path: "/admin", name: "Admin", component: Admin, meta: { policy: (store: IAuthStore) => store.hasRole("Administrator") } },
 ]
 ```
 
 `permissions` checks the `permissions` claim; a role-gated route (Identity roles in the JWT) uses a
-`policy` with `store.hasRole(...)`, which probes all three role-claim spellings.
+`policy` with `store.hasRole(...)`, which probes all three role-claim spellings. Sign-in needs no route: it is the
+`LoginModal` below.
 
 ## Use the store in a component
 
@@ -80,10 +82,13 @@ Drop-in modal:
 
 ```vue
 <script setup lang="ts">
-import { LoginModal } from "@regira/modules/vue/auth"
+import { computed } from "vue"
+import { LoginModal, useAuthStore } from "@regira/modules/vue/auth"
+const authStore = useAuthStore()
+const showLogin = computed(() => authStore.isRequired && !authStore.isAuthenticated)
 </script>
 <template>
-    <LoginModal title="Sign in" @success="onSuccess" @forgot-password="showForgot" />
+    <LoginModal v-if="showLogin" title="Sign in" @success="onSuccess" @forgot-password="showForgot" />
 </template>
 ```
 
@@ -94,14 +99,15 @@ Or build a custom form with the composable:
 import { useLoginForm, type LoginFormEmits } from "@regira/modules/vue/auth"
 const emit = defineEmits<LoginFormEmits>()
 const props = defineProps<{ username?: string }>()
-const { username, password, failed, signingIn, isLockedOut, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
+const { username, password, failed, signingIn, isLockedOut, isNotAllowed, handleSubmit, handleForgotPassword } = useLoginForm(props, emit)
 </script>
 <template>
     <form @submit.prevent="handleSubmit">
         <input v-model="username" /> <input v-model="password" type="password" />
-        <button :disabled="signingIn || isLockedOut">Sign in</button>
+        <button :disabled="signingIn">Sign in</button>
         <a @click="handleForgotPassword">Forgot password?</a>
-        <p v-if="failed">Sign-in failed</p>
+        <p v-if="failed && isNotAllowed">This account is not confirmed yet. Follow the link we mailed you.</p>
+        <p v-else-if="failed">Sign-in failed<template v-if="isLockedOut">, try again in 5 min</template></p>
     </form>
 </template>
 ```
@@ -113,9 +119,9 @@ import { useAuth } from "@regira/modules/vue/auth"
 
 const { service } = useAuth()
 await service.changePassword({ currentPassword, newPassword })
-// the API mails `siteUrl` with "?token=…" appended, so it must be the absolute url of YOUR RESET PAGE —
+// the API mails `siteUrl` with "?token=…" as its query string, so it must be the absolute url of YOUR RESET PAGE —
 // passing location.origin lands the recovery link on the dashboard, where nothing reads the token
-await service.forgotPassword({ username, siteUrl: `${location.origin}/reset-password`, siteName })
+await service.forgotPassword({ username, siteUrl: `${location.origin}/reset-password` })
 await service.resetPassword({ token, password }) // token from the reset email link (?token=…)
 ```
 

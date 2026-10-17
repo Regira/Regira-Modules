@@ -12,16 +12,21 @@ import {
     createStore,
     onAuthenticated,
     routeGuard,
+    routeAllows,
     AuthService,
     CookieTokenManager,
     MemoryTokenManager,
     LocalStorageTokenManager,
     useLoginForm,
     useForgotPasswordForm,
+    useChangePasswordForm,
+    useResetPasswordForm,
     LoginForm,
     LoginModal,
     LogoutForm,
     ForgotPasswordModal,
+    ChangePasswordForm,
+    ResetPasswordForm,
     registerCredentialUrls,
     type IAuthOptions,
     type IGlobalAuth,
@@ -37,7 +42,7 @@ import {
 ```ts
 export interface IAuthData {
     isAuthenticated: boolean
-    expires: number
+    expires: number // the token's lifetime in seconds (exp − nbf), not a timestamp
     readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated.
     // NON-ENUMERABLE: absent from { ...authData } and JSON.stringify(authData), so the credential cannot ride
     // along into a log or a telemetry payload. Reading authData.token still works.
@@ -87,7 +92,7 @@ export function onAuthenticated(handler: () => unknown, options?: OnAuthenticate
 ```ts
 export type IAuthenticateInput = { token: string; isAuthenticated: boolean }
 export type IChangePasswordInput = { newPassword: string; currentPassword: string }
-export type IForgotPasswordInput = { username: string; siteUrl: string; siteName?: string }
+export type IForgotPasswordInput = { username: string; siteUrl: string; siteName?: string } // siteName: @deprecated, the API ignores it
 export type IResetPasswordInput = { token: string; password: string }
 
 export interface IAuthService {
@@ -129,7 +134,7 @@ export interface IGlobalAuth {
     service: IAuthService
     authData: IAuthData
     isAuthenticated: boolean
-    isRequired: boolean
+    isRequired: boolean // the store's route-driven isRequired: auth enabled and the current route not allowAnonymous
 }
 export function createAuth(options: IAuthOptions & { enabled: boolean; tokenManager: ITokenManager; axios: AxiosInstance }): IAuth // createAuth is internal — NOT re-exported from the barrel; the IAuth type is exported
 export const useAuth: () => IAuth
@@ -240,9 +245,16 @@ export const plugin: {
 ## Route guard
 
 ```ts
-export const routeGuard: (args: { router: Router; store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean } }) => (to: RouteLocationNormalized) => true | RouteLocationRaw
+export const routeGuard: (args: {
+    router: Router
+    store: Store & { isAuthenticated: boolean; hasPermission(value: string): boolean }
+}) => (to: RouteLocationNormalized) => true | RouteLocationRaw
 // reads route meta: allowAnonymous, policy(store) => boolean, permissions: string[]
-// registers the check as a beforeEach guard and returns it; the plugin runs it once more for the route already shown
+// meta is untyped: write a policy (store: IAuthStore) => store.hasRole("…") — it receives the plugin's auth store
+// registers the check as a beforeEach guard and returns it; the plugin also runs it for the route already shown,
+// after the first navigation and on every new token
+export function routeAllows(to: Pick<RouteLocationNormalized, "matched" | "meta">, store: { hasPermission(value: string): boolean }): boolean
+// the guard's verdict for a signed-in user: allowAnonymous, then every matched meta.policy and meta.permissions
 ```
 
 ## Account UI
@@ -258,7 +270,8 @@ export function useLoginForm(
     password: Ref<string>
     failed: Ref<boolean>
     signingIn: Ref<boolean>
-    isLockedOut: Ref<boolean>
+    isLockedOut: Ref<boolean> // the refusal's isLockedOut; cleared when an attempt starts
+    isNotAllowed: Ref<boolean> // the refusal's isNotAllowed: right password, account not confirmed; cleared when an attempt starts
     handleSubmit: () => Promise<void>
     handleForgotPassword: () => void
 }
@@ -267,7 +280,7 @@ export function useLoginForm(
 export function useForgotPasswordForm(
     props: ForgotPasswordFormProps, // { username?: string }
     emit: ForgotPasswordFormEmits,
-    options: { siteUrl: string; siteName?: string }
+    options: { siteUrl: string; siteName?: string } // siteName: @deprecated, the API ignores it
 ): {
     username: Ref<string>
     isLoading: Ref<boolean>
@@ -275,7 +288,7 @@ export function useForgotPasswordForm(
     isSuccess: Ref<boolean | undefined>
     handleSubmit: () => Promise<void>
 }
-// ForgotPasswordFormEmits: "success" | "fail" | "login"
+// ForgotPasswordFormEmits: "success" (username?) | "fail" (ex?) | "login" (username?)
 
 export function useChangePasswordForm(emit: ChangePasswordFormEmits): {
     currentPassword: Ref<string>
@@ -306,9 +319,13 @@ export function useResetPasswordForm(
 // Components (default exports): LoginForm, LoginModal, LogoutForm, ForgotPasswordModal,
 //                                ChangePasswordForm, ResetPasswordForm
 // LoginForm props: LoginFormProps { username?: string } ; emits: LoginFormEmits
-// LoginModal props: LoginModalProps { username?; title?; isVisible? } ; slots: LoginModalSlots = default{ username } (replace the form)
+// LoginModal props: LoginModalProps { username?; title?; isVisible?; showClose? } ; slots: LoginModalSlots = default{ username } (replace the form)
+//   showClose (default true): the header's X; pass false while sign-in is required — it fills the modal's header-close-button slot
+//   emits: LoginModalEmits = LoginFormEmits (from its default form only; a slotted form emits its own) + close (header X or Esc; a required gate binds none)
 // ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
-// Both slot types are exported from the barrel — import them when you type a wrapper that forwards the slot
+//   emits: ForgotPasswordModalEmits = close (header X or Esc)
+// Both slot and emits types are exported from the barrel — import them when you type a wrapper that forwards the slot
+// or the events
 // ChangePasswordForm props: ChangePasswordFormProps { username?: string }, emits: ChangePasswordFormEmits
 // ResetPasswordForm props: ResetPasswordFormProps, emits: ResetPasswordFormEmits
 // Both password forms render a visually-hidden `autocomplete="username"` input (NOT display:none — that

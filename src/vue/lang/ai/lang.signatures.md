@@ -20,7 +20,7 @@ import {
 
 ```ts
 export type ITranslationMessage = Record<string, string> | string
-export type ITranslationMessages = Record<string, ITranslationMessage>
+export type ITranslationMessages = Record<string, ITranslationMessage> // flat: a key is looked up whole, so "product.description" is one key, not a path
 
 export function translate(key: string, values: ITranslationMessages, langCode: string, formatArgs?: IFormatInput): string
 export function translateMessage(message: ITranslationMessage, langCode: string, formatArgs?: IFormatInput): string

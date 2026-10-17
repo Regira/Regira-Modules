@@ -3,6 +3,7 @@
     "api": "/api",
     "includeCredentials": false,
     "isDebug": false,
+    "culture": "en-US",
     "title": { "en": "My App" },
     "navigation": {
         "groups": [{ "id": "Main", "title": "main", "icon": "bi bi-grid" }],

@@ -1,25 +1,30 @@
 <template>
-    <component :is="Modal" :is-visible="isVisible" :title="title" :showFooter="false">
-        <slot v-bind="{ username }">
-            <LoginForm
-                @success="$emit('success', $event)"
-                @forgot-password="$emit('forgotPassword', $event)"
-                @signing-in="$emit('signingIn', $event)"
-                @fail="$emit('fail', $event)"
-            />
-        </slot>
+    <component :is="Modal" :is-visible="isVisible" :title="title" :showFooter="false" @close="$emit('close')">
+        <!-- showClose false: the modal contract's header-close-button slot gets an empty placeholder instead of the X -->
+        <template v-if="!showClose" #header-close-button><span></span></template>
+        <template #default>
+            <slot v-bind="{ username }">
+                <LoginForm
+                    @success="$emit('success', $event)"
+                    @forgot-password="$emit('forgotPassword', $event)"
+                    @signing-in="$emit('signingIn', $event)"
+                    @fail="$emit('fail', $event)"
+                />
+            </slot>
+        </template>
     </component>
 </template>
 
 <script setup lang="ts">
-import { type LoginFormEmits, type LoginModalProps, type LoginModalSlots } from "@regira/modules/vue/auth"
+import { type LoginModalEmits, type LoginModalProps, type LoginModalSlots } from "@regira/modules/vue/auth"
 import { injectModal } from "@regira/modules/vue/ui"
 import { LoginForm } from "@regira/modules/vue/auth"
 
-defineEmits<LoginFormEmits>()
+defineEmits<LoginModalEmits>()
 withDefaults(defineProps<LoginModalProps>(), {
     title: "Sign in",
     isVisible: true,
+    showClose: true,
 })
 defineSlots<LoginModalSlots>()
 

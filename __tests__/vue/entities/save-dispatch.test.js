@@ -150,3 +150,47 @@ describe("EntityServiceBase.insert payload key", () => {
     expect(item.id).toBe("7f3c-real-guid");
   });
 });
+
+// prepareItem purges `_deleted` rows and strips `_` keys; the item is the live form model, so a refused save must not
+// lose them
+describe("a refused save", () => {
+  class Order {
+    constructor() {
+      this.id = 5;
+      this.lines = [{ id: 1 }, { id: 2, _deleted: true }];
+      this._staged = "invoice.pdf";
+    }
+    get $id() {
+      return this.id;
+    }
+  }
+  class OrderService extends EntityServiceBase {
+    toEntity(item) {
+      return Object.assign(new Order(), item);
+    }
+    prepareItem(item) {
+      item.lines = item.lines?.filter((x) => !x._deleted);
+      return super.prepareItem(item);
+    }
+  }
+
+  test("keeps the form model's _deleted marks and _ fields, and sends the purged copy", async () => {
+    const sent = [];
+    const axios = {
+      put: async (url, body) => {
+        sent.push(body);
+        throw Object.assign(new Error("Request failed with status code 400"), { response: { status: 400 } });
+      },
+    };
+    const service = new OrderService(axios, { key: "Order", api: "/api/orders" });
+    const item = new Order();
+
+    await expect(service.save(item)).rejects.toThrow(/400/);
+
+    expect(item.lines).toEqual([{ id: 1 }, { id: 2, _deleted: true }]);
+    expect(item._staged).toBe("invoice.pdf");
+    expect(sent[0].lines).toEqual([{ id: 1 }]);
+    expect("_staged" in sent[0]).toBe(false);
+    expect(sent[0]).toBeInstanceOf(Order);
+  });
+});

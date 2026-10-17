@@ -62,12 +62,13 @@ destructure `{ items }` from it). Both send the current search object merged wit
 `useDetails(service)` loads the item for the route `:id` and returns `item`, `isLoading`, `overviewUrl`,
 `load`, and `feedback`. The Details component renders a nested `<RouterView>` for the Fiche/Form child,
 passing `item`. `item` is `undefined` until the `onMounted` load resolves — gate the child with
-`<RouterView v-if="item" …>`.
+`<RouterView v-if="item" …>`. On `:id` = `new` the item comes from the service's `newEntity({})`, so defaults every
+new item needs go in an override of `newEntity` in the slice's service, which the modal path calls too.
 
 ## Form — `useForm` (and `useModal`)
 
 `useForm({ entityService, props, emit })` returns `item` plus `handleSubmit`, `handleCancel`,
-`handleRemove`, `handleRestore`, and `feedback`. Note the form's `handleRemove()` takes **no arguments**
+`handleRemove`, `handleRestore`, `feedback` and `failure`. Note the form's `handleRemove()` takes **no arguments**
 (it removes the bound `item.value`) — unlike the overview's `handleRemove(item)`. Define props with `withDefaults(defineProps<FormProps &
 …>(), { ...formDefaults })` and emits via `FormEmits<T>`. Its `changeState` event reports a write as
 `FormStates.pending`, then one final state: `saved` or `removed` when the write succeeded, `error` when the server
@@ -79,7 +80,9 @@ After an insert, `handleSubmit` replaces the current route with one carrying the
 `errors`, read with `toFeedbackError` from `vue/ui`, which shows a validation error in the user's language when its
 message is a key in the app's translation messages), otherwise the server's text on `feedback.message`. The
 form's `Feedback` lists those field errors under the message, each headed by the field's label; a form that shows
-them at its inputs sets `:hide-field-errors="true"` on it.
+them at its inputs sets `:hide-field-errors="true"` on it. `failure` keeps the last refused write's HTTP status and
+ProblemDetails `title`, so a 409 titled `"Concurrency conflict"` (a stale concurrency token) can offer a reload where
+one titled `"Conflict"` (a database constraint) cannot; the next write and a new `modelValue` clear it.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.
@@ -91,7 +94,8 @@ For child/owned collections inside a form, render the rows with **`InputSelector
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`
 override), remove rows added this session outright (nothing to undo; override the detection via the
 `isNew` prop), and hand the picker slot an `exclude` list. Its delete button's title reads "Remove" or "Restore";
-pass translated ones through the `labels` prop. The heavier per-row editors are `useOwnedCollection`,
+pass translated ones through the `labels` prop. In a read-only form its `readonly` prop shows the chips without the
+toggle or the picker. The heavier per-row editors are `useOwnedCollection`,
 `useOwnedModal`, `useListInput`, and `useListItemInput`. The multi-`Selector`
 hard-removes on delete, so it does not fit collections that need the marked-delete UX.
 

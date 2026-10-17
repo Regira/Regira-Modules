@@ -4,6 +4,8 @@ A **blank fill-in-the-blanks scaffold** for one entity slice. Copy the folder se
 placeholders below (the files marked `// TODO`). The placeholder entity is **`Foo`** (resource `"/foos"`,
 route prefix `foos`) — rename it to your entity throughout.
 
+## scaffold.mjs flags
+
 `scaffold.mjs <Entity>` derives the folder, client route and `api` path as the **kebab-case plural** of the
 class name (`InterventionType` → `intervention-types`), matching the conventional `[Route(...)]`. The first two
 flags generate what would otherwise be hand-written and are worth passing up front:
@@ -11,12 +13,17 @@ flags generate what would otherwise be hand-written and are worth passing up fro
 | Flag                | Generates                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--api <path>`      | a resource path that differs from the folder name (`--api relationship-types`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `--rel <Related>`   | everything a to-one relation needs: an overview column (the related entity's `FormModalButton` + a `fromPool` label), the FK and nested field on the model, **and its advanced filter** — a scalar `<field>Id` on the `SearchObject` plus an `InputSelector` in `FilterAdv.vue`, with the backing ref and a `handleReset` that clears it. Repeatable; the related slice must exist first. A differently-named FK takes a trailing `--as <field>` (`--rel Employee --as assignedToEmployee`). A `--rel` naming the entity itself is skipped — the generated imports would cycle into the slice's own barrel; wire a self-relation by hand (FK field + a relative deep import of the slice's own `selecting/InputSelector.vue`) |
-| `--owns <Child>`    | an editable owned-collection sub-slice (`useOwnedCollection`, `_deleted`-marked rows) for a back-end `e.Related(...)` child. Repeatable; also works on an existing slice. Trailing `--as <field>` sets the JSON key                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `--rel <Related>`   | everything a to-one relation needs: an overview column (the related entity's `FormModalButton` + a `fromPool` label), the FK and nested field on the model, **and its advanced filter** — a scalar `<field>Id` on the `SearchObject` plus an `InputSelector` in `FilterAdv.vue`, with the backing ref and a `handleReset` that clears it. The API must filter on it too: its `SearchObject` needs an `ICollection<int>? <Field>Id` and a filter (back-end `entities.instructions` → Steps 2 and 6), or remove the filter — a parameter the `SearchObject` lacks is ignored and every row comes back. Repeatable; the related slice must exist first. A differently-named FK takes a trailing `--as <field>` (`--rel Employee --as assignedToEmployee`). A `--rel` naming the entity itself is skipped — the generated imports would cycle into the slice's own barrel; wire a self-relation by hand (FK field + a relative deep import of the slice's own `selecting/InputSelector.vue`) |
+| `--owns <Child>`    | an editable owned-collection sub-slice (`useOwnedCollection`, `_deleted`-marked rows) for a back-end `e.Related(...)` child. Repeatable; also works on an existing slice. Trailing `--as <field>` sets the JSON key only; the sub-slice folder stays the kebab-cased class plural (`--owns OrderLine --as lines` → `order-lines/`)                                                                                                                                                                                                                                                                                                                                                                                            |
 | `--fk <fkName>`     | the owned child's FK property to the parent, when the C# property is not named after the parent class (default: camelCase parent + `Id`, `QCreditRequest` → `qCreditRequestId`; a C# property `RequestId` takes `--fk requestId`). Chains after its `--owns`, with `--as`. Editable-table sub-slices only — a `--picker` join carries no parent FK on the client                                                                                                                                                                                                                                                                                                                                                              |
 | `--picker <Target>` | the `--owns` before it is a **pure join** onto `<Target>` — only the two FKs, no scalar fields of its own: emit `InputSelectorInline` chips selecting `<Target>` instead of an editable table, over a plain join-row interface. Chains after `--as`; the picked slice must exist first. A join row that also carries a scalar (a quantity, a status) is not pure — leave `--picker` off                                                                                                                                                                                                                                                                                                                                       |
 | `--attachments`     | with an entity named, that entity owns files: the shared `entity-attachments` slice is scaffolded (once per app) and wired into the slice — the `attachments` field, the `insert`/`update` overrides, and the `prepareItem` filter that drops rows the user marked for deletion. Alone, it scaffolds the shared slice only. The form tab stays yours to place                                                                                                                                                                                                                                                                                                                                                                 |
 | `--overwrite-slice` | **re-scaffolds a slice that already exists**, customized `(c)` files included. `--force` deliberately does **not** apply to slices, so without this flag a re-run aborts with `already exists`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `--plural <name>`   | the slice folder, the client route prefix, the default `--api` path and (camelCased) the plural i18n key. Default: the kebab-cased class plural (`InterventionType` → `intervention-types`, key `interventionTypes`); `Person --plural people`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `--singular <name>` | the singular i18n key, camelCased (default: the camelCased class name) — the slice's `detailsTitle` and `description` keys                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `--dir <path>`      | the base folder for the slice, under `src/` so the `@/` alias reaches it (default `src/entities`); with `--ui`, the folder for the ejected skin (default `src/components/ui`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+In Git Bash pass `--api` without its leading `/` (MSYS rewrites `/x` into a Windows path), or set `MSYS_NO_PATHCONV=1`.
 
 ⚠️ `--overwrite-slice` is destructive: it replaces your filled-in `(c)` files. A nested **owned sub-slice**
 survives unless this run repeats its `--owns` (the run names the ones it kept); everything the template
@@ -200,7 +207,7 @@ const config: IConfig = {
     isComplex: true, // create/edit on a Details PAGE (default). Set false ONLY for a very basic entity — a few scalar
     //                  fields, no relations/tabs — that is fine to edit in a modal (FormModalButton). See entities.card → page vs modal.
 
-    routePrefix: "foos", // TODO: URL path segment
+    routePrefix: "foos", // TODO: the slice's URL path, without the leading "/": one segment ("products") or several ("admin/products")
     baseQueryParams: {}, // add includes ONLY for a COLLECTION the API gates behind its named [Flags] enum, e.g. { includes: ["Lines"] }; a to-one shown on every row belongs in the API's unconditional e.Includes instead
     initialQuery: {}, // route query for the GENERATED nav link ONLY — lost on refresh/deep-link. A default sortBy or includes belongs in baseQueryParams
 
@@ -263,14 +270,15 @@ substitute: it refetches on every keystroke.
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
 
         <!-- keywords (free-text q) -->
         <input v-model.lazy.trim="searchObject.q" class="form-control mb-2" :placeholder="$t('keywords')" @change="handleUpdate" />
 
-        <!-- TODO: one input per SearchObject filter field (placeholder `title` — keep in sync with SearchObject.ts).
+        <!-- TODO: one input per OTHER SearchObject filter field (scaffold.mjs --rel <Related> already wrote one below
+             per relation; placeholder `title` — keep in sync with SearchObject.ts).
              Native <input> → @change="handleUpdate". A custom component (InputSelector, NullableCheckBox,
              DateInput) emits Vue events only → @select="handleUpdate" / @update:modelValue="handleUpdate",
              or the results and the count go stale. A checkbox filter needs its own label — pass `label`
@@ -338,7 +346,7 @@ the row pushes the page sideways. A cell holding one `.btn` needs **≥ 4.5rem**
                      dropping them misaligns the header by ~2px. Inert markup on purpose (`.disabled` = no
                      pointer events) — a disabled FormModalButton here would mount a useModal + a <Teleport> per list. -->
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col">{{ $t("name") }}</div>
             <!-- TODO: the 1–3 most important OTHER fields, in this reveal order (`scaffold.mjs --rel <Related>`
@@ -356,7 +364,7 @@ the row pushes the page sideways. A cell holding one `.btn` needs **≥ 4.5rem**
                      header cell the same width as the row's, so the trailing edges line up. `disabled`
                      on a span is inert without being focusable. Gated on the same `readonly` as the row's
                      button: kept while the rows have none, it widens this cell and the columns part. -->
-                <span v-if="!readonly" class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span v-if="!readonly" class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <ListItem
@@ -402,7 +410,12 @@ const items = computed<Array<Entity>>({
             <!-- Row-edit affordance follows config.isComplex: a real entity (page) links to its Details route;
                  a very basic entity (modal) opens FormModalButton. Forward @remove either way so a delete from
                  inside the modal refreshes the pooled overview — without it the deleted row lingers until reload. -->
-            <RouterLink v-if="config.isComplex" :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+            <RouterLink
+                v-if="config.isComplex"
+                :to="{ name: config.key + 'Details', params: { id: item.$id } }"
+                class="btn btn-link p-1"
+                :aria-label="$t('edit')"
+            >
                 <Icon name="edit" />
             </RouterLink>
             <FormModalButton v-else v-model="item" :readonly="readonly" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
@@ -424,6 +437,7 @@ const items = computed<Array<Entity>>({
             <ConfirmButton
                 v-if="!readonly"
                 icon="delete"
+                :aria-label="$t('delete')"
                 :modal-type="ModalType.danger"
                 :modal-title="$t('delete')"
                 :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"
@@ -472,7 +486,7 @@ const item = defineModel<Entity>({ required: true })
                     :item="item"
                     :readonly="readonly"
                     :feedback="feedback"
-                    :show-delete="item?.id > 0"
+                    :show-delete="!!item && !isNewEntity(item.$id)"
                     :labels="{ save: $t('save'), cancel: $t('cancel'), delete: $t('delete'), restore: $t('restore') }"
                     :modal-title="$t('delete')"
                     @cancel="handleCancel"
@@ -493,7 +507,7 @@ const item = defineModel<Entity>({ required: true })
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info" :aria-label="$t('overview')">
                     <Icon name="list" /> <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
             </div>
@@ -504,7 +518,8 @@ const item = defineModel<Entity>({ required: true })
         <!-- Heavier form? Wrap sections in <TabContainer :tabs="tabs" :active="initialTab" :use-route-nav="!isPopup">
              with one <template #key> per Tab.create(...) — see entities.advanced.example.md §5. -->
         <FormSection :title="$t(config.detailsTitle || '')" :readonly="readonly">
-            <!-- TODO: your fields, e.g. -->
+            <!-- TODO: your fields (a new item pre-filled from the route, ?ownerId=…, is a watch on item, not onMounted:
+                 entities.patterns → A new row pre-filled from the route), e.g. -->
             <div class="mb-2">
                 <input v-model="item.title" :readonly="readonly" class="form-control" />
                 <FormLabel :label="$t('name')" />
@@ -529,7 +544,7 @@ const item = defineModel<Entity>({ required: true })
 import { RouterLink, type RouteRecordRaw } from "vue-router"
 import { Feedback, FormButtonsRow, FormSection, FormLabel, Icon } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { useForm, type FormEmits, formDefaults } from "@regira/modules/vue/entities"
+import { useForm, type FormEmits, formDefaults, isNewEntity } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -559,7 +574,12 @@ const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore 
         </div>
         <div v-for="item in items" :key="item.$id" class="row border-bottom py-2" :class="{ 'is-selected': isSelected(item) }">
             <div class="col-auto">
-                <IconButton :icon="isSelected(item) ? 'selected' : 'select'" @click="handleSelect(item)" />
+                <IconButton
+                    :icon="isSelected(item) ? 'selected' : 'select'"
+                    :aria-label="$t('select')"
+                    :aria-pressed="isSelected(item)"
+                    @click="handleSelect(item)"
+                />
             </div>
             <!-- TODO: columns -->
             <div class="col text-truncate">{{ item.$title }}</div>
@@ -671,7 +691,7 @@ export default useEntityStore
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { onAuthenticated } from "@regira/modules/vue/auth"
+import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
 import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
 import { useDetails } from "@regira/modules/vue/entities/details"
 import { FormStates } from "@regira/modules/vue/entities/form"
@@ -682,9 +702,22 @@ const { service } = useEntityStore()
 
 const { item, isLoading, overviewUrl, load, feedback } = useDetails(service) // item is undefined until onMounted load
 
-// load whenever a token arrives, unless something was loaded already. immediate: false — useDetails already
-// fetches on mount. No-auth app: delete this line AND its import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
-onAuthenticated(() => item.value == null && load(), { immediate: false })
+// load whenever a token arrives and the row on screen is none, or another account's: someone else signing in behind the
+// LoginModal gets their own row, and the previous one is cleared first, so a reload refused for them (403/404) never leaves
+// it on screen; a refresh of the same account's token keeps the form and its edits. immediate: false — useDetails already
+// fetches on mount. No-auth app: delete these lines AND their import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
+let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen, for onAuthenticated below
+onAuthenticated(
+    () => {
+        const userId = useGlobalAuth()?.authData?.userId
+        if (userId !== shownFor) item.value = undefined
+        if (item.value == null) {
+            shownFor = userId
+            load()
+        }
+    },
+    { immediate: false }
+)
 
 const router = useRouter()
 function handleRemove() {

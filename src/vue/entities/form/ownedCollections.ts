@@ -21,9 +21,15 @@ export function useOwnedCollection<T extends IEntity & { id: number }>({ props, 
     // Reads never yield `undefined`: a parent whose collection is still unset renders as an empty editor
     // instead of throwing on `items.value.map(...)` in a computed that evaluates before onMounted.
     const model = useVModelField<Array<T> | undefined>(props, emit)
+    // The last write until the parent's prop catches up: the prop only changes on the parent's re-render,
+    // so a second append in the same tick would otherwise build on the stale array and drop the first.
+    let pending: Array<T> | undefined
     const items = computed<Array<T>>({
         get: () => model.value ?? [],
-        set: (value) => (model.value = value),
+        set: (value) => {
+            pending = value
+            model.value = value
+        },
     })
     const createEmptyItem = () => {
         const row = (createRow?.() ?? {}) as T
@@ -43,23 +49,21 @@ export function useOwnedCollection<T extends IEntity & { id: number }>({ props, 
     }
     function handleSave({ saved, isNew }: SaveResult<T>) {
         if (isNew) {
-            const minId = Math.min((min(items.value, (x) => x.id) as number | undefined) ?? 0, 0) - 1
+            const current = pending ?? items.value
+            const minId = Math.min((min(current, (x) => x.id) as number | undefined) ?? 0, 0) - 1
             saved.id = minId
-            const newItems = items.value.concat([saved])
-            items.value = newItems
+            items.value = current.concat([saved])
             resetNewItem()
         }
     }
 
-    // don't use watchEffect -> bad emit timing?
+    // Never write the prop back on mount or when it changes: an unset collection must stay unset, since a
+    // save sends `[]` as "delete every row" and `null`/absent as "leave the rows alone".
     watch(
         () => props.modelValue,
-        () => (items.value = props.modelValue || [])
+        () => (pending = undefined)
     )
-    onMounted(async () => {
-        items.value = props.modelValue || []
-        await resetNewItem()
-    })
+    onMounted(resetNewItem)
 
     return {
         items,

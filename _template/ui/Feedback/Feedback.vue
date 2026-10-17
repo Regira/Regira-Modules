@@ -5,6 +5,7 @@
                 icon="close"
                 class="rg-feedback__close-button btn btn-sm position-absolute end-0 p-1"
                 :class="{ 'text-light': isFailed }"
+                aria-label="Close"
                 @click="handleClose"
             />
         </slot>

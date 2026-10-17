@@ -2,7 +2,7 @@
     <div class="input-selector input-group text-nowrap">
         <slot name="prepend">
             <FormModalButton
-                v-if="canEdit"
+                v-if="canEdit && (!readonly || item?.id)"
                 v-model="item"
                 :item-defaults="itemDefaults"
                 :readonly="readonly"
@@ -27,7 +27,14 @@
         </slot>
         <slot name="append">
             <template v-if="!readonly">
-                <button v-if="!readonly" type="button" v-show="item != null" class="btn btn-outline-secondary" @click="handleSelect(undefined)">
+                <button
+                    v-if="!readonly"
+                    type="button"
+                    v-show="item != null"
+                    class="btn btn-outline-secondary"
+                    :aria-label="$t('clear')"
+                    @click="handleSelect(undefined)"
+                >
                     <Icon name="clear" />
                 </button>
                 <SelectorModalButton
@@ -103,7 +110,12 @@ watch(
             return
         }
         if (props.modelValue?.id == id) return
-        const model = await list({ id })
+        let model
+        try {
+            model = await list({ id })
+        } catch {
+            return // a caller who may not read this entity (403) keeps the FK and shows no row
+        }
         if (props.idValue == id) emit("update:modelValue", model[0]) // a newer FK arrived meanwhile: drop this answer
     },
     { immediate: true }

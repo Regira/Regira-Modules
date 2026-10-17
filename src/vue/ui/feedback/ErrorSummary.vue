@@ -3,7 +3,13 @@
         <slot name="message">
             <div class="row gy-0 gx-1">
                 <div class="col-auto">
-                    <button type="button" class="btn btn-default p-0 m-0 text-light" :disabled="!hasError" @click="showSummary = !showSummary">
+                    <button
+                        type="button"
+                        class="btn btn-default p-0 m-0 text-light"
+                        :disabled="!hasError"
+                        aria-label="Error details"
+                        @click="showSummary = !showSummary"
+                    >
                         <Icon name="warning" />
                     </button>
                 </div>
@@ -11,7 +17,13 @@
                     {{ msg }}
                 </div>
                 <div v-if="enablePopup && hasError" class="col-auto">
-                    <button type="button" class="btn btn-link p-0 m-0 text-light" :disabled="!hasError" @click="showSummary = !showSummary">
+                    <button
+                        type="button"
+                        class="btn btn-link p-0 m-0 text-light"
+                        :disabled="!hasError"
+                        aria-label="Error details"
+                        @click="showSummary = !showSummary"
+                    >
                         <Icon name="info" />
                     </button>
                 </div>

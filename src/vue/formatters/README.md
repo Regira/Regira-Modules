@@ -22,5 +22,5 @@ currency and percentages, plus a few string utilities. All are named exports; us
 | `formatBankaccount(input)`                               | Group a 16-char Belgian `BE…` IBAN; else `""`.                                                    |
 | `formatStructuredReference(input)`                       | Group digits `3/4/5`.                                                                             |
 | `getInitials(input)`                                     | Uppercase initials from words.                                                                    |
-| `formatTextPreserveNewLines(input)`                      | `\n` → `<br/>` (use with `v-html`).                                                               |
+| `formatTextPreserveNewLines(input)`                      | `\n` → `<br/>` for `v-html`; escapes nothing, so `htmlEncode` user text first.                    |
 | `shortenString(str, maxLength)`                          | Truncate at a word boundary with `...`.                                                           |

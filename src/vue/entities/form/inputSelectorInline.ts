@@ -11,6 +11,8 @@ export type InputSelectorInlineProps<T> = {
     isNew?: (row: T) => boolean
     /** the delete button's title per state — English by default; pass translated ones for i18n */
     labels?: { remove?: string; restore?: string }
+    /** a read-only form's chips: no remove/restore toggle and no #selector slot; the #chip slot receives it too */
+    readonly?: boolean
 }
 export type InputSelectorInlineEmits<T> = {
     /**
@@ -22,8 +24,8 @@ export type InputSelectorInlineEmits<T> = {
     (e: "add", row: T): void
 }
 export type InputSelectorInlineSlots<T> = {
-    /** renders one selected row (chip content, next to the remove/restore toggle) */
-    chip?(props: { row: T }): any
+    /** renders one selected row (chip content, next to the remove/restore toggle); `readonly` is the component's */
+    chip?(props: { row: T; readonly: boolean }): any
     /** renders the picker; call `add` with the new row, `exclude` lists already-selected ids */
     selector?(props: { add: (row: T) => void; exclude: Array<number> }): any
 }

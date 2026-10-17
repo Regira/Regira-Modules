@@ -10,7 +10,7 @@
                     :item="item"
                     :readonly="readonly"
                     :feedback="feedback"
-                    :show-delete="item?.id > 0"
+                    :show-delete="!!item && !isNewEntity(item.$id)"
                     :labels="{ save: $t('save'), cancel: $t('cancel'), delete: $t('delete'), restore: $t('restore') }"
                     :modal-title="$t('delete')"
                     @cancel="handleCancel"
@@ -31,7 +31,7 @@
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-outline-info" :aria-label="$t('overview')">
                     <Icon name="list" /> <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
             </div>
@@ -42,7 +42,8 @@
         <!-- Heavier form? Wrap sections in <TabContainer :tabs="tabs" :active="initialTab" :use-route-nav="!isPopup">
              with one <template #key> per Tab.create(...) — see entities.advanced.example.md §5. -->
         <FormSection :title="$t(config.detailsTitle || '')" :readonly="readonly">
-            <!-- TODO: your fields, e.g. -->
+            <!-- TODO: your fields (a new item pre-filled from the route, ?ownerId=…, is a watch on item, not onMounted:
+                 entities.patterns → A new row pre-filled from the route), e.g. -->
             <div class="mb-2">
                 <input v-model="item.title" :readonly="readonly" class="form-control" />
                 <FormLabel :label="$t('name')" />
@@ -67,7 +68,7 @@
 import { RouterLink, type RouteRecordRaw } from "vue-router"
 import { Feedback, FormButtonsRow, FormSection, FormLabel, Icon } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { useForm, type FormEmits, formDefaults } from "@regira/modules/vue/entities"
+import { useForm, type FormEmits, formDefaults, isNewEntity } from "@regira/modules/vue/entities"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"

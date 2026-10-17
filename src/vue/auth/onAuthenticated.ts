@@ -20,10 +20,10 @@ export type OnAuthenticatedOptions = {
      * unsequenced request during `setup`, before the search object and paging are populated from the route.
      * That is why the scaffolded views pass it. `useSearchView` and `useListView` fetch nothing themselves,
      * so a hand-written view built on either owns its first fetch: keep the default `immediate` and do
-     * **not** add an `onMounted` fetch beside it — that one runs before the stored token is validated and
-     * 401s, wasting a request. `useSearchView`/`useListView` discard a superseded fetch's feedback, but a
-     * view driving its own `useFeedback` does not: there the 401's banner stays on screen over the data the
-     * hook then loads.
+     * **not** add an `onMounted` fetch beside it — that one sends a second request, with the stored token
+     * (the bearer header is attached before validation); it 401s only when that token has expired.
+     * `useSearchView`/`useListView` discard a superseded fetch's feedback, but a view driving its own
+     * `useFeedback` does not: there a failed fetch's banner stays on screen over the data the hook then loads.
      */
     immediate?: boolean
     /**
@@ -37,6 +37,10 @@ export type OnAuthenticatedOptions = {
 /**
  * Runs `handler` whenever an authenticated token arrives: signing in, a refresh (a tenant switch included),
  * and a token restored from storage on a hard reload.
+ *
+ * It runs only while a token is held (or once, with the plugin disabled). A page on an `allowAnonymous` route that a
+ * signed-out visitor uses loads its public data in `onMounted` and passes `{ immediate: false }` here to re-load it
+ * after sign-in.
  *
  * It watches the token rather than listening for named store actions, which matters twice over: no action
  * can be missed (restoring a stored token dispatches `validateToken`, not `login`, and views mount before

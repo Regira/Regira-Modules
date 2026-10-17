@@ -19,6 +19,10 @@ There are no granular subpaths — everything lives under `@regira/modules/vue/f
 
 ## Dates & times
 
+Pass a full culture (`en-GB`): `$culture` in a template, `useAppStore().culture` in script (`@regira/modules/vue/app`),
+not `useLang().langCode` — `"en"` formats as en-US. Changing the language leaves the culture as it is; `app.instructions`
+→ _The plugin_ shows how to make `$culture` follow it.
+
 - **`formatDate(date?, culture?)`** — locale-driven via `toLocaleDateString(culture)`.
 - **`formatShortDate(date?, culture?)`** — fixed `dd/MM` (or `MM/dd` when `culture` contains `"US"`), via
   date-fns `format`. Both accept a `Date` or an ISO `string`; `null`/`undefined` → `""`.
@@ -70,7 +74,10 @@ All number helpers return `""` for `null`/`undefined`.
 - **`formatPercentage` auto-scales.** Any `value > 1` is divided by 100. Pass fractions (`0.25`) unless your
   source is already whole percentages.
 - **`formatBankaccount` is BE-specific.** Non-`BE` or non-16-char input returns `""`, not the original.
-- **`formatTextPreserveNewLines` emits HTML.** Render with `v-html`; sanitize untrusted input first.
+- **`formatTextPreserveNewLines` emits HTML and escapes nothing.** `v-html` renders markup as is: escape user text
+  first, `v-html="formatTextPreserveNewLines(htmlEncode(text))"` (`htmlEncode` from
+  `@regira/modules/utilities/string-utility`), or skip `v-html` with CSS `white-space: pre-line`; user-supplied HTML
+  (rich text) goes through a sanitiser such as DOMPurify first.
 
 ## See also
 

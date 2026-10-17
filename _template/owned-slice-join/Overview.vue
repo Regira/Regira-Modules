@@ -1,5 +1,5 @@
 <!-- Owned m2m editor for __Parent__.__Children__ — each join row is a chip selecting one __Target__.
-     Bind it in the parent Form.vue to the ARRAY: <__Child__Overview v-model="item.__children__" />
+     Bind it in the parent Form.vue to the ARRAY: <__Child__Overview v-model="item.__children__" :readonly="readonly" />
      Removing a persisted chip marks `_deleted` (tinted, click again to restore); the parent's
      EntityService.prepareItem drops flagged rows so `Related()` deletes them by omission. A chip added this
      session is dropped outright — InputSelectorInline tracks it by identity, so new rows need no id. -->
@@ -14,6 +14,8 @@ import {
 import type { __Child__ } from "./Entity"
 
 const model = defineModel<Array<__Child__>>()
+// the parent form's readonly: the chips lose their remove toggle and the picker, and open their entity read-only
+defineProps<{ readonly?: boolean }>()
 
 // Rows arrive from ?includes= as plain DTOs — they have the API's fields but none of the model's getters, so
 // row.__target__.$title reads undefined. fromPool rehydrates through the sibling slice's pool, which also
@@ -23,12 +25,13 @@ const hydrate = (x?: Partial<__Target__>) => fromPool(x as __Target__)
 </script>
 
 <template>
-    <InputSelectorInline v-model="model" :row-key="(r) => r.__target__Id" :exclude-key="(r) => r.__target__Id">
+    <InputSelectorInline v-model="model" :row-key="(r) => r.__target__Id" :exclude-key="(r) => r.__target__Id" :readonly="readonly">
         <template #chip="{ row }">
             <!-- the related entity's own edit affordance — keep it, a bare label loses the way in -->
-            <__Target__Button :modelValue="hydrate(row.__target__)" />
+            <__Target__Button :modelValue="hydrate(row.__target__)" :readonly="readonly" />
             {{ hydrate(row.__target__)?.$title }}
         </template>
+        <!-- its "new" button creates a new __Target__: where writes are gated, add :can-edit="canWrite('__Target__')" (entities.patterns → Permission-gated UI) -->
         <template #selector="{ add, exclude }">
             <__Target__Selector :filter-defaults="{ exclude }" @select="(x?: __Target__) => x && add({ __target__Id: x.id!, __target__: x })" />
         </template>
