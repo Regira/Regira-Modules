@@ -30,20 +30,21 @@ heading.
 - `vue/online`: **behaviour change — `useOnlineChecker()` inside a component's `setup` returns the plugin's live
   ref**, so the component re-renders when the connection changes; outside `setup`, or without the plugin, it returns
   a ref seeded once from `navigator.onLine`, as before.
-- Scaffold: **behaviour change — Enter in the owned editor's add row no longer submits the parent form**;
-  `Roles.ADMIN` is `"Administrator"`; navigation hides what `routeAllows` refuses; Details reloads when another
-  account signs in, and Details and Overview clear the previous account's rows first (a reload refused for the new
+- Scaffold: **behaviour change — Enter in the owned editor's add row no longer submits the parent form**; `Roles.ADMIN`
+  is `"Administrator"`; navigation hides what `routeAllows` refuses; Details reloads when another account signs in, and
+  Details, Overview and `SelectorDropdown` clear the previous account's rows first (a reload refused for the new
   account left them on screen); sign-out clears the pool; the sign-in modal shows no X while sign-in is required;
   icon-only controls get `aria-label`s (new keys `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`);
   the language is remembered without auth too; the shell sets `strictPort` and `"culture"`; `--owns` declares its
   fields on the parent and prints the `toEntity` lift; string-key slices pass `vue-tsc`; attachments rows carry
   `newBytes`; `--picker` chips take `readonly`; `InputSelector` survives a `403`; the advanced filter's Cancel closes
-  it; a self `--picker`, a `--dir` outside `src/`, an `--owns` folder clash, a non-PascalCase `--owns` or a `--plural`
-  that is not a kebab-case folder name stops before writing; the catch-all redirect passes `params: {}` (vue-router 5
-  warned R0100 on every unknown URL). ⚠️ Upgrade: copy `hasAccess` (`entity-navigation/functions.ts`), the
-  `onAuthenticated` lines and their import (`overview/Overview.vue`, `details/Details.vue`), the add row's
-  `@keydown.enter.prevent` (owned `Overview.vue`), the modal's `@cancel` (`filter/Filter.vue`), the redirect's
-  `params: {}` (`router/routes.ts`) and the new keys.
+  it; a self `--picker`, a `--dir` outside `src/`, an `--owns` folder clash, a non-PascalCase `--owns`, a `--plural`
+  that is not a lower-case kebab-case folder name or a value flag without its value (`--api --no-auth`) stops before
+  writing; the catch-all redirect passes `params: {}` (vue-router 5 warned R0100 on every unknown URL). ⚠️ Upgrade:
+  copy `hasAccess` (`entity-navigation/functions.ts`), the `onAuthenticated` lines and their import
+  (`overview/Overview.vue`, `details/Details.vue`), the cleared `items` in the load's `catch`
+  (`selecting/SelectorDropdown.vue`), the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's
+  `@cancel` (`filter/Filter.vue`), the redirect's `params: {}` (`router/routes.ts`) and the new keys.
 - Guides — corrected and extended from the 6.6.0 test runs (also JSDoc, READMEs and template comments): sign-up,
   confirm and reset links, own sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill,
   permission-gated UI, attachments, patching; eager route imports and the not-found redirect; http downloads and

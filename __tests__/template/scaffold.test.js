@@ -823,6 +823,20 @@ describe("scaffold.mjs guards", () => {
         expect(isDir("lib")).toBe(false)
         expect(isDir("src", "entities", "coupons")).toBe(false)
     })
+
+    test("refuses an upper-case --plural", () => {
+        // the folder and route prefix would be pEOPLE: only the first letter is lowered
+        expect(runFailing("Person", "--plural", "PEOPLE", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+        expect(runFailing("Person", "--plural", "People", "--no-auth")).toContain("--plural requires a kebab-case folder name")
+    })
+
+    test("refuses a value flag without its value before anything is written", () => {
+        // the next flag was read as the value: `--api --no-auth` emitted const api = "/--no-auth", and every request 404s
+        expect(runFailing("Rebate", "--api", "--no-auth")).toContain("--api requires a value, but is followed by --no-auth")
+        expect(runFailing("Rebate", "--no-auth", "--singular")).toContain("--singular requires a value.")
+        expect(runFailing("--ui", "--dir", "src/components/ui")).toContain("--ui requires a value, but is followed by --dir")
+        expect(isDir("src", "entities", "rebates")).toBe(false)
+    })
 })
 
 describe("scaffold.mjs output type-checks", () => {

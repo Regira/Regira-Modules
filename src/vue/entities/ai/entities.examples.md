@@ -1302,6 +1302,8 @@ async function load() {
             selectedItem.value = items.value.find((x) => x.id == selectedId.value)
         }
     } catch (ex: any) {
+        // a refused load leaves no options: another account signing in must not be offered the previous one's rows
+        items.value = []
         // a 401 is a load that ran before sign-in and is repeated after it; anything else is worth a look
         if (ex?.response?.status !== 401) console.error("Loading the dropdown failed", ex)
     }

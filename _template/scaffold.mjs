@@ -80,7 +80,14 @@ import { fileURLToPath } from "url"
 const argv = process.argv.slice(2)
 const opt = (flag, fallback) => {
     const i = argv.indexOf(flag)
-    return i >= 0 && argv[i + 1] ? argv[i + 1] : fallback
+    if (i < 0) return fallback
+    const value = argv[i + 1]
+    // a flag without its value, or followed by the next flag: `--api --no-auth` would emit `const api = "/--no-auth"`
+    if (!value || value.startsWith("--")) {
+        console.error(`✗ ${flag} requires a value${value ? `, but is followed by ${value}` : ""}.`)
+        process.exit(1)
+    }
+    return value
 }
 // The entity name is the first bare token — but a flag's VALUE is bare too, so `--dir src/modules` would
 // otherwise be read as the entity (and `--attachments --dir x` would die on "SrcModules is not PascalCase").
@@ -131,7 +138,7 @@ function scaffoldUi(component) {
         process.exit(1)
     }
     const manifest = JSON.parse(readFileSync(join(uiRoot, "manifest.json"), "utf8"))
-    if (!component || component === "list") {
+    if (component === "list") {
         console.log("Ejectable UI components (scaffold.mjs --ui <Component>):")
         for (const entry of manifest) console.log(`  · ${entry.name}  (${entry.files.join(", ")})`)
         return
@@ -227,8 +234,8 @@ const kebab = (s) =>
         .toLowerCase()
 // --plural becomes a folder under --dir, so it must be one kebab-case word: a path (`--plural ../../lib/x`) would
 // write outside it, and with --overwrite-slice clear template-named entries there.
-if (argv.includes("--plural") && !/^[a-z][a-z0-9-]*$/i.test(opt("--plural", ""))) {
-    console.error("✗ --plural requires a kebab-case folder name — letters, digits and hyphens (e.g. --plural people).")
+if (argv.includes("--plural") && !/^[a-z][a-z0-9-]*$/.test(argv[argv.indexOf("--plural") + 1] ?? "")) {
+    console.error("✗ --plural requires a kebab-case folder name — lower-case letters, digits and hyphens (e.g. --plural people).")
     process.exit(1)
 }
 const plural = lowerFirst(opt("--plural", kebab(pluralize(name))))
