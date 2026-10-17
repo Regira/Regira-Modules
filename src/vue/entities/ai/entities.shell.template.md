@@ -586,7 +586,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: "/:pathMatch(.*)*",
         name: "catchAll",
-        redirect: (from) => ({ name: "notFound", query: { url: from.fullPath } }),
+        redirect: (from) => ({ name: "notFound", params: {}, query: { url: from.fullPath } }),
         meta: { allowAnonymous: true },
     },
 ]

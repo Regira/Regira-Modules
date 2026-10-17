@@ -1,9 +1,11 @@
-import { ref, type Ref } from "vue"
+import { hasInjectionContext, inject, ref, type Ref } from "vue"
 
 export type IsOnline = { isOnline: Ref<boolean> }
 
 export function useOnlineChecker(): IsOnline {
-    const isOnline = ref(navigator.onLine)
+    // the plugin's live ref inside setup; elsewhere, or without the plugin, a ref seeded once from navigator.onLine
+    const provided = hasInjectionContext() ? inject<Ref<boolean> | null>("isOnline", null) : null
+    const isOnline = provided ?? ref(navigator.onLine)
 
     return { isOnline }
 }
