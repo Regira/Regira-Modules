@@ -56,6 +56,42 @@ describe("DefaultModal focus", () => {
 
         expect(document.activeElement).toBe(host.querySelector("input.own-focus"))
     })
+
+    // a keyboard user keeps their place, and an outer modal whose trigger opened this one hears Esc again
+    test("a modal gives focus back to the element that had it when it closes", async () => {
+        const isVisible = ref(false)
+        const { host } = mount(() => [h("button", { class: "trigger" }, "open"), h(DefaultModal, { isVisible: isVisible.value, title: "t" })])
+        const trigger = host.querySelector("button.trigger")
+        trigger.focus()
+
+        isVisible.value = true
+        await nextTick()
+        await nextTick()
+        expect(document.activeElement).toBe(host.querySelector(".rg-modal .modal"))
+
+        isVisible.value = false
+        await nextTick()
+        await nextTick()
+        expect(document.activeElement).toBe(trigger)
+    })
+
+    test("a modal unmounted while open gives focus back too", async () => {
+        const shown = ref(true)
+        const { host } = mount(() => [h("button", { class: "trigger" }, "open"), shown.value ? h(DefaultModal, { isVisible: true, title: "t" }) : null])
+        const trigger = host.querySelector("button.trigger")
+        // the modal mounted open took focus from the body: focus the trigger and reopen it, as a click on it would
+        shown.value = false
+        await nextTick()
+        trigger.focus()
+        shown.value = true
+        await nextTick()
+        await nextTick()
+        expect(document.activeElement).toBe(host.querySelector(".rg-modal .modal"))
+
+        shown.value = false
+        await nextTick()
+        expect(document.activeElement).toBe(trigger)
+    })
 })
 
 describe("DefaultModal footer-submit-button slot", () => {

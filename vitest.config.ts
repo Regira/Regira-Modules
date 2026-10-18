@@ -12,5 +12,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    // the fs cache keys a .vue compile on the SFC's own source, so a change to an imported props type
+    // (defineProps<T>() from a .ts file) keeps serving the old runtime props; the suite is no slower without it
+    fsModuleCache: false,
   },
 });

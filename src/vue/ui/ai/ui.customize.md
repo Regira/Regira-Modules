@@ -255,7 +255,7 @@ slots. Every replacement/ejected skin MUST:
    variants), `d-none d-md-inline` on button labels, `d-none d-md-block` to drop columns on small
    screens, `$screen` for JS-side switches.
 4. Render every slot and fire every emit of the contract, per component:
-    - **Modal**: render the default slot when `isVisible`; focus the dialog when it opens and emit `close` on Esc
+    - **Modal**: render the default slot when `isVisible`; focus the dialog when it opens, give focus back when it closes, and emit `close` on Esc
       and the header close; emit `cancel`/`submit` from the footer actions; honor
       `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the

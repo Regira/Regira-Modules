@@ -25,7 +25,7 @@ export type InputSelectorInlineEmits<T> = {
 }
 export type InputSelectorInlineSlots<T> = {
     /** renders one selected row (chip content, next to the remove/restore toggle); `readonly` is the component's */
-    chip?(props: { row: T; readonly: boolean }): any
+    chip?(props: { row: T; readonly?: boolean }): any
     /** renders the picker; call `add` with the new row, `exclude` lists already-selected ids */
     selector?(props: { add: (row: T) => void; exclude: Array<number> }): any
 }

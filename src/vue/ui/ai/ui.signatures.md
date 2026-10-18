@@ -246,7 +246,8 @@ export type ModalSlots = {
 export const modalDefaults: { showHeader: true; showFooter: true; type: ModalType.normal }
 // DefaultModal renders in place (no Teleport): FormModalButton, ConfirmButton and the slice's other dialogs wrap it
 // in <Teleport to="#modals">, and a modal of your own does the same. Its body renders only while isVisible (v-if).
-// On open it focuses its dialog (unless an element inside already has focus), so Esc closes it without a click first.
+// On open it focuses its dialog (unless an element inside already has focus), so Esc closes it without a click first;
+// on close it gives focus back to the element that had it.
 export type ModalComponent // any component implementing ModalProps — modalPlugin's option type (compile-checked)
 
 // resolves the app-wide modal (the modalPlugin swap-in, DefaultModal otherwise); call in setup:
@@ -394,9 +395,9 @@ import {
     CopyToClipboardButton,
 } from "@regira/modules/vue/ui"
 // ConfirmButton contract (ConfirmButtonProps/Emits/Slots + confirmButtonDefaults):
-//   props: { icon?: string; buttonLabel?: string; disabled?: boolean; modalTitle?: string; modalType?: ModalType;
+//   props: { icon?: string; buttonLabel?: string; modalTitle?: string; modalType?: ModalType;
 //            modalLabels?: { cancel?: string; submit?: string } }   (modal title/labels default to English "Sure?" / "Cancel" / "Submit")
-//   icon-only by default (no buttonLabel): pass aria-label, which falls through to the root <button>
+//   icon-only by default (no buttonLabel): pass aria-label, which falls through to the root <button>, as disabled does
 //   emits: confirm | cancel | open | close ; slots: button-content, modal, default (confirm-modal body)
 //   exposes: open() / close() — `open` is BOTH an emit (fired on click) and an exposed method. To raise the
 //   same confirmation from another affordance (a swipe, a context menu, a shortcut), keep the button in the

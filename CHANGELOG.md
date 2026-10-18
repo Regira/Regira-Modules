@@ -13,10 +13,10 @@ heading.
   a typed `close` on `LoginModal`/`ForgotPasswordModal` (`LoginModalEmits`, `ForgotPasswordModalEmits`),
   `useLoginForm().isNotAllowed` (unconfirmed account). `siteName` on `forgotPassword` is `@deprecated`. Fixes:
   `isLockedOut` clears on a new attempt; `LoginForm`'s inputs get ids, names and valid `autocomplete` tokens.
-- `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog on open** (Esc closes it at once); **behaviour
-  change — `FormSection`'s body is padded** (`--rg-form-section-padding`, `0` for flush); icon-only buttons get
-  accessible names; `ConfirmButton` declares `disabled` and renders no `name` attribute (it carried the icon name, so
-  a `button[name=delete]` selector needs a hook of its own). `footer-submit-button` passes `handleSubmit` (`handleClose`
+- `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog on open** (Esc closes it at once) and gives focus
+  back on close; **behaviour change — `FormSection`'s body is padded** (`--rg-form-section-padding`, `0` for flush);
+  icon-only buttons get accessible names; `ConfirmButton` renders no `name` attribute (it carried the icon name, so a
+  `button[name=delete]` selector needs a hook of its own). `footer-submit-button` passes `handleSubmit` (`handleClose`
   there is deprecated); ⚠️ an ejected `DefaultModal` that declares `ModalSlots` passes it too, or TS2345. Fixes:
   `toFeedbackError` lower-cases each segment of a nested field key; `DateInputEmits` is `Date | undefined`.
 - `vue/entities`: **behaviour change — a save refused with any `4xx` reports "Saving failed: …"** ("Server error" is
@@ -24,7 +24,8 @@ heading.
   `IEntityService`, required on `IPoolService`; ⚠️ a subclass with its own `patch` of another shape fails with TS2416),
   `useForm().failure`, `PoolCache.clear()`, `InputSelectorInline`'s `readonly`. Fixes: `useOwnedCollection` leaves an
   unset collection unset (a save deleted every row); it and `useListInput` keep two appends in one tick and negative
-  temp ids; a refused save keeps its `_deleted` marks; an `undefined` search field keeps its `baseQueryParams` default.
+  temp ids; a refused save keeps its `_deleted` marks, since `prepareItem` works on a shallow copy (protected
+  `copyForSave`), not the caller's object; an `undefined` search field keeps its `baseQueryParams` default.
 - `vue/http`: Fixes: an error without a request or response (a network failure) passes the blob-error interceptor
   unchanged, where it threw a `TypeError`; a JSON-typed blob error body that does not parse (an empty
   `application/problem+json`) stays a Blob and the request still rejects, where the download never settled.
@@ -48,7 +49,8 @@ heading.
   (`selecting/SelectorDropdown.vue`), the `try`/`catch` around the load (`selecting/InputSelector.vue`), the
   `:show-delete` test (`details/Form.vue`), the re-map's `revokeObjectURL` (`entity-attachments/data/functions.ts`),
   the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's `@cancel` (`filter/Filter.vue`), the
-  redirect's `params: {}` (`router/routes.ts`) and the new keys.
+  redirect's `params: {}` (`router/routes.ts`), the pool clear in `onAuthenticationChange` (`main.ts`) and the new
+  keys.
 - Guides — corrected and extended (also JSDoc, READMEs and template comments): sign-up, confirm and reset links, own
   sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill, permission-gated UI,
   attachments, patching; eager route imports and the not-found redirect; http downloads and uploads; an offline outbox

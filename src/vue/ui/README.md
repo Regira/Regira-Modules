@@ -130,7 +130,7 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module. It renders in place, so put it inside `<Teleport to="#modals">`. It focuses
-  its dialog when it opens, so Esc closes it; the `footer-submit-button` slot's `handleSubmit` prop submits
+  its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's `handleSubmit` prop submits
   (`handleClose` there is a deprecated alias of it).
 - `Autocomplete` renders its result panel on `<body>` (a `Teleport`) with `position: fixed`, so no
   ancestor's `overflow` — a scrollable modal body, an `overflow: hidden` card — clips it. It places the panel

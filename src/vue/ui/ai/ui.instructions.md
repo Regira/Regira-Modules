@@ -197,7 +197,7 @@ it before writing a new component.
   `:is-visible` (one-way; it has no `update:isVisible` emit) plus `@close`/`@cancel` to flip your own state
   (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from
   the [entities](../../entities/ai/entities.signatures.md) module. It renders in place, so put it inside
-  `<Teleport to="#modals">`. It focuses its dialog when it opens, so Esc closes it; the `footer-submit-button` slot's
+  `<Teleport to="#modals">`. It focuses its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's
   `handleSubmit` prop submits (`handleClose` there is a deprecated alias of it).
 - **`FileDropZone` takes drops only.** It renders no `<input>` or browse button: pair it with `browse()` from
   `@regira/modules/utilities/file-utility` for click and keyboard users.

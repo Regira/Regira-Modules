@@ -50,7 +50,7 @@ with the [checklist](docs/checklist.md). For a complete working example, see the
 ## API contract
 
 The client mirrors the back-end Web endpoints and expects item-wrapped envelopes
-(`{ item }`, `{ items, count }`), with `GET` for reads, `POST`/`PUT` for save, `DELETE` for remove. The
+(`{ item }`, `{ items, count }`), with `GET` for reads, `POST`/`PUT` for save, `PATCH` for a partial update, `DELETE` for remove. The
 full table is in [services.md](docs/services.md#http-contract).
 
 ## The module stack
