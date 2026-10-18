@@ -15,7 +15,8 @@ heading.
   `isLockedOut` clears on a new attempt; `LoginForm`'s inputs get ids, names and valid `autocomplete` tokens.
 - `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog on open** (Esc closes it at once); **behaviour
   change — `FormSection`'s body is padded** (`--rg-form-section-padding`, `0` for flush); icon-only buttons get
-  accessible names; `ConfirmButton` declares `disabled`. `footer-submit-button` passes `handleSubmit` (`handleClose`
+  accessible names; `ConfirmButton` declares `disabled` and renders no `name` attribute (it carried the icon name, so
+  a `button[name=delete]` selector needs a hook of its own). `footer-submit-button` passes `handleSubmit` (`handleClose`
   there is deprecated); ⚠️ an ejected `DefaultModal` that declares `ModalSlots` passes it too, or TS2345. Fixes:
   `toFeedbackError` lower-cases each segment of a nested field key; `DateInputEmits` is `Date | undefined`.
 - `vue/entities`: **behaviour change — a save refused with any `4xx` reports "Saving failed: …"** ("Server error" is
@@ -33,7 +34,9 @@ heading.
 - Scaffold: **behaviour change — Enter in the owned editor's add row no longer submits the parent form**; `Roles.ADMIN`
   is `"Administrator"`; navigation hides what `routeAllows` refuses; Details reloads when another account signs in, and
   Details, Overview and `SelectorDropdown` clear the previous account's rows first (a reload refused for the new
-  account left them on screen); sign-out clears the pool; the sign-in modal shows no X while sign-in is required;
+  account left them on screen), and Details and Overview keep the rows a hard reload shows once its stored token
+  validates (they cleared them and fetched again); staged attachment previews release their object URLs when the rows
+  are re-mapped; sign-out clears the pool; the sign-in modal shows no X while sign-in is required;
   icon-only controls get `aria-label`s (new keys `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`);
   the language is remembered without auth too; the shell sets `strictPort` and `"culture"`; `--owns` declares its
   fields on the parent and prints the `toEntity` lift; string-key slices pass `vue-tsc`; attachments rows carry
@@ -43,7 +46,8 @@ heading.
   writing; the catch-all redirect passes `params: {}` (vue-router 5 warned R0100 on every unknown URL). ⚠️ Upgrade:
   copy `hasAccess` (`entity-navigation/functions.ts`), the `onAuthenticated` lines and their import
   (`overview/Overview.vue`, `details/Details.vue`), the cleared `items` in the load's `catch`
-  (`selecting/SelectorDropdown.vue`), the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's
+  (`selecting/SelectorDropdown.vue`), the `try`/`catch` around the load (`selecting/InputSelector.vue`), the
+  `:show-delete` test (`details/Form.vue`), the re-map's `revokeObjectURL` (`entity-attachments/data/functions.ts`), the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's
   `@cancel` (`filter/Filter.vue`), the redirect's `params: {}` (`router/routes.ts`) and the new keys.
 - Guides — corrected and extended from the 6.6.0 test runs (also JSDoc, READMEs and template comments): sign-up,
   confirm and reset links, own sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill,

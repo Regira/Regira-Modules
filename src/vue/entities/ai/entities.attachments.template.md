@@ -113,7 +113,8 @@ import { useAxios } from "@regira/modules/vue/http"
 import Entity from "./Entity"
 import Attachment from "../attachments/Entity"
 
-// Stage a picked/dropped file: keep the Blob in memory + an object URL for instant preview/download.
+// Stage a picked/dropped file: keep the Blob in memory + an object URL for instant preview/download (revoked when the
+// rows are re-mapped without it, see useEntityAttachments).
 export function createEntity(file: Blob & { name?: string }): Entity {
     const item = new Entity()
     item.attachment = Object.assign(new Attachment(), { _file: file, fileName: file.name, contentType: file.type, length: file.size })
@@ -143,7 +144,12 @@ export function useEntityAttachments({
     watch(
         () => props.modelValue,
         (v) => {
-            if (v && v !== items.value) items.value = toItems(v)
+            if (v && v !== items.value) {
+                // an object URL holds its file in memory until revoked: release the staged previews the new rows no longer show
+                const kept = new Set(v.map((x) => x.uri))
+                for (const x of items.value) if (x.uri?.startsWith("blob:") && !kept.has(x.uri)) URL.revokeObjectURL(x.uri)
+                items.value = toItems(v)
+            }
         }
     )
     const sync = () => emit("update:modelValue", items.value)
@@ -215,7 +221,7 @@ export async function insertWithAttachments<T extends { id: number; attachments?
         if (saved == null) return undefined // insert failed — nothing to attach files to
         saved.attachments = attachments
         await saveAll(api, saved)
-        attachments.forEach((x) => delete x.attachment?._file) // free the blobs
+        attachments.forEach((x) => delete x.attachment?._file) // uploaded: drop the staged file (its preview URL goes on the next re-map)
         // the file upload carries no order — the follow-up parent update sends the array in display order
         // and the server assigns SortOrder from position (saveAll assigned the ids, so the Related() sync
         // updates instead of re-inserting). It only conveys order, so it must never invalidate the
@@ -236,7 +242,7 @@ export async function updateWithAttachments<T extends { id: number; attachments?
     update: () => Promise<T | undefined>
 ): Promise<T | undefined> {
     await saveAll(api, item)
-    item.attachments?.forEach((x) => delete x.attachment?._file) // free the blobs, like insert
+    item.attachments?.forEach((x) => delete x.attachment?._file) // uploaded: drop the staged file, like insert
     return await update()
 }
 async function saveAll(api: string, item: { id: number; attachments?: Array<Entity> }) {

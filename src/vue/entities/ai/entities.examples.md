@@ -665,7 +665,7 @@ const item = defineModel<Entity>({ required: true })
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
+import { onAuthenticated, useAuth, useGlobalAuth } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -694,11 +694,13 @@ const { updateOverviewRoute } = useRouteOverview({
 })
 
 // re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload. A sign-in as another
-// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen. immediate: false —
+// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen; the stored token
+// a hard reload validates is the one the mount fetch sent, so its account's rows stay. immediate: false —
 // useRouteOverview already fetches on mount, and firing in setup would race it with an unpopulated search object.
-// No-auth app: delete these two lines AND their import above (scaffold.mjs --no-auth strips all three; see entities.setup.md#running-without-authentication)
+// No-auth app: delete these lines AND their import above (scaffold.mjs --no-auth strips them all; see entities.setup.md#running-without-authentication)
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen, for onAuthenticated below
-onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
+const shownToken = useAuth()?.tokenManager?.token // the stored token the mount fetch sends before onAuthenticated validates it
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (useGlobalAuth()?.authData?.token === shownToken) shownFor = userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)
@@ -739,7 +741,7 @@ async function handleRequestRemove(item: Entity) {
 
 <script setup lang="ts">
 import { RouterView, useRouter } from "vue-router"
-import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
+import { onAuthenticated, useAuth, useGlobalAuth } from "@regira/modules/vue/auth"
 import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
 import { useDetails } from "@regira/modules/vue/entities/details"
 import { FormStates } from "@regira/modules/vue/entities/form"
@@ -752,10 +754,12 @@ const { item, isLoading, overviewUrl, load, feedback } = useDetails(service)
 
 // load whenever a token arrives and the row on screen is none, or another account's: someone else signing in behind the
 // LoginModal gets their own row, and the previous one is cleared first, so a reload refused for them (403/404) never leaves
-// it on screen; a refresh of the same account's token keeps the form and its edits. immediate: false — useDetails already
-// fetches on mount. No-auth app: delete these two lines AND their import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
+// it on screen; a refresh of the same account's token keeps the form and its edits, and so does the stored token a hard reload
+// validates, which the mount fetch sent. immediate: false — useDetails already fetches on mount.
+// No-auth app: delete these lines AND their import above, and drop load from the useDetails destructure (scaffold.mjs --no-auth does all three)
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen, for onAuthenticated below
-onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) item.value = undefined; if (item.value == null) { shownFor = userId; load() } }, { immediate: false })
+const shownToken = useAuth()?.tokenManager?.token // the stored token the mount fetch sends before onAuthenticated validates it
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (useGlobalAuth()?.authData?.token === shownToken) shownFor = userId; if (userId !== shownFor) item.value = undefined; if (item.value == null) { shownFor = userId; load() } }, { immediate: false })
 
 const router = useRouter()
 function handleRemove() {
@@ -2616,7 +2620,7 @@ const { fromPool: getFacet } = useFacetStore()
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
-import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
+import { onAuthenticated, useAuth, useGlobalAuth } from "@regira/modules/vue/auth"
 import config from "../config/config"
 import Entity from "../data/Entity"
 import useEntityStore from "../data/store"
@@ -2649,11 +2653,13 @@ const { updateOverviewRoute } = useRouteOverview({
 })
 
 // re-search whenever a token arrives — sign-in, refresh, or one restored from storage on a hard reload. A sign-in as another
-// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen. immediate: false —
+// account clears the rows first, so a search refused for it never leaves the previous account's rows on screen; the stored token
+// a hard reload validates is the one the mount fetch sent, so its account's rows stay. immediate: false —
 // useRouteOverview already fetches on mount, and firing in setup would race it with an unpopulated search object.
-// No-auth app: delete these two lines AND their import above (scaffold.mjs --no-auth strips all three; see entities.setup.md#running-without-authentication)
+// No-auth app: delete these lines AND their import above (scaffold.mjs --no-auth strips them all; see entities.setup.md#running-without-authentication)
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen, for onAuthenticated below
-onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
+const shownToken = useAuth()?.tokenManager?.token // the stored token the mount fetch sends before onAuthenticated validates it
+onAuthenticated(() => { const userId = useGlobalAuth()?.authData?.userId; if (useGlobalAuth()?.authData?.token === shownToken) shownFor = userId; if (userId !== shownFor) { shownFor = userId; items.value = undefined; itemsCount.value = undefined } searchHandler(false) }, { immediate: false })
 
 async function handleRequestSave(item: Entity) {
     const result = await applySave(item)

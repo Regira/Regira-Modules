@@ -1604,7 +1604,8 @@ onAuthenticated(() => load())
 > their refused reload (403/404) would leave the previous account's rows under the error banner. So the
 > scaffolded views remember the account whose data they show (`shownFor`) and clear `items`/`itemsCount` or
 > `item` when a token for another account arrives. A refresh of the same account's token keeps them, form
-> edits included.
+> edits included. So does the stored token a hard reload validates: the mount fetch sent it before the account
+> was known, so the views keep that token (`shownToken`) and take its account as the one on screen.
 
 Slices scaffolded with `--no-auth` have these hooks stripped — and because `load` is destructured from
 `useDetails` **only** to feed the Details hook, `--no-auth` also drops `load` from that destructure
@@ -1613,13 +1614,16 @@ binding when the app enables the auth plugin later:
 
 ```ts
 // overview/Overview.vue — `items`, `itemsCount` and `searchHandler` are already in the useSearchView destructure.
-import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
+import { onAuthenticated, useAuth, useGlobalAuth } from "@regira/modules/vue/auth"
 
 // re-searches on every token, clearing the previous account's rows first when another account signed in
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose rows are on screen
+const shownToken = useAuth()?.tokenManager?.token // the stored token the mount fetch sends before it is validated
 onAuthenticated(
     () => {
         const userId = useGlobalAuth()?.authData?.userId
+        // the stored token, validated: the rows on screen are its account's
+        if (useGlobalAuth()?.authData?.token === shownToken) shownFor = userId
         if (userId !== shownFor) {
             shownFor = userId
             items.value = undefined
@@ -1634,14 +1638,17 @@ onAuthenticated(
 ```ts
 // details/Details.vue — add `load` back to the existing useDetails destructure:
 // const { item, …, load, feedback } = useDetails(service)
-import { onAuthenticated, useGlobalAuth } from "@regira/modules/vue/auth"
+import { onAuthenticated, useAuth, useGlobalAuth } from "@regira/modules/vue/auth"
 
 // reloads for another account's sign-in, clearing the previous account's row first so a refused reload (403/404)
 // never leaves it on screen, and keeps the form when the same account's token is refreshed
 let shownFor = useGlobalAuth()?.authData?.userId // the account whose row is on screen
+const shownToken = useAuth()?.tokenManager?.token // the stored token the mount fetch sends before it is validated
 onAuthenticated(
     () => {
         const userId = useGlobalAuth()?.authData?.userId
+        // the stored token, validated: the row on screen is its account's
+        if (useGlobalAuth()?.authData?.token === shownToken) shownFor = userId
         if (userId !== shownFor) item.value = undefined
         if (item.value == null) {
             shownFor = userId
