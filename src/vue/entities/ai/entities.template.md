@@ -521,7 +521,7 @@ const item = defineModel<Entity>({ required: true })
             <!-- TODO: your fields (a new item pre-filled from the route, ?ownerId=…, is a watch on item, not onMounted:
                  entities.patterns → A new row pre-filled from the route), e.g. -->
             <div class="mb-2">
-                <input v-model="item.title" :readonly="readonly" class="form-control" />
+                <input v-model="item.title" :readonly="readonly" class="form-control" :aria-label="$t('name')" />
                 <FormLabel :label="$t('name')" />
             </div>
             <!-- single relation (FK) → the related entity's InputSelector, e.g. <BarInputSelector v-model="item.bar" v-model:idValue="item.barId" /> -->
@@ -594,8 +594,10 @@ import type { OverviewEmits } from "@regira/modules/vue/entities"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"
 
-interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {}
-const emit = defineEmits<Emits & { (e: "update:modelValue", value: Array<Entity>): void; (e: "select", selected?: Entity): void }>()
+interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
+    select: [selected?: Entity]
+}
+const emit = defineEmits<Emits>()
 const props = defineProps<{ modelValue?: Array<Entity>; selected?: Entity }>()
 
 const isSelected = computed(() => (item: Entity) => item.$id == props.selected?.$id)

@@ -24,6 +24,7 @@ export interface IAuthService {
     readonly options: IAuthOptions
     authenticate({ token, isAuthenticated }: IAuthenticateInput): IAuthData
     login(username: string, password: string): Promise<IAuthData>
+    /** Re-issues the token: `o` is sent as the query string of `POST auth/refresh/` (e.g. `{ tenantId }`). */
     refresh(o?: Record<string, unknown>): Promise<IAuthData>
     validateToken(): Promise<IAuthData>
     logout(): void

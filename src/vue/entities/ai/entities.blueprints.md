@@ -70,7 +70,7 @@ export function getLabelType(value: string) {
 
 One folder, five small components — reusable across every labelled owner:
 
-- **`Overview.vue`** — the editor: a `FormSection`, a `vuedraggable` list of `InlineInput` rows (drag handle drives `sortOrder`), plus one empty `InlineInput` that appends a row on first input. Optional `showSummary` renders `Summary`.
+- **`Overview.vue`** — the editor: a `FormSection`, a list of `InlineInput` rows reordered with native HTML5 drag and drop, as the attachments slice does (`entity-attachments/overview/Overview.vue`; the array order drives `sortOrder`) — `vuedraggable` works too but is not a dependency of `@regira/modules`, plus one empty `InlineInput` that appends a row on first input. Optional `showSummary` renders `Summary`.
 - **`InlineInput.vue`** — one row: title input + `LabelIcon` + value input + add/remove button. Remove is a **soft delete**: toggle `item.value._deleted` (row stays visible, struck through).
 - **`ListItem.vue`** — read-only display; renders url/email/phone values as anchors.
 - **`Summary.vue`** — labels grouped by `title` into chips (`groupBy`).

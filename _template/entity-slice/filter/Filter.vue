@@ -8,7 +8,8 @@
             <component
                 :is="Modal"
                 :is-visible="showAdv"
-                :title="props.modalTitle || 'Advanced search'"
+                :title="props.modalTitle || $t('advancedSearch')"
+                :labels="{ cancel: $t('cancel'), submit: $t('filter') }"
                 :show-footer="true"
                 :full-width="true"
                 @close="handleClose"

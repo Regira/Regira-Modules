@@ -224,6 +224,10 @@ const warnDomGlobal = (className, origin) => {
 const lowerFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1)
 const upperFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const pluralize = (s) => (/(?:s|x|z|ch|sh)$/i.test(s) ? s + "es" : /[^aeiou]y$/i.test(s) ? s.slice(0, -1) + "ies" : s + "s")
+// A top-level slice's folder and API path follow pluralize, as the back end's mapped routes do (Alias → aliases).
+// An owned child has no endpoints, so its folder and JSON key keep a name already ending in a plural s
+// (PartyContactDetails → party-contact-details); Address and Status still get "es".
+const pluralizeOwned = (s) => (/s$/i.test(s) && !/(?:ss|us)$/i.test(s) ? s : pluralize(s))
 // Route/folder identifiers are kebab-case, matching the conventional controller route: InterventionType →
 // "intervention-types", which is what [Route("intervention-types")] serves. Flattening to one lowercase word
 // would emit "/interventiontypes" and every request 404s.
@@ -384,10 +388,10 @@ for (const o of owns) {
 // --overwrite-slice would remove the slice's own files to make room. Refused before anything is written.
 const sliceEntries = existsSync(srcRoot) ? new Set(readdirSync(srcRoot)) : new Set()
 for (const o of owns) {
-    const folder = kebab(pluralize(o.child))
+    const folder = kebab(pluralizeOwned(o.child))
     if (sliceEntries.has(folder)) {
         console.error(
-            `✗ --owns ${o.child}: its sub-slice folder "${folder}/" is one of the slice's own. The folder is the kebab-cased class plural, and --as renames the JSON key only, so give the child class another name (--owns ${name}${o.child} --as ${o.field ?? lowerFirst(pluralize(o.child))} keeps the key).`
+            `✗ --owns ${o.child}: its sub-slice folder "${folder}/" is one of the slice's own. The folder is the kebab-cased class plural, and --as renames the JSON key only, so give the child class another name (--owns ${name}${o.child} --as ${o.field ?? lowerFirst(pluralizeOwned(o.child))} keeps the key).`
         )
         process.exit(1)
     }
@@ -400,7 +404,7 @@ for (const r of rels) warnDomGlobal(r.name, " (--rel)")
 // The owned-collection JSON key — the back-end navigation's camelCase key, defaulting to the camelCase plural
 // of the child class. Derived once: the generated prepareItem filter and the sub-slice scaffolder below must
 // agree on it, or the filter would clear a field the DTO does not have.
-const ownedField = ({ child, field }) => field ?? lowerFirst(pluralize(child))
+const ownedField = ({ child, field }) => field ?? lowerFirst(pluralizeOwned(child))
 
 // The import alias mirrors the target folder: `--dir src/modules` must emit "@/modules/...", not the
 // default "@/entities/...", or the generated slice cannot resolve its imports. `@/` is src/, so a folder
@@ -618,7 +622,7 @@ function applyOwnedCollections(relPath, text) {
         text = insertAfter(
             text,
             `import { EntityBase } from "@regira/modules/vue/entities"`,
-            owns.map((o) => `import type { Entity as ${o.child} } from "../${kebab(pluralize(o.child))}"`).join("\n")
+            owns.map((o) => `import type { Entity as ${o.child} } from "../${kebab(pluralizeOwned(o.child))}"`).join("\n")
         )
         const fields = owns.map((o) => `    ${ownedField(o)}?: Array<${o.child}>`).join("\n")
         return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, fields, "data/Entity.ts")
@@ -782,7 +786,7 @@ if (sliceGenerated) {
         for (const entry of readdirSync(destRoot)) {
             if (templateEntries.has(entry)) rmSync(resolve(destRoot, entry), { recursive: true, force: true })
         }
-        const regenerating = new Set(owns.map((o) => kebab(pluralize(o.child))))
+        const regenerating = new Set(owns.map((o) => kebab(pluralizeOwned(o.child))))
         // Report EVERYTHING that survived, not just folders: the scoped delete only removes entries the
         // current template emits, so a stray file (an older template's leftover, or something hand-added)
         // also stays — and staying unannounced is how a destructive flag looks like it did nothing.
@@ -916,10 +920,10 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
     // The picked slice is looked up the same way a --rel is: it may live under its own --plural.
     const targetFolder = pickerName ? (findSliceFolder(pickerName) ?? lowerFirst(kebab(pluralize(pickerName)))) : undefined
     const targetAlias = pickerName ? `@/${aliasRoot}/${targetFolder}` : undefined
-    const childFolder = kebab(pluralize(childName)) // OrderLine → order-lines (folder / import path — kebab-case, like every other derived path)
+    const childFolder = kebab(pluralizeOwned(childName)) // OrderLine → order-lines (folder / import path — kebab-case, like every other derived path)
     // The DTO field must match the back-end navigation's camelCase JSON key — that follows the C# property
     // name, not the child class name. Default: camelCase plural of the class; pass --as when they differ.
-    const childField = fieldName ?? lowerFirst(pluralize(childName)) // OrderLine → orderLines
+    const childField = fieldName ?? lowerFirst(pluralizeOwned(childName)) // OrderLine → orderLines
     const ChildrenPascal = childField.charAt(0).toUpperCase() + childField.slice(1) // the e.Related nav property (JSON key ⇔ PascalCase property)
     const childDest = resolve(destRoot, childFolder)
     if (existsSync(childDest)) {

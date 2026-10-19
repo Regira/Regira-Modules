@@ -45,7 +45,7 @@
             <!-- TODO: your fields (a new item pre-filled from the route, ?ownerId=…, is a watch on item, not onMounted:
                  entities.patterns → A new row pre-filled from the route), e.g. -->
             <div class="mb-2">
-                <input v-model="item.title" :readonly="readonly" class="form-control" />
+                <input v-model="item.title" :readonly="readonly" class="form-control" :aria-label="$t('name')" />
                 <FormLabel :label="$t('name')" />
             </div>
             <!-- single relation (FK) → the related entity's InputSelector, e.g. <BarInputSelector v-model="item.bar" v-model:idValue="item.barId" /> -->

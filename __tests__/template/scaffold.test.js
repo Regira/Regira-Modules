@@ -124,6 +124,22 @@ describe("scaffold.mjs derived paths", () => {
         expect(out).not.toContain("assetassignments")
     })
 
+    test("an owned name that already ends in a plural s keeps it as the folder name", () => {
+        // regression: pluralize appended "es" to every trailing s, so PartyContactDetails made party-contact-detailses
+        run("Party", "--owns", "PartyContactDetails", "--no-auth")
+
+        expect(isDir("src", "entities", "parties", "party-contact-details")).toBe(true)
+        expect(isDir("src", "entities", "parties", "party-contact-detailses")).toBe(false)
+    })
+
+    test("a top-level name ending in s keeps the back end's plural for its folder and API path", () => {
+        // MapEntityEndpoints routes Alias at /aliases (EntityEndpointRegistry.Pluralize): a slice calling /alias gets a 404
+        run("Alias", "--no-auth")
+
+        expect(isDir("src", "entities", "aliases")).toBe(true)
+        expect(readFileSync(app("src", "entities", "aliases", "config", "config.ts"), "utf8")).toContain('const api = "/aliases"')
+    })
+
     test("--as renaming the owned collection is offered BEFORE the folder is created", () => {
         // acting on the hint means re-running with --as; once the sub-slice folder exists that needs
         // --overwrite-slice, so the hint has to come first to be actionable

@@ -29,6 +29,9 @@ stores that order.
 
 > **Shared slice — no per-entity tokens.** Unlike an entity slice, this is copied verbatim (one folder per
 > app). You do not customize its files; you customize which entities _use_ it (the 3-line host wiring below).
+> The one exception is an extra field on the link (a featured flag or a caption, on the API's derived link DTO): add
+> it to `data/Entity.ts` and edit it in the owner's own tab. For a featured image alone, prefer the first position,
+> which needs no change.
 
 ## `attachments/Entity.ts`
 

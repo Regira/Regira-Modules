@@ -43,18 +43,23 @@ heading.
   `newBytes`; `--picker` chips take `readonly`; `InputSelector` survives a `403`; the advanced filter's Cancel closes
   it; a self `--picker`, a `--dir` outside `src/`, an `--owns` folder clash, a non-PascalCase `--owns`, a `--plural`
   that is not a lower-case kebab-case folder name or a value flag without its value (`--api --no-auth`) stops before
-  writing; the catch-all redirect passes `params: {}` (vue-router 5 warned R0100 on every unknown URL). ⚠️ Upgrade:
+  writing; the catch-all redirect passes `params: {}` (vue-router 5 warned R0100 on every unknown URL); an `--owns` name
+  that already ends in a plural `s` (`PartyContactDetails`) keeps it as its folder name, where it got `-detailses`; the
+  advanced filter's title and buttons are translated (new key `advancedSearch`); the header search pushes no empty `?q=`,
+  which made the overview report active filters; `SelectorList` declares its emits in `OverviewEmits`' tuple shape, so
+  an added event keeps the inherited ones; the sample form field has an `aria-label`. ⚠️ Upgrade:
   copy `hasAccess` (`entity-navigation/functions.ts`), the `onAuthenticated` lines and their import
   (`overview/Overview.vue`, `details/Details.vue`), the cleared `items` in the load's `catch`
   (`selecting/SelectorDropdown.vue`), the `try`/`catch` around the load (`selecting/InputSelector.vue`), the
   `:show-delete` test (`details/Form.vue`), the re-map's `revokeObjectURL` (`entity-attachments/data/functions.ts`),
-  the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's `@cancel` (`filter/Filter.vue`), the
+  the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's `@cancel`, translated `title` and `labels` (`filter/Filter.vue`), the `query` (`entity-navigation/NavSearch.vue`), the `Emits` (`selecting/SelectorList.vue`), the
   redirect's `params: {}` (`router/routes.ts`), the pool clear in `onAuthenticationChange` (`main.ts`) and the new
   keys.
 - Guides — corrected and extended (also JSDoc, READMEs and template comments): sign-up, confirm and reset links, own
   sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill, permission-gated UI,
   attachments, patching; eager route imports and the not-found redirect; http downloads and uploads; an offline outbox
-  and the live online flag.
+  and the live online flag; the refresh query string, `TabContainer` mounting only the active tab, `FormSection`'s
+  `!important` header, `isComplex` apart from the licensing count, a labels editor without `vuedraggable`, and an extra field on the attachment link.
 
 ## 6.5.0 — 2026-10-04
 

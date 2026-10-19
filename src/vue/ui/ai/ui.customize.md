@@ -127,7 +127,9 @@ them in `theme.scss` — no `::v-deep`, no `!important` needed.
   `rg-feedback__error` / `rg-feedback__close-button`, `rg-loading-fallback` / `rg-loading-spinner`
   (the unbranded spinner and its wrapper — size or restyle them when no `loadingPlugin` image is set),
   `form-section-title` / `form-section-body` (`FormSection`'s header bar and its content, padded by
-  `--rg-form-section-padding`).
+  `--rg-form-section-padding`). The header bar carries Bootstrap's `bg-body-secondary rounded-2 px-2 mb-2` and an
+  `fs-6 fw-semibold` `<h3>`, which are `!important` utilities: overriding them, the `header` slot included, needs
+  `!important`.
 - **State classes** (`is-*`): `is-deleted`, `is-dragging`, `is-selected` (app convention), `.active`
   on the current page.
 - Adding a class to a component's **root** needs no prop — Vue class fallthrough:

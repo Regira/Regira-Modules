@@ -479,6 +479,7 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
 {
     "account": { "en": "Account" },
     "addNewFile(s)": { "en": "Add new file(s)" },
+    "advancedSearch": { "en": "Advanced search" },
     "backToSignIn": { "en": "Back to sign in" },
     "cancel": { "en": "Cancel" },
     "changePassword": { "en": "Change password" },
@@ -776,7 +777,7 @@ const { searchItemConfig } = useNavigation()
 function handleSearch() {
     const cfg = searchItemConfig.value
     if (!cfg) return
-    router.push({ name: `${cfg.key}Overview`, query: { q: q.value } })
+    router.push({ name: `${cfg.key}Overview`, query: q.value ? { q: q.value } : {} })
     q.value = ""
 }
 </script>

@@ -9,7 +9,7 @@ const { searchItemConfig } = useNavigation()
 function handleSearch() {
     const cfg = searchItemConfig.value
     if (!cfg) return
-    router.push({ name: `${cfg.key}Overview`, query: { q: q.value } })
+    router.push({ name: `${cfg.key}Overview`, query: q.value ? { q: q.value } : {} })
     q.value = ""
 }
 </script>

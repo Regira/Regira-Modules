@@ -283,7 +283,8 @@ export class Tab implements ITab {
 export type TabContainerProps = { tabs: Array<ITab | string | undefined>; useRouteNav?: boolean; active?: string }
 export type TabsEmits = { (e: "select", tab: string): void }
 export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
-// TabContainer renders one named slot per tab key; `useRouteNav` (off by default — tabContainerDefaults) syncs the
+// TabContainer renders one named slot per tab key and mounts only the active tab's (`v-if`): a ref into another tab is
+// `null` and its local state resets on a switch, so keep shared state on the item. `useRouteNav` (off by default — tabContainerDefaults) syncs the
 // active tab with the route hash (deep-linkable, back-button friendly) — keep it off inside popups (`:use-route-nav="!isPopup"`).
 // The tab shown is the first of these that names a visible, enabled tab, else the default tab — with route nav:
 // the hash, then `active` (so Back to a hash-less URL shows `active` again); without: the last selection, then
