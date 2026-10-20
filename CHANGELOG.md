@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.6.0 — 2026-10-20
 
 - `vue/auth`: **behaviour change — `$auth.isRequired` is the route-driven `isRequired`** (it was the sticky
   `authRequired` flag); **behaviour change — the route guard re-checks the page on screen on every new token**, so a
