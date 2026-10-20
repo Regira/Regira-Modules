@@ -1,6 +1,11 @@
 import { describe, test, expect } from "vitest"
 import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue"
 import InputSelectorInline from "../../../src/vue/entities/form/InputSelectorInline.vue"
+import ts from "typescript"
+import { mkdtempSync, rmSync, writeFileSync } from "fs"
+import { tmpdir } from "os"
+import { dirname, join, resolve } from "path"
+import { fileURLToPath } from "url"
 
 function mount(rowsRef, extraProps = {}) {
     const host = document.createElement("div")
@@ -19,7 +24,7 @@ function mount(rowsRef, extraProps = {}) {
                             ...extraProps,
                         },
                         {
-                            chip: ({ row }) => h("span", { class: "chip-label" }, row.title),
+                            chip: ({ row, readonly }) => h("span", { class: "chip-label", "data-readonly": String(readonly) }, row.title),
                             selector: (scope) => {
                                 slotScope = scope
                                 return h("span", { class: "selector-slot" })
@@ -121,5 +126,40 @@ describe("InputSelectorInline", () => {
         await nextTick()
 
         expect(rows.value.length).toBe(0) // spliced despite never going through add()
+    })
+
+    test("readonly shows the chips without their toggle or the picker, and tells the chip slot", async () => {
+        const rows = ref(reactive([{ facetId: 1, title: "Red" }]))
+        const { host } = mount(rows, { readonly: true })
+        await nextTick()
+
+        expect(host.querySelector(".chip-label").textContent).toBe("Red")
+        expect(host.querySelector(".chip-label").dataset.readonly).toBe("true")
+        expect(host.querySelector("button")).toBeFalsy()
+        expect(host.querySelector(".selector-slot")).toBeFalsy()
+    })
+})
+
+describe("InputSelectorInlineSlots", () => {
+    // a skin ejected on 6.5.0 renders <slot name="chip" v-bind="{ row }" />: the slot type must still take those props
+    test("the chip slot takes a row without readonly, as a 6.5.0 copy passes it", () => {
+        const source = resolve(dirname(fileURLToPath(import.meta.url)), "../../../src/vue/entities/form/inputSelectorInline.ts")
+        const dir = mkdtempSync(join(tmpdir(), "regira-chip-slot-"))
+        const probe = join(dir, "probe.ts")
+        writeFileSync(
+            probe,
+            `import type { InputSelectorInlineSlots } from ${JSON.stringify(source.replace(/\.ts$/, "").replaceAll("\\", "/"))}
+declare const slots: InputSelectorInlineSlots<{ id: number }>
+slots.chip?.({ row: { id: 1 } })
+slots.chip?.({ row: { id: 1 }, readonly: true })
+`
+        )
+        try {
+            const program = ts.createProgram([probe], { strict: true, noEmit: true, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext })
+            const errors = ts.getPreEmitDiagnostics(program).map((d) => ts.flattenDiagnosticMessageText(d.messageText, "\n"))
+            expect(errors).toEqual([])
+        } finally {
+            rmSync(dir, { recursive: true, force: true })
+        }
     })
 })

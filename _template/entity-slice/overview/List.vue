@@ -7,7 +7,7 @@
                      dropping them misaligns the header by ~2px. Inert markup on purpose (`.disabled` = no
                      pointer events) — a disabled FormModalButton here would mount a useModal + a <Teleport> per list. -->
                 <span v-if="config.isComplex" class="btn btn-link p-1 disabled"><Icon name="edit" /></span>
-                <button v-else type="button" class="btn btn-default" disabled><Icon :name="config.key" /></button>
+                <button v-else type="button" class="btn btn-default" disabled aria-hidden="true"><Icon :name="config.key" /></button>
             </div>
             <div class="col">{{ $t("name") }}</div>
             <!-- TODO: the 1–3 most important OTHER fields, in this reveal order (`scaffold.mjs --rel <Related>`
@@ -25,7 +25,7 @@
                      header cell the same width as the row's, so the trailing edges line up. `disabled`
                      on a span is inert without being focusable. Gated on the same `readonly` as the row's
                      button: kept while the rows have none, it widens this cell and the columns part. -->
-                <span v-if="!readonly" class="btn disabled text-muted"><Icon name="delete" /></span>
+                <span v-if="!readonly" class="btn disabled text-muted" style="border-color: transparent"><Icon name="delete" /></span>
             </div>
         </div>
         <ListItem

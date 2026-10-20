@@ -4,7 +4,12 @@
             <!-- Row-edit affordance follows config.isComplex: a real entity (page) links to its Details route;
                  a very basic entity (modal) opens FormModalButton. Forward @remove either way so a delete from
                  inside the modal refreshes the pooled overview — without it the deleted row lingers until reload. -->
-            <RouterLink v-if="config.isComplex" :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+            <RouterLink
+                v-if="config.isComplex"
+                :to="{ name: config.key + 'Details', params: { id: item.$id } }"
+                class="btn btn-link p-1"
+                :aria-label="$t('edit')"
+            >
                 <Icon name="edit" />
             </RouterLink>
             <FormModalButton v-else v-model="item" :readonly="readonly" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
@@ -26,6 +31,7 @@
             <ConfirmButton
                 v-if="!readonly"
                 icon="delete"
+                :aria-label="$t('delete')"
                 :modal-type="ModalType.danger"
                 :modal-title="$t('delete')"
                 :modal-labels="{ cancel: $t('cancel'), submit: $t('delete') }"

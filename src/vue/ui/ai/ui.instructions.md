@@ -99,8 +99,8 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
   failure shown right after a success stays up.
 - `toFeedbackError(ex)` → what `fail()` should show for a failed request: its field map, else the server's
   `detail`/`message` text (or a plain-text 400 body), else `undefined`. It reads the ProblemDetails `errors` an
-  Entities API answers a 400 with, and a bare field map too, and starts every key lower-case to match the model's
-  field names; keys alike once lower-cased share their messages. A field `errors` lists that the body's
+  Entities API answers a 400 with, and a bare field map too, and starts each segment of a key's path lower-case to
+  match the model's field names (`CategoryId` → `categoryId`, `Lines[0].Quantity` → `lines[0].quantity`); keys alike once lower-cased share their messages. A field `errors` lists that the body's
   `errorDetails` does not name shows too.
   **It translates validation errors.** A server validator returns, per error, a text or a translation key
   (`ValueTooLarge`). Every message is looked up in the app's translation messages (`useLang`,
@@ -143,8 +143,10 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
     matches placeholder names by case.
 
 - `useAppFeedback()` → the **app-wide** `FeedbackOut` the feedback plugin installs — the panel the shell
-  renders, as opposed to the per-form instance `useFeedback()` mints. Use it to report from a handler that
-  owns no panel of its own (an add-to-cart button); it throws if the plugin was never installed.
+  renders, as opposed to the per-form instance `useFeedback()` mints. Call it during setup and keep the result:
+  it resolves through `inject()`, so a call inside an event handler or after an `await` throws. Use the result to
+  report from a handler that owns no panel of its own (an add-to-cart button); it throws if the plugin was never
+  installed.
 - `useScreen()` → `{ size, screen }` where `screen` exposes `isSmall`…`isExtraExtraLarge`, `layout`,
   `isSize`. It is a **module-level shared instance** that owns a single debounced
   `resize`/`orientationchange` subscription, so it tracks the viewport with or without `screenPlugin`
@@ -178,6 +180,11 @@ it before writing a new component.
   `tag`, `list` and ~60 more exist only under `bs`, and `iconPlugin({ source: "fa" })` re-seeds the shared map,
   so switching source silently blanks every key the `fa` set does not define. Register your own with
   `iconPlugin`'s `icons` option instead of adding a raw class per call site.
+- **An icon-only button has no name of its own.** The glyph is `aria-hidden`, so an `IconButton`, a
+  `ConfirmButton` or a `<button>` holding only an `Icon` reads as a bare "button" to screen readers and browser
+  automation. Give it `aria-label` (it falls through to the root `<button>`). A label hidden below a breakpoint
+  (`d-none d-md-inline`) is hidden from assistive tech too, so such a button keeps the same text in `aria-label`
+  — as `FormButtonsRow` and the scaffolded slices do.
 - **`FormLabel` renders BELOW its input** — it is a `<small class="form-text text-muted">` caption, not a
   `<label>` above the field, and the scaffolded forms follow that order. Two consequences for rows you write
   yourself: a row mixing labelled fields with buttons aligns **`flex-start`**, never `flex-end` (which lines
@@ -189,7 +196,11 @@ it before writing a new component.
 - **Modal is a component, not a composable.** There is no `openModal()` here — use `DefaultModal` with
   `:is-visible` (one-way; it has no `update:isVisible` emit) plus `@close`/`@cancel` to flip your own state
   (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from
-  the [entities](../../entities/ai/entities.signatures.md) module.
+  the [entities](../../entities/ai/entities.signatures.md) module. It renders in place, so put it inside
+  `<Teleport to="#modals">`. It focuses its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's
+  `handleSubmit` prop submits (`handleClose` there is a deprecated alias of it).
+- **`FileDropZone` takes drops only.** It renders no `<input>` or browse button: pair it with `browse()` from
+  `@regira/modules/utilities/file-utility` for click and keyboard users.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an
   overview/form composable), not a string.
 - **`Autocomplete`'s result panel places itself.** It is teleported to `<body>` and `position: fixed`, so a

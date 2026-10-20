@@ -86,7 +86,8 @@ export type FeedbackIn = { autoHideDelay?: number } // ms before a success() res
 export type FeedbackError = string | Record<string, string | Array<string>>
 // A failed request's field map, else the server's detail/message (or plain-text 400) text, else undefined.
 // Reads the ProblemDetails of a 400 ({ title, status, errors }) and a bare field map ({ CategoryId: [...] }), and
-// starts every key lower-case to match the model's field name ("categoryId"). "" = an error that belongs to no field.
+// starts each segment of a key's path lower-case to match the model's field name ("CategoryId" → "categoryId",
+// "Lines[0].Quantity" → "lines[0].quantity"). "" = an error that belongs to no field.
 // A message that is a key in useLang's messages — or that the translator setErrorTranslator set translates — shows its
 // translation, {name} filled from the args in the body's errorDetails ([{ key, message, args? }]); any other message
 // shows as sent.
@@ -116,8 +117,9 @@ export interface FeedbackOut {
     reset(): void
 }
 export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
-// the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own; throws
-// when the plugin was never installed
+// the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own. Call it during
+// setup (in a component, or a composable a component calls) and keep the result: outside setup, and without the
+// plugin, it throws
 export function useAppFeedback(): FeedbackOut
 
 // Feedback component contract:
@@ -143,6 +145,8 @@ export type FeedbackSlots = { "close-button"?(): any; pending?(): any; success?(
 
 ```ts
 import { Paging, ButtonType, usePaging, pagingDefaults, type PagingProps, type PagingEmits, type PagingSlots, type PagingComponent } from "@regira/modules/vue/ui"
+// anchor (default): each page is a RouterLink to the current route with ?page=n, for an overview whose search
+// follows the route; button: emits update:modelValue and change only, for a view that keeps the URL itself
 export enum ButtonType {
     anchor = "Anchor",
     button = "Button",
@@ -185,7 +189,7 @@ import { Loading, LoadingButton, LoadingContainer, injectLoading, LOADING_COMPON
 import { type LoadingComponent, type LoadingContainerProps, type LoadingContainerSlots, type LoadingButtonProps, type LoadingButtonSlots, type LoadingInput } from "@regira/modules/vue/ui"
 // Loading: no props — renders the img provided by loadingPlugin ({ img }); without one it falls back to a
 // built-in Bootstrap spinner labelled by the injectable `loadingLabel` (default "Loading…")
-export type LoadingContainerProps = { isLoading: boolean }
+export type LoadingContainerProps = { isLoading: boolean } // dims the default slot under the indicator; the slot stays mounted, so a child still mounts and runs its own loads — hold one back with v-if
 export type LoadingContainerSlots = { loading?(): any; default?(): any }
 export type LoadingButtonProps = { isLoading: boolean; disabled?: boolean }
 export type LoadingButtonSlots = { loading?(): any; default?(): any }
@@ -236,9 +240,14 @@ export type ModalSlots = {
     default?(): any
     buttons?(): any
     "footer-close-button"?(props: { handleCancel: () => void }): any
-    "footer-submit-button"?(props: { handleClose: () => void }): any
+    "footer-submit-button"?(props: { handleSubmit: () => void; handleClose: () => void }): any // handleSubmit emits "submit";
+    //   handleClose is a @deprecated alias of handleSubmit (it submits, it does not close) — use handleSubmit
 }
 export const modalDefaults: { showHeader: true; showFooter: true; type: ModalType.normal }
+// DefaultModal renders in place (no Teleport): FormModalButton, ConfirmButton and the slice's other dialogs wrap it
+// in <Teleport to="#modals">, and a modal of your own does the same. Its body renders only while isVisible (v-if).
+// On open it focuses its dialog (unless an element inside already has focus), so Esc closes it without a click first;
+// on close it gives focus back to the element that had it.
 export type ModalComponent // any component implementing ModalProps — modalPlugin's option type (compile-checked)
 
 // resolves the app-wide modal (the modalPlugin swap-in, DefaultModal otherwise); call in setup:
@@ -274,7 +283,8 @@ export class Tab implements ITab {
 export type TabContainerProps = { tabs: Array<ITab | string | undefined>; useRouteNav?: boolean; active?: string }
 export type TabsEmits = { (e: "select", tab: string): void }
 export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
-// TabContainer renders one named slot per tab key; `useRouteNav` (off by default — tabContainerDefaults) syncs the
+// TabContainer renders one named slot per tab key and mounts only the active tab's (`v-if`): a ref into another tab is
+// `null` and its local state resets on a switch, so keep shared state on the item. `useRouteNav` (off by default — tabContainerDefaults) syncs the
 // active tab with the route hash (deep-linkable, back-button friendly) — keep it off inside popups (`:use-route-nav="!isPopup"`).
 // The tab shown is the first of these that names a visible, enabled tab, else the default tab — with route nav:
 // the hash, then `active` (so Back to a hash-less URL shows `active` again); without: the last selection, then
@@ -304,6 +314,8 @@ export function load(icons: Record<string, string> | Array<Array<string>>): void
 // BsIcon / FaIcon props: IconProps
 // Every icon-typed input (Icon name, IconButton icon, Tab.create({ icon }), config.icon) takes a registered key
 // or a raw class ("bi bi-rocket", rendered as given). An unregistered key renders NOTHING (a console warning).
+// Each entity slice registers its config.key as a key for its config.icon (setup.ts → addIcons), so
+// <Icon :name="config.key" /> and Tab.create({ icon: "Intervention" }) name an entity's icon.
 // Registered keys, source "bs" (the default; "fa" defines a smaller subset):
 //   address, admin, alert, attachment, ban, bank, birthday, box, boxes, building, calendar, cancel, car, chat,
 //   chatLeft, chatRight, check, checked, clear, client, clone, close, closeSq, code, collapse, collection,
@@ -340,6 +352,9 @@ export function useScreen(): { size: Ref<number[]>; screen: IScreen }
 ```
 
 ## Autocomplete
+
+The suggestions render as `role="listbox"` with one `role="option"` per visible result — what an end-to-end test
+picks from.
 
 ```ts
 import { useAutocomplete, autocompleteDefaults, Autocomplete } from "@regira/modules/vue/ui"
@@ -383,12 +398,14 @@ import {
 // ConfirmButton contract (ConfirmButtonProps/Emits/Slots + confirmButtonDefaults):
 //   props: { icon?: string; buttonLabel?: string; modalTitle?: string; modalType?: ModalType;
 //            modalLabels?: { cancel?: string; submit?: string } }   (modal title/labels default to English "Sure?" / "Cancel" / "Submit")
+//   icon-only by default (no buttonLabel): pass aria-label, which falls through to the root <button>, as disabled does
 //   emits: confirm | cancel | open | close ; slots: button-content, modal, default (confirm-modal body)
 //   exposes: open() / close() — `open` is BOTH an emit (fired on click) and an exposed method. To raise the
 //   same confirmation from another affordance (a swipe, a context menu, a shortcut), keep the button in the
 //   tree and call it through a ref: <ConfirmButton ref="confirm" … /> + confirm.value?.open()
 // DateInput contract (DateInputProps/Emits): { modelValue?: string | Date; culture?: string; readonly?: boolean;
-//   showTime?: boolean } (v-model; `readonly` also refuses the emit — a native picker cannot write through it).
+//   showTime?: boolean } (v-model; it reads a string or a Date and emits `Date | undefined`; `readonly` also refuses
+//   the emit — a native picker cannot write through it).
 //   showTime renders <input type="datetime-local"> and keeps the time on the emitted Date; without it the
 //   control picks a date only but still emits a Date — for a C# DateOnly field, which must stay a "yyyy-MM-dd"
 //   string, bind a native <input type="date"> instead. The matching formatters are dateInputString / dateTimeInputString.
@@ -409,6 +426,8 @@ import {
 //   <label class="form-check-label" for> there, and use the `label` prop everywhere else.
 // DescriptionInput contract (DescriptionInputProps): { label?: string; readonly?: boolean }   (v-model: string)
 // FileDropZone contract (FileDropZoneEmits/Slots): emits "drop-files" (files: Array<Blob>) ; default slot scoped { isDropping }
+//   It renders no <input> or browse button: pair it with browse() from @regira/modules/utilities/file-utility for
+//   click and keyboard users.
 // FormButtonsRow contract (FormButtonsRowProps/Emits/Slots): { item?: unknown; readonly?: boolean; feedback?: FeedbackOut; showDelete?: boolean; labels?: { save?: string; cancel?: string; delete?: string; restore?: string }; modalTitle?: string } (reads item.isArchived — truthy, 0/1 ok — to gate Restore, item.$title for the delete prompt; feedback busy-gates Save/Delete/Restore against double-submits; labels/modalTitle override the English defaults for i18n — `labels.cancel`/`labels.delete` also label the confirm dialog's buttons; `readonly` renders NO buttons — nothing to save, delete or restore, and no edits for Cancel to discard; the way back is the page's navigation or the modal's close button) ; emits: cancel | remove | restore ; slots: delete (delete-confirm body; defaults to "Delete {$title}?")
 ```
 

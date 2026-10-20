@@ -48,6 +48,12 @@ export interface FormOut<T extends IEntity> {
     item: Ref<T>
     original?: Ref<T>
     feedback: FeedbackOut
+    /**
+     * the last write the server refused or that failed: its HTTP status (none for a network failure) and the
+     * ProblemDetails `title`; `undefined` once the next write starts or a new `modelValue` arrives. A 409 titled
+     * `"Concurrency conflict"` is a stale concurrency token (offer a reload), one titled `"Conflict"` a constraint.
+     */
+    failure: Ref<{ status?: number; title?: string } | undefined>
     handleCancel(): void
     handleSubmit(): Promise<void>
     handleRemove(): Promise<void>
@@ -66,6 +72,12 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
     const item = ref(props.modelValue) as Ref<T>
 
     const original = ref<T | undefined>() as Ref<T>
+    const failure = ref<{ status?: number; title?: string }>()
+    // what `failure` keeps of a rejection, which may carry no response (a network failure) or no reason at all
+    const toFailure = (error: any) => {
+        const title = error?.response?.data?.title
+        return { status: error?.response?.status, title: typeof title === "string" ? title : undefined }
+    }
 
     function handleCancel(): void {
         emit("cancel", { canceled: item.value, original: original.value as T })
@@ -101,17 +113,22 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         emit("changeState", FormStates.pending)
         let result: Awaited<ReturnType<typeof entityService.save>>
         try {
+            failure.value = undefined
             feedback.pending("Saving...")
             result = await entityService.save(item.value)
         } catch (ex) {
             console.error("Saving failed", { ex })
             const error = ex as any
+            failure.value = toFailure(error)
             // a rejection may carry no reason at all
             const status = error?.response?.status
             if (status == 400) {
                 feedback.fail("Saving failed", toFeedbackError(error))
             } else if (status == 404) {
                 feedback.fail("Item not found", serverMessage(error))
+            } else if (status < 500) {
+                // the server refused the write (409 conflict, 403): no fault of its own
+                feedback.fail("Saving failed", serverMessage(error))
             } else {
                 feedback.fail("Server error", serverMessage(error))
             }
@@ -162,6 +179,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
 
         emit("changeState", FormStates.pending)
         try {
+            failure.value = undefined
             feedback.pending("Deleting...")
             await entityService.remove(item.value as T)
             feedback.success("Deleted")
@@ -170,6 +188,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         } catch (ex) {
             console.error("Deleting failed", { item, ex })
             const error = ex as any
+            failure.value = toFailure(error)
             const status = error?.response?.status
             if (status == 400) {
                 feedback.fail("Deleting failed", toFeedbackError(error))
@@ -198,11 +217,13 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         emit("changeState", FormStates.pending)
         let result: Awaited<ReturnType<typeof entityService.save>>
         try {
+            failure.value = undefined
             feedback.pending("Restoring...")
             result = await entityService.save(restoringItem)
         } catch (ex) {
             console.error("Restoring failed", { item, ex })
             const error = ex as any
+            failure.value = toFailure(error)
             feedback.fail("Restoring failed", toFeedbackError(error))
             emit("changeState", FormStates.error)
             // no re-throw — same reasoning as handleSubmit/handleRemove above
@@ -230,6 +251,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         () => {
             item.value = props.modelValue
             original.value = entityService.toEntity(deepCopy(item.value))
+            failure.value = undefined
         }
     )
     onMounted(() => {
@@ -243,6 +265,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
         item,
         original,
         feedback,
+        failure,
         handleCancel,
         handleSubmit,
         handleRemove,

@@ -9,7 +9,7 @@ const { searchItemConfig } = useNavigation()
 function handleSearch() {
     const cfg = searchItemConfig.value
     if (!cfg) return
-    router.push({ name: `${cfg.key}Overview`, query: { q: q.value } })
+    router.push({ name: `${cfg.key}Overview`, query: q.value ? { q: q.value } : {} })
     q.value = ""
 }
 </script>
@@ -22,6 +22,6 @@ function handleSearch() {
             class="form-control me-2"
             :placeholder="`${$t('search')} ${$t(searchItemConfig.overviewTitle || '')}`"
         />
-        <IconButton icon="search" class="btn-outline-primary" type="submit" />
+        <IconButton icon="search" class="btn-outline-primary" type="submit" :aria-label="$t('search')" />
     </form>
 </template>

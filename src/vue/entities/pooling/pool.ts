@@ -56,6 +56,7 @@ export function usePooling<T extends IEntity>(
         search: poolService.search.bind(poolService),
         searchUnion: poolService.searchUnion.bind(poolService),
         save: poolService.save.bind(poolService),
+        patch: poolService.patch.bind(poolService),
         remove: poolService.remove.bind(poolService),
         toEntity: poolService.toEntity.bind(poolService),
         newEntity: poolService.newEntity.bind(poolService),

@@ -7,7 +7,12 @@ import type { IAuthOptions } from "./auth"
 
 export type IAuthenticateInput = { token: string; isAuthenticated: boolean }
 export type IChangePasswordInput = { newPassword: string; currentPassword: string }
-export type IForgotPasswordInput = { username: string; siteUrl: string; siteName?: string }
+export type IForgotPasswordInput = {
+    username: string
+    siteUrl: string
+    /** @deprecated The API names the mail itself and ignores this. */
+    siteName?: string
+}
 export type IResetPasswordInput = { token: string; password: string }
 
 export interface IAuthService {
@@ -19,6 +24,7 @@ export interface IAuthService {
     readonly options: IAuthOptions
     authenticate({ token, isAuthenticated }: IAuthenticateInput): IAuthData
     login(username: string, password: string): Promise<IAuthData>
+    /** Re-issues the token: `o` is sent as the query string of `POST auth/refresh/` (e.g. `{ tenantId }`). */
     refresh(o?: Record<string, unknown>): Promise<IAuthData>
     validateToken(): Promise<IAuthData>
     logout(): void

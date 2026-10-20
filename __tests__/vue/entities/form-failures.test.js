@@ -1,8 +1,8 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
-import { createApp, defineComponent, h, reactive } from "vue"
+import { createApp, defineComponent, h, nextTick, reactive } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
 import { useForm, FormStates } from "../../../src/vue/entities/form"
-import { FeedbackStatus, toFeedbackError, setErrorTranslator } from "../../../src/vue/ui/feedback"
+import { FeedbackStatus, toFeedbackError, setErrorTranslator, fieldMessages } from "../../../src/vue/ui/feedback"
 import { useLang } from "../../../src/vue/lang/useLang"
 
 // An Entities API answers a rule breach (EntityInputException) and a model binding failure with a ProblemDetails that
@@ -80,14 +80,31 @@ describe("useForm failure mapping", () => {
         expect(form().feedback.error).toBeUndefined()
     })
 
-    test("a 409 ProblemDetails shows its detail", async () => {
+    test("a 409 ProblemDetails shows its detail as a refused save", async () => {
         vi.spyOn(console, "error").mockImplementation(() => {})
         const body = { title: "Conflict", status: 409, detail: "A database constraint rejected the change." }
         const form = mountForm({ modelValue: new Model() }, rejecting(409, body))
 
         await form().handleSubmit()
 
-        expect(form().feedback.message).toBe("Server error: A database constraint rejected the change.")
+        expect(form().feedback.message).toBe("Saving failed: A database constraint rejected the change.")
+    })
+
+    test("a 403 is a refused save, a 5xx or a request without an answer a server error", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const forbidden = mountForm({ modelValue: new Model() }, rejecting(403, { title: "Forbidden", status: 403, detail: "Not yours." }))
+        const crashed = mountForm({ modelValue: new Model() }, rejecting(500, { title: "Internal Server Error", status: 500, detail: "Boom." }))
+        const offline = mountForm({ modelValue: new Model() }, async () => {
+            throw new Error("Network Error")
+        })
+
+        await forbidden().handleSubmit()
+        await crashed().handleSubmit()
+        await offline().handleSubmit()
+
+        expect(forbidden().feedback.message).toBe("Saving failed: Not yours.")
+        expect(crashed().feedback.message).toBe("Server error: Boom.")
+        expect(offline().feedback.message).toBe("Server error: Network Error")
     })
 
     // only a 400 shows a field map: another status shows the server's text, whatever errors its body lists
@@ -227,6 +244,70 @@ describe("useForm state", () => {
     })
 })
 
+// `failure` keeps the status and ProblemDetails title of the last refused write, so a form tells a stale concurrency
+// token ("Concurrency conflict") from a database constraint ("Conflict") and offers a Reload for the first
+describe("useForm failure", () => {
+    const stale = { title: "Concurrency conflict", status: 409, detail: "The row changed since it was read." }
+    const saving = async (item) => ({ saved: item, isNew: false })
+
+    test.each([
+        ["handleSubmit", { save: rejecting(409, stale) }],
+        ["handleRemove", { save: saving, remove: rejecting(409, stale) }],
+        ["handleRestore", { save: rejecting(409, stale) }],
+    ])("%s keeps the status and title of a refused write", async (handler, { save, remove }) => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const form = mountForm({ modelValue: new Model() }, save, { remove })
+
+        expect(form().failure.value).toBeUndefined()
+        await form()[handler]()
+
+        expect(form().failure.value).toEqual({ status: 409, title: "Concurrency conflict" })
+    })
+
+    test("the next write clears it", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        let refuse = true
+        const form = mountForm({ modelValue: new Model() }, async (item) => {
+            if (refuse) {
+                await rejecting(409, stale)()
+            }
+            return { saved: item, isNew: false }
+        })
+        await form().handleSubmit()
+        expect(form().failure.value?.status).toBe(409)
+
+        refuse = false
+        await form().handleSubmit()
+
+        expect(form().failure.value).toBeUndefined()
+    })
+
+    test("a new modelValue clears it, as a reload passes the fresh row up", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const props = reactive({ modelValue: new Model() })
+        const form = mountForm(props, rejecting(409, stale))
+        await form().handleSubmit()
+        expect(form().failure.value?.status).toBe(409)
+
+        props.modelValue = new Model()
+        await nextTick()
+
+        expect(form().failure.value).toBeUndefined()
+    })
+
+    test("a failure without a response has no status", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const form = mountForm({ modelValue: new Model() }, async () => {
+            throw new Error("Network Error")
+        })
+
+        await form().handleSubmit()
+
+        expect(form().failure.value).toBeDefined()
+        expect(form().failure.value.status).toBeUndefined()
+    })
+})
+
 describe("useForm readonly follows the props", () => {
     // A permission-gated form mounts before the stored token is restored, so `readonly` starts true and turns
     // false once access resolves; each handler answers to the prop as it is when it runs.
@@ -293,6 +374,17 @@ describe("toFeedbackError", () => {
 
     test("answers undefined for a network failure", () => {
         expect(toFeedbackError(new Error("Network Error"))).toBeUndefined()
+    })
+
+    // ASP.NET names a nested field by its path: each segment starts lower-case, as the model's own field names do
+    test("starts every segment of a nested key's path lower-case, from errorDetails as from errors", () => {
+        const fromDetails = toFeedbackError({
+            response: { status: 400, data: { errors: {}, errorDetails: [{ key: "Lines[0].Quantity", message: "Must be positive." }] } },
+        })
+        const fromErrors = toFeedbackError({ response: { status: 400, data: { errors: { "Lines[0].Quantity": ["Must be positive."] } } } })
+
+        expect(fieldMessages(fromDetails, "lines[0].quantity")).toEqual(["Must be positive."])
+        expect(fieldMessages(fromErrors, "lines[0].quantity")).toEqual(["Must be positive."])
     })
 })
 

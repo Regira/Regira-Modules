@@ -26,9 +26,11 @@ const { items, newItem, handleSave } = useOwnedCollection<__Child__>({ props, em
                 </button>
             </div>
         </div>
-        <div v-if="newItem && !readonly" class="row g-2 mb-1 align-items-center"><!-- add-row -->
-            <div class="col"><input v-model="newItem.description" class="form-control" placeholder="description" @keyup.enter="handleSave({ saved: newItem, isNew: true })" /></div>
-            <div class="col-3"><input type="number" v-model.number="newItem.quantity" class="form-control" placeholder="qty" /></div>
+        <!-- add-row: Enter adds the row. It sits inside the parent's <form>, which the browser submits on the Enter
+             keydown, so the handler is a keydown with .prevent: on keyup the parent would already be saving. -->
+        <div v-if="newItem && !readonly" class="row g-2 mb-1 align-items-center">
+            <div class="col"><input v-model="newItem.description" class="form-control" placeholder="description" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" /></div>
+            <div class="col-3"><input type="number" v-model.number="newItem.quantity" class="form-control" placeholder="qty" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" /></div>
             <div class="col-auto"><button type="button" class="btn btn-success" @click="handleSave({ saved: newItem, isNew: true })">+</button></div>
         </div>
     </div>

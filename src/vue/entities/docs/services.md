@@ -37,7 +37,8 @@ IoC registration in `setup.ts`. Useful members (`toEntity` / `newEntity` are pub
 `IEntityService`; `prepareItem` / `processItem` / `createInstance` are protected):
 
 - **`toEntity(item)`** _(abstract)_ — converts a plain server object into a model instance.
-- **`prepareItem(item)`** — runs before save; strips **top-level** properties whose key starts with `_`
+- **`prepareItem(item)`** — runs before save, on a shallow copy of the item (`copyForSave`), so a refused save
+  leaves the form alone; reassign collections there rather than changing their rows. Strips **top-level** properties whose key starts with `_`
   (transient client state). The strip does not recurse, so a `_deleted` child row is still sent — override
   and filter such rows out per collection to drop soft-deleted children.
 - **`processItem(item)`** — runs after fetch/save; hydrates `created` / `lastModified` strings to `Date`.
@@ -58,19 +59,20 @@ reference data, not frequently changing entities.
 back-end `Regira.Entities.Web` endpoints return (the **HTTP body** column below), then unwraps them for
 you, so the method return types are _not_ these envelopes (see the note under the table):
 
-| Method             | HTTP   | URL                                           | HTTP body          |
-| ------------------ | ------ | --------------------------------------------- | ------------------ |
-| `details(id, so)`  | GET    | `{detailsUrl}/{id}?{query}`                   | `{ item }`         |
-| `list(so)`         | GET    | `{listUrl}?{query}`                           | `{ items }`        |
-| `search(so)`       | GET    | `{searchUrl}?{query}`                         | `{ items, count }` |
-| `searchUnion(sos)` | POST   | `{searchUrl}?{query}` (body = search objects) | `{ items, count }` |
-| `insert(item)`     | POST   | `{saveUrl}`                                   | `{ item }`         |
-| `update(item)`     | PUT    | `{saveUrl}/{$id}`                             | `{ item }`         |
-| `remove(item)`     | DELETE | `{deleteUrl}/{$id}`                           | —                  |
+| Method               | HTTP   | URL                                                                                  | HTTP body          |
+| -------------------- | ------ | ------------------------------------------------------------------------------------ | ------------------ |
+| `details(id, so)`    | GET    | `{detailsUrl}/{id}?{query}`                                                          | `{ item }`         |
+| `list(so)`           | GET    | `{listUrl}?{query}`                                                                  | `{ items }`        |
+| `search(so)`         | GET    | `{searchUrl}?{query}`                                                                | `{ items, count }` |
+| `searchUnion(sos)`   | POST   | `{searchUrl}?{query}` (body = search objects)                                        | `{ items, count }` |
+| `insert(item)`       | POST   | `{saveUrl}`                                                                          | `{ item }`         |
+| `update(item)`       | PUT    | `{saveUrl}/{$id}`                                                                    | `{ item }`         |
+| `patch(id, changes)` | PATCH  | `{saveUrl}/{id}` (body = the changed fields only, as `application/merge-patch+json`) | `{ item }`         |
+| `remove(item)`       | DELETE | `{deleteUrl}/{$id}`                                                                  | —                  |
 
 > **The methods return _unwrapped_ values, not these envelopes.** `list()` resolves to `Array<T>` (not
 > `{ items }`), `details()` to `T | undefined`, `search()`/`searchUnion()` to `SearchResult<T>` (`{ items, count }`),
-> `save()`/`insert()`/`update()` to `SaveResult<T>`/`T | undefined`. Destructure accordingly —
+> `save()`/`insert()`/`update()` to `SaveResult<T>`/`T | undefined`, `patch()` to `T | undefined`. Destructure accordingly —
 > `const items = await service.list()`, never `const { items } = await service.list()`.
 
 `save(item)` inserts when `$id` is an unsaved sentinel — `null`/`undefined`/`"new"`/`""` or a non-positive

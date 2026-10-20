@@ -177,7 +177,7 @@ slice's own save flush makes — and maps the returned `{ data: { item } }` to a
 ```ts
 import { type AxiosWithFilesInstance, createQueryString, useAxios } from "@regira/modules/vue/http"
 import { EntityServiceBase, type ListResult, type IConfig } from "@regira/modules/vue/entities"
-import type { Entity as EntityAttachment } from "../../entity-attachments"
+import { Entity as EntityAttachment } from "../../entity-attachments" // a value import: EntityAttachment.create() runs below
 import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments"
 import Entity from "./Entity"
 
@@ -275,7 +275,7 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
                 >
                     <Icon name="popOut" />
                 </RouterLink>
-                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1">
+                <RouterLink v-else-if="overviewUrl" :to="overviewUrl" class="btn btn-info py-1" :aria-label="$t('overview')">
                     <Icon name="list" /> <span class="d-none d-md-inline ms-1">{{ $t("overview") }}</span>
                 </RouterLink>
             </div>
@@ -346,9 +346,10 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
                                         v-model="item.interventionTypes"
                                         :row-key="(r) => r.interventionTypeId"
                                         :exclude-key="(r) => r.interventionTypeId"
+                                        :readonly="readonly"
                                     >
                                         <template #chip="{ row }">
-                                            <InterventionTypeButton :modelValue="row.interventionType" />
+                                            <InterventionTypeButton :modelValue="row.interventionType" :readonly="readonly" />
                                             {{ row.interventionType?.title }}
                                         </template>
                                         <template #selector="{ add, exclude }">
@@ -356,16 +357,7 @@ flatten/rebuild bridge, so a removed chip marks pending instead of hard-removing
                                                 :filter-defaults="{ exclude }"
                                                 :readonly="readonly"
                                                 :placeholder="$t('selectType')"
-                                                @select="
-                                                    (it: InterventionType) =>
-                                                        add(
-                                                            VehicleInterventionType.create({
-                                                                interventionTypeId: it.id!,
-                                                                interventionType: it,
-                                                                vehicleId: item.id,
-                                                            })
-                                                        )
-                                                "
+                                                @select="(it?: InterventionType) => it && add(toJoinRow(it))"
                                             />
                                         </template>
                                     </InputSelectorInline>
@@ -432,6 +424,11 @@ const { service: entityService } = useEntityStore()
 
 const { item, feedback, handleCancel, handleSubmit, handleRemove, handleRestore } = useForm<Entity>({ entityService, props, emit })
 
+// the join row is built here, not in the template: a static factory called inside a nested slot's handler fails
+// vue-tsc (TS2339), and the selector's select hands an optional value
+const toJoinRow = (it: InterventionType) =>
+    VehicleInterventionType.create({ interventionTypeId: it.id!, interventionType: it, vehicleId: item.value.id })
+
 // Tabs
 const { translate } = useLang()
 const tabs = computed(() => [
@@ -468,13 +465,13 @@ class VehicleInterventionType extends EntityBase {
 <!-- 2. Inline chip editor (§5): InputSelectorInline binds the join rows directly. Its delete toggle marks
      `_deleted` (tinted, undoable) — there is no flatten/rebuild bridge and no hard-remove. `#selector`'s
      add() appends a new join row; :exclude-key drops already-linked rows from the picker. -->
-<InputSelectorInline v-model="item.interventionTypes" :row-key="(r) => r.interventionTypeId" :exclude-key="(r) => r.interventionTypeId">
+<InputSelectorInline v-model="item.interventionTypes" :row-key="(r) => r.interventionTypeId" :exclude-key="(r) => r.interventionTypeId" :readonly="readonly">
     <template #chip="{ row }">
-        <InterventionTypeButton :modelValue="row.interventionType" /> {{ row.interventionType?.title }}
+        <InterventionTypeButton :modelValue="row.interventionType" :readonly="readonly" /> {{ row.interventionType?.title }}
     </template>
     <template #selector="{ add, exclude }">
         <InterventionTypeSelector :filter-defaults="{ exclude }"
-            @select="(it: InterventionType) => add(VehicleInterventionType.create({ interventionTypeId: it.id!, interventionType: it, vehicleId: item.id }))" />
+            @select="(it?: InterventionType) => it && add(toJoinRow(it))" /> <!-- toJoinRow: a script function, see §5 -->
     </template>
 </InputSelectorInline>
 ```
@@ -599,7 +596,7 @@ onMounted(load)
                 <small v-if="filterIsActive" class="ms-2 italic-muted">({{ $t("filtersAreApplied") }})</small>
             </div>
             <div class="col mb-2 text-end">
-                <IconButton icon="clear" @click="handleReset" />
+                <IconButton icon="clear" :aria-label="$t('clear')" @click="handleReset" />
             </div>
         </div>
 
@@ -682,7 +679,7 @@ const vehicleType = ref<VehicleType>()
 const { filterIsActive, handleReset, handleUpdate } = useFilter({ searchObject, emit, Constructor: SearchObject })
 
 const { hasRole } = useAuthStore()
-const showOperatorFilter = computed(() => hasRole("Admin"))
+const showOperatorFilter = computed(() => hasRole("Administrator"))
 </script>
 ```
 
@@ -769,7 +766,7 @@ const items = computed<Array<Entity>>({
     <div class="row border-bottom border-bottom-1 py-2">
         <div class="col-auto">
             <!-- <FormModalButton v-model="item" class="p-1" /> -->
-            <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1">
+            <router-link :to="{ name: config.key + 'Details', params: { id: item.$id } }" class="btn btn-link p-1" :aria-label="$t('edit')">
                 <Icon :name="config.key" />
             </router-link>
         </div>

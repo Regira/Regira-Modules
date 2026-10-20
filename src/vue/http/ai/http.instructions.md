@@ -35,10 +35,17 @@ Both are attached to the instance _and_ exported as functions:
 
 - **`getFile(url, method?, filename?, type?)`** → `Promise<Blob>`. Requests with `responseType: "blob"`.
   If `type`/`filename` are omitted it reads them from the `content-type` / `content-disposition` headers,
-  and sets `blob.name` to the resolved filename.
+  and sets `blob.name` to the resolved filename. `getFile` returns the Blob; `saveAs(blob)` from
+  `@regira/modules/utilities/file-utility` downloads it under that name
+  ([utilities](../../../utilities/ai/utilities.examples.md)). Cross-origin (no dev proxy), the API must expose
+  the header — `.WithExposedHeaders("Content-Disposition")` on its CORS policy — or `blob.name` stays unset.
+  `getFile` sends no body: for a POST export use `useAxios().post(url, body, { responseType: "blob" })` and
+  name the file from `Content-Disposition` yourself.
 - **`upload(url, files, options?)`** → `Promise<AxiosResponse>`. Sends `multipart/form-data`; the files
   field name defaults to `"file"` (`options.filesParameterName`); `options.data` adds extra form fields;
-  `options.method` defaults to `"POST"`.
+  `options.method` defaults to `"POST"`. `data` is flattened (`a.b`, `a[0]`) and each value goes through
+  `FormData.append`, which stringifies it (a `Blob` excepted): leave `undefined` and `null` out, and send a date
+  as an ISO string.
 
 ## Query strings
 
@@ -58,6 +65,8 @@ which the server would bind to `default`.
   `initApiAxios`; the real function is `initAxios`.
 - **Blob errors.** When a request uses `responseType: "blob"` and the server returns a JSON error, the
   response interceptor parses the blob back to JSON so error handlers see the real payload (not a Blob).
+  A JSON-typed body that does not parse (an empty `application/problem+json`) stays a Blob, and the request
+  still rejects.
 - **One instance.** Do not `axios.create` your own — register and reuse the `initAxios` instance so auth
   and credentials apply uniformly.
 

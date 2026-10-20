@@ -70,3 +70,31 @@ describe("list/search query params", () => {
         expect(urls[0]).not.toContain("isArchived")
     })
 })
+
+describe("search(so) over baseQueryParams", () => {
+    // a SearchObject class declaring `includes?: …` without a value has an own property holding undefined
+    class SearchObject {
+        q = "pen"
+        includes = undefined
+        sortBy = undefined
+    }
+
+    test("a field the search object leaves undefined keeps the base default", async () => {
+        const { service, urls } = makeService({ baseQueryParams: { includes: ["Lines"], sortBy: ["TitleDesc"] } })
+
+        await service.search(new SearchObject())
+
+        expect(urls[0]).toContain("includes=Lines")
+        expect(urls[0]).toContain("sortBy=TitleDesc")
+        expect(urls[0]).toContain("q=pen")
+    })
+
+    test("a value the search object holds still wins", async () => {
+        const { service, urls } = makeService({ baseQueryParams: { includes: ["Lines"] } })
+
+        await service.search({ includes: ["Owner"] })
+
+        expect(urls[0]).toContain("includes=Owner")
+        expect(urls[0]).not.toContain("includes=Lines")
+    })
+})

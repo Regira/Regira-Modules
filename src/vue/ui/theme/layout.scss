@@ -37,6 +37,12 @@
     cursor: pointer;
 }
 
+// FormSection's content lines up with its title's text (`px-2`) and keeps clear of the section's edge, so a
+// section an app frames (a border, a background) does not put its fields against the frame.
+.form-section-body {
+    padding: var(--rg-form-section-padding, 0 0.5rem 0.5rem);
+}
+
 // The teleport hosts every modal renders into. They carry `.fixed-top`, which is `position: fixed` AND
 // `z-index: 1030` — and a positioned, z-indexed element is its own stacking context, so without these rules
 // `.modal-mask`'s 9998 is clamped to 1030 relative to everything outside the host. Any app chrome above that

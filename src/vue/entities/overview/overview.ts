@@ -73,7 +73,8 @@ export interface ISearchViewOut<T extends IEntity, SO extends ISearchObject = IS
     /**
      * ⚠️ **Nothing fetches on mount.** The scaffolded overview's first search comes from `useRouteOverview`,
      * a separate composable; a hand-written view owns its own — `onAuthenticated(() => searchHandler(true))`,
-     * which also handles views mounting before a stored token is validated.
+     * which also handles views mounting before a stored token is validated. Without the auth plugin (a `--no-auth`
+     * app) it is `onMounted(() => searchHandler(true))`.
      */
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>

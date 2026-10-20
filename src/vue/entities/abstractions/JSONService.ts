@@ -71,6 +71,15 @@ export abstract class JSONService<T extends IEntity> extends EntityServiceBase<T
         }
         return { saved: this.toEntity(processedItem), isNew }
     }
+    /** Applies the changes to the cached row client-side and saves it, as `save` does: there is no server to merge them. */
+    override async patch(id: string | number, changes: Record<string, unknown>): Promise<T | undefined> {
+        const item = await this.details(id)
+        if (item == null) {
+            return undefined
+        }
+        Object.assign(item, changes)
+        return (await this.save(item)).saved
+    }
     override async remove(item: T): Promise<void> {
         const index = this.cachedItems.findIndex((x) => x.$id == item.$id)
         if (index !== -1) {

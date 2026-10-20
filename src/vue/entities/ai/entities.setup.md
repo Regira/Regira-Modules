@@ -57,8 +57,9 @@ a time); `scaffold.mjs --shell` then writes the rest of the toolchain (`index.ht
 
 ```jsonc
 // package.json — known-good set (runtime peers + the build toolchain they require)
+"scripts": { "dev": "vite", "build": "vue-tsc -b && vite build", "preview": "vite preview" },
 "dependencies": {
-  "@regira/modules": "*", // always the latest published version — npm install pins the caret range
+  "@regira/modules": "*", // the latest release; npm install keeps "*" (the lockfile pins it) — npm install @regira/modules writes "^6.x"
   "vue": "^3.5", "vue-router": "^5", "pinia": "^3",
   "axios": "^1", "date-fns": "^4",
   "bootstrap": "^5.3", "bootstrap-icons": "^1.13"
@@ -128,7 +129,8 @@ export default defineConfig({
 
 > **tsconfig & build note.** On TypeScript 6+ use `paths` **without `baseUrl`** — `vue-tsc -b` (what
 > `npm run build` runs) errors on `baseUrl` (TS5101) even though `vue-tsc --noEmit` tolerates it, so
-> always verify with `npm run build`, not only a `--noEmit` typecheck. `vue-tsc -b` also _emits_ `.js` next
+> always verify with `npm run build` (`vue-tsc -b && vite build`), not only a typecheck: `vue-tsc` alone can pass
+> while the Vite build fails. `vue-tsc -b` also _emits_ `.js` next
 > to your sources unless `compilerOptions.noEmit: true` is set in **both** project tsconfigs (the scaffold's
 > already are; set it if you hand-author them, and add `*.tsbuildinfo` to `.gitignore`). If your tsconfig enables
 > `erasableSyntaxOnly` (the current Vite `vue-ts` template default), define enum-like values as `const`
@@ -157,9 +159,10 @@ export default defineConfig({
 </body>
 ```
 
-> **The `#modals` host is required — a missing one silently breaks every popup.** `DefaultModal` (hence
-> `FormModalButton`, `ConfirmButton`, and every edit/create dialog) teleports into `#modals`; with no such
-> `<div>` the teleport target is absent and the modal never mounts — no error, the trigger just looks dead.
+> **The `#modals` host is required — a missing one silently breaks every popup.** `FormModalButton`,
+> `ConfirmButton` and the slice's other dialogs teleport `DefaultModal` into `#modals`; `DefaultModal` itself renders
+> in place, so a modal of your own goes inside `<Teleport to="#modals">`. With no such `<div>` the teleport target
+> is absent and the modal never mounts — no error, the trigger just looks dead.
 > Two traps: `scaffold.mjs --shell` **won't overwrite** an existing (`npm create vue`) `index.html` without
 > `--force`, and hand-authored files routinely omit the host. After scaffolding, confirm `#modals` (and
 > `#loginModal` when auth is on) exist, then verify a modal actually opens.
@@ -356,7 +359,7 @@ public/
   data/translations.json         # i18n messages (key-first) — see Runtime config
   favicon.svg                    # placeholder app icon, linked from index.html — replace with your own
 src/
-  shims.d.ts                     # $configs + app-specific globals ($isAdmin) — see Root component
+  shims.d.ts                     # $configs + app-specific globals ($isAdmin) — see Root component; auth shells only (--no-auth omits it)
   app-config.ts                  # loads + types public/config.json (createConfig / useConfig) — see Runtime config
   main.ts                        # bootstrap — see Bootstrap
   App.vue                        # root shell — see Root component
@@ -374,7 +377,8 @@ src/
     users/                       #   ForgotPasswordForm (auth-on) · (+) the rest of the account UI
   infrastructure/                # small app-wide glue (permissions, plugins) — see App shell (keep it basic)
     permissions.ts               #   role + permission constants (auth builds)
-    user-plugin.ts               #   $isAdmin + persists chosen language
+    lang-plugin.ts               #   restores + saves the chosen language
+    user-plugin.ts               #   $isAdmin (auth builds)
   utilities/                     # (+) larger apps: helpers that import no entity — formatting, date math
   entities/
     index.ts                     # aggregates every entity plugin + collects routes — see Add entities
@@ -482,7 +486,8 @@ makes every `$t()` render the raw key):
 See [lang.signatures.md](../../lang/ai/lang.signatures.md) (`ITranslationMessages`).
 
 Framework chrome emits its own keys (`keywords`, `new`, `noResults`, `save`, `cancel`, `delete`, `restore`, `deleteItem`, `filtersAreApplied`,
-`overview`, `popOut`, and `signIn`/`signOut` with auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
+`overview`, `popOut`, the keys that label icon-only buttons (`edit`, `clear`, `filter`, `search`, `select`, `remove`, `download`, `menu` — translation keys, not icon names), and `signIn`/`signOut` with
+auth on); `scaffold.mjs --shell` seeds them in `translations.json` — add your
 domain labels alongside, or blank UI text renders the raw key.
 
 ### Typed config loader — `src/app-config.ts`
@@ -528,7 +533,9 @@ The `BasicApi` server template calls `app.UseHttpsRedirection()`, so a request t
 
 - **Trust the dev cert** and keep `api` on the HTTPS port: `dotnet dev-certs https --trust`.
 - **Proxy through Vite** — route `/api` to the API and set `config.json` `api` to `/api`. `scaffold.mjs --shell`
-  writes this setup; set its proxy target to the API's HTTPS launch URL:
+  writes this setup; set its proxy target to the API's HTTPS launch URL — or, for an API that serves HTTP only in
+  development (the third choice, or a launch profile without HTTPS), its `http://` URL, where `secure: false` has
+  nothing left to do:
     ```ts
     // vite.config.ts → server.proxy
     server: { proxy: { "/api": { target: "https://localhost:7001", changeOrigin: true, secure: false, xfwd: true } } }
@@ -553,12 +560,12 @@ or route-prefix to align. Switch to the proxy contract when you want the SPA and
 Four settings each own a segment of the final request URL; misalign one and every call 404s. Align them
 up front:
 
-| Segment             | Owned by                                                                               | Example                           |
-| ------------------- | -------------------------------------------------------------------------------------- | --------------------------------- |
-| axios base          | `config.json → api` → `initAxios({ api })`                                             | `/api`                            |
-| resource path       | each entity's `IConfig.api` — **relative to the axios base**                           | `/products`                       |
-| dev proxy           | `vite.config.ts → server.proxy` (only when `api` is a relative path)                   | `/api` → `https://localhost:7001` |
-| server route prefix | back-end host config or a route-prefix convention (controllers stay resource-relative) | `api`                             |
+| Segment             | Owned by                                                                                                                            | Example                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| axios base          | `config.json → api` → `initAxios({ api })`                                                                                          | `/api`                            |
+| resource path       | each entity's `IConfig.api` — **relative to the axios base**                                                                        | `/products`                       |
+| dev proxy           | `vite.config.ts → server.proxy` (only when `api` is a relative path)                                                                | `/api` → `https://localhost:7001` |
+| server route prefix | back-end host config, a route-prefix convention (controllers stay resource-relative) or `MapEntityEndpoints(o => o.Prefix = "api")` | `api`                             |
 
 Resolution: `products.search()` → axios base `/api` + `IConfig.api` `/products` + `/search` =
 **`/api/products/search`** → Vite proxy → `https://localhost:7001/api/products/search` → server prefix
@@ -568,7 +575,9 @@ Resolution: `products.search()` → axios base `/api` + `IConfig.api` `/products
 - The proxy forwards `/api/*` but the API serves controllers at root — add the prefix **once** on the
   back-end: `builder.Services.AddControllers(o => o.Conventions.Add(new RoutePrefixConvention("api")));`
   (controllers stay resource-relative; full convention in `Regira.Entities` → `entities.setup` → _API route
-  prefix_). Or skip the proxy and point `config.json → api` straight at the API origin (then configure CORS).
+  prefix_). An API that maps its entities as minimal-API endpoints instead takes the prefix where it maps them:
+  `app.MapEntityEndpoints(o => o.Prefix = "api")`. Or skip the proxy and point `config.json → api` straight at the
+  API origin (then configure CORS).
 
 Multi-word resources are **kebab-case plural** on both sides: `InterventionType` → `[Route("intervention-types")]`
 and `api: "/intervention-types"`. `scaffold.mjs` derives that spelling from the class name; pass `--api <path>`
@@ -618,17 +627,20 @@ matches no registered slice (`"products"` instead of `"Product"`) is skipped wit
 
 Split the static (app-owned) routes from the entity routes the slices push at startup. The minimal form is
 a single `routerFactory`; the full template splits it across `src/router/`. A route only some roles may open is
-gated with `meta.policy` — `(store) => store.hasRole("Admin")` — not `beforeEnter`, which runs before a stored
+gated with `meta.policy` — `(store: IAuthStore) => store.hasRole("Administrator")` — not `beforeEnter`, which runs before a stored
 token is restored ([auth](../../auth/ai/auth.instructions.md) → Route guard).
 
 **Minimal:**
 
 ```ts
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
+// eager, as the slices are: a lazy view can split slice modules into a chunk of their own
+import Home from "@/views/Home.vue"
+import Forbidden from "@/views/Forbidden.vue"
 
 const staticRoutes: Array<RouteRecordRaw> = [
-    { path: "/", name: "home", component: () => import("@/views/Home.vue"), meta: { allowAnonymous: true } },
-    { path: "/forbidden", name: "forbidden", component: () => import("@/views/Forbidden.vue"), meta: { allowAnonymous: true } },
+    { path: "/", name: "home", component: Home, meta: { allowAnonymous: true } },
+    { path: "/forbidden", name: "forbidden", component: Forbidden, meta: { allowAnonymous: true } },
 ]
 
 export function routerFactory(entityRoutes: Array<RouteRecordRaw>) {
@@ -678,7 +690,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: "/:pathMatch(.*)*",
         name: "catchAll",
-        redirect: (from) => ({ name: "notFound", query: { url: from.fullPath } }),
+        redirect: (from) => ({ name: "notFound", params: {}, query: { url: from.fullPath } }),
         meta: { allowAnonymous: true },
     },
 ]
@@ -763,6 +775,8 @@ fetch("/config.json")
             onAuthenticationChange: (auth) => {
                 app.config.globalProperties.$setAppStatus(auth.isAuthenticated ? AppStatus.Ready : AppStatus.Init)
                 if (auth.isAuthenticated && auth.culture) setLangCode(auth.culture.split("-")[0])
+                // the pool is per tab: the next account must not see the previous one's rows
+                if (!auth.isAuthenticated) defaultPoolCache.clear()
             },
         })
 
@@ -788,7 +802,7 @@ fetch("/config.json")
 
 ### Full-shell additions
 
-The full app shell adds two things on top of that canonical file, right after the UI plugins (and the
+The full app shell adds three things on top of that canonical file, right after the UI plugins (and the
 last one after `authPlugin`). Components (`FormSection`, `DescriptionInput`, `Icon`, …) are **not**
 registered globally by default — every view imports what it uses from `@regira/modules/vue/ui`. (To opt
 into app-wide registration for the plugin components, call
@@ -796,11 +810,17 @@ into app-wide registration for the plugin components, call
 `app.use(...)` calls.)
 
 ```ts
-// 1. seed icons from a JSON map (group icons referenced by config.json → navigation.groups[].icon)
+// 1. seed icons from a JSON map (group icons referenced by config.json → navigation.groups[].icon) into the
+//    map iconPlugin already set up — a second app.use(iconPlugin, …) is skipped, as Vue installs a plugin once
+import { loadIcons } from "@regira/modules/vue/ui"
 const appIcons = await fetch(`${appConfig.baseUrl}/data/app-icons.json`).then((r) => r.json())
-app.use(iconPlugin, { icons: appIcons, source: "bs", clearFirst: false })
+loadIcons(appIcons)
 
-// 2. app-wide glue (after authPlugin, since it reads the auth store)
+// 2. the remembered language (right after langPlugin)
+import { plugin as langStoragePlugin } from "@/infrastructure/lang-plugin"
+app.use(langStoragePlugin)
+
+// 3. app-wide glue (after authPlugin, since it reads the auth store)
 import { plugin as userPlugin } from "@/infrastructure/user-plugin"
 app.use(userPlugin)
 ```
@@ -842,8 +862,9 @@ watch(showLogin, (gateOpen) => {
     </LoadingContainer>
 
     <!-- v-if, not :is-visible — unmounting removes mask + dialog atomically; a bound-but-mounted
-         modal can strand its leave-transition and leave an invisible click-swallowing mask -->
-    <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+         modal can strand its leave-transition and leave an invisible click-swallowing mask; no X while sign-in
+         is required -->
+    <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
         <LoginForm @forgot-password="handleForgotPassword" />
     </LoginModal>
     <!-- `showLogin &&` keeps the recovery modal from stranding over an app authenticated by another path -->
@@ -900,7 +921,7 @@ watch(showLogin, (gateOpen) => {
         <footer class="container-fluid bg-light"><TheFooter /></footer>
 
         <Teleport to="#loginModal">
-            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')">
+            <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
                 <LoginForm @forgot-password="handleForgotPassword" />
             </LoginModal>
             <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">
@@ -925,7 +946,8 @@ import { RouterView } from "vue-router"
 
 The library declares its own globals on `@vue/runtime-core` (`$services`, `$configs`, `$icons`,
 `$appStatus`/`$setAppStatus`, `$feedback`, `$t`/`$tm`, `$auth`, …), so those are typed in templates and
-`this` automatically. Only **app-specific** globals need a one-file ambient declaration (TypeScript picks
+`this` automatically. `$auth` is a union to narrow before reading most of its members
+([auth](../../auth/ai/auth.instructions.md) → `$auth` global). Only **app-specific** globals need a one-file ambient declaration (TypeScript picks
 up `src/**/*.d.ts` automatically) — the full template declares the `user-plugin` global:
 
 ```ts
@@ -1024,6 +1046,10 @@ disabled), make these four changes:
     </template>
     ```
 
+    `LoadingContainer` dims the routed view while the app loads; it does not hold it back, so the view mounts and
+    fetches at once. A precondition of the app's own that the views need — an acting persona, say — gates the view
+    itself: `<RouterView v-if="session.isLoaded" />`.
+
 4. **Entity slices — scaffold with `--no-auth`.** The boilerplate `overview/Overview.vue` and
    `details/Details.vue` carry `onAuthenticated` reload hooks.
    `node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --no-auth` strips them (imports
@@ -1089,6 +1115,10 @@ change (`AccountView`) and sign out (the header).
 
 ### Add entities
 
+An entity named like a DOM or TypeScript global (`Event`, `Location`, `Document`, `Range`, `Selection`) shadows it in
+its slice's files; the barrels export the model as `Entity`, so import it aliased elsewhere
+(`import type { Entity as Event }`) and keep the global reachable as `globalThis.Event` where a file needs both.
+
 Create `src/entities/<name>/` slices — each with the full folder set (`config/ data/ details/ filter/
 overview/ selecting/` + `index.ts` + `setup.ts`, see [Entity slice anatomy](#entity-slice-anatomy)) — and
 an `src/entities/index.ts` aggregator that installs them and collects routes (each `setup.ts` writes its
@@ -1132,7 +1162,9 @@ the library importers:
 ```ts
 // src/components/entity-navigation/functions.ts
 import { computed, getCurrentInstance } from "vue"
+import { useRouter } from "vue-router"
 import { type IConfig, importDashboard, importNavbar, buildNavigationTree } from "@regira/modules/vue/entities"
+import { routeAllows, useAuthStore } from "@regira/modules/vue/auth"
 import { useConfig } from "@/app-config"
 
 export function useNavigation() {
@@ -1142,7 +1174,14 @@ export function useNavigation() {
     } = useConfig()
 
     const configs = Object.values(app.appContext.config.globalProperties.$configs) as Array<IConfig>
-    const hasAccess = (_config: IConfig) => true // gate by permissions here if needed
+    // an entry shows when the route guard would let this user open its overview (meta.policy / meta.permissions on the
+    // slice's routes). A --no-auth shell has `const hasAccess = (_config: IConfig) => true` and no auth imports
+    const router = useRouter()
+    const authStore = useAuthStore()
+    const hasAccess = (config: IConfig) => {
+        const name = `${config.key}Overview`
+        return !router.hasRoute(name) || routeAllows(router.resolve({ name }), authStore)
+    }
 
     const dashboardTree = computed(() => buildNavigationTree(importDashboard({ groups, entities: dashboard, configs, hasAccess })))
     const navbarTree = computed(() => buildNavigationTree(importNavbar({ groups, entities: navbar, configs, hasAccess })))
@@ -1168,13 +1207,14 @@ and each `node.value` is an `INavItem` (`routeName` / `initialQuery` / `icon` / 
 
 ### `src/infrastructure/` (keep it basic)
 
-App-wide glue only — the role/permission names and a small plugin that exposes `$isAdmin` from the auth
-store and persists the chosen language. Skip both for a no-auth app. In a larger app, helpers that import no entity
-(formatting, date math) go in `src/utilities/`, not here.
+App-wide glue only — a plugin that remembers the chosen language, the role/permission names, and a small plugin
+that exposes `$isAdmin` from the auth store. A no-auth app keeps the first and skips the other two. `setLangCode`
+holds the language in memory only, so without the first the app opens in its default language on every visit. In a
+larger app, helpers that import no entity (formatting, date math) go in `src/utilities/`, not here.
 
 ```ts
 // src/infrastructure/permissions.ts — erasableSyntaxOnly-safe const maps (not enums)
-export const Roles = { ADMIN: "Admin" } as const
+export const Roles = { ADMIN: "Administrator" } as const
 export type Role = (typeof Roles)[keyof typeof Roles]
 
 export const Permissions = { CAN_READ: "can_read", CAN_WRITE: "can_write", ADMIN: "admin" } as const
@@ -1182,10 +1222,36 @@ export type Permission = (typeof Permissions)[keyof typeof Permissions]
 ```
 
 ```ts
-// src/infrastructure/user-plugin.ts
-import { type App, watch } from "vue"
-import { useAuthStore } from "@regira/modules/vue/auth"
+// src/infrastructure/lang-plugin.ts — installed right after langPlugin; a signed-in account's culture still wins
+import { watch } from "vue"
 import { useLang } from "@regira/modules/vue/lang"
+
+export const plugin = {
+    install() {
+        const { langCode, setLangCode } = useLang()
+        try {
+            const last = localStorage.getItem("lang")?.substring(0, 2)
+            if (last && last !== langCode.value) setLangCode(last)
+        } catch {
+            // storage is blocked (a privacy setting): the default language stands
+        }
+        watch(langCode, (code) => {
+            try {
+                localStorage.setItem("lang", code)
+            } catch {
+                // nowhere to keep it: the choice lasts this visit
+            }
+        })
+    },
+}
+
+export default plugin
+```
+
+```ts
+// src/infrastructure/user-plugin.ts
+import type { App } from "vue"
+import { useAuthStore } from "@regira/modules/vue/auth"
 import { Roles } from "@/infrastructure/permissions"
 
 export const plugin = {
@@ -1197,12 +1263,6 @@ export const plugin = {
             enumerable: true,
             configurable: true,
         })
-
-        // persist the language choice across reloads
-        const { langCode, setLangCode } = useLang()
-        const last = localStorage.getItem("lang")
-        if (!authStore.isAuthenticated && last && last !== langCode.value) setLangCode(last.substring(0, 2))
-        watch(langCode, (code) => localStorage.setItem("lang", code))
     },
 }
 

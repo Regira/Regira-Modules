@@ -1,5 +1,6 @@
 import { ModalType } from "../modal/modal"
 
+/** `disabled`, `aria-label` and any other attribute fall through to the root `<button>` */
 export type ConfirmButtonProps = {
     icon?: string
     buttonLabel?: string

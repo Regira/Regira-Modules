@@ -53,14 +53,28 @@ token, installs the route guard, and adds the **401 auto-logout response interce
 
 ## Token storage
 
-A token manager (`ITokenManager`: `get/set token`) decides where the JWT lives. Three implementations,
-all keyed by `prefix + "auth:token"`:
+A token manager (`ITokenManager`: `get/set token`) decides where the JWT lives. Three implementations; the
+two persistent ones are keyed by `prefix + "auth:token"`:
 
-| Manager                             | Storage                                        |
-| ----------------------------------- | ---------------------------------------------- |
-| `LocalStorageTokenManager(prefix?)` | `localStorage` (persists across tabs/restarts) |
-| `CookieTokenManager(prefix?)`       | a cookie (`path=/`)                            |
-| `MemoryTokenManager(token?)`        | in-memory (cleared on reload)                  |
+| Manager                             | Storage                                                             |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `LocalStorageTokenManager(prefix?)` | `localStorage` (persists across tabs/restarts)                      |
+| `CookieTokenManager(prefix?)`       | a cookie (`path=/`)                                                 |
+| `MemoryTokenManager(token)`         | in-memory (cleared on reload; pass `undefined` to start signed out) |
+
+⚠️ **No manager hides the token from script.** `LocalStorageTokenManager` survives reloads and new tabs, so a
+script injected into the origin (XSS) can read it at any time until it expires. `CookieTokenManager` is no safer: a
+cookie written by script cannot be `HttpOnly`. `MemoryTokenManager` leaves nothing at rest, at the price of a sign-in
+on every reload and new tab, but an injected script can still read it from the running app. This module keeps a
+single token and never calls the API's `auth/refresh-token`, so a short access-token lifetime means signing in again
+when it runs out (`auth/refresh` renews only a token that is still valid). Keep script injection out: no `v-html` on
+unescaped user content, and a Content-Security-Policy.
+
+**A server cookie session** (`AddCookieAuthentication` on the API, no token in the browser) needs none of this
+module's token handling. Send its requests with credentials (`initAxios({ api, includeCredentials: true })`, or
+`withCredentials: true` per request) and ask the API who is signed in (a `GET` on its session endpoint). Keep the auth
+plugin off it: an app that signs in only this way installs no auth plugin; one that also uses tokens marks that area's
+routes `allowAnonymous` and sends its requests on an axios instance the plugin was not given.
 
 The bearer interceptor reads `tokenManager.token`; you never set headers manually.
 
@@ -74,9 +88,14 @@ The Pinia store is the reactive source of truth for components:
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 
-`authData` (`IAuthData`) is decoded from the JWT: `token` (the raw JWT), `userId`, `name`, `email`,
-`displayName`, `culture`, `role` (the first role found, for display), `expires`, plus `get(claim)`,
-`hasClaim`, `hasPermission`, `hasRole`.
+In a template, `$auth.isAuthenticated` is TS2339: `$auth` is a union, so narrow it with `$auth.enabled &&`
+([`$auth` global](#auth-global)), or read `const authStore = useAuthStore()` in script.
+
+`authData` (`IAuthData`) is decoded from the JWT's claims: `token` (the raw JWT), `userId` ← `sub`, `name` ← `name`,
+`email` ← `email`, `displayName` ← `displayName` (or `display_name`), `culture` ← `culture`, `role` ← the first of
+`role`, `roles` or the `ClaimTypes.Role` URI (for display), `expires` ← `exp` − `nbf` (the lifetime in seconds), plus
+`get(claim)`, `hasClaim`, `hasPermission`, `hasRole`. The API emits `culture` and `displayName` only when its claims
+principal factory adds them.
 
 ### Reacting to a token — `onAuthenticated`
 
@@ -94,14 +113,44 @@ request. Restoring a token dispatches `validateToken`, not `login`, which is why
 ⚠️ Pass `{ immediate: false }` when the view already fetches on mount (`useRouteOverview`, `useDetails`),
 or the immediate run races their `onMounted` fetch during `setup` — that is the only reason the scaffolded
 views pass it. `useSearchView`/`useListView` fetch nothing themselves, so a hand-written view built on either
-keeps the default `immediate` and adds **no** `onMounted` fetch beside it: one there runs before the stored
-token is validated and 401s, wasting a request. Those two composables discard a superseded fetch's feedback;
-a view driving its own `useFeedback` does not, so there the 401's banner stays on screen over the data the
-hook then loads.
+keeps the default `immediate` and adds **no** `onMounted` fetch beside it: one there sends a second request, with
+the stored token (the bearer header is attached before validation); it 401s only when that token has expired.
+Those two composables discard a superseded fetch's feedback; a view driving its own `useFeedback` does not, so
+there a failed fetch's banner stays on screen over the data the hook then loads.
+
+⚠️ **A default read from the signed-in user is unknown in `setup` on a reload.** `authData` stays empty until the
+stored token is validated, so a search-object default taken from a claim (an `ownerId`) is `undefined` there and the
+first search runs without it. Set it inside the `onAuthenticated` handler, before the search it runs. With
+`{ immediate: false }` the handler skips a token that is already there, so also set it in `setup` for in-app
+navigation. The handler also runs when another account signs in on a page that stays mounted, so it replaces a
+default it set before, never a value the user picked:
+
+```ts
+// the claim value the default came from: a sign-in as another account replaces it, a value the user picked stays
+let appliedOwnerId: string | undefined
+const applyDefaults = () => {
+    const ownerId = authStore.getClaimValue("owner_id") as string | undefined
+    if (searchObject.value.ownerId == null || searchObject.value.ownerId === appliedOwnerId) {
+        searchObject.value.ownerId = ownerId
+    }
+    appliedOwnerId = ownerId
+}
+applyDefaults()
+onAuthenticated(
+    () => {
+        applyDefaults()
+        searchHandler(false)
+    },
+    { immediate: false }
+)
+```
 
 ⚠️ **Register it below everything its handler uses.** With a token already present, the immediate run happens
 at the `onAuthenticated(…)` call itself — so in `<script setup>` a `const load = async () => …` declared further
 down is not initialized yet, and the call throws `ReferenceError`.
+
+⚠️ **It fires only while a token is held** (or once, with the plugin disabled), so a page a signed-out visitor
+uses loads in `onMounted` (_What a first load shows_, under Route guard).
 
 With the plugin `enabled: false` no token ever arrives, so it honours `immediate` once and stops — nothing
 is gated in such an app. Pass
@@ -137,12 +186,24 @@ URLs are **relative** to the axios `baseURL` (no leading slash):
 | `refresh(queryParams?)`     | POST | `auth/refresh/?{query}`        | —                                                       |
 | `validateToken()`           | POST | `auth/validate`                | — (only when a token exists; 401 clears it)             |
 | `changePassword(input)`     | POST | `auth/password`                | `{ newPassword, currentPassword }`                      |
-| `forgotPassword(input)`     | POST | `auth/password/recover`        | `{ username, siteUrl, siteName? }`                      |
+| `forgotPassword(input)`     | POST | `auth/password/recover`        | `{ username, siteUrl }`                                 |
 | `resetPassword(input)`      | POST | `auth/password/reset`          | `{ token, password }`                                   |
 | `logout()`                  | —    | —                              | client-side only: clears the stored token               |
 
 `authenticate({ token, isAuthenticated })` stores the token and returns an `AuthData`; a falsy
 `isAuthenticated` clears the token.
+
+**A sign-in endpoint of your own** (a PIN, a one-time code) that answers `{ token, isAuthenticated }`: post to it
+with the shared axios and hand the answer to the store as `login()` does.
+
+```ts
+const authStore = useAuthStore()
+const { data } = await useAxios().post("auth/pin", input, { params: { clientApp: authStore.clientApp } })
+authStore.authData = useAuth().service.authenticate(data)
+```
+
+`clientApp` is appended only to the login URL, so pass it yourself. A path under `auth/` is already masked in the
+error log and exempt from the 401 auto-logout; register any other with `registerCredentialUrls`.
 
 ## Interceptors
 
@@ -215,21 +276,51 @@ never the token.
 - `meta.allowAnonymous` → always allowed.
 - Authenticated: each matched route's `meta.policy(store)` and `meta.permissions: string[]`
   (via `store.hasPermission`) must pass, else redirect to route **`forbidden`** (`query.url` = target).
-  Role-gated routes use a policy — `meta.policy: (store) => store.hasRole("Admin")` — since
-  `meta.permissions` checks the `permissions` claim, not roles.
+  Role-gated routes use a policy — `meta.policy: (store: IAuthStore) => store.hasRole("Administrator")`, with
+  `import type { IAuthStore } from "@regira/modules/vue/auth"` — since `meta.permissions` checks the `permissions`
+  claim, not roles. The guard hands the policy the plugin's auth store.
 - Not authenticated: sets `authRequired` and **allows navigation** (the app shows a login popup rather
   than redirecting). Define an `allowAnonymous` route for public pages and a `forbidden` route.
 
 The plugin restores a stored token with an async `validateToken` and registers this guard only after it, while the
 router's first navigation has already started. So once the guard is registered, the plugin runs the same check for
 the route already shown and replaces it when the check redirects: a reload or a deep link to a gated page is
-checked too, as soon as the token is known. `routeGuard` returns that check, for an app that registers the guard
-itself.
+checked too, as soon as the token is known. It runs the check again on every new token — another account signing
+in on the page, a refresh, a tenant switch — so a page the new identity may not see leaves the screen for the
+`forbidden` route (`/403?url=…`).
+`routeGuard` returns that check, for an app that registers the guard itself.
+
+`routeAllows(route, store)` is the guard's verdict for a signed-in user, as a boolean: `allowAnonymous`, then every
+matched `meta.policy` and `meta.permissions`. Pass it a route from `router.resolve(...)` to hide what the guard would
+refuse: the scaffolded navigation drops an entry whose overview route it refuses, so a role-gated slice leaves the
+navbar and the dashboard for everyone else.
 
 > ⚠️ **Gate a route by role with `meta.policy`, never `beforeEnter: () => hasRole(…)`.** `beforeEnter` runs on the
 > first navigation with no token yet, and nothing runs it again: an administrator reloading the page, or opening a
 > link to it, lands on `forbidden`. The API still decides who may write either way; the route gate only spares the
-> user a page they cannot use.
+> user a page they cannot use. Without the auth plugin nothing reads `meta.policy` — a `--no-auth` app with roles of
+> its own: `entities.patterns` → _Permission-gated UI_.
+
+### What a first load shows
+
+<!-- how_to: key=public-pages-in-auth-app aliases=public-page,public-pages,anonymous,allowanonymous,landing,catalogue,first-load,cold-load,deep-link,reload,401,403 -->
+
+In-app navigation to a role-gated route is redirected before the target mounts. A first load does not wait for
+the guard:
+
+- **A protected route opened while signed out** mounts its view, and each view's mount fetch answers `401`: one
+  `axios error` line per view in the console, while the login modal opens. Judge the console after sign-in.
+- **A reload or deep link to a role-gated route** mounts the view and fetches with the stored token; its
+  `onAuthenticated` runs once that token is validated, and both answer `403` before the guard redirects to
+  `forbidden`. A view that must not ask checks `store.hasRole(…)` or `routeAllows(route, store)` before
+  fetching.
+- **A page on an `allowAnonymous` route** that a signed-out visitor uses (a landing page) gets no
+  `onAuthenticated` run until someone signs in. It loads its public data in `onMounted` and re-loads after
+  sign-in with `onAuthenticated(() => load(), { immediate: false })`. Every other view keeps the
+  `onAuthenticated` rule.
+
+A "Sign in" button on such a page opens the login on demand (_Show the login form on time_, under Account UI);
+self-registration: _Sign-up_.
 
 ## Account UI — wire the FULL surface, shown on time
 
@@ -243,37 +334,151 @@ components and composables exist for all of it — use them instead of hand-roll
 | Reset password (from the mail link)     | `ResetPasswordForm`                                 | `useResetPasswordForm`  |
 | Change password (signed-in user)        | `ChangePasswordForm`                                | `useChangePasswordForm` |
 | Sign out                                | `LogoutForm` (or `store.logout()` in a header menu) | —                       |
+| Sign up (self-registration)             | none: _Sign-up_ below                               | —                       |
+| Confirm email (from the mail link)      | none: _Confirm page_ below                          | —                       |
 
 - **The entities app shell wires all five out of the box** (`scaffold.mjs --shell`, auth variant): login +
   recovery modals in `App.vue`, an app-owned `components/users/ForgotPasswordForm.vue` (the library ships
   `ForgotPasswordModal` and `useForgotPasswordForm`, but **no** `ForgotPasswordForm` — the form is yours),
   `views/ResetPasswordView.vue` on an `allowAnonymous` `/reset-password` route, and `AccountView` for
   change-password. Building the shell yourself? Reproduce all of it.
-- **`siteUrl` is the reset PAGE, not the site root.** The API mails `siteUrl` with `?token=…` appended, so
-  `location.origin` alone puts the recovery link on the dashboard, where nothing reads the token — send
+- **`siteUrl` is the reset PAGE, not the site root.** The API mails `siteUrl` with `?token=…` as its query
+  string, so `location.origin` alone puts the recovery link on the dashboard, where nothing reads the token — send
   `${location.origin}/reset-password` (or `router.resolve({ name: "resetPassword" })`).
+- **The API mails the link only to an origin it lists.** Add the SPA's origin, and the dev server's
+  (`http://localhost:5173`; a port Vite moves to is another origin), to the API's allowed origins: a `siteUrl`
+  elsewhere answers `400`, and an API that lists none answers `500` — `Regira.Security` → security.instructions →
+  _Mailed links: allowed origins_. The API also names the mail itself, so `siteName` does not reach it.
 - **Show the login form on time.** Gate the main content and pop the login modal immediately for
   anonymous users — never render a dashboard an anonymous user can't do anything with:
 
     ```vue
     <LoadingContainer :isLoading="$appStatus != AppStatus.Ready && (!$auth.enabled || $auth.isAuthenticated)"><Main /></LoadingContainer>
-    <LoginModal v-if="showLogin" ... />
+    <LoginModal v-if="showLogin" :show-close="!authStore.isRequired" ... />
     ```
 
     ```ts
     const showLogin = computed(() => authStore.isRequired && !authStore.isAuthenticated)
     ```
 
+    An app whose public pages are `allowAnonymous` opens it on demand too: `isRequired` is set only by a
+    protected route, so a "Sign in" button sets a `loginRequested` ref, the gate reads
+    `(authStore.isRequired || loginRequested.value) && !authStore.isAuthenticated`, and the modal's `@close`
+    and the form's `@success` clear the ref. `showClose` hides the header's X while sign-in is required, where
+    closing would leave a page that needs it. Esc emits the same `close`, since the modal takes focus when it opens,
+    so a required gate that binds no `@close`, as the shell's `App.vue` does, ignores both; on demand the X stays,
+    and its `@close` (X or Esc) clears the request.
+
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,
   leaving an invisible full-screen mask that swallows every click.
-- `useLoginForm(props, emit)` → `{ username, password, failed, signingIn, isLockedOut, handleSubmit, handleForgotPassword }`.
-- `useForgotPasswordForm(props, emit, { siteUrl, siteName? })` → `{ username, isLoading, isFormValid, isSuccess, handleSubmit }`.
+- `useLoginForm(props, emit)` → `{ username, password, failed, signingIn, isLockedOut, isNotAllowed, handleSubmit, handleForgotPassword }`.
+  `isLockedOut` and `isNotAllowed` mirror the `401` body of the last attempt; `isNotAllowed` is a right password on
+  an account that is not confirmed yet, and the stock `LoginForm` then asks the user to follow the mailed link.
+- `useForgotPasswordForm(props, emit, { siteUrl })` → `{ username, isLoading, isFormValid, isSuccess, handleSubmit }`.
 - `useChangePasswordForm(emit)` / `useResetPasswordForm({ token }, emit)` → password fields + match/validity
   state + `handleSubmit` (see [auth.signatures.md](auth.signatures.md)).
 - All form components are plain-Bootstrap reference skins — restyle, wrap, or eject them
   (`scaffold.mjs --ui LoginForm|LoginModal|ForgotPasswordModal|ChangePasswordForm|ResetPasswordForm`); the modals render the app-wide
   modal via `injectModal()`, so a `modalPlugin { Modal }` swap reskins them too.
+
+### Sign-up
+
+An app that lets visitors create their own account posts it to the API's `users` endpoint, then signs in:
+
+```ts
+import { ref } from "vue"
+import { useAuthStore } from "@regira/modules/vue/auth"
+import { useAxios } from "@regira/modules/vue/http"
+import { useFeedback, toFeedbackError } from "@regira/modules/vue/ui"
+
+const username = ref("")
+const password = ref("")
+const authStore = useAuthStore()
+const feedback = useFeedback()
+async function handleSubmit() {
+    feedback.pending("Creating your account")
+    try {
+        // main.ts: add "users" to the auth plugin's credentialUrls; this body holds the password
+        await useAxios().post("users", { username: username.value, password: password.value })
+        await authStore.login({ username: username.value, password: password.value })
+        feedback.reset()
+    } catch (ex) {
+        feedback.fail("Sign-up failed", toFeedbackError(ex))
+    }
+}
+```
+
+Offer it from the login modal. Anything slotted into `LoginModal`'s default slot replaces the stock `LoginForm`, so
+put a `RouterLink` to the sign-up page **beside** `<LoginForm>` inside the slot (the scaffolded `App.vue` already
+slots its own `LoginForm`):
+
+```vue
+<LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
+    <LoginForm @forgot-password="handleForgotPassword" />
+    <RouterLink :to="{ name: 'signUp' }">Create an account</RouterLink>
+</LoginModal>
+```
+
+The route is anonymous — `{ path: "/sign-up", name: "signUp", component: SignUpView, meta: { allowAnonymous: true } }`
+— and an `allowAnonymous` route makes `isRequired` false, so the modal closes when the link lands there.
+
+- **Add `"users"` to `credentialUrls`** on the auth plugin. The shared axios instance logs every failed request
+  with its body, and this body holds the password.
+- **An API whose sign-up takes profile fields** has an action of its own (`users/sign-up`). Post there with the
+  fields, and add that path to `credentialUrls` too.
+- **The API opens `POST users` on an override.** The base action requires a signed-in caller, so a sign-up
+  answers `401` until the app's `UserControllerBase` subclass overrides `Create` with `[AllowAnonymous]`:
+  `Regira.Security` → security.instructions → _Authorization: guarded by default_.
+- **A taken name answers `400`** with ASP.NET Identity's `DuplicateUserName` as the key, like a password the
+  API's rules refuse. `toFeedbackError` reads both, and `<Feedback>` lists them.
+- To have the API mail a confirmation link, post `confirmEmailUrl` too: the absolute URL of the app's confirm
+  page (_Confirm page_ below), on an origin the API lists (`Regira.Security` → security.instructions → _Mailed
+  links: allowed origins_). Sign-in does not wait for the confirmation unless the API sets
+  `SignIn.RequireConfirmedEmail` or `RequireConfirmedAccount`, which `Regira.Security.Authentication.Web` honours
+  from 6.6.0. Then drop the `login` call after the post and tell the visitor to follow the mailed link: signing in
+  answers `401` with `isNotAllowed` until they do, which `useLoginForm` returns as `isNotAllowed` and the stock
+  `LoginForm` shows as "not confirmed yet".
+
+### Confirm page
+
+The confirmation mail links to the page `confirmEmailUrl` named, with `?token=…` as its query string. The page is
+anonymous, so it loads in `onMounted` (_What a first load shows_), and posts the token back, alone
+(`Regira.Security.Authentication.Web` 6.6.0 or later):
+
+```vue
+<!-- views/ConfirmEmailView.vue, route { path: "/confirm-email", name: "confirmEmail", meta: { allowAnonymous: true } } -->
+<script setup lang="ts">
+import { onMounted } from "vue"
+import { useRoute } from "vue-router"
+import { useAxios } from "@regira/modules/vue/http"
+import { Feedback, useFeedback, toFeedbackError } from "@regira/modules/vue/ui"
+
+const route = useRoute()
+const feedback = useFeedback({ autoHideDelay: 0 })
+onMounted(async () => {
+    const token = route.query.token
+    if (typeof token !== "string") return feedback.fail("This link is incomplete")
+    feedback.pending("Confirming your address")
+    try {
+        // the API reads the user from the token
+        await useAxios().post("users/confirm-email", { token })
+        feedback.success("Your address is confirmed: you can sign in")
+    } catch (ex) {
+        feedback.fail("This link is invalid or has expired", toFeedbackError(ex))
+    }
+})
+</script>
+
+<template>
+    <Feedback :feedback="feedback" />
+</template>
+```
+
+- **Add `"users/confirm-email"` to `credentialUrls`** beside `"users"`: the body carries the token, and `"users"`
+  matches that path alone.
+- The sign-up form posts `confirmEmailUrl: new URL(router.resolve({ name: "confirmEmail" }).href, location.origin).href`,
+  as the shell's `ForgotPasswordForm` builds its `siteUrl`.
 
 ## `$auth` global
 
@@ -281,7 +486,8 @@ When enabled the plugin sets `app.config.globalProperties.$auth` (`IGlobalAuth`:
 `tokenManager`, `service`, `authData`, `isAuthenticated`, `isRequired`). Outside components,
 `useGlobalAuth()` returns that same `$auth` object; `useAuth()` returns the narrower `IAuth`
 (`enabled`, `clientApp`, `tokenManager`, `service` — no `authData`/`isAuthenticated`/`isRequired`).
-Prefer the store in components.
+Prefer the store in components. `$auth.isRequired` is the store's route-driven `isRequired`: auth is enabled and the
+current route is not `allowAnonymous`.
 
 ⚠️ **`$auth` is a discriminated union**, `IGlobalAuth | { enabled: false }` — every member beyond `enabled`
 and `authData` lives on the enabled arm only. So `v-if="$auth.isAuthenticated"` is a **TS2339 build failure**;
@@ -304,9 +510,10 @@ resolved `authStore.isAuthenticated` — it needs no guard.
   is never doubled. Never emit a `{clientApp}`/`<clientApp>` placeholder into the URL — nothing substitutes it at
   runtime, and the API would mint a token with that literal audience, 401-ing every later call. `refresh` needs
   no `clientApp`: the server re-reads `aud` from the current token.
-- **Password-reset link:** the recover email lands at `{siteUrl}/?token=<base64>` (root path). Read the token
-  from **vue-router `route.query.token`** (preserves `+`), never `URLSearchParams` — it turns `+` into a space
-  and corrupts the base64.
+- **Password-reset link:** the recover email links to `siteUrl` with its query string set to `?token=…`, the Base64
+  token percent-encoded (`/reset-password?token=…`). Read it from vue-router's `route.query.token`, which decodes the
+  query as `URLSearchParams` does, so either returns the token intact; treat anything but a single string as no
+  token, since a repeated `?token=a&token=b` parses as an array.
 
 ## See also
 

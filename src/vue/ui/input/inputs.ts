@@ -54,7 +54,8 @@ export type DateInputProps = {
     showTime?: boolean
 }
 export type DateInputEmits = {
-    (e: "update:modelValue", modelValue?: string | Date): void
+    /** the picked Date, or `undefined` when cleared — never a string */
+    (e: "update:modelValue", modelValue?: Date): void
 }
 
 /** the text value itself binds via v-model (defineModel) */

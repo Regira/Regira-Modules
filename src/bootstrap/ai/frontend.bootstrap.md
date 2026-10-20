@@ -47,7 +47,13 @@ The app shell — the config-driven **dashboard + navbar** (`entity-navigation/`
 **auth-independent**: it builds from `$configs` + `config.json → navigation`, not the auth store, so build it
 even for a no-auth app. Navigation entries reference each entity by its **`config.key`** — the literal string
 in the slice's `config.ts` (conventionally the class name, e.g. `"Product"`), not the route/kebab plural and
-**not** `Entity.name` (minified in a build). An unmatched key is skipped with a console warning. Hand-rolling a navbar
+**not** `Entity.name`: `config.json` holds a literal, and a minified build renames the class. An unmatched key is
+skipped with a console warning. The slice keys its IoC service, its `$configs` entry and its Pinia store id on
+`Entity.name`, which is safe only while every slice sits in one chunk: a minifier names classes per chunk, so two
+lazily loaded slices can get the same name and share an IoC key and a store id. Import slices eagerly, as the
+scaffold's routes do, and the route views too: a view loaded with `() => import(…)` that uses a slice can move slice
+modules into a shared chunk of their own. `vite build` should list one app chunk; raise
+`build.chunkSizeWarningLimit` for its 500 kB notice rather than split. Hand-rolling a navbar
 instead of `useNavigation()` forfeits that config-driven shell; only `users/` + `user-plugin` are auth-coupled.
 
 **Token economy.** Prefer heading-scoped reads — `get_package(id, section, heading)` — over pulling a whole
@@ -111,14 +117,22 @@ truth is `get_package(id: "regira_modules.vue.ui", section: "ui.signatures")`.
       `vue-tsc 3`); do not resolve them one `ERESOLVE` at a time.
 - [ ] **Authentication is optional.** Do not assume the auth plugin is required; follow the _Running
       without authentication_ recipe in `entities.setup` to run without a login.
-- [ ] **Type the client from the API's OpenAPI.** When the API exposes OpenAPI, generate TypeScript types
-      from it and feed them into the hand-written entity models (you still hand-write the model classes).
-- [ ] The primary guides **for the chosen tier** (full tier: `entities.instructions` + `entities.setup`)
-      are read in full before generating slices, services, composables, or the app shell.
+- [ ] **Optional: type the client from the API's OpenAPI** (`entities.patterns` → _Type the client from the
+      API's OpenAPI_). Generated types keep nested fields in step with the server; the scaffolded slices build
+      without them, and you hand-write the model classes either way.
+- [ ] The primary guides **for the chosen tier** (full tier: `entities.instructions` + `entities.setup`) are read
+      before generating slices, services, composables, or the app shell — their workflow sections in full, the
+      rest by heading as the task needs it (_Reading order_ below).
 - [ ] **Restyling never requires forking the library.** Theme tokens, stable `rg-*`/`is-*` css hooks,
       typed slots, contract-typed replacement skins, and `scaffold.mjs --ui <Component>` ejects cover
       every customization level — see `regira_modules.vue.ui` → `ui.customize`.
-- [ ] Verify the SPA with `npm run build` (`vue-tsc -b`) in the generated app — not only a `--noEmit` typecheck.
+- [ ] Verify the SPA with `npm run build` (`vue-tsc -b && vite build`) in the generated app — not only a typecheck:
+      `vue-tsc` alone can pass while the Vite build fails.
+- [ ] **The app's `AGENTS.md`** at the repository root records the SPA's facts beside the API's: the
+      `@regira/modules` version, the dev server port, the scaffolded slices and the ejected components. Read it
+      first in an existing app; a new app writes it from the template in the back-end bootstrap,
+      `get_bootstrap_guide(heading: "The app's own AGENTS.md")`. A SPA without a Regira API writes the same file and
+      leaves out the back-end lines.
 
 ## Reading order (start here)
 
@@ -203,7 +217,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   `entities.instructions` → _Functionality contract_. If the **user** asks for less, build what they asked
   — the rule is against losing a capability by accident, not against a smaller scope.
 - **Responsive layout, always** — unless the user explicitly requests otherwise. Bootstrap grid with
-  breakpoint variants, `d-none d-md-inline` button labels, `d-none d-md-block` to drop list columns on
+  breakpoint variants, `d-none d-md-inline` button labels (the button keeps that text in `aria-label`: a hidden
+  label names nothing — `ui.instructions` → _Gotchas_), `d-none d-md-block` to drop list columns on
   small screens, `$screen` for JS-side switches (`entities.patterns` → _Overview list layout_).
 - **Tabs for big forms.** When an entity form grows beyond a handful of fields or has related data
   (children, links, trees), split it with hash-routed tabs — a main `#form` tab plus related-data tabs
@@ -213,7 +228,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   users instead of rendering a dashboard they can't use (`auth.instructions` → _Account UI_).
 - **Role gating uses `authStore.hasRole(...)`,** never `hasPermission` (that reads a `permissions` claim
   the standard Identity backend doesn't mint); a role-gated route uses `meta.policy`, never `beforeEnter`
-  (`auth.instructions` → _Route guard_). The full backend-to-SPA chain is `Regira.Security` →
+  (`auth.instructions` → _Route guard_). A `--no-auth` app with roles of its own has no guard to read
+  `meta.policy` (`entities.patterns` → _Permission-gated UI_). The full backend-to-SPA chain is `Regira.Security` →
   security.instructions → _Roles end-to-end_ (`how_to` key `roles-end-to-end`).
 - **Multilanguage means a visible selector.** Wire `LangSelector` (from `vue/lang`) into the header
   whenever the app is multilanguage.
@@ -239,15 +255,23 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
 5. Scaffold the app shell — `node node_modules/@regira/modules/_template/scaffold.mjs --shell` (`--no-auth`
    for a no-auth app) writes the root toolchain (`index.html`, `vite.config.ts`, `tsconfig*`), `main.ts`,
    `App.vue`, router, dashboard/navbar, layout, views, `config.json` + `app-config.ts` (full source:
-   `entities.shell.template`), skipping files that already exist.
+   `entities.shell.template`), skipping files that already exist. `vite.config.ts` serves on port 5173 and proxies to
+   `https://localhost:7001`: point the proxy at the API, and set `server.port` (with `strictPort: true`) when the
+   ports are prescribed.
 6. Scaffold each entity slice with `node node_modules/@regira/modules/_template/scaffold.mjs <Entity>`
    (add `--no-auth` for a no-auth app), then customize the `(c)` files; consult `entities.namespaces` / `entities.signatures` for exact
    imports/signatures and `entities.patterns` for recipes. Re-running the scaffold over an existing slice
    needs `--overwrite-slice` (`--force` deliberately excludes slices). For an entity that owns files/pictures,
    `scaffold.mjs <Entity> --attachments` also writes the shared file slice and wires it into the model and
    service; you add the tab.
-7. Verify with `npm run build` (`vue-tsc -b`), then **drive the app in a browser** — a green build proves
+7. Close every scaffold `TODO` — `grep -rn TODO src` comes back empty. Each marks what the scaffold could not
+   guess (model and form fields, list and selector columns, filter fields, the config's icon); fill it in or
+   delete it, along with the hint comment around it.
+8. Verify with `npm run build` (`vue-tsc -b && vite build`; `vue-tsc` alone can pass while Vite fails), then
+   **drive the app in a browser** — a green build proves
    compilation only. Any browser you can drive will do: one your environment provides as a tool, or a short
    headless script with Playwright (`npm i -D playwright`, `npx playwright install chromium`); read its console
-   as well as the page. Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
+   as well as the page. Judge the console after sign-in: a first load signed out logs a `401` per view, and a
+   reload of a role-gated page the user may not open logs `403`s before the guard redirects to `forbidden`: both
+   expected (`auth.instructions` → _What a first load shows_). Walk the runtime checklist in `entities.instructions` (save twice, filter + reopen,
    empty/new-row paths) and check the main views at a mobile viewport before calling anything responsive.

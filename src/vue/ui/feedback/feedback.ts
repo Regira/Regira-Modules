@@ -85,8 +85,8 @@ const readErrorDetails = (value: unknown): Array<ErrorDetail> =>
           )
         : []
 
-// keys start lower-case whatever the server's naming policy, so they match the model's field names
-const fieldKey = (key: string) => key.charAt(0).toLowerCase() + key.slice(1)
+// each segment of a key's path starts lower-case whatever the server's naming policy, so it matches the model
+const fieldKey = (key: string) => key.replace(/(^|\.)([A-Z])/g, (_, dot: string, letter: string) => dot + letter.toLowerCase())
 
 /**
  * What a failed request tells the user, in the shape `fail()` takes: its field errors, or else the server's own text
@@ -96,9 +96,10 @@ const fieldKey = (key: string) => key.charAt(0).toLowerCase() + key.slice(1)
  * Reads the ProblemDetails an Entities API answers a 400 with (`{ title, status, errors }`), and a bare field map
  * (`{ CategoryId: ["…"] }`) too. Every message is paired with the app's translations — the {@link useLang} messages
  * unless {@link setErrorTranslator} says otherwise: a message that is a key there shows its translation, the error's
- * `args` in `errorDetails` filled into its placeholders; any other message shows as the server sent it. Keys start
- * lower-case whatever the server's naming policy, so they match the model's field names (`CategoryId` →
- * `categoryId`); an error that belongs to no field has the key `""`.
+ * `args` in `errorDetails` filled into its placeholders; any other message shows as the server sent it. Each segment
+ * of a key's path starts lower-case whatever the server's naming policy, so it matches the model's field names
+ * (`CategoryId` → `categoryId`, `Lines[0].Quantity` → `lines[0].quantity`); an error that belongs to no field has the
+ * key `""`.
  */
 export function toFeedbackError(ex: unknown): FeedbackError | undefined {
     const response = (ex as { response?: { status?: number; data?: unknown } } | undefined)?.response

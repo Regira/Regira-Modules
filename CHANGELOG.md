@@ -5,6 +5,62 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.6.0 — 2026-10-20
+
+- `vue/auth`: **behaviour change — `$auth.isRequired` is the route-driven `isRequired`** (it was the sticky
+  `authRequired` flag); **behaviour change — the route guard re-checks the page on screen on every new token**, so a
+  page the new identity may not see goes to `forbidden`. New: `routeAllows(route, store)`, `LoginModal`'s `showClose`,
+  a typed `close` on `LoginModal`/`ForgotPasswordModal` (`LoginModalEmits`, `ForgotPasswordModalEmits`),
+  `useLoginForm().isNotAllowed` (unconfirmed account). `siteName` on `forgotPassword` is `@deprecated`. Fixes:
+  `isLockedOut` clears on a new attempt; `LoginForm`'s inputs get ids, names and valid `autocomplete` tokens.
+- `vue/ui`: **behaviour change — `DefaultModal` focuses its dialog on open** (Esc closes it at once) and gives focus
+  back on close; **behaviour change — `FormSection`'s body is padded** (`--rg-form-section-padding`, `0` for flush);
+  icon-only buttons get accessible names; `ConfirmButton` renders no `name` attribute (it carried the icon name, so a
+  `button[name=delete]` selector needs a hook of its own). `footer-submit-button` passes `handleSubmit` (`handleClose`
+  there is deprecated); ⚠️ an ejected `DefaultModal` that declares `ModalSlots` passes it too, or TS2345. Fixes:
+  `toFeedbackError` lower-cases each segment of a nested field key; `DateInputEmits` is `Date | undefined`.
+- `vue/entities`: **behaviour change — a save refused with any `4xx` reports "Saving failed: …"** ("Server error" is
+  left to a `5xx` or no answer). New: `EntityServiceBase.patch(id, changes)` (JSON merge patch; optional on
+  `IEntityService`, required on `IPoolService`; ⚠️ a subclass with its own `patch` of another shape fails with TS2416),
+  `useForm().failure`, `PoolCache.clear()`, `InputSelectorInline`'s `readonly`. Fixes: `useOwnedCollection` leaves an
+  unset collection unset (a save deleted every row); it and `useListInput` keep two appends in one tick and negative
+  temp ids; a refused save keeps its `_deleted` marks, since `prepareItem` works on a shallow copy (protected
+  `copyForSave`), not the caller's object; an `undefined` search field keeps its `baseQueryParams` default.
+- `vue/http`: Fixes: an error without a request or response (a network failure) passes the blob-error interceptor
+  unchanged, where it threw a `TypeError`; a JSON-typed blob error body that does not parse (an empty
+  `application/problem+json`) stays a Blob and the request still rejects, where the download never settled.
+- `vue/online`: **behaviour change — `useOnlineChecker()` inside a component's `setup` returns the plugin's live
+  ref**, so the component re-renders when the connection changes; outside `setup`, or without the plugin, it returns
+  a ref seeded once from `navigator.onLine`, as before.
+- Scaffold: **behaviour change — Enter in the owned editor's add row no longer submits the parent form**; `Roles.ADMIN`
+  is `"Administrator"`; navigation hides what `routeAllows` refuses; Details reloads when another account signs in, and
+  Details, Overview and `SelectorDropdown` clear the previous account's rows first (a reload refused for the new
+  account left them on screen); staged attachment previews release their object URLs when the rows are re-mapped;
+  sign-out clears the pool; the sign-in modal shows no X while sign-in is required;
+  icon-only controls get `aria-label`s (new keys `edit`, `clear`, `filter`, `select`, `remove`, `download`, `menu`);
+  the language is remembered without auth too; the shell sets `strictPort` and `"culture"`; `--owns` declares its
+  fields on the parent and prints the `toEntity` lift; string-key slices pass `vue-tsc`; attachments rows carry
+  `newBytes`; `--picker` chips take `readonly`; `InputSelector` survives a `403`; the advanced filter's Cancel closes
+  it; a self `--picker`, a `--dir` outside `src/`, an `--owns` folder clash, a non-PascalCase `--owns`, a `--plural`
+  that is not a lower-case kebab-case folder name or a value flag without its value (`--api --no-auth`) stops before
+  writing; the catch-all redirect passes `params: {}` (vue-router 5 warned R0100 on every unknown URL); an `--owns` name
+  that already ends in a plural `s` (`PartyContactDetails`) keeps it as its folder name, where it got `-detailses`; the
+  advanced filter's title and buttons are translated (new key `advancedSearch`); the header search pushes no empty `?q=`,
+  which made the overview report active filters; `SelectorList` declares its emits in `OverviewEmits`' tuple shape, so
+  an added event keeps the inherited ones; the sample form field has an `aria-label`. ⚠️ Upgrade:
+  copy `hasAccess` (`entity-navigation/functions.ts`), the `onAuthenticated` lines and their import
+  (`overview/Overview.vue`, `details/Details.vue`), the cleared `items` in the load's `catch`
+  (`selecting/SelectorDropdown.vue`), the `try`/`catch` around the load (`selecting/InputSelector.vue`), the
+  `:show-delete` test (`details/Form.vue`), the re-map's `revokeObjectURL` (`entity-attachments/data/functions.ts`),
+  the add row's `@keydown.enter.prevent` (owned `Overview.vue`), the modal's `@cancel`, translated `title` and `labels` (`filter/Filter.vue`), the `query` (`entity-navigation/NavSearch.vue`), the `Emits` (`selecting/SelectorList.vue`), the
+  redirect's `params: {}` (`router/routes.ts`), the pool clear in `onAuthenticationChange` (`main.ts`) and the new
+  keys.
+- Guides — corrected and extended (also JSDoc, READMEs and template comments): sign-up, confirm and reset links, own
+  sign-in endpoints, token storage, first-load `401`/`403`s; owned rows, route pre-fill, permission-gated UI,
+  attachments, patching; eager route imports and the not-found redirect; http downloads and uploads; an offline outbox
+  and the live online flag; the refresh query string, `TabContainer` mounting only the active tab, `FormSection`'s
+  `!important` header, `isComplex` apart from the licensing count, a labels editor without `vuedraggable`, and an extra field on the attachment link.
+
 ## 6.5.0 — 2026-10-04
 
 - `vue/ui`: **`toFeedbackError` translates validation errors.** Every field message of a 400 is looked up in the

@@ -112,10 +112,16 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
 - `useFeedback({ autoHideDelay })`: only `success()` hides itself, `autoHideDelay` ms later (default 1500; `0`
   keeps it up). `pending()`, `fail()` and `reset()` cancel a hide still waiting, so a failure shown right after a
   success stays up until something resets it.
+- Icons render `aria-hidden`, so a button showing only an icon has no accessible name: give an icon-only
+  `IconButton`, `ConfirmButton` or `<button>` an `aria-label` (it falls through to the `<button>`). A label hidden
+  below a breakpoint (`d-none d-md-inline`) is hidden from assistive tech as well, so keep the same text in
+  `aria-label`. `FormButtonsRow` does this for its buttons.
 - `FormLabel` renders **below** its input (a muted caption, not a `<label>` above it), so align a row that
   mixes labelled fields with buttons to `flex-start`.
 - `FormButtonsRow` with `readonly` renders no buttons: nothing can be saved, deleted or restored, and there
   are no edits for Cancel to discard. The way back is the page's navigation or the modal's close button.
+- `FileDropZone` takes drops only: it renders no `<input>` or browse button, so pair it with `browse()` from
+  `@regira/modules/utilities/file-utility` for click and keyboard users.
 - `TabContainer` shows the first visible, enabled tab among the URL hash (with `use-route-nav`) or the last
   selection (without), then `active`, and otherwise the default tab. `active` is read once, when the container
   is created. With `use-route-nav` the hash is written only when a tab is selected — mounting never navigates.
@@ -123,7 +129,9 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   tab is ignored.
 - Modal is a component (`DefaultModal` + `:is-visible` — one-way, flip your own state on
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
-  `useModal` from the entities module.
+  `useModal` from the entities module. It renders in place, so put it inside `<Teleport to="#modals">`. It focuses
+  its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's `handleSubmit` prop submits
+  (`handleClose` there is a deprecated alias of it).
 - `Autocomplete` renders its result panel on `<body>` (a `Teleport`) with `position: fixed`, so no
   ancestor's `overflow` — a scrollable modal body, an `overflow: hidden` card — clips it. It places the panel
   against the viewport itself: it opens below the control, flips **above** it when the results do not fit

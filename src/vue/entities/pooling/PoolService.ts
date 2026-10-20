@@ -3,6 +3,7 @@ import type { IEntity, IEntityService, IPagingInfo, ISearchObject, SearchResult 
 import type { IPoolCache } from "./PoolCache"
 
 export interface IPoolService<T extends IEntity> extends IEntityService<T> {
+    patch(id: number | string, changes: Record<string, unknown>): Promise<T | undefined>
     get(input: T): Ref<T> | undefined
     getMany(input: Array<T>): Array<Ref<T>>
 }
@@ -41,6 +42,17 @@ export class PoolService<T extends IEntity> implements IPoolService<T> {
         const { saved, isNew } = await this.service.save(item)
         this.cache.set(this.toEntity({ ...saved }))
         return { saved, isNew }
+    }
+    /** The service's `patch`, writing the saved row into the pool as `save` does. */
+    async patch(id: number | string, changes: Record<string, unknown>): Promise<T | undefined> {
+        if (!this.service.patch) {
+            throw new Error(`The ${this.type} service has no patch() — derive it from EntityServiceBase, or implement patch on it.`)
+        }
+        const saved = await this.service.patch(id, changes)
+        if (saved != null) {
+            this.cache.set(this.toEntity({ ...saved }))
+        }
+        return saved
     }
     async remove(item: T): Promise<void> {
         await this.service.remove(item)

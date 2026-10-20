@@ -1,4 +1,4 @@
-import { ref, type Ref } from "vue"
+import { computed, ref, watch, type Ref } from "vue"
 import { min } from "../../../utilities/array-utility"
 import { useVModelField } from "../../vue-helper"
 import type { IEntity, SaveResult } from "./../abstractions"
@@ -9,7 +9,20 @@ type ListInputIn<T> = {
 }
 
 export function useListInput<T extends IEntity & { id: number }>({ props, emit }: ListInputIn<T>) {
-    const items = useVModelField<Array<T>>(props, emit)
+    const model = useVModelField<Array<T> | undefined>(props, emit)
+    // The last write until the parent's prop catches up, so two appends in one tick keep both rows.
+    let pending: Array<T> | undefined
+    const items = computed<Array<T>>({
+        get: () => model.value ?? [],
+        set: (value) => {
+            pending = value
+            model.value = value
+        },
+    })
+    watch(
+        () => props.modelValue,
+        () => (pending = undefined)
+    )
     const newItem = ref<T>({ id: 0 } as T) as Ref<T>
 
     // sorting
@@ -20,9 +33,11 @@ export function useListInput<T extends IEntity & { id: number }>({ props, emit }
     }
     function handleSave({ saved, isNew }: SaveResult<T>) {
         if (isNew) {
-            const minId = ((min(items.value, (x) => x.id) as number | undefined) ?? 0) - 1
+            const current = pending ?? items.value
+            // always negative: a positive temp id could name a stored row
+            const minId = Math.min((min(current, (x) => x.id) as number | undefined) ?? 0, 0) - 1
             saved.id = minId
-            emit("update:modelValue", items.value.concat([saved]))
+            items.value = current.concat([saved])
             newItem.value = { id: 0 } as T
         }
     }

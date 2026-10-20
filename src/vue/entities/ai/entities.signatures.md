@@ -58,6 +58,7 @@ export interface IEntityService<T extends IEntity = IEntity> {
     search(so?: object): Promise<SearchResult<T>>
     searchUnion(searchObjects: Array<object>, extra?: IPagingInfo | ISortByInfo): Promise<SearchResult<T>>
     save(item: T): Promise<SaveResult<T>>
+    patch?(id: number | string, changes: Record<string, unknown>): Promise<T | undefined> // optional: a service of your own keeps compiling
     remove(item: T): Promise<void>
     toEntity(item: object): T
     newEntity(values?: Record<string, any>): Promise<T>
@@ -90,12 +91,14 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
     search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<SearchResult<T>>
     searchUnion(searchObjects: Array<ISearchObject>, extra?: IPagingInfo | ISortByInfo): Promise<SearchResult<T>>
     save(item: T): Promise<SaveResult<T>>
+    patch(id: string | number, changes: Record<string, unknown>): Promise<T | undefined> // PATCH /{id} as application/merge-patch+json → the saved row
     remove(item: T): Promise<void>
     update(item: T): Promise<T | undefined>
     insert(item: T): Promise<T | undefined>
     protected fetchItems<TResult extends { items: Array<T> }>(api: string, so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<TResult>
     protected processItem(item: T | undefined): T | undefined // hydrates `created`/`lastModified` strings to Date
-    protected prepareItem(item: T): T // strips top-level properties whose key starts with "_" (does not recurse)
+    protected prepareItem(item: T): T // strips top-level properties whose key starts with "_" (does not recurse); gets copyForSave's copy
+    protected copyForSave(item: T): T // the shallow, prototype-keeping copy insert/update hand prepareItem, so a refused save leaves the form alone
     protected createInstance<T>(type: { new (): T }): T
     newEntity(values?: Record<string, any>): Promise<T>
     abstract toEntity(item: Object): T // the ONLY required override
@@ -132,6 +135,7 @@ export abstract class JSONService<T extends IEntity> extends EntityServiceBase<T
     list(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<T[]>
     search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>): Promise<SearchResult<T>>
     save(item: T): Promise<{ saved: T; isNew: boolean }>
+    patch(id: string | number, changes: Record<string, unknown>): Promise<T | undefined> // applied to the cached row client-side
     remove(item: T): Promise<void>
     processSearchObject(so?: ISearchObject): ISearchObject
     abstract toEntity(item: Object): T
@@ -163,12 +167,11 @@ export class DefaultSearchObject extends SearchObjectBase {}
 > `isArchived` is the row's own flag that `DELETE` sets and `useForm.handleRestore` clears. Declare
 > `archived?: ArchivedFilter` on your `SearchObject` only when the UI exposes archived rows.
 
-> ⚠️ **Paging and sorting are not members of your `SearchObject` — they ride the call argument.**
+> ⚠️ **Paging and sorting are not members of `SearchObjectBase` — they ride the call argument.**
 > `SearchObjectBase` carries only `q` (+ your filter fields), so `so.pageSize = 25` / `so.sortBy = [...]` on a
-> scaffolded instance does **not** type-check (`TS2339`), and neither belongs on the class. `pageSize`/`page`
+> scaffolded instance does **not** type-check (`TS2339`), and paging never belongs on the class. `pageSize`/`page`
 > come from `IPagingInfo`, `sortBy` from `ISortByInfo`, and the call parameter is their intersection:
-> `search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>)`. The overview composables merge them for
-> you; a view you write passes them inline:
+> `search(so?: ISearchObject & IPagingInfo & Partial<ISortByInfo>)`. A view you write passes them inline:
 >
 > ```ts
 > const { items, count } = await service.search({ ...searchObject.value, pageSize: 0, sortBy: ["StartDesc"] })
@@ -176,7 +179,12 @@ export class DefaultSearchObject extends SearchObjectBase {}
 >
 > `ISearchObject extends Record<string, any>`, so an API-specific key that is on neither interface reaches the
 > query string just as well — no cast needed (`{ ...so, tenantId: 3 }`). Arrays serialize as repeated keys,
-> which is why `sortBy` accepts an array. `new PagingInfo(pageSize?, page?)` is for the overview composable's
+> which is why `sortBy` accepts an array.
+>
+> The overview composables (`useSearchView`, `useListView`) add the paging only: they send the search object
+> spread flat with `pagingInfo`. An overview the user sorts declares `sortBy?: Array<string>` (one with its own
+> includes, `includes?: Array<string>`) on its `SearchObject`, and the composables send it with the filters; a sort every request needs belongs in
+> `baseQueryParams` (§4). `new PagingInfo(pageSize?, page?)` is for the overview composable's
 > `pagingInfo` ref, **not** for `search()` — there is no nested `{ paging: … }` shape.
 
 ```ts
@@ -217,7 +225,7 @@ export interface IConfig extends Record<string, any> {
     isComplex?: boolean // form on a Details PAGE (default true) vs a modal; also gates the FilterAdv toggle.
     //                     >~6 fields, any relation or any collection → page. Distinct from the back-end
     //                     simple/complex split, which is about For<> generic arity.
-    routePrefix: string // URL path segment
+    routePrefix: string // the slice's URL path, without the leading "/": one segment ("products") or several ("admin/products")
     baseQueryParams?: Record<string, unknown> // merged into every list/search request
     initialQuery?: Record<string, unknown> // seeds the generated nav link's route query — nothing else reads it
     overviewTitle?: string
@@ -358,7 +366,8 @@ export function useRouteOverview({ pagingInfo, searchObject, defaultPageSize, ha
 
 ⚠️ **`useRouteOverview` owns the search object.** Every search it runs first replaces `searchObject.value` with a
 plain object parsed from the route query, so the values come back as **strings** (`"true"`, `"5"`, ISO dates —
-the API binds them; a strict `=== true` in the view does not match) and the instance is no longer your
+the API binds them; a strict `=== true` in the view does not match), a repeated key as `string[]` (one value: a
+plain string), and the instance is no longer your
 `SearchObject` class. The one exception is the first search on mount: a URL with no search parameters keeps
 the search object the view passed to `useSearchView`, so its defaults apply. Once the user filters,
 `updateOverviewRoute` writes the whole search object — defaults included — to the URL (a `Date` as ISO-8601
@@ -400,7 +409,7 @@ import { useDetails } from "@regira/modules/vue/entities"
 export function useDetails<T extends IEntity>(entityService: IEntityService<T>, feedback?: FeedbackOut): DetailsOut<T>
 export type DetailsOut<T> = {
     item: Ref<T | undefined> // undefined until the onMounted load resolves — guard with v-if="item"
-    routeId: ComputedRef<string>
+    routeId: ComputedRef<string> // the route's :id, "new" on an insert; a change on the same route re-runs load(), except one that leaves "new"
     isNew: ComputedRef<boolean>
     overviewUrl?: RouteRecordRaw | string
     isForm: ComputedRef<boolean>
@@ -416,6 +425,12 @@ export type DetailsOut<T> = {
 
 > `useDetails` (and `useModal`) load with `archived: ArchivedFilter.included`, so a soft-deleted row opens
 > in the form with its Restore button instead of 404-ing. Row security is unaffected.
+
+> **Defaults for a new item.** On `…/new`, `useDetails` builds the item with `entityService.newEntity({})`, and the
+> modal path passes its `itemDefaults` into the same call. Defaults every new item needs — the acting customer, an
+> initial status — go in the slice's `EntityService`, which both paths reach through the pooled store:
+> `override newEntity(values?: Record<string, any>) { return super.newEntity({ status: "Open", ...values }) }`.
+> A caller's `itemDefaults` still win over them.
 
 ```ts
 import { useForm, formDefaults, FormStates } from "@regira/modules/vue/entities"
@@ -452,6 +467,7 @@ export interface FormOut<T> {
     item: Ref<T>
     original?: Ref<T>
     feedback: FeedbackOut
+    failure: Ref<{ status?: number; title?: string } | undefined> // the last refused write's HTTP status and ProblemDetails title (no status: a network failure); cleared when a write starts and by a new modelValue — a 409 "Concurrency conflict" is a stale token, "Conflict" a constraint
     handleCancel(): void
     handleSubmit(): Promise<void>
     handleRemove(): Promise<void> // ⚠ takes NO args — removes item.value
@@ -643,8 +659,9 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 //            rowKey?: (row: T) => string | number | undefined;      // stable :key per row; falls back to an internal per-row identity (never the index)
 //            excludeKey?: (row: T) => number | undefined;           // related id per row → feeds the #selector `exclude`
 //            isNew?: (row: T) => boolean;                           // override the unsaved-row detection
-//            labels?: { remove?: string; restore?: string } }      // the delete button's title per state; English by default — pass translated ones
-//   slots: chip({ row }), selector({ add, exclude })                // add: (row: T) => void; exclude: number[] (every current row, marked ones included)
+//            labels?: { remove?: string; restore?: string };       // the delete button's title per state; English by default — pass translated ones
+//            readonly?: boolean }                                   // a read-only form: no remove/restore toggle, no #selector slot
+//   slots: chip({ row, readonly }), selector({ add, exclude })      // add: (row: T) => void; exclude: number[] (every current row, marked ones included)
 //   emits: "add" (row: T) | "remove" (row: T) | "update:modelValue" (value: T[] | undefined)
 //   "remove" fires for hard-removal, mark AND restore — discriminate AFTER the event: hard-removed row is
 //   no longer in modelValue; marked row has `_deleted === true`; restored row has `_deleted === false`.
@@ -681,6 +698,7 @@ export function usePooling<T extends IEntity>(service: IEntityService<T>, type: 
 export const defaultPoolCache: PoolCache
 
 export interface IPoolService<T extends IEntity> extends IEntityService<T> {
+    patch(id: number | string, changes: Record<string, unknown>): Promise<T | undefined> // the service's patch, saved row written into the pool
     get(input: T): Ref<T> | undefined
     getMany(input: Array<T>): Array<Ref<T>>
 }
@@ -702,6 +720,7 @@ export interface IPoolCache {
     set<T extends IEntity>(item: T): Ref<T>
     get<T extends IEntity>(type: string, key: number | string): Ref<T> | undefined
     remove<T extends IEntity>(item: T): boolean
+    clear?(): void // drops every cached row, persistent types included (PoolCache implements it)
     hasType(type: string): boolean
     getAll<T extends IEntity>(type: string): Array<Ref<T>>
     getEntityMap(type: string): Map<number | string, any>
@@ -714,8 +733,9 @@ export class PoolService<T extends IEntity> implements IPoolService<T> {
 }
 ```
 
-The pooled `details` / `list` / `search` write every row they receive into the cache (refreshing a cached row in
-place) but **return plain copies** — run them through `fromPool` to get the shared instances. The cache is a
+The pooled `details` / `list` / `search` write every row they receive into the cache (the cached `Ref` stays and
+gets the new object: `set` replaces `ref.value`, so never `set` a partial row) but **return hydrated instances** — through `toEntity` (`$id`, `$title` work; `details` hands a fresh copy), yet not
+the cached ones, so an edit elsewhere does not reach them. Run them through `fromPool` to get the shared instances. The cache is a
 plain `Map`, so `fromCache()` read inside a `computed` does not see ids added after it first ran: a component
 that lists a type loads the rows itself rather than reading the cache.
 

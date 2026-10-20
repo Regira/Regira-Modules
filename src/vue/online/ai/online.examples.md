@@ -56,8 +56,8 @@ After the plugin is installed, `$isOnline` is a `Ref<boolean>` on every componen
 
 ## Gate work on the online state
 
-Use the composable when you just need a one-off seed of the current value (it reads
-`navigator.onLine` but does not stay in sync — see the gotchas in the instructions):
+Inside a component's `setup` the composable returns the plugin's live ref; elsewhere it reads
+`navigator.onLine` once and does not stay in sync (see the gotchas in the instructions):
 
 ```ts
 import { useOnlineChecker } from "@regira/modules/vue/online"

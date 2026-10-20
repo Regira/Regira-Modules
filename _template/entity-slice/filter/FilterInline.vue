@@ -2,10 +2,16 @@
     <div class="row">
         <div class="col-auto">
             <div class="input-group">
-                <IconButton icon="clear" class="btn-outline-secondary" @click="handleReset" />
+                <IconButton icon="clear" class="btn-outline-secondary" :aria-label="$t('clear')" @click="handleReset" />
                 <input v-model.lazy.trim="searchObject.q" class="form-control" :placeholder="$t('keywords')" @change="handleUpdate" />
-                <IconButton icon="search" class="btn-outline-primary d-none d-sm-block" @click="handleUpdate" />
-                <IconButton v-if="showToggleAdv" icon="filter" :class="filterIsActive ? 'btn-info' : 'btn-outline-info'" @click="handleToggle" />
+                <IconButton icon="search" class="btn-outline-primary d-none d-sm-block" :aria-label="$t('search')" @click="handleUpdate" />
+                <IconButton
+                    v-if="showToggleAdv"
+                    icon="filter"
+                    :aria-label="$t('filter')"
+                    :class="filterIsActive ? 'btn-info' : 'btn-outline-info'"
+                    @click="handleToggle"
+                />
             </div>
             <small v-if="filterIsActive" class="d-none d-sm-inline italic-muted">{{ $t("filtersAreApplied") }}</small>
         </div>

@@ -121,6 +121,10 @@ export const urlToBlob = async (url: string, filename?: string): Promise<NamedBl
     }
     return blob
 }
+/**
+ * Reads the blob as a data URL (`data:<type>;base64,<data>`), not bare base64: for a JSON `byte[]` field (an
+ * attachment's `newBytes`) send only the part after the comma.
+ */
 export const blobToBase64 = async (blob: Blob): Promise<string> => {
     return new Promise(function (resolve) {
         const reader = new FileReader()

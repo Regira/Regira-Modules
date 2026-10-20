@@ -7,7 +7,12 @@
         </div>
         <div v-for="item in items" :key="item.$id" class="row border-bottom py-2" :class="{ 'is-selected': isSelected(item) }">
             <div class="col-auto">
-                <IconButton :icon="isSelected(item) ? 'selected' : 'select'" @click="handleSelect(item)" />
+                <IconButton
+                    :icon="isSelected(item) ? 'selected' : 'select'"
+                    :aria-label="$t('select')"
+                    :aria-pressed="isSelected(item)"
+                    @click="handleSelect(item)"
+                />
             </div>
             <!-- TODO: columns -->
             <div class="col text-truncate">{{ item.$title }}</div>
@@ -22,8 +27,10 @@ import type { OverviewEmits } from "@regira/modules/vue/entities"
 import type Entity from "../data/Entity"
 import useEntityStore from "../data/store"
 
-interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {}
-const emit = defineEmits<Emits & { (e: "update:modelValue", value: Array<Entity>): void; (e: "select", selected?: Entity): void }>()
+interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
+    select: [selected?: Entity]
+}
+const emit = defineEmits<Emits>()
 const props = defineProps<{ modelValue?: Array<Entity>; selected?: Entity }>()
 
 const isSelected = computed(() => (item: Entity) => item.$id == props.selected?.$id)

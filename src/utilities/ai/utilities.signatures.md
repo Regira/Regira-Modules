@@ -138,7 +138,7 @@ export declare const toFormData: (files: Blob[], data: Record<string, unknown>, 
 export declare const fileToBlob: (file: File, filename?: string, type?: string) => Promise<NamedBlob>
 export declare const base64ToBlob: (base64: string, filename: string, type?: string) => NamedBlob
 export declare const urlToBlob: (url: string, filename?: string) => Promise<NamedBlob>
-export declare const blobToBase64: (blob: Blob) => Promise<string>
+export declare const blobToBase64: (blob: Blob) => Promise<string> // a DATA URL (data:<type>;base64,<data>): a JSON byte[] field (newBytes) takes only the part after the comma
 export declare const readAllText: (blob: Blob) => Promise<string>
 export declare const writeAllText: (content: string, filename?: string, type?: string) => NamedBlob
 export declare const saveAs: (blob: Blob & { name?: string }, filename?: string) => void

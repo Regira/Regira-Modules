@@ -24,9 +24,14 @@ position**: the server assigns `SortOrder = index` over the incoming collection 
 (`SetSortOrder()`, wired by `HasAttachments` — its input DTO has no sort field). The client sorts by the
 server-sent `sortOrder` on load and mirrors the array index back into it after every change, so a re-map
 (a host `prepareItem` assigning a fresh array) re-sorts to the same order instead of reverting a drag.
+The first file is the owner's primary one (a product's main picture): drag it to the top, and the parent's save
+stores that order.
 
 > **Shared slice — no per-entity tokens.** Unlike an entity slice, this is copied verbatim (one folder per
 > app). You do not customize its files; you customize which entities _use_ it (the 3-line host wiring below).
+> The one exception is an extra field on the link (a featured flag or a caption, on the API's derived link DTO): add
+> it to `data/Entity.ts` and edit it in the owner's own tab. For a featured image alone, prefer the first position,
+> which needs no change.
 
 ## `attachments/Entity.ts`
 
@@ -71,6 +76,7 @@ export class EntityAttachment extends EntityBase {
     uri?: string
     sortOrder = 0 // list position — mirrored from the array index client-side (keeps re-maps stable); the server derives SortOrder from the array order on save (its input DTO has no sort field, so the serialized value is informational)
     newFileName?: string // edited name for an existing file — applied on flush
+    newBytes?: string // base64 file content, for a host that sends its files in the owner's own save (entities.patterns → Files in the creating request)
     attachment?: Attachment
     _deleted = false // marked-delete (undoable) — filtered out in the host service's prepareItem
 
@@ -110,7 +116,8 @@ import { useAxios } from "@regira/modules/vue/http"
 import Entity from "./Entity"
 import Attachment from "../attachments/Entity"
 
-// Stage a picked/dropped file: keep the Blob in memory + an object URL for instant preview/download.
+// Stage a picked/dropped file: keep the Blob in memory + an object URL for instant preview/download (revoked when the
+// rows are re-mapped without it, see useEntityAttachments).
 export function createEntity(file: Blob & { name?: string }): Entity {
     const item = new Entity()
     item.attachment = Object.assign(new Attachment(), { _file: file, fileName: file.name, contentType: file.type, length: file.size })
@@ -129,8 +136,7 @@ export function useEntityAttachments({
     // edits (rename, _deleted, reorder) persist without re-mapping. Re-map only when the host swaps in a new record.
     // The ARRAY ORDER is the wire contract (the server assigns SortOrder from position on every parent
     // save) — but the client mirrors the index into sortOrder after every change, because re-maps sort by
-    // it: a host prepareItem that assigns a fresh filtered array retriggers toItems, and stale values
-    // would visually revert a drag at the moment of save.
+    // it: when the host loads a record again (after a save, say), stale values would visually revert a drag.
     const renumber = (v: Array<Entity>) => v.forEach((x, i) => (x.sortOrder = i))
     const toItems = (v: Array<Entity>) => {
         const mapped = v.map((x) => Entity.create(x)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
@@ -141,7 +147,12 @@ export function useEntityAttachments({
     watch(
         () => props.modelValue,
         (v) => {
-            if (v && v !== items.value) items.value = toItems(v)
+            if (v && v !== items.value) {
+                // an object URL holds its file in memory until revoked: release the staged previews the new rows no longer show
+                const kept = new Set(v.map((x) => x.uri))
+                for (const x of items.value) if (x.uri?.startsWith("blob:") && !kept.has(x.uri)) URL.revokeObjectURL(x.uri)
+                items.value = toItems(v)
+            }
         }
     )
     const sync = () => emit("update:modelValue", items.value)
@@ -213,7 +224,7 @@ export async function insertWithAttachments<T extends { id: number; attachments?
         if (saved == null) return undefined // insert failed — nothing to attach files to
         saved.attachments = attachments
         await saveAll(api, saved)
-        attachments.forEach((x) => delete x.attachment?._file) // free the blobs
+        attachments.forEach((x) => delete x.attachment?._file) // uploaded: drop the staged file (its preview URL goes on the next re-map)
         // the file upload carries no order — the follow-up parent update sends the array in display order
         // and the server assigns SortOrder from position (saveAll assigned the ids, so the Related() sync
         // updates instead of re-inserting). It only conveys order, so it must never invalidate the
@@ -234,7 +245,7 @@ export async function updateWithAttachments<T extends { id: number; attachments?
     update: () => Promise<T | undefined>
 ): Promise<T | undefined> {
     await saveAll(api, item)
-    item.attachments?.forEach((x) => delete x.attachment?._file) // free the blobs, like insert
+    item.attachments?.forEach((x) => delete x.attachment?._file) // uploaded: drop the staged file, like insert
     return await update()
 }
 async function saveAll(api: string, item: { id: number; attachments?: Array<Entity> }) {
@@ -312,7 +323,7 @@ const { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd
 ```vue
 <template>
     <div class="input-group">
-        <a :href="item.uri" class="btn btn-outline-info" @click.prevent="handleDownload"><Icon name="download" /></a>
+        <a :href="item.uri" class="btn btn-outline-info" :aria-label="$t('download')" @click.prevent="handleDownload"><Icon name="download" /></a>
         <!-- an existing file edits newFileName; a staged file edits fileName directly -->
         <input
             v-if="item.id > 0"
@@ -325,7 +336,9 @@ const { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd
         />
         <input v-else v-model.lazy="item.fileName" :readonly="readonly" maxlength="256" class="form-control" @change="emit('change')" />
         <span class="input-group-text">{{ formatFileSize(item.attachment?.length ?? 0) }}</span>
-        <button v-if="!readonly" type="button" class="btn btn-outline-danger" @click="toggleRemove"><Icon name="delete" /></button>
+        <button v-if="!readonly" type="button" class="btn btn-outline-danger" :aria-label="$t('delete')" @click="toggleRemove">
+            <Icon name="delete" />
+        </button>
     </div>
 </template>
 
@@ -416,9 +429,11 @@ protected override prepareItem(item: Owner): Owner {
 <!-- import { Overview as EntityAttachments } from "../../entity-attachments" -->
 ```
 
-> **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`); order the
-> attachments include by sort order — `x.Attachments!.OrderBy(a => a.SortOrder)` — so the list loads in the
+> **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`), and give the owner's input
+> DTO `ICollection<EntityAttachmentInputDto>? Attachments`: the slice sends renames, order and removals in the owner's
+> `PUT`. Order the attachments include by sort order — `x.Attachments!.OrderBy(a => a.SortOrder)` — so the list loads in the
 > saved order (`HasAttachments` assigns `SortOrder` from the incoming array position on every parent
 > save). Expose the download **anonymously** if
 > `<img src>` tags render thumbnails (a guarded download 401s — the tag sends no `Authorization` header).
-> See `Regira.Entities` → _Public (anonymous) attachment downloads_.
+> See `Regira.Entities` → _Public (anonymous) attachment downloads_. A file that must stay private loads through
+> `getFile` instead (entities.patterns → _Attachments (files)_).

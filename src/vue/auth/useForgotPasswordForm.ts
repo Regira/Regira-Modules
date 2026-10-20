@@ -7,6 +7,10 @@ export interface ForgotPasswordFormEmits {
     (e: "fail", ex?: any): void
     (e: "login", username?: string): void
 }
+/** the modal's close: its header X or Esc */
+export interface ForgotPasswordModalEmits {
+    (e: "close"): void
+}
 export interface ForgotPasswordFormProps {
     username?: string
 }
@@ -23,7 +27,11 @@ export type ForgotPasswordModalSlots = {
 export function useForgotPasswordForm(
     props: ForgotPasswordFormProps,
     emit: ForgotPasswordFormEmits,
-    options: { siteUrl: string; siteName?: string }
+    options: {
+        siteUrl: string
+        /** @deprecated The API names the mail itself and ignores this. */
+        siteName?: string
+    }
 ) {
     const { service } = useAuth()
 

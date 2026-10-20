@@ -18,7 +18,8 @@
   token is validated, so a fetch guarded on `isAuthenticated` never runs and never errors — a blank panel,
   no failed request. Restoring a token is the `validateToken` action, not `login`, so a hand-rolled
   `$onAction(… "login" …)` misses it. Pass `{ immediate: false }` where the view already fetches on mount
-  (`useRouteOverview` / `useDetails` — the scaffolded views do).
+  (`useRouteOverview` / `useDetails` — the scaffolded views do); a page a signed-out visitor uses loads in
+  `onMounted` and re-loads with `{ immediate: false }` (`auth.instructions` → _What a first load shows_).
 - **⚠️ `$auth` is a union** (`IGlobalAuth | { enabled: false }`), so `$auth.isAuthenticated` alone is a
   TS2339 build failure — narrow with `$auth.enabled && …`, as the scaffolded shell does, or read the
   already-resolved `authStore.isAuthenticated`.
@@ -27,8 +28,9 @@
   probes all three. `hasPermission` reads a **`permissions`** claim the standard Identity recipe never
   mints; role-gating with it silently answers `false` (invisible buttons, forbidden redirects).
 - **Route guard** (installed by the plugin): `meta.allowAnonymous` bypasses; `meta.permissions: string[]`
-  checks `hasPermission`; role-gated routes use `meta.policy: (store) => store.hasRole("Admin")`, never
-  `beforeEnter`, which runs before a stored token is restored; the plugin re-checks the first route once it is.
+  checks `hasPermission`; role-gated routes use `meta.policy: (store: IAuthStore) => store.hasRole("Administrator")`, never
+  `beforeEnter`, which runs before a stored token is restored; the plugin re-checks the route on screen once it is,
+  and on every new token (another account, a refresh, a tenant switch).
   Unauthenticated navigation is **allowed** (popup model — gate content and show `LoginModal`); only
   `permissions`/`policy` failures redirect, to a route named `forbidden`.
 - **Build the full account surface, not just login:** `LoginModal`, `ForgotPasswordModal` (+ your own form),
@@ -40,6 +42,7 @@
   interceptor logs every failed request the app makes, so **register the app's own credential endpoints** —
   `credentialUrls: ["users/*/password", …]` on the plugin, or `registerCredentialUrls(...)` — or their
   bodies are logged in full. See _Logging_ in `auth.instructions`.
-- **Top traps:** `siteUrl` for recovery is the reset _page_, not the origin; read the mailed token via
-  vue-router `route.query.token` (URLSearchParams corrupts base64 `+`); gate `LoginModal` with `v-if`, not
-  visibility; a 401 on non-`auth/` URLs auto-triggers re-validation + the login popup (403 does not).
+- **Top traps:** `siteUrl` for recovery is the reset _page_, not the origin, and the API mails it only on an
+  origin it lists (the dev server's too); read the mailed token from `route.query.token`, a single string or
+  none; gate `LoginModal` with `v-if`, not visibility; a 401 on non-`auth/` URLs auto-triggers re-validation +
+  the login popup (403 does not).

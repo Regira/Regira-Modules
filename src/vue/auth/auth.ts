@@ -21,6 +21,7 @@ export interface IGlobalAuth {
     service: IAuthService
     authData: IAuthData
     isAuthenticated: boolean
+    /** the auth store's route-driven `isRequired`: auth is enabled and the current route is not `allowAnonymous` */
     isRequired: boolean
 }
 export type IAuthOptions = {
