@@ -83,7 +83,7 @@ await svc.approve(item.id)
 A custom endpoint changes the row behind the form's back, so the form goes on showing it as it was. Re-read it
 through the **pooled** service, which also writes the fresh row into the pool, and pass it up with
 `update:modelValue`: the details page and `useForm` both take it, as in the Reload recipe of
-*Form validation & error handling* in this guide.
+_Form validation & error handling_ in this guide.
 
 ```ts
 // details/Form.vue — it already has entityService (useEntityStore()'s pooled service), item, feedback and emit
@@ -109,18 +109,24 @@ async function approve() {
 
 `EntityServiceBase.processItem` converts the server strings **`created`** and **`lastModified`** to
 `Date` automatically. Type them as `Date` on the model; do not parse them yourself. Any other date
-field arrives as a string — convert it in `toEntity`. Edit the override the scaffolded `data/EntityService.ts`
-already has: it overrides `toEntity` and `prepareItem` both, and a second member of the same name is TS2393
-(_Duplicate function implementation_). The same goes for every `toEntity` and `prepareItem` snippet below.
+field arrives as a string — type it as `Date` on the model too, and convert it in `toEntity` with `liftDates`.
+Edit the override the scaffolded `data/EntityService.ts` already has: it overrides `toEntity` and `prepareItem`
+both, and a second member of the same name is TS2393 (_Duplicate function implementation_). The same goes for
+every `toEntity` and `prepareItem` snippet below.
 
 ```ts
 // data/EntityService.ts — the scaffolded toEntity
+// import { EntityServiceBase, liftDates, type IConfig } from "@regira/modules/vue/entities"
 override toEntity(item: object): Entity {
-    const e = item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
-    if (typeof (e as any).publishedOn === "string") e.publishedOn = new Date((e as any).publishedOn)
-    return e
+    if (item instanceof Entity) return item
+    return liftDates(Object.assign(this.createInstance(Entity as new () => Entity), item || {}), "publishedOn", "dueOn")
 }
 ```
+
+`liftDates(item, ...fields)` converts the named fields in place and returns the item. It takes only fields the model
+types as `Date` (another name is a type error), converts only a string — an empty or unparseable one becomes
+`undefined` — and leaves a `Date`, `null` or `undefined` as it is. An owned row's `static create` lifts its own
+dates the same way: `return liftDates(Object.assign(new OrderLine(), values || {}), "deliveredOn")`.
 
 **A `DateOnly`/`TimeOnly` field stays a string** (`"2026-09-21"`, `"09:30:00"`) — never hydrate it:
 `new Date("2026-09-21")` is UTC midnight, which renders as the previous day west of UTC, and the API reads a
@@ -157,10 +163,11 @@ protected override prepareItem(item: Entity): Entity {
 }
 ```
 
-⚠️ The `typeof … === "string"` guard is mandatory, not style. `toEntity` runs inside computeds
-(`fromPool`, the library `FormModalButton.modalTitle`), so an unconditional `new Date(x)` mutates the
-computed's own dependency and throws `Maximum recursive updates exceeded` **against the library
-component** — the error names the wrong code. Keep `toEntity` idempotent.
+⚠️ Converting only a string is mandatory, not style — `liftDates` does it, and a conversion written by hand needs
+the same `typeof … === "string"` guard. `toEntity` runs inside computeds (`fromPool`, the library
+`FormModalButton.modalTitle`), so an unconditional `new Date(x)` mutates the computed's own dependency and throws
+`Maximum recursive updates exceeded` **against the library component** — the error names the wrong code. Keep
+`toEntity` idempotent.
 
 The same rule governs **every** conversion in the override, including the owned-collection lift
 ([Owned rows with scalar fields](#owned-rows-with-scalar-fields--the-inline-table)) — a fresh array counts
@@ -963,7 +970,8 @@ slot receives the row); a scalar to edit per row needs the table. Scaffold
 it with `--owns <Child>` (no `--picker`) and give the relation column the related slice's `InputSelector`, both
 v-models bound. On the add-row, `@select` also fills the defaults the picked row brings; `handleSave` then mints a
 fresh `newItem`. That clears the picker's model, but not its text while the picker has focus, and Enter in the picker
-is the usual way to add: key the add-row picker and bump the key when a row is added, so it remounts empty:
+is the usual way to add: key the add-row picker and bump the key when a row is added, so it remounts empty. Enter in
+the add-row's scalars adds the row too, once one is picked, with the `@keydown.enter.prevent` of the add-row above:
 
 ```vue
 <script setup lang="ts">
@@ -998,10 +1006,20 @@ function add() {
     </div>
     <div v-if="newItem" class="row">
         <div class="col">
-            <ProductSelector :key="addRowKey" v-model="newItem.product" v-model:id-value="newItem.productId" :filter-defaults="{ exclude }" @select="handleSelect" />
+            <ProductSelector
+                :key="addRowKey"
+                v-model="newItem.product"
+                v-model:id-value="newItem.productId"
+                :filter-defaults="{ exclude }"
+                @select="handleSelect"
+            />
         </div>
-        <div class="col-2"><input type="number" v-model.number="newItem.quantity" class="form-control" /></div>
-        <div class="col-2"><input type="number" v-model.number="newItem.unitPrice" class="form-control" /></div>
+        <div class="col-2">
+            <input type="number" v-model.number="newItem.quantity" class="form-control" @keydown.enter.prevent="newItem.productId && add()" />
+        </div>
+        <div class="col-2">
+            <input type="number" v-model.number="newItem.unitPrice" class="form-control" @keydown.enter.prevent="newItem.productId && add()" />
+        </div>
         <button type="button" class="btn btn-success" :disabled="!newItem.productId" @click="add">+</button>
     </div>
 </template>
@@ -1493,7 +1511,7 @@ pooling has already seen.
 
 The API's write tiers are invisible to the client: a role-gated write filter or a row-scoping filter answers
 **403** for a caller the scaffold offered a "New" button to. Mirror the server's allow-list once,
-then gate three affordances per slice — nothing else changes.
+then give each slice's config a `canWrite` — the scaffolded views read it, so nothing else in the slice changes.
 
 ```ts
 // src/access.ts — the SPA's single mirror of the API's write tiers; keep it next to the filter it mirrors.
@@ -1513,11 +1531,10 @@ export function useAccess() {
 }
 ```
 
-| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `overview/Overview.vue`              | `const { canWrite } = useAccess()` → `v-if="canWrite(config.key)"` on the **`<div class="col-auto ...">` that wraps the "New" affordance** (it is two branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one — so gating the wrapper covers both), and `:readonly="!canWrite(config.key)"` on the `<component :is="List">`                                                                                                                                                   |
-| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                                                                                                                                                                           |
-| `details/Details.vue`                | `:readonly="!canWrite(config.key)"` on the `<component :is="Component">` that renders the form                                                                                                                                                                                                                                                                                                                                                                                                         |
+| File                                 | Edit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config/config.ts`                   | `canWrite: () => useAccess().canWrite("Department")` (`import { useAccess } from "@/access"`). While it answers false, the scaffolded `overview/Overview.vue` hides the wrapper around the **"New"** affordance (both branches — a `RouterLink` for a page entity, a `FormModalButton` for a modal one) and passes `readonly` to its `List`, and `details/Details.vue` passes `readonly` to the form. Both read it through a `computed`, so a sign-in or another account shows at once                                                                                                                                                                                                                                                |
+| `overview/List.vue` + `ListItem.vue` | already threaded: `List` passes `readonly` to each row and drops the header's delete spacer with it, and the row drops its own delete and opens its `FormModalButton` read-only. Optional: swap the row's `edit` icon for `details` (an eye)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | a related entity's button            | a `--rel` relation column in `ListItem.vue` and a `--picker` chip open the _related_ entity's `FormModalButton`, so they gate on that entity: `:readonly="!canWrite('Employee')"` on each `EmployeeButton` (in a chip, `readonly \|\| !canWrite('Employee')`, so a read-only form stays read-only). On an `InputSelector`, `readonly` keeps that button while a row is selected and opens it read-only; an empty read-only control shows none, while `:can-edit="false"` removes the button altogether. A `--picker`'s `#selector` slot (the join slice's `Overview.vue`) renders the related slice's `InputSelector`, whose empty control offers a "new" button that creates that entity: give it `:can-edit="canWrite('Employee')"` |
 
 A selector for an entity the caller may not **read** at all goes behind `v-if` (a `canRead` beside `canWrite`): a

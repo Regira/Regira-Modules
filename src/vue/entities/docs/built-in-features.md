@@ -57,6 +57,8 @@ only if you are building a registry-driven UI.
 
 - `cleanQueryParams(params)` — drops null/`$`-prefixed keys and `page` ≤ 1 before building a query string.
 - `parseQueryParams(query)` — splits a route query into `{ searchObject, pagingInfo }`.
+- `liftDates(item, ...fields)` — converts the named ISO-string fields of an item to `Date`, in place, for a
+  service's `toEntity`; it converts only a string, so a second call changes nothing.
 
 ## Wiring modules
 

@@ -34,6 +34,10 @@ Omit step 6's views and `createRoutes()`. The `install` only calls `addServices`
 `$configs[Entity.name]`. `SearchObject` can be empty (`extends SearchObjectBase {}`). For small static
 lists, extend `JSONService` instead of `EntityServiceBase`.
 
+`node node_modules/@regira/modules/_template/scaffold.mjs <Entity> --data-only` generates this data layer:
+`config/`, `data/`, `setup.ts` without routes, and `index.ts`. It leaves out `selecting/` too, so an entity other
+forms pick from keeps the full slice and drops only the overview.
+
 ## App-level setup (once per app)
 
 - **Plugins & bootstrap** — `main.ts` / `App.vue`, install order, and the required-vs-optional plugin set.

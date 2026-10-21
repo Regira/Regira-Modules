@@ -41,7 +41,8 @@ IoC registration in `setup.ts`. Useful members (`toEntity` / `newEntity` are pub
   leaves the form alone; reassign collections there rather than changing their rows. Strips **top-level** properties whose key starts with `_`
   (transient client state). The strip does not recurse, so a `_deleted` child row is still sent — override
   and filter such rows out per collection to drop soft-deleted children.
-- **`processItem(item)`** — runs after fetch/save; hydrates `created` / `lastModified` strings to `Date`.
+- **`processItem(item)`** — runs after fetch/save; hydrates `created` / `lastModified` strings to `Date`. Any
+  other date field is lifted in `toEntity`: `liftDates(entity, "publishedOn")` converts the named strings in place.
 - **`createInstance(Type)`** — `new`s a model without arguments (used inside `toEntity`).
 - **`newEntity(values?)`** — builds a blank/seeded instance for create forms.
 

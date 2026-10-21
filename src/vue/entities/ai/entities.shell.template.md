@@ -510,6 +510,7 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "results": { "en": "results" },
     "save": { "en": "Save" },
     "search": { "en": "Search" },
+    "searchIn": { "en": "Search {title}" },
     "select": { "en": "Select" },
     "sendRecoveryLink": { "en": "Send recovery link" },
     "signIn": { "en": "Sign in" },
@@ -788,7 +789,7 @@ function handleSearch() {
             v-model.trim="q"
             type="search"
             class="form-control me-2"
-            :placeholder="`${$t('search')} ${$t(searchItemConfig.overviewTitle || '')}`"
+            :placeholder="$t('searchIn', { title: $t(searchItemConfig.overviewTitle || '') })"
         />
         <IconButton icon="search" class="btn-outline-primary" type="submit" :aria-label="$t('search')" />
     </form>

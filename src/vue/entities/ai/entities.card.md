@@ -57,7 +57,8 @@
   _any_ collection → page. Modal only for the flat lookup tables (a title, maybe a code and a colour).
   `isComplex` also gates the advanced-filter toggle on the overview, so a modal entity gets no `FilterAdv` — unless
   it turns the toggle on itself: a read-only log that needs filters stays modal with
-  `<FilterInline … :show-toggle-adv="true" />` in its `filter/Filter.vue`.
+  `<FilterInline … :show-toggle-adv="true" />` in its `filter/Filter.vue`. `scaffold.mjs <Entity> --modal` writes
+  both, `isComplex: false` and the toggle; drop the prop where no filter is wanted.
 - **A displayed _related_ entity defaults to its `FormModalButton`** — every chip, badge, or list cell that
   shows a related row opens that row's form in a modal (quick-edit), whatever that entity's own `isComplex`;
   a bare text label is the exception. This is distinct from the rule above: it edits a _neighbour_, not the
@@ -95,7 +96,9 @@
   module-evaluation time, so whichever barrel is entered second gets a half-initialised binding:
   `ReferenceError: Cannot access 'Entity' before initialization`. ⚠️ The tell is that **`vue-tsc` and
   `npm run build` are both green** (Rollup hoists it away) and only the dev server fails. Bidirectional slice
-  references are normal in a CRUD app, so prefer the erased form everywhere; it costs nothing.
+  references are normal in a CRUD app, so prefer the erased form for every type-only import; it costs nothing.
+  Beside a value import from the same barrel (the --rel and --picker output), an inline type adds nothing: the value
+  keeps the statement.
   Inside a slice, import its **own** model as the default (`import type Entity from "./data/Entity"`) —
   `import { type Entity }` from the data module grabs the `const` value binding and fails `TS2749`.
 - **⚠️ A cross-slice _value_ import cannot be erased, so it is the half that can still cycle.** `--rel`

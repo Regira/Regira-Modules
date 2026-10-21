@@ -217,3 +217,99 @@ describe("saves and deletes settling against an in-flight fetch", () => {
         expect(feedback.status).toBe(FeedbackStatus.success)
     })
 })
+
+// The result count and the paging read `itemsCount`, so a row removed or added in place moves it with the list:
+// a stale count is what an overview showed after a delete until the next fetch.
+describe("the count follows the rows", () => {
+    const page = () => [
+        { $id: "1", $title: "chair" },
+        { $id: "2", $title: "table" },
+    ]
+    async function searched(count = 25) {
+        const view = useSearchView({ service: { search: async () => ({ items: page(), count }) }, searchObject: {} })
+        await view.searchHandler()
+        return view
+    }
+
+    test("a removed row lowers the search total once", async () => {
+        const { items, itemsCount, handleRemove } = await searched()
+
+        handleRemove({ $id: "1" })
+
+        expect(items.value.map((x) => x.$id)).toEqual(["2"])
+        expect(itemsCount.value).toBe(24)
+    })
+
+    test("a delete applied the guarded way counts once: applyRemove leaves the count to handleRemove", async () => {
+        const view = useSearchView({
+            service: { search: async () => ({ items: page(), count: 25 }), remove: async () => {} },
+            searchObject: {},
+        })
+        await view.searchHandler()
+
+        const row = view.items.value[0]
+        if (await view.applyRemove(row)) view.handleRemove(row)
+
+        expect(view.itemsCount.value).toBe(24)
+    })
+
+    test("a row the list does not hold leaves the count alone", async () => {
+        const { itemsCount, handleRemove } = await searched()
+
+        handleRemove({ $id: "elsewhere" })
+
+        expect(itemsCount.value).toBe(25)
+    })
+
+    test("the count never drops below zero", async () => {
+        const { itemsCount, handleRemove } = await searched(0)
+
+        handleRemove({ $id: "1" })
+
+        expect(itemsCount.value).toBe(0)
+    })
+
+    test("a new row raises the count, an edited one does not", async () => {
+        const { items, itemsCount, handleSave } = await searched()
+
+        handleSave({ saved: { $id: "3", $title: "lamp" }, isNew: true })
+        handleSave({ saved: { $id: "1", $title: "armchair" }, isNew: false })
+
+        expect(items.value.map((x) => x.$title)).toEqual(["armchair", "table", "lamp"])
+        expect(itemsCount.value).toBe(26)
+    })
+
+    test("a new row a later fetch already brought is replaced, not counted twice", async () => {
+        const { items, itemsCount, handleSave } = await searched()
+
+        handleSave({ saved: { $id: "2", $title: "table" }, isNew: true })
+
+        expect(items.value).toHaveLength(2)
+        expect(itemsCount.value).toBe(25)
+    })
+
+    test("the list view's count stays the rows' own length", async () => {
+        const { items, itemsCount, listHandler, handleRemove, handleSave } = useListView({
+            service: { list: async () => page() },
+            searchObject: {},
+        })
+        await listHandler()
+
+        handleRemove({ $id: "1" })
+        expect(itemsCount.value).toBe(items.value.length)
+
+        handleSave({ saved: { $id: "3", $title: "lamp" }, isNew: true })
+        expect(itemsCount.value).toBe(items.value.length)
+        expect(itemsCount.value).toBe(2)
+    })
+
+    test("before the first fetch nothing is counted", () => {
+        const { items, itemsCount, handleRemove, handleSave } = useSearchView({ service: {}, searchObject: {} })
+
+        handleSave({ saved: { $id: "1" }, isNew: true })
+        handleRemove({ $id: "1" })
+
+        expect(items.value).toBeUndefined()
+        expect(itemsCount.value).toBeUndefined()
+    })
+})

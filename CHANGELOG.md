@@ -5,6 +5,35 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `vue/entities`: New: `liftDates(item, ...fields)` (with `DateKeys<T>`) converts the named ISO-string fields of an
+  item to `Date`, in place, for a service's `toEntity`. It converts only a string, so a second call changes nothing,
+  and it takes only fields the model types as `Date`, so a `DateOnly` string field is a type error. New:
+  `IConfig.canWrite?: () => boolean`, whether the signed-in user may create, edit and delete the entity; the
+  scaffolded views read it. Fixes: the overview's `handleRemove` lowers `itemsCount` (never below 0) and `handleSave`
+  raises it for a new row, so the result count and the paging follow a delete or an add without a fetch; a new row
+  that a fetch settling after the save already brought is replaced, not listed twice.
+- Scaffold: new flags `--modal` (`isComplex: false`, with the advanced-filter toggle kept on in `filter/Filter.vue`)
+  and `--data-only` (`config/`, `data/`, a `setup.ts` without routes and an `index.ts` without views; refused with
+  `--rel`, `--owns`, `--attachments` and `--modal`). `overview/Overview.vue` and `details/Details.vue` read
+  `config.canWrite`: while it answers `false` there is no "New" button, and the rows and the form are read-only.
+  `config/config.ts` shows the `canWrite` line commented out, and `data/EntityService.ts` points to `liftDates`. The
+  header search's placeholder is one translation, `searchIn` ("Search {title}"), so a language can place the title
+  itself, where two joined translations read "Zoeken Opleidingen". Fix: the overview's "New" button of a modal entity
+  re-runs the search on `remove` as it does on `save`, so a row created and then deleted in the same modal leaves the
+  list. ⚠️ Upgrade: copy the `canWrite` computed and its bindings (`overview/Overview.vue`, `details/Details.vue`), the
+  New button's `@remove="searchHandler(false)"` (`overview/Overview.vue`), the placeholder
+  (`entity-navigation/NavSearch.vue`) and the `searchIn` key.
+- `vue/auth`: Guide: a public storefront with on-demand sign-in, as code — an app-wide request flag, the gate that
+  reads it beside `isRequired`, and the `@close` that drops it.
+- Guides — `ui.customize` names the two places a built-in needs `!important` (the `FormSection` header bar and the
+  labels hidden below a breakpoint), and the Tabs signature says an icon tab hides its title below `lg`; the
+  `AuthData` signature names the claims `displayName` and `culture` come from; the type-import advice for slices
+  covers an import beside a value import from the same barrel; the permission-gated UI recipe sets `config.canWrite`;
+  the worked examples' `ListItem` forwards `remove` from its `FormModalButton`; in the recipe for owned rows with a
+  relation and scalars, Enter in an add-row scalar adds the row instead of submitting the parent form.
+
 ## 6.6.0 — 2026-10-20
 
 - `vue/auth`: **behaviour change — `$auth.isRequired` is the route-driven `isRequired`** (it was the sticky

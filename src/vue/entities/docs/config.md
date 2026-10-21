@@ -11,6 +11,7 @@ const config: IConfig = {
     key: "Product", // route-name prefix + icon key
     routePrefix: "products", // URL path segment
     isComplex: true, // entity with child collections / heavier form
+    canWrite: () => useAuthStore().hasRole("Administrator"), // false: no New/Edit/Delete in the scaffolded views
     baseQueryParams: { includes: ["Facets"] }, // merged into every list/search
     initialQuery: { isRoot: true }, // route query for the GENERATED nav link only — not a request default
     overviewTitle: "products",
@@ -28,6 +29,10 @@ const config: IConfig = {
 ```
 
 `IConfig extends Record<string, any>`, so apps may add extra fields (e.g. `id`, `nav`) without type errors.
+
+`canWrite` tells the scaffolded views whether the signed-in user may create, edit and delete the entity. While it
+answers `false` the overview drops its "New" button and passes `readonly` to its rows, and the details page passes
+it to the form; absent, everyone may. It hides buttons only — the API still authorizes every write.
 
 `defaultPageSize` seeds each overview's page size; the overview composables fall back to 10 when it is `0`
 or unset. `pageSize: 0` at the service layer (`service.list`/`search`) returns **all rows, capped by the

@@ -855,6 +855,61 @@ describe("scaffold.mjs guards", () => {
     })
 })
 
+describe("scaffold.mjs --modal", () => {
+    test("sets isComplex false and keeps the advanced-filter toggle on, which isComplex would otherwise hide", () => {
+        const out = run("Dossier", "--modal", "--no-auth")
+        const config = readFileSync(app("src", "entities", "dossiers", "config", "config.ts"), "utf8")
+        const filter = readFileSync(app("src", "entities", "dossiers", "filter", "Filter.vue"), "utf8")
+
+        expect(config).toMatch(/^\s*isComplex: false,/m)
+        expect(config).not.toMatch(/isComplex: true/)
+        expect(filter).toMatch(/<FilterInline v-model="searchObject" :show-toggle-adv="true"/)
+        expect(out).toContain("Modal slice")
+    })
+
+    test("without --modal the slice is a page entity and the toggle follows isComplex", () => {
+        run("Quire", "--no-auth")
+
+        expect(readFileSync(app("src", "entities", "quires", "config", "config.ts"), "utf8")).toMatch(/^\s*isComplex: true,/m)
+        expect(readFileSync(app("src", "entities", "quires", "filter", "Filter.vue"), "utf8")).not.toContain("show-toggle-adv")
+    })
+
+    test("is refused on an existing slice it would leave untouched", () => {
+        run("Coffer", "--no-auth")
+
+        expect(runFailing("Coffer", "--modal", "--owns", "CofferLine", "--no-auth")).toContain("--modal rewrites the slice's own")
+        expect(isDir("src", "entities", "coffers", "coffer-lines")).toBe(false)
+    })
+})
+
+describe("scaffold.mjs --data-only", () => {
+    test("writes the data layer and a plugin without routes, and nothing else", () => {
+        const out = run("Hamper", "--data-only", "--no-auth")
+        const root = app("src", "entities", "hampers")
+
+        expect(readdirSync(root).sort()).toEqual(["config", "data", "index.ts", "setup.ts"])
+        const setup = readFileSync(join(root, "setup.ts"), "utf8")
+        expect(setup).not.toMatch(/createRoutes|RouteRecordRaw|DetailsSummary|routes\.push/)
+        expect(setup).toContain("install(app: App<Element>) {")
+        expect(setup).toContain("$configs[Entity.name] = config")
+        const barrel = readFileSync(join(root, "index.ts"), "utf8")
+        expect(barrel).not.toMatch(/\.\/(filter|selecting|details|overview)\//)
+        expect(barrel).toContain('export { default as useEntityStore } from "./data/store"')
+        expect(barrel).toContain('export { default as plugin } from "./setup"')
+        // only the two (c) files it emits are listed, and the navigation warning names the missing route
+        const listed = out.split("\n").filter((l) => l.trim().startsWith("· src"))
+        expect(listed).toHaveLength(2)
+        expect(out).toContain("HamperOverview route it does not have")
+    })
+
+    test("refuses the flags that write into views, before anything is written", () => {
+        for (const flags of [["--rel", "Hamper"], ["--owns", "TillLine"], ["--attachments"], ["--modal"]]) {
+            expect(runFailing("Till", "--data-only", ...flags, "--no-auth")).toContain("--data-only scaffolds no views")
+        }
+        expect(isDir("src", "entities", "tills")).toBe(false)
+    })
+})
+
 describe("scaffold.mjs output type-checks", () => {
     // vue-tsc over a scaffolded app, which reads @regira/modules through its exports map as an install does: the
     // built dist/, so the test skips until `npm run build` has run
@@ -876,7 +931,7 @@ describe("scaffold.mjs output type-checks", () => {
     })
 
     test.skipIf(!built)(
-        "a slice type-checks with a number key and with a string key",
+        "slices type-check: a number and a string key, --modal, --data-only, config.canWrite and liftDates",
         () => {
             // the slice is key-generic: `id: string = ""` (a Guid or code key) compiles as the default `id: number = 0` does
             root = mkdtempSync(join(tmpdir(), "regira-typecheck-"))
@@ -885,9 +940,36 @@ describe("scaffold.mjs output type-checks", () => {
             scaffoldHere("--shell", "--no-auth")
             scaffoldHere("Note", "--no-auth")
             scaffoldHere("Tag", "--no-auth")
+            scaffoldHere("Memo", "--modal", "--no-auth")
+            scaffoldHere("Basket", "--data-only", "--no-auth")
             const model = join(root, "src", "entities", "tags", "data", "Entity.ts")
             writeFileSync(model, readFileSync(model, "utf8").replace(/^(\s*)id: number = 0\b/m, '$1id: string = ""'))
             expect(readFileSync(model, "utf8")).toMatch(/^\s*id: string = ""/m)
+
+            // a config that gates writes, and a toEntity that lifts a date field the model types as Date
+            const edit = (path, change) => writeFileSync(path, change(readFileSync(path, "utf8")))
+            const note = (...segments) => join(root, "src", "entities", "notes", ...segments)
+            edit(note("config", "config.ts"), (s) => s.replace(/^(\s*)isComplex: true,/m, "$1canWrite: () => false,\n$1isComplex: true,"))
+            edit(note("data", "Entity.ts"), (s) => s.replace(/^(\s*)lastModified\?: Date$/m, "$1lastModified?: Date\n$1dueOn?: Date"))
+            edit(note("data", "EntityService.ts"), (s) =>
+                s
+                    .replace("import { EntityServiceBase, type IConfig }", "import { EntityServiceBase, liftDates, type IConfig }")
+                    .replace(
+                        "Object.assign(this.createInstance(Entity as new () => Entity), item || {})",
+                        'liftDates(Object.assign(this.createInstance(Entity as new () => Entity), item || {}), "dueOn")'
+                    )
+            )
+            expect(readFileSync(note("config", "config.ts"), "utf8")).toContain("canWrite: () => false,")
+            expect(readFileSync(note("data", "Entity.ts"), "utf8")).toContain("dueOn?: Date")
+            expect(readFileSync(note("data", "EntityService.ts"), "utf8")).toContain('item || {}), "dueOn")')
+            // liftDates takes only the fields a model types as Date: a DateOnly string is a type error
+            writeFileSync(
+                join(root, "src", "lift-dates-check.ts"),
+                'import { liftDates } from "@regira/modules/vue/entities"\n' +
+                    'export const row = liftDates({ dueOn: undefined as Date | undefined, day: "2026-10-21" }, "dueOn")\n' +
+                    '// @ts-expect-error "day" is a string field\n' +
+                    'liftDates(row, "day")\n'
+            )
 
             // the repository's packages, and @regira/modules itself, linked in as an install would place them
             const modules = join(root, "node_modules")

@@ -39,7 +39,8 @@ contradict each other until the next fetch.
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
 `useListView` when a plain list is enough (`service.list()` → `Array<T>`, already unwrapped — never
 destructure `{ items }` from it). Both send the current search object merged with the paging info, and
-`useListView` derives `itemsCount` from the rows it got back rather than from a server total.
+`useListView` derives `itemsCount` from the rows it got back rather than from a server total. `handleSave` (for a new
+row) and `handleRemove` move `itemsCount` with the row, so the result count and the paging stay right without a fetch.
 
 > **Neither fetches on mount.** The scaffolded overview's first search comes from `useRouteOverview`, a
 > separate composable; take either of these on its own and the initial fetch is the view's to make —
@@ -88,7 +89,9 @@ one titled `"Conflict"` (a database constraint) cannot; the next write and a new
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.
 When the API gates writes by role or row ownership, derive `readonly` from the signed-in user and pass it down
 the slice — the overview's `List` / `ListItem` and the details form all take it — so the UI offers only what
-that user may do. This hides buttons; the API remains the only place writes are authorized.
+that user may do. A scaffolded slice does that from its config: while `config.canWrite()` answers `false`, its
+overview has no "New" button and read-only rows, and its details form is read-only. This hides buttons; the API
+remains the only place writes are authorized.
 
 For child/owned collections inside a form, render the rows with **`InputSelectorInline`** — chips that
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`

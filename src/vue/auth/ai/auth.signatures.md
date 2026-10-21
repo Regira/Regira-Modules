@@ -49,8 +49,8 @@ export interface IAuthData {
     userId?: string
     name?: string
     email?: string
-    displayName?: string
-    culture?: string
+    displayName?: string // ← the "displayName" (or "display_name") claim
+    culture?: string // ← the "culture" claim (BCP-47, e.g. "nl-BE")
     role?: string // first role found across the three claim spellings — display only; check with hasRole()
     get(claimType: string): string | Array<string> | undefined
     hasClaim(claimType: string, claimValue?: string): boolean
@@ -99,7 +99,7 @@ export interface IAuthService {
     readonly options: IAuthOptions // owns clientApp as plain state; change it via authStore.setClientApp() — that is what notifies Vue
     authenticate({ token, isAuthenticated }: IAuthenticateInput): IAuthData
     login(username: string, password: string): Promise<IAuthData>
-    refresh(o?: Record<string, unknown>): Promise<IAuthData>   // o is sent as the query string: POST auth/refresh/?{o}
+    refresh(o?: Record<string, unknown>): Promise<IAuthData> // o is sent as the query string: POST auth/refresh/?{o}
     validateToken(): Promise<IAuthData>
     logout(): void
     changePassword(input: IChangePasswordInput): Promise<void>
@@ -216,7 +216,7 @@ export interface IAuthStore extends Store {
     setClientApp(clientApp?: string): void
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
-    refresh(o: Record<string, unknown>): Promise<boolean>   // o is sent as the query string: POST auth/refresh/?{o}
+    refresh(o: Record<string, unknown>): Promise<boolean> // o is sent as the query string: POST auth/refresh/?{o}
     logout(): void
 }
 export function createStore(): IDefineAuthStore // createStore.storeName
