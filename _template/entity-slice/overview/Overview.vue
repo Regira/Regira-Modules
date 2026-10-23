@@ -1,5 +1,6 @@
 <template>
     <section class="overview">
+        <h1 class="my-4">{{ $t(config.overviewTitle || "") }}</h1>
         <div class="row justify-content-between gx-0 gx-sm-1">
             <div class="col col-lg-auto order-1">
                 <!-- Filter -->

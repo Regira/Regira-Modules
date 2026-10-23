@@ -452,7 +452,8 @@ conventional `[Route(...)]`; pass `--api <path>` when the server exposes the res
 and `--rel <Related>` per to-one relation shown in the overview — it generates the pooled column, the model
 fields and the advanced filter, and leaves `baseQueryParams` empty because a to-one on every row should be eager-loaded server-side
 (`e.Includes(...)`), not requested per call. A differently-named FK takes a trailing `--as <field>`
-(`--rel Employee --as assignedToEmployee` binds `assignedToEmployeeId`/`assignedToEmployee`, still the Employee slice).
+(`--rel Employee --as assignedToEmployee` binds `assignedToEmployeeId`/`assignedToEmployee`, still the Employee slice),
+and a trailing `--no-filter` leaves out the advanced filter of a relation the API's `SearchObject` cannot filter on.
 A **lookup** entity keeps the folders but drops the list UI (omit the views and `createRoutes()`; the
 `install` only registers the service/icon and `$configs[Entity.name]`; `SearchObject` may be empty; consider
 `JSONService` for static data). An entity with no UI of its own at all — read and written from the app's own

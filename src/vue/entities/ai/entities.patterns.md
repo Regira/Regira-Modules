@@ -1574,7 +1574,9 @@ that user's owner form `readonly` (its drop zone hides with it) and give them an
 post each file with ``useAxios().upload(`${config.api}/${id}/files`, [file])``, then re-read
 `{id}/attachments`. The upload is its own route on the server, so the write filter gates it separately from
 the owner — and it needs the owner-scope check the global filters never apply to it
-(`Regira.Entities` → `entities.instructions` → _Security & Authorization_).
+(`Regira.Entities` → `entities.instructions` → _Security & Authorization_). A user who may create the owner but not
+update it sends the files inside the create instead: _Files in the creating request_ (above), one `POST` and no
+follow-up `PUT`.
 
 ## Auth reload hooks (`onAuthenticated`)
 

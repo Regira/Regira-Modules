@@ -77,13 +77,15 @@ refused it or it failed — a refused delete never reports `removed`. `useModal`
 without leaving the page.
 
 After an insert, `handleSubmit` replaces the current route with one carrying the new id (skipped when
-`isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (the ProblemDetails
-`errors`, read with `toFeedbackError` from `vue/ui`, which shows a validation error in the user's language when its
-message is a key in the app's translation messages), otherwise the server's text on `feedback.message`. The
-form's `Feedback` lists those field errors under the message, each headed by the field's label; a form that shows
-them at its inputs sets `:hide-field-errors="true"` on it. `failure` keeps the last refused write's HTTP status and
-ProblemDetails `title`, so a 409 titled `"Concurrency conflict"` (a stale concurrency token) can offer a reload where
-one titled `"Conflict"` (a database constraint) cannot; the next write and a new `modelValue` clear it.
+`isPopup` is set). To go elsewhere, pass `afterInsertRoute`, which gets the saved item and returns the route that
+replaces `/new`: a navigation in a `@save` handler is cancelled by the form's own replace. A failed save lands in
+`feedback`: a 400's field errors on `feedback.error` (the ProblemDetails `errors`, read with `toFeedbackError` from
+`vue/ui`, which shows a validation error in the user's language when its message is a key in the app's translation
+messages), otherwise the server's text on `feedback.message`. The form's `Feedback` lists those field errors under
+the message, each headed by the field's label; a form that shows them at its inputs sets `:hide-field-errors="true"`
+on it. `failure` keeps the last refused write's HTTP status and ProblemDetails `title`, so a 409 titled
+`"Concurrency conflict"` (a stale concurrency token) can offer a reload where one titled `"Conflict"` (a database
+constraint) cannot; the next write and a new `modelValue` clear it.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.

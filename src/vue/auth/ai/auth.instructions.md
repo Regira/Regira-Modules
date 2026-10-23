@@ -408,7 +408,9 @@ components and composables exist for all of it — use them instead of hand-roll
     Esc emits the same `close`, since the modal takes focus when it opens; while sign-in is required both leave the
     modal open, since clearing the request does not lift `isRequired`. On demand the X stays, and its `@close` (X or
     Esc) clears the request. The public page behind the modal renders for a signed-out visitor as it is: the shell's
-    `LoadingContainer` waits only while a signed-in session starts.
+    `LoadingContainer` waits only while a signed-in session starts. The shell's header hides its menu and search
+    while nobody is signed in: drop their two `v-if`s in `layout/TheHeader.vue`, or a visitor finds no way to the
+    public pages.
 
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,
@@ -471,6 +473,10 @@ The route is anonymous — `{ path: "/sign-up", name: "signUp", component: SignU
 - **The API opens `POST users` on an override.** The base action requires a signed-in caller, so a sign-up
   answers `401` until the app's `UserControllerBase` subclass overrides `Create` with `[AllowAnonymous]`:
   `Regira.Security` → security.instructions → _Authorization: guarded by default_.
+- ⚠️ **A sign-up that links the new account to an existing record** (a customer, an employee, a speaker) links it
+  on the API, only by an e-mail address the user has confirmed or by a stored external login. Never by an
+  unconfirmed e-mail or an OIDC e-mail claim without `email_verified`, or anyone can take over that record:
+  `Regira.Security` → security.instructions → _Sign-up with profile fields_.
 - **A taken name answers `400`** with ASP.NET Identity's `DuplicateUserName` as the key, like a password the
   API's rules refuse. `toFeedbackError` reads both, and `<Feedback>` lists them.
 - To have the API mail a confirmation link, post `confirmEmailUrl` too: the absolute URL of the app's confirm

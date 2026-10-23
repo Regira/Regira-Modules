@@ -463,8 +463,9 @@ export interface FormIn<T extends IEntity> {
     props: { modelValue: T; readonly?: boolean; isPopup?: boolean } // pass the component's props object itself
     emit: FormEmits<T>
     feedback?: FeedbackOut // defaults to a fresh useFeedback()
+    afterInsertRoute?: (saved: T) => RouteLocationRaw // where an insert goes in place of its own route with the new id; replaces `/new`, not used when props.isPopup
 }
-export function useForm<T extends IEntity>({ entityService, props, emit, feedback }: FormIn<T>): FormOut<T>
+export function useForm<T extends IEntity>({ entityService, props, emit, feedback, afterInsertRoute }: FormIn<T>): FormOut<T>
 export interface FormOut<T> {
     item: Ref<T>
     original?: Ref<T>
@@ -477,12 +478,15 @@ export interface FormOut<T> {
 }
 ```
 
-**What `handleSubmit` does besides saving**, in order: `feedback.pending` → `entityService.save` → emits `save` →
-`feedback.success` → replaces `item` and `original` with copies of the saved entity → emits `update:modelValue` →
+**What `handleSubmit` does besides saving**, in order: `feedback.pending` → `entityService.save` → `feedback.success`
+→ emits `save` → replaces `item` and `original` with copies of the saved entity → emits `update:modelValue` →
 on an **insert**, unless `props.isPopup`, `router.replace`s the current route with `params.id` set to the new id
-(query and hash kept, `src` dropped). That replace is not awaited, so a component that navigates in the same tick —
-a route write of its own — cancels it and leaves the URL on `/new`. `props.readonly` and `props.isPopup` are read
-each time a handler runs, so a form whose access resolves after mount (a permission-gated `:readonly`) follows it.
+(query and hash kept, `src` dropped), or with the route `afterInsertRoute(saved)` gives. That replace is not awaited,
+so a component that navigates in the same tick — a route write of its own — cancels it and leaves the URL on `/new`.
+A `@save` handler runs before the replace, so a navigation there is the one cancelled: to leave the form's route after
+an insert, pass `afterInsertRoute: (saved) => ({ name: "TicketConversation", params: { id: saved.$id } })`.
+`props.readonly` and `props.isPopup` are read each time a handler runs, so a form whose access resolves after mount
+(a permission-gated `:readonly`) follows it.
 
 > **`handleRemove` arity differs by composable.** The **form**'s `handleRemove()` takes **no arguments**
 > (it removes the bound `item.value`); the **overview**'s `handleRemove(item: T)` takes the row. Don't

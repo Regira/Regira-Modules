@@ -305,6 +305,41 @@ describe("scaffold.mjs --rel", () => {
         expect(isDir("lib")).toBe(false)
         expect(isDir("src", "regions")).toBe(false)
     })
+
+    test("--no-filter leaves that relation's advanced filter out, and keeps its column and model fields", () => {
+        // an API whose SearchObject cannot filter on a relation ignores the parameter and answers every row
+        run("Desk", "--no-auth")
+        run("Shift", "--no-auth")
+        const out = run("Rota", "--rel", "Desk", "--no-filter", "--rel", "Shift", "--as", "slot", "--no-auth")
+        const slice = (...segments) => readFileSync(app("src", "entities", "rotas", ...segments), "utf8")
+
+        expect(slice("overview", "ListItem.vue")).toContain('<DeskButton v-if="item.desk"')
+        expect(slice("data", "Entity.ts")).toContain("deskId?: number")
+        expect(slice("filter", "SearchObject.ts")).not.toContain("deskId")
+        expect(slice("filter", "FilterAdv.vue")).not.toContain("Desk")
+        // the relation without the flag keeps its filter
+        expect(slice("filter", "SearchObject.ts")).toContain("slotId?: number // filter on Shift")
+        expect(slice("filter", "FilterAdv.vue")).toContain('v-model:idValue="searchObject.slotId as number"')
+        expect(out).toContain("No filter for Desk (--no-filter)")
+        expect(out).toContain("Filter for Shift: searchObject.slotId")
+    })
+
+    test("--no-filter on every relation leaves the filter files as a run without --rel writes them", () => {
+        run("Booth", "--no-auth")
+        run("Lectern", "--rel", "Desk", "--as", "counter", "--no-filter", "--no-auth")
+        const filter = (folder, file) => readFileSync(app("src", "entities", folder, "filter", file), "utf8")
+
+        expect(filter("lecterns", "FilterAdv.vue")).toBe(filter("booths", "FilterAdv.vue"))
+        expect(filter("lecterns", "SearchObject.ts")).toBe(filter("booths", "SearchObject.ts"))
+        expect(readFileSync(app("src", "entities", "lecterns", "data", "Entity.ts"), "utf8")).toContain("counterId?: number")
+    })
+
+    test("--no-filter must come directly after a --rel, or after its --as", () => {
+        expect(runFailing("Stall", "--no-filter", "--rel", "Desk", "--no-auth")).toContain("directly after the --rel")
+        expect(runFailing("Stall", "--owns", "StallLine", "--no-filter", "--no-auth")).toContain("directly after the --rel")
+        expect(runFailing("Stall", "--rel", "Desk", "--no-filter", "--no-filter", "--no-auth")).toContain("directly after the --rel")
+        expect(isDir("src", "entities", "stalls")).toBe(false)
+    })
 })
 
 describe("scaffold.mjs stdout", () => {
@@ -688,6 +723,22 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(noAuth).not.toMatch(/auth|router/i)
     })
 
+    test("the header hides the menu and the search while nobody is signed in, and a --no-auth shell always shows them", () => {
+        const header = ["src", "components", "layout", "TheHeader.vue"]
+        const withAuth = shell()(...header)
+        const noAuth = shell("--no-auth")(...header)
+
+        expect(withAuth).toContain('<NavBar v-if="!$auth.enabled || $auth.isAuthenticated" @select="closeMenu" />')
+        expect(withAuth).toContain('<NavSearch v-if="!$auth.enabled || $auth.isAuthenticated" @search="closeMenu" />')
+        expect(withAuth.match(/<Nav(Bar|Search)\b/g)).toHaveLength(2)
+        expect(withAuth).not.toMatch(/@(no)?auth:/)
+        expect(noAuth).toContain('<NavBar @select="closeMenu" />')
+        expect(noAuth).toContain('<NavSearch @search="closeMenu" />')
+        expect(noAuth.match(/<Nav(Bar|Search)\b/g)).toHaveLength(2)
+        expect(noAuth).not.toContain("$auth")
+        expect(noAuth).not.toMatch(/@(no)?auth:/)
+    })
+
     test("--no-auth drops the auth-only keys — no marker can live in JSON, so the file is edited by key", () => {
         const raw = shellConfig("--no-auth")
         const config = JSON.parse(raw)
@@ -931,7 +982,7 @@ describe("scaffold.mjs output type-checks", () => {
     })
 
     test.skipIf(!built)(
-        "slices type-check: a number and a string key, --modal, --data-only, config.canWrite and liftDates",
+        "slices type-check: a number and a string key, --modal, --data-only, --rel with and without --no-filter, config.canWrite and liftDates",
         () => {
             // the slice is key-generic: `id: string = ""` (a Guid or code key) compiles as the default `id: number = 0` does
             root = mkdtempSync(join(tmpdir(), "regira-typecheck-"))
@@ -942,6 +993,9 @@ describe("scaffold.mjs output type-checks", () => {
             scaffoldHere("Tag", "--no-auth")
             scaffoldHere("Memo", "--modal", "--no-auth")
             scaffoldHere("Basket", "--data-only", "--no-auth")
+            // one relation filtered and one not, and a slice whose only relation is not: its FilterAdv.vue stays as shipped
+            scaffoldHere("Book", "--rel", "Note", "--no-filter", "--rel", "Memo", "--no-auth")
+            scaffoldHere("Shelf", "--rel", "Note", "--no-filter", "--no-auth")
             const model = join(root, "src", "entities", "tags", "data", "Entity.ts")
             writeFileSync(model, readFileSync(model, "utf8").replace(/^(\s*)id: number = 0\b/m, '$1id: string = ""'))
             expect(readFileSync(model, "utf8")).toMatch(/^\s*id: string = ""/m)

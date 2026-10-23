@@ -25,6 +25,8 @@
 //                       Person --plural people, still resolves). A differently-named FK
 //                       takes an optional trailing `--as <field>`: `--rel Employee --as assignedToEmployee`
 //                       binds assignedToEmployee(Id) instead of the default employee(Id), still the Employee slice.
+//                       A trailing `--no-filter` leaves that relation's advanced filter out, for an API whose
+//                       SearchObject cannot filter on it: `--rel Employee --as assignedToEmployee --no-filter`.
 //   --dir <path>        target base folder for a slice (default: src/entities; under src/, the @/ alias) or an ejected
 //                       skin (default: src/components/ui)
 //   --owns <Child>      also scaffold an editable owned-collection sub-slice (a `_deleted`-marked scalar-row
@@ -316,7 +318,7 @@ for (let i = 0; i < argv.length; i++) {
             console.error("✗ --rel requires a PascalCase related class name (e.g. --rel Vehicle).")
             process.exit(1)
         }
-        const entry = { name: value, field: undefined }
+        const entry = { name: value, field: undefined, filter: true }
         rels.push(entry)
         pending = { entry, set: (f) => (entry.field = f), kind: "--rel", valueIndex: i + 1 }
     } else if (flag === "--as") {
@@ -348,6 +350,14 @@ for (let i = 0; i < argv.length; i++) {
         // consumed, so a second --as is misplaced rather than silently overwriting the first.
         pending.as = true
         pending.valueIndex = i + 1
+    } else if (flag === "--no-filter") {
+        if (!pending || pending.kind !== "--rel" || pending.valueIndex !== i - 1 || pending.noFilter) {
+            console.error("✗ --no-filter must come directly after the --rel it applies to (e.g. --rel Employee --no-filter), chaining with --as.")
+            process.exit(1)
+        }
+        pending.entry.filter = false
+        pending.noFilter = true
+        pending.valueIndex = i // a flag without a value: the next one chains from here
     } else if (flag === "--fk") {
         if (!pending || pending.kind !== "--owns" || pending.valueIndex !== i - 1 || pending.fk) {
             console.error(
@@ -486,11 +496,14 @@ const relations = rels
             folder,
             key: r.field ?? lowerFirst(r.name), // header i18n key — distinct per role when `--as` renames it
             alias: `@/${aliasRoot}/${folder}`,
+            filter: r.filter, // false: --no-filter, no SearchObject field and no FilterAdv control
         }
     })
 // The per-ENTITY blocks (imports, store consts, model imports) de-dupe by class name, so two --rel to the
 // SAME entity (--rel Employee --as assignedTo --rel Employee --as reportedBy) never emit a duplicate identifier.
 const relEntities = [...new Map(relations.map((r) => [r.name, r])).values()]
+const filteredRelations = relations.filter((r) => r.filter)
+const filteredEntities = [...new Map(filteredRelations.map((r) => [r.name, r])).values()]
 // Generated content is inserted after a stable line in the template rather than at a placeholder, so the
 // doc sources these templates are built from stay readable as worked examples.
 // Same as insertAfter, but a missing anchor is fatal. Generated content that silently fails to land ships a
@@ -552,12 +565,12 @@ const relationBlocks = {
     // filter/SearchObject.ts — a filter per relation. SCALAR by design: an InputSelector speaks one id
     // (`idValue?: number | string`), so widening this to an array is 9 TS2322s in FilterAdv.vue. The API's
     // ICollection<TKey> binds one value or many, so widening later — behind a multi-select — is UI-only.
-    searchFields: relations.map((r) => `    ${r.field}Id?: number // filter on ${r.name}`).join("\n"),
+    searchFields: filteredRelations.map((r) => `    ${r.field}Id?: number // filter on ${r.name}`).join("\n"),
     // filter/FilterAdv.vue — the control, its entity ref, and the reset that clears it
-    filterImports: relEntities
+    filterImports: filteredEntities
         .map((r) => `import { InputSelector as ${r.name}InputSelector } from "${r.alias}"\nimport type { Entity as ${r.name} } from "${r.alias}"`)
         .join("\n"),
-    filterControls: relations
+    filterControls: filteredRelations
         .map(
             (r) =>
                 `        <div class="mb-2">\n` +
@@ -573,8 +586,8 @@ const relationBlocks = {
         .join("\n"),
     // Both v-models are bound on purpose: `idValue` is what filters, `modelValue` is what the control renders.
     // Bind only idValue and InputSelector's own dev warning fires — it resolves the entity into nothing.
-    filterRefs: relations.map((r) => `const filter${upperFirst(r.field)} = ref<${r.name}>()`).join("\n"),
-    filterResets: relations.map((r) => `    filter${upperFirst(r.field)}.value = undefined`).join("\n"),
+    filterRefs: filteredRelations.map((r) => `const filter${upperFirst(r.field)} = ref<${r.name}>()`).join("\n"),
+    filterResets: filteredRelations.map((r) => `    filter${upperFirst(r.field)}.value = undefined`).join("\n"),
 }
 function applyRelations(relPath, text) {
     if (!relations.length) return text
@@ -595,8 +608,10 @@ function applyRelations(relPath, text) {
             text = insertAfter(text, `import { EntityBase } from "@regira/modules/vue/entities"`, relationBlocks.modelImports)
             return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, relationBlocks.fields, "data/Entity.ts")
         case "filter/SearchObject.ts":
+            if (!filteredRelations.length) return text
             return insertAfterOrFail(text, `title?: string`, relationBlocks.searchFields, "filter/SearchObject.ts")
         case "filter/FilterAdv.vue": {
+            if (!filteredRelations.length) return text
             const at = (anchor, addition) => (text = insertAfterOrFail(text, anchor, addition, "filter/FilterAdv.vue"))
             at(`<input v-model.lazy.trim="searchObject.title"`, relationBlocks.filterControls)
             at(`import SearchObject from "./SearchObject"`, relationBlocks.filterImports)
@@ -618,7 +633,7 @@ function applyRelations(relPath, text) {
 // longer applied. Wrap it rather than asking the reader to remember.
 const FILTER_RESET_ANCHOR = "const { handleReset, handleUpdate, filterIsActive } = useFilter({ searchObject, emit, Constructor: SearchObject })"
 function withFilterReset(text) {
-    if (!relations.length) return text
+    if (!filteredRelations.length) return text
     if (!text.includes(FILTER_RESET_ANCHOR)) {
         console.error(
             `✗ filter/FilterAdv.vue no longer carries the useFilter destructure this scaffolder rewrites — regenerate _template/entity-slice from the ai docs, or update FILTER_RESET_ANCHOR in scaffold.mjs.`
@@ -946,7 +961,9 @@ if (sliceGenerated) {
     }
     for (const r of relations) {
         console.log(
-            `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key. The API must filter on it too: its SearchObject needs ICollection<int>? ${upperFirst(r.field)}Id and a filter (back-end entities.instructions → Steps 2 and 6), or remove this filter — a parameter the SearchObject lacks is ignored and every row comes back.`
+            !r.filter
+                ? `  No filter for ${r.name} (--no-filter): SearchObject.ts and FilterAdv.vue carry none.`
+                : `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key. The API must filter on it too: its SearchObject needs ICollection<int>? ${upperFirst(r.field)}Id and a filter (back-end entities.instructions → Steps 2 and 6), or remove this filter (--no-filter after the --rel leaves it out) — a parameter the SearchObject lacks is ignored and every row comes back.`
         )
         // the list, filter and model are written for the relation, the form is not — say so, or the run reads as done
         // and a required FK scaffolds into a form that cannot save
@@ -1115,7 +1132,7 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
     )
     if (!pickerName) {
         console.log(
-            `    ${sliceGenerated ? "2" : "4"}. ${p("data/EntityService.ts")}  toEntity      lift item.${childField} with ${childName}.create, guarded, as ${join(childFolder, "Entity.ts")} shows`
+            `    ${sliceGenerated ? "2" : "4"}. ${p("data/EntityService.ts")}  toEntity      lift item.${childField} with ${childName}.create, guarded, as ${join(childFolder, "Entity.ts")} shows   // import { Entity as ${childName} } from "../${childFolder}"`
         )
     }
     console.log(`    back-end: e.Related(x => x.${ChildrenPascal}) on ${name} (owned child — no For<>()/controller/budget slot).`)
@@ -1379,6 +1396,8 @@ Entity slice:
   --rel <Entity>      overview column and a FilterAdv filter for a to-one relation (the related entity's
                       FormModalButton + a label resolved through its pool). Repeatable; the related slice must already be scaffolded.
                       A differently-named FK takes a trailing --as <field> (--rel Employee --as assignedToEmployee)
+  --no-filter         after a --rel (or its --as): no FilterAdv filter for that relation, for an API whose
+                      SearchObject cannot filter on it (--rel Employee --no-filter)
   --dir <path>        target base folder (slice default: src/entities, under src/ — the @/ alias; ejected skin
                       default: src/components/ui)
   --modal             a modal slice: isComplex: false (create/edit in FormModalButton), with the FilterAdv toggle

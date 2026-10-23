@@ -391,7 +391,7 @@ import {
     NullableCheckBox,
     FileDropZone,
     Anchor,
-    FormLabel,
+    FormLabel, // a <small class="form-text text-muted"> caption below its input, not a <label> above it: ui.instructions → Gotchas
     FormSection,
     NullableLabel,
     CopyToClipboardButton,

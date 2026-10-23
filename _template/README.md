@@ -16,6 +16,8 @@ node node_modules/@regira/modules/_template/scaffold.mjs Product --no-auth
 node node_modules/@regira/modules/_template/scaffold.mjs Order --owns OrderLine
 # a to-one relation? generate the pooled overview column AND its advanced filter (repeat --rel per relation):
 node node_modules/@regira/modules/_template/scaffold.mjs Intervention --rel Vehicle
+# the API cannot filter on that relation? --no-filter after its --rel leaves the advanced filter out:
+node node_modules/@regira/modules/_template/scaffold.mjs Intervention --rel Vehicle --no-filter
 # the entity owns files? scaffold the shared attachments slice and wire it into this one:
 node node_modules/@regira/modules/_template/scaffold.mjs Intervention --attachments
 # server exposes the resource under a different name than the slice folder?

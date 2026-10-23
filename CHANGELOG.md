@@ -33,6 +33,21 @@ heading.
   covers an import beside a value import from the same barrel; the permission-gated UI recipe sets `config.canWrite`;
   the worked examples' `ListItem` forwards `remove` from its `FormModalButton`; in the recipe for owned rows with a
   relation and scalars, Enter in an add-row scalar adds the row instead of submitting the parent form.
+- `vue/entities`: New: `FormIn.afterInsertRoute?: (saved) => RouteLocationRaw`, the route an insert goes to once
+  saved, in place of the form's own route with the new id. It replaces `/new`, so Back skips the emptied form, and a
+  popup form does not use it. A navigation in a `@save` handler cannot do this: the form's own route replace runs
+  after the emit and cancels it.
+- Scaffold: new `--no-filter` after a `--rel` (or its `--as`) leaves that relation's advanced filter out — no
+  `SearchObject` field and no `FilterAdv.vue` control — for an API whose `SearchObject` cannot filter on it, where a
+  parameter it lacks answers every row. The `--owns` wiring hint for `toEntity` names the child model's import.
+- Scaffold: `overview/Overview.vue` opens with a page heading, the config's `overviewTitle`. The shell's header hides
+  the entity menu and the search while auth is enabled and nobody is signed in, so a search from the sign-in or reset
+  page opens no page that answers 401; an app with public (`allowAnonymous`) entity pages drops the two `v-if`s. ⚠️
+  Upgrade: copy the heading (`overview/Overview.vue`) and the `NavBar` and `NavSearch` guards (`layout/TheHeader.vue`).
+- Guides — the upload-rights recipe sends the files of a user who may create the owner but not update it inside the
+  create (_Files in the creating request_); the `FormLabel` import line says it is a caption below its input; the
+  `vue/auth` sign-up warns to link a new account to an existing record only by a confirmed e-mail address or a stored
+  external login, and the on-demand sign-in recipe says to drop the header's two `v-if`s for public pages.
 
 ## 6.6.0 — 2026-10-20
 
