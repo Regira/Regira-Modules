@@ -734,15 +734,21 @@ export default EntitySearchObject
 
 <script setup lang="ts">
 import { computed } from "vue"
-import type { OverviewEmits } from "@regira/modules/vue/entities"
+import type { OverviewEmits, SaveResult } from "@regira/modules/vue/entities"
 import useEntityStore from "../data/store"
 import type Entity from "../data/Entity"
 import ListItem from "./ListItem.vue"
 
 // Tuple members, matching what OverviewEmits declares — a call signature here would stop every
-// inherited event from being callable (see entities.instructions → Gotchas).
+// inherited event from being callable (see entities.instructions → Gotchas). A body declares only the
+// events it lists at runtime, so the inherited ones this list emits are listed again.
 interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
     "request-reload": []
+    "update:modelValue": [Array<Entity>]
+    save: [SaveResult<Entity>]
+    remove: [Entity]
+    "request-save": [Entity]
+    "request-remove": [Entity]
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<{
@@ -862,6 +868,7 @@ import FormModalButton from "../details/FormModalButton.vue"
 
 interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
     select: [Entity | null]
+    "update:modelValue": [Array<Entity>]
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<{

@@ -48,6 +48,14 @@ heading.
   create (_Files in the creating request_); the `FormLabel` import line says it is a caption below its input; the
   `vue/auth` sign-up warns to link a new account to an existing record only by a confirmed e-mail address or a stored
   external login, and the on-demand sign-in recipe says to drop the header's two `v-if`s for public pages.
+- `vue/ui`: **Type change:** `Tab.create(key, values?)` types `values` as `Partial<Omit<ITab, "key">>`, where it took
+  any `object`, so a misspelt tab field is a type error: an object literal with a key `ITab` lacks no longer compiles
+  (TS2353); drop the key. Every documented call passes only `ITab` keys.
+- Scaffold: `selecting/SelectorDropdown.vue` takes a `placeholder` prop, the text of its empty option (empty when not
+  given). ⚠️ Upgrade: copy the `defineProps` line and the `{{ placeholder }}` in the empty `<option>`.
+- Guides — an `OverviewEmits` interface with a body declares only the events it lists at runtime, so it lists the
+  inherited events the component emits too, or Vue warns on each (the gotcha row, the advanced example's lists and the
+  scaffold's `selecting/SelectorList.vue`); the `ConfirmButton` props comment names its exposed `open()` / `close()`.
 
 ## 6.6.0 — 2026-10-20
 

@@ -28,7 +28,7 @@ export class Tab implements ITab {
      * `values.title` overrides it. It is named `key` because that is what survives: a `title` passed in
      * `values` replaces the label, never the key.
      */
-    static create(key: string, values?: object) {
+    static create(key: string, values?: Partial<Omit<ITab, "key">>): Tab {
         return Object.assign(new Tab(key), values || {})
     }
 }

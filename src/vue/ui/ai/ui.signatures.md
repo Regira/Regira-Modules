@@ -272,7 +272,7 @@ export interface ITab {
 }
 export class Tab implements ITab {
     constructor(title: string, key?: string, isDefault?: boolean, isDisabled?: boolean, isVisible?: boolean)
-    static create(key: string, values?: object): Tab & object
+    static create(key: string, values?: Partial<Omit<ITab, "key">>): Tab
 }
 // USAGE: create(key, { title, icon, isDefault?, isDisabled? }). The first positional arg is the tab KEY —
 // it seeds both `key` and `title`, then `values.title` overrides the label. Pass a slug-safe key that

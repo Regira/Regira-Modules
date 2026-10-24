@@ -29,6 +29,7 @@ import useEntityStore from "../data/store"
 
 interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {
     select: [selected?: Entity]
+    "update:modelValue": [Array<Entity>]
 }
 const emit = defineEmits<Emits>()
 const props = defineProps<{ modelValue?: Array<Entity>; selected?: Entity }>()

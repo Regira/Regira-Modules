@@ -1,6 +1,6 @@
 <template>
     <select v-model="selectedId" class="form-select">
-        <option :value="undefined"></option>
+        <option :value="undefined">{{ placeholder }}</option>
         <option v-for="item in items" :value="item.id" :key="item.id">
             {{ item.$title }}
         </option>
@@ -19,6 +19,8 @@ import { onMounted, ref, watch } from "vue"
 import { onAuthenticated } from "@regira/modules/vue/auth"
 import useEntityStore from "../data/store"
 
+// placeholder: the empty option's text ("Any status", "Choose a team"); empty when not given
+defineProps<{ placeholder?: string }>()
 const selectedItem = defineModel<Entity>()
 const selectedId = defineModel<number | string>("idValue")
 watch(selectedId, () => (selectedItem.value = items.value.find((x) => x.id == selectedId.value)))
