@@ -1027,7 +1027,7 @@ function add() {
 
 ## Attachments (files) — offline add / rename / remove, confirm on save
 
-File/picture management on an entity, staged **offline**: the user adds (browse or drop), renames, and
+File/picture management on an entity, staged **offline**: the user adds (browse or drop), renames, replaces and
 removes files inside the form, and **nothing hits the server until the parent is saved** — the `_deleted`
 marked-delete discipline of an owned collection, extended to the upload/rename round-trip. It ships as a
 shared **`entity-attachments` slice** — scaffold it once, then bind it in a tab on every file-owning entity:
@@ -1055,8 +1055,10 @@ builds on four **shipped** primitives — never hand-roll them (verify in
 
 **How it stages:** a picked/dropped file becomes a row with a **negative temp id** (like any new owned
 row), its raw `Blob` held in memory, and an object `uri` for instant preview. Rename edits `newFileName`
-(existing file) or `fileName` (new); remove toggles `_deleted` (undoable). On the parent's save, the flush
-helpers re-wrap each blob under its edited name and `POST` it to `{api}/{id}/files`; existing rows marked
+(existing file) or `fileName` (new); remove toggles `_deleted` (undoable). Replace stages a new blob on the
+row itself, which keeps its id and position, and takes the new file's name. On the parent's save, the flush
+helpers re-wrap each blob under its edited name and `POST` it to `{api}/{id}/files` — or, for a stored row
+that was replaced, `PUT` it to `{api}/{id}/files/{linkId}`, which swaps the file's bytes; existing rows marked
 `_deleted` drop from the payload and are deleted by omission — when the owner's input DTO on the API declares
 `ICollection<EntityAttachmentInputDto>? Attachments` (back-end `entities.instructions` → Attachments, step 3). Without
 it a removal answers 200 and changes nothing.
@@ -1099,9 +1101,9 @@ protected override prepareItem(item: Owner): Owner {
 
 The flush helpers save the owner first and upload each file after it, so a new owner with files is several
 requests. The API also takes the files inside the owner's own `POST` or `PUT`: a new link row carrying
-`newFileName` + `newBytes` (base64) gets its file stored by the same save, in the same transaction (back-end
-`entities.instructions` → _Attachments_). Use these overrides **instead of** `insertWithAttachments` /
-`updateWithAttachments`:
+`newFileName` + `newBytes` (base64) gets its file stored by the same save, in the same transaction, and on a `PUT` a
+stored row carrying them has its file replaced (back-end `entities.instructions` → _Attachments_), so a replaced file
+travels the same way. Use these overrides **instead of** `insertWithAttachments` / `updateWithAttachments`:
 
 ```ts
 // data/EntityService.ts
@@ -1114,7 +1116,8 @@ async function inlineStagedFiles(rows?: Array<EntityAttachment>) {
         if (file && !row._deleted) {
             // a data URL ("data:<type>;base64,<data>"): the JSON byte[] takes only the part after the comma
             row.newBytes = (await blobToBase64(file)).split(",")[1]
-            row.newFileName = row.fileName
+            // a stored row edits newFileName (a replaced file's name, or the user's rename of it); a new row edits fileName
+            row.newFileName = row.id > 0 ? row.newFileName || row.fileName : row.fileName
         }
     }
 }

@@ -172,7 +172,7 @@ slice's own save flush makes — and maps the returned `{ data: { item } }` to a
 > `insertWithAttachments` / `updateWithAttachments` helpers live in **your own
 > `entity-attachments` slice** — build it once from the copy-paste recipe in
 > [entities.patterns.md → Attachments (files)](entities.patterns.md#attachments-files--offline-add--rename--remove-confirm-on-save)
-> (offline add/rename/remove + drop zone), not the `@regira/modules` reference.
+> (offline add/rename/replace/remove + drop zone), not the `@regira/modules` reference.
 
 ```ts
 import { type AxiosWithFilesInstance, createQueryString, useAxios } from "@regira/modules/vue/http"

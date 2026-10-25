@@ -1,7 +1,7 @@
 # Regira Entities — Attachments Slice Template (scaffold)
 
 The **shared** `entity-attachments` slice: a file/picture editor that stages **offline** (add via drop or
-browse, rename, remove, drag-to-reorder) and commits everything on the **parent entity's save**. Scaffold it
+browse, rename, replace, remove, drag-to-reorder) and commits everything on the **parent entity's save**. Scaffold it
 once per app, then bind it in a tab on every entity that owns files.
 
 ```bash
@@ -26,6 +26,14 @@ server-sent `sortOrder` on load and mirrors the array index back into it after e
 (a host `prepareItem` assigning a fresh array) re-sorts to the same order instead of reverting a drag.
 The first file is the owner's primary one (a product's main picture): drag it to the top, and the parent's save
 stores that order.
+
+**Replace** swaps a row's file and keeps its place in the list. On a stored row the new file is staged like an added
+one and, on the parent's save, `PUT` to `{api}/{id}/files/{linkId}` (the link id, never `attachmentId`); the row takes
+the new file's name, still editable before the save, and the owner's `PUT` that follows applies it — a file's content
+type follows its name. On a row that is not saved yet it simply takes the place of the staged file. Until a save is
+attempted, discarding the form's changes undoes a replace. A save uploads the files before the owner's `PUT`, so when
+the API refuses that `PUT` (a validation error on an owner field), the stored file is already replaced and discarding
+the form does not restore it — the same holds for an added file, which is stored before that `PUT` too.
 
 > **Shared slice — no per-entity tokens.** Unlike an entity slice, this is copied verbatim (one folder per
 > app). You do not customize its files; you customize which entities _use_ it (the 3-line host wiring below).
@@ -175,6 +183,23 @@ export function useEntityAttachments({
         handleBrowse(await browse(opts))
     }
 
+    // Replace a row's file in place: the row keeps its id and position. A stored row (id > 0) keeps its staged file
+    // until the parent's save PUTs it to {api}/{id}/files/{linkId}; its name follows the new file (newFileName, applied
+    // by the owner's PUT) and stays editable until then. A Blob without a name keeps the row's current one.
+    function handleReplace(row: Entity, file: Blob & { name?: string }) {
+        if (props.readonly) return // defense-in-depth, like handleBrowse
+        if (row.uri?.startsWith("blob:")) URL.revokeObjectURL(row.uri) // the preview of a file replaced before it was saved
+        const fileName = file.name || (row.id > 0 ? row.newFileName || row.fileName : row.fileName)
+        Object.assign((row.attachment ??= new Attachment()), { _file: file, fileName, contentType: file.type, length: file.size })
+        if (row.id > 0) row.newFileName = fileName
+        row.uri = URL.createObjectURL(file)
+        sync()
+    }
+    async function triggerReplace(row: Entity, opts: { accept?: string } = {}) {
+        const [file] = await browse({ ...opts, multiple: false })
+        if (file) handleReplace(row, file)
+    }
+
     // Drag-to-reorder — native HTML5 drag & drop, no dependency. The handle records the source index on
     // dragstart; dropping on a row moves the source there (the new array order is what the parent save
     // sends — the server derives SortOrder from it). Rows preventDefault unconditionally — an unhandled
@@ -206,7 +231,7 @@ export function useEntityAttachments({
         sync()
     }
 
-    return { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd, handleDrop }
+    return { items, sync, triggerBrowse, handleBrowse, triggerReplace, handleReplace, handleDragStart, handleDragEnd, handleDrop }
 }
 
 // Insert needs the parent's id before it can POST files → save the record first, then upload.
@@ -252,12 +277,16 @@ async function saveAll(api: string, item: { id: number; attachments?: Array<Enti
     const pending = (item.attachments ?? []).filter((x) => x.attachment?._file != null && !x._deleted)
     await enqueue(
         pending.map((x) => async () => {
-            // re-wrap under the edited name so the uploaded file carries it
-            if (x.fileName && x.fileName !== x.attachment!._file!.name)
-                x.attachment!._file = await fileToBlob(x.attachment!._file as File, x.fileName)
+            // re-wrap under the edited name so the uploaded file carries it (a stored row edits newFileName)
+            const name = x.id > 0 ? x.newFileName || x.fileName : x.fileName
+            if (name && name !== x.attachment!._file!.name) x.attachment!._file = await fileToBlob(x.attachment!._file as File, name)
+            // a stored row replaces its file (PUT on the link id); a new one is added — field name "file"; baseURL-relative
             const {
                 data: { item: saved },
-            } = await useAxios().upload(`${api}/${item.id}/files`, [x.attachment!._file!]) // field name "file"; baseURL-relative
+            } =
+                x.id > 0
+                    ? await useAxios().upload(`${api}/${item.id}/files/${x.id}`, [x.attachment!._file!], { method: "PUT" })
+                    : await useAxios().upload(`${api}/${item.id}/files`, [x.attachment!._file!])
             Object.assign(x, { id: saved.id, objectId: saved.objectId, attachmentId: saved.attachmentId })
         })
     )
@@ -291,7 +320,14 @@ export async function download(item: Entity) {
             >
                 <Icon name="move" />
             </span>
-            <ListItem v-model="items[i]!" :class="{ 'is-deleted': row._deleted }" class="flex-grow-1" :readonly="readonly" @change="sync" />
+            <ListItem
+                v-model="items[i]!"
+                :class="{ 'is-deleted': row._deleted }"
+                class="flex-grow-1"
+                :readonly="readonly"
+                @change="sync"
+                @replace="triggerReplace(row)"
+            />
         </div>
         <FileDropZone v-if="!readonly" @drop-files="handleBrowse" @click="triggerBrowse()">
             <template #default="{ isDropping }">
@@ -314,7 +350,7 @@ import ListItem from "./ListItem.vue"
 const emit = defineEmits<{ (e: "update:modelValue", v: Array<Entity>): void }>()
 const props = withDefaults(defineProps<{ modelValue?: Array<Entity>; readonly?: boolean }>(), { modelValue: () => [] })
 
-const { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd, handleDrop } = useEntityAttachments({ props, emit })
+const { items, sync, triggerBrowse, handleBrowse, triggerReplace, handleDragStart, handleDragEnd, handleDrop } = useEntityAttachments({ props, emit })
 </script>
 ```
 
@@ -336,6 +372,16 @@ const { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd
         />
         <input v-else v-model.lazy="item.fileName" :readonly="readonly" maxlength="256" class="form-control" @change="emit('change')" />
         <span class="input-group-text">{{ formatFileSize(item.attachment?.length ?? 0) }}</span>
+        <!-- swaps the file, keeping the row's place; staged until the parent's save -->
+        <button
+            v-if="!readonly && !item._deleted"
+            type="button"
+            class="btn btn-outline-secondary"
+            :aria-label="$t('replaceFile')"
+            @click="emit('replace')"
+        >
+            <Icon name="upload" />
+        </button>
         <button v-if="!readonly" type="button" class="btn btn-outline-danger" :aria-label="$t('delete')" @click="toggleRemove">
             <Icon name="delete" />
         </button>
@@ -348,7 +394,7 @@ import { Icon } from "@regira/modules/vue/ui"
 import type Entity from "../data/Entity"
 import { download } from "../data/functions"
 
-const emit = defineEmits<{ (e: "change"): void }>()
+const emit = defineEmits<{ (e: "change"): void; (e: "replace"): void }>()
 defineProps<{ readonly?: boolean }>()
 const item = defineModel<Entity>({ required: true })
 
@@ -431,7 +477,7 @@ protected override prepareItem(item: Owner): Owner {
 
 > **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`), and give the owner's input
 > DTO `ICollection<EntityAttachmentInputDto>? Attachments`: the slice sends renames, order and removals in the owner's
-> `PUT`. Order the attachments include by sort order — `x.Attachments!.OrderBy(a => a.SortOrder)` — so the list loads in the
+> `PUT`, and a replaced file to the link's `PUT {objectId}/files/{id}` before it. Order the attachments include by sort order — `x.Attachments!.OrderBy(a => a.SortOrder)` — so the list loads in the
 > saved order (`HasAttachments` assigns `SortOrder` from the incoming array position on every parent
 > save). Expose the download **anonymously** if
 > `<img src>` tags render thumbnails (a guarded download 401s — the tag sends no `Authorization` header).

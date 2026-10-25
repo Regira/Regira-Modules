@@ -982,7 +982,7 @@ describe("scaffold.mjs output type-checks", () => {
     })
 
     test.skipIf(!built)(
-        "slices type-check: a number and a string key, --modal, --data-only, --rel with and without --no-filter, config.canWrite and liftDates",
+        "slices type-check: a number and a string key, --modal, --data-only, --rel with and without --no-filter, --attachments, config.canWrite and liftDates",
         () => {
             // the slice is key-generic: `id: string = ""` (a Guid or code key) compiles as the default `id: number = 0` does
             root = mkdtempSync(join(tmpdir(), "regira-typecheck-"))
@@ -996,6 +996,8 @@ describe("scaffold.mjs output type-checks", () => {
             // one relation filtered and one not, and a slice whose only relation is not: its FilterAdv.vue stays as shipped
             scaffoldHere("Book", "--rel", "Note", "--no-filter", "--rel", "Memo", "--no-auth")
             scaffoldHere("Shelf", "--rel", "Note", "--no-filter", "--no-auth")
+            // the shared attachments slice, wired into an owner (add, rename, replace, remove, reorder)
+            scaffoldHere("Folder", "--attachments", "--no-auth")
             const model = join(root, "src", "entities", "tags", "data", "Entity.ts")
             writeFileSync(model, readFileSync(model, "utf8").replace(/^(\s*)id: number = 0\b/m, '$1id: string = ""'))
             expect(readFileSync(model, "utf8")).toMatch(/^\s*id: string = ""/m)

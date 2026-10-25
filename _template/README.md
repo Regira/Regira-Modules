@@ -83,7 +83,7 @@ guide → Install: a hand-written `index.html` would be kept, and one without th
 
 ## Attachments (`--attachments`)
 
-`entity-attachments/` is the shared offline file slice — an add / rename / remove list plus a drop zone
+`entity-attachments/` is the shared offline file slice — an add / rename / replace / remove list plus a drop zone
 (`useOwnedCollection` over `EntityAttachment` rows), committed on the parent's save. Scaffold it once per
 app — naming an entity does that and wires the slice up in one go:
 
@@ -99,7 +99,7 @@ that already exists it prints those edits instead, since those files are yours.
 
 Left to you either way: the `<EntityAttachments>` tab in the form — ⚠️ it renders its **own**
 `FormSection`, so it goes in a tab or beside the form's section, never inside one — the `files` /
-`addNewFile(s)` translations, and the back-end registration (`WithAttachments` + `HasAttachments<>`).
+`addNewFile(s)` / `replaceFile` translations, and the back-end registration (`WithAttachments` + `HasAttachments<>`).
 `setup.ts` needs no change: the helpers upload through `useAxios()`.
 
 ## Ejected UI skins (`--ui <Component>`)

@@ -13,6 +13,16 @@
         />
         <input v-else v-model.lazy="item.fileName" :readonly="readonly" maxlength="256" class="form-control" @change="emit('change')" />
         <span class="input-group-text">{{ formatFileSize(item.attachment?.length ?? 0) }}</span>
+        <!-- swaps the file, keeping the row's place; staged until the parent's save -->
+        <button
+            v-if="!readonly && !item._deleted"
+            type="button"
+            class="btn btn-outline-secondary"
+            :aria-label="$t('replaceFile')"
+            @click="emit('replace')"
+        >
+            <Icon name="upload" />
+        </button>
         <button v-if="!readonly" type="button" class="btn btn-outline-danger" :aria-label="$t('delete')" @click="toggleRemove">
             <Icon name="delete" />
         </button>
@@ -25,7 +35,7 @@ import { Icon } from "@regira/modules/vue/ui"
 import type Entity from "../data/Entity"
 import { download } from "../data/functions"
 
-const emit = defineEmits<{ (e: "change"): void }>()
+const emit = defineEmits<{ (e: "change"): void; (e: "replace"): void }>()
 defineProps<{ readonly?: boolean }>()
 const item = defineModel<Entity>({ required: true })
 

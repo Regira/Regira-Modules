@@ -25,6 +25,12 @@ heading.
   list. ⚠️ Upgrade: copy the `canWrite` computed and its bindings (`overview/Overview.vue`, `details/Details.vue`), the
   New button's `@remove="searchHandler(false)"` (`overview/Overview.vue`), the placeholder
   (`entity-navigation/NavSearch.vue`) and the `searchIn` key.
+- Scaffold: the `entity-attachments` slice can replace a file. Each row has a replace button (`replaceFile`) that stages
+  the new file in place, keeping the row's position. On the owner's save a stored row `PUT`s the file to
+  `{api}/{id}/files/{linkId}` and takes its name; a row that is not saved yet just swaps its staged file.
+  `useEntityAttachments` returns `triggerReplace(row)` and `handleReplace(row, file)`, and the shell's translations add
+  `replaceFile`. ⚠️ Upgrade: copy `data/functions.ts`, `overview/Overview.vue` and `overview/ListItem.vue` from the
+  template (or re-scaffold with `--attachments --force`), and add the `replaceFile` key.
 - `vue/auth`: Guide: a public storefront with on-demand sign-in, as code — an app-wide request flag, the gate that
   reads it beside `isRequired`, and the `@close` that drops it.
 - Guides — `ui.customize` names the two places a built-in needs `!important` (the `FormSection` header bar and the

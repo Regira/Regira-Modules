@@ -505,6 +505,7 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "recoveryMailFailed": { "en": "Sending the recovery link failed. Please try again." },
     "recoveryMailSent": { "en": "If that account exists, a recovery link is on its way." },
     "remove": { "en": "Remove" },
+    "replaceFile": { "en": "Replace file" },
     "resetPassword": { "en": "Reset password" },
     "restore": { "en": "Restore" },
     "results": { "en": "results" },

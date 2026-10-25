@@ -61,7 +61,7 @@
 //   --ui <Component>    copy a UI-kit component's reference skin into the app for free restyling; the copy
 //                       imports only public @regira/modules/... API, so behavior keeps flowing from the library
 //   --attachments       this entity owns files: scaffold the shared entity-attachments slice (offline
-//                       add/rename/remove + drop zone, committed on the parent's save) and wire it into the
+//                       add/rename/replace/remove + drop zone, committed on the parent's save) and wire it into the
 //                       slice — the attachments field, the insert/update overrides, and the prepareItem
 //                       filter that drops rows marked for deletion. Only the form tab is left to place.
 //                       Passed alone (no entity), it scaffolds the shared slice and stops.
@@ -1249,7 +1249,7 @@ function attachmentsTodo() {
         `    ⚠️ It renders its OWN <FormSection> — put it in a tab or beside the form's section, never inside one, or you get a titled panel within a titled panel.`
     )
     console.log(
-        `    public/data/translations.json  the shell ships "files" and "addNewFile(s)" (literal key, parentheses included) in English — add the other languages from config.json → langs`
+        `    public/data/translations.json  the shell ships "files", "addNewFile(s)" (literal key, parentheses included) and "replaceFile" in English (a shell scaffolded before "replaceFile" lacks it: add "replaceFile": { "en": "Replace file" }) — add the other languages from config.json → langs`
     )
     console.log(`    back-end: register the owner's files (WithAttachments + HasAttachments<>).`)
     console.log(
