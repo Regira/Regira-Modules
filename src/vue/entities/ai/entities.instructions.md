@@ -398,10 +398,11 @@ A list that grows instead of turning pages ("Show more", a screen where nothing 
 `useSearchView({ …, append: true })`: `loadMore()` adds the server's next page below the rows on screen and
 `hasMore` says whether there is one, while a `searchHandler()` refresh fetches every page on screen again, so the
 list keeps its length and the reader's place. Put a "Show more" button under the rows (`v-if="hasMore"`) instead
-of `Paging`, and start the list over with `searchHandler(true)` when a filter changes. A row the screen keeps after
-it left the server's result (an article marked as added) is fine: up to a page of such rows between two clicks are
-caught up; past that, a `searchHandler()` refresh realigns the list. Keep `pageSize` within the API's `MaxPageSize`
-(100 with `UseDefaults()`).
+of `Paging`, and start the list over with `searchHandler(true)` when a filter changes: with `useRouteOverview`, pass
+`handler: () => searchHandler(true)`, or a filter change fetches every page on screen again. A row the screen keeps
+after it left the server's result (an article marked as added) is fine: up to a page of such rows between two clicks
+are caught up; past that, a `searchHandler()` refresh realigns the list. Keep `pageSize` within the API's
+`MaxPageSize` (100 with `UseDefaults()`).
 
 ⚠️ **Neither fetches on mount.** The scaffolded `Overview.vue` gets its first search from `useRouteOverview`,
 a _separate_ composable — take `useSearchView` alone and the initial fetch is yours. Trigger it with

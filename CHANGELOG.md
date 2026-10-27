@@ -61,7 +61,8 @@ heading.
   `{api}/{id}/files/{linkId}` and takes its name; a row that is not saved yet just swaps its staged file.
   `useEntityAttachments` returns `triggerReplace(row)` and `handleReplace(row, file)`, and the shell's translations add
   `replaceFile`. ⚠️ Upgrade: copy `data/functions.ts`, `overview/Overview.vue` and `overview/ListItem.vue` from the
-  template (or re-scaffold with `--attachments --force`), and add the `replaceFile` key.
+  template, and add the `replaceFile` key. Re-scaffolding with `--attachments --force` instead overwrites every file
+  of the shared slice, a customised `data/Entity.ts` included.
 - `vue/auth`: Guide: a public storefront with on-demand sign-in, as code — an app-wide request flag, the gate that
   reads it beside `isRequired`, and the `@close` that drops it.
 - Guides — `ui.customize` names the two places a built-in needs `!important` (the `FormSection` header bar and the

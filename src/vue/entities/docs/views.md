@@ -39,8 +39,10 @@ contradict each other until the next fetch.
 and `hasMore`. `loadMore()` adds the server's next page below the rows on screen; it fetches the last page again
 first, so rows that moved up because a row left the server's result (up to a page of them) are not skipped, and it
 drops the rows already shown. A `searchHandler()` refresh fetches every page on screen again, one request per
-page, so the list keeps its length; `searchHandler(true)` starts it over. Show a "Show more" button under the
-rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize` (100 by default).
+page, so the list keeps its length; `searchHandler(true)` starts it over. With `useRouteOverview`, pass
+`handler: () => searchHandler(true)`, or a filter change fetches every page on screen again. Show a "Show more"
+button under the rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize`
+(100 by default).
 
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
@@ -56,9 +58,11 @@ row) and `handleRemove` move `itemsCount` with the row, so the result count and 
 > **Guard the lazy refs.** `items` / `itemsCount` are `undefined` until the first fetch, so bind
 > `v-for="x in items ?? []"` and `:count="itemsCount ?? 0"`.
 
-> **Overlapping calls settle predictably.** `searchHandler`, `listHandler`, `applySave` and `applyRemove`
-> share one "newest wins" gate: only the newest of them writes `items`, `itemsCount`, `feedback` and
-> `isLoading`, so a slower earlier call is dropped when it lands. They really do overlap: a filter change or
+> **Overlapping calls settle predictably.** A fetch (`searchHandler`, `listHandler`) writes `items` and
+> `itemsCount` unless a newer fetch has started, so a slower earlier fetch is dropped when it lands, while a
+> save or delete in the meantime does not stop it. `feedback` and `isLoading` go to the newest of all four
+> calls, `applySave` and `applyRemove` included, so a fetch that fails while a newer save runs reports to the
+> console only, and the rows already on screen stay. They really do overlap: a filter change or
 > fast paging starts a second fetch, the slice's `onAuthenticated` reload hook re-fetches as soon as a
 > restored token arrives while `useRouteOverview`'s mount fetch is still in flight, and a row saved or
 > deleted from the list settles against whichever of those is on the wire. Only the shared state is gated —
