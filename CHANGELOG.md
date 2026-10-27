@@ -32,8 +32,9 @@ heading.
   twice and rows that moved up because a row left the server's result since (up to a page of them, a row the screen
   keeps included) are not skipped; a list that drifted further is realigned by a refresh. It does nothing while a
   search runs. `pageSize` must stay within the API's `MaxPageSize`.
-- `vue/entities`: Fix: a save or delete (`applySave`, `applyRemove`) that starts while a `useSearchView` search runs no
-  longer drops that search's rows, which left the previous filter's rows on screen under the new one.
+- `vue/entities`: Fix: a save or delete (`applySave`, `applyRemove`) that starts while a `useSearchView` search or a
+  `useListView` fetch runs no longer drops that fetch's rows, which left the previous filter's rows on screen under the
+  new one.
 - Guides — the entities card says `service.save()` returns `{ saved, isNew }`, not the API's `{ item }`; the
   front-end bootstrap's multilanguage bullet points to the account forms' `labels`; `ui.customize`'s *Built-ins that
   hide their own text below a breakpoint* is a heading, so the `ui.signatures` pointer to it resolves.

@@ -25,13 +25,18 @@ export function useListView<T extends IEntity, SO extends ISearchObject = ISearc
         claimWrite,
     } = useOverviewCore({ service, searchObject, defaultPageSize })
 
+    let listGeneration = 0
+
     // Only the newest list may write — the same reasoning as `useSearchView`'s `searchHandler`: a second
     // call starts before the first settles (a filter change, fast paging, or the slice's login/refresh
     // reload hook firing over a mount fetch), and the one that settles last would otherwise win, up to
-    // painting a 401's banner (`fail()` does not auto-hide) over rows already on screen. The counter is the
-    // core's, shared with `applySave`/`applyRemove` — a save settling mid-fetch must not clear this spinner.
+    // painting a 401's banner (`fail()` does not auto-hide) over rows already on screen. The rows are this
+    // fetch's own to write until a newer one starts (`listGeneration`): a save in the meantime must not drop
+    // them, or the previous filter's rows stay. The spinner and the banner go by the core's counter, shared
+    // with `applySave`/`applyRemove` — a save settling mid-fetch must not clear this spinner.
     async function listHandler(): Promise<void> {
         const isLatest = claimWrite()
+        const generation = ++listGeneration
         isLoading.value = true
         try {
             feedback.reset()
@@ -39,7 +44,7 @@ export function useListView<T extends IEntity, SO extends ISearchObject = ISearc
             // while the ref is what the view mutates. `.value` on the argument type-checks (`ISearchObject`
             // extends `Record<string, any>`) and reads undefined, which silently sends paging alone.
             const data = await service.list({ ...(searchObjectRef.value || {}), ...(pagingInfo.value || {}) })
-            if (!isLatest()) return
+            if (generation !== listGeneration) return
             items.value = data
             itemsCount.value = data.length
         } catch (ex) {

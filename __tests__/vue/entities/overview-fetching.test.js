@@ -173,6 +173,23 @@ describe("saves and deletes settling against an in-flight fetch", () => {
         await search
     })
 
+    test("a save that starts while a list fetch runs does not drop the fetched rows", async () => {
+        // the save takes the core's turn, so the fetch used to return without writing: the previous filter's rows stayed
+        const service = deferredService("list", "save")
+        const { items, isLoading, applySave, listHandler } = useListView({ service, searchObject: {} })
+
+        const list = listHandler()
+        const save = applySave({ $id: "1", $title: "chair" })
+        service.resolveWith(0, [{ $id: "1" }, { $id: "2" }])
+        await list
+        expect(items.value).toEqual([{ $id: "1" }, { $id: "2" }])
+        expect(isLoading.value).toBe(true) // the save owns the spinner now
+
+        service.resolveWith(1, { saved: { $id: "1" }, isNew: false })
+        await save
+        expect(isLoading.value).toBe(false)
+    })
+
     test("a superseded delete leaves no banner over the rows that did load", async () => {
         // feedback.fail() does not auto-hide — a 409 landing after the list refreshed used to sit on top
         vi.spyOn(console, "error").mockImplementation(() => {})
