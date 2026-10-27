@@ -28,7 +28,20 @@ const username = computed<string | undefined>(() => {
             <div class="col-md-8 col-lg-6">
                 <FormSection v-if="token" :title="$t('chooseNewPassword')">
                     <!-- @login fires from the success message's "Sign in" button: home is protected, so the login modal pops there -->
-                    <ResetPasswordForm :token="token" :username="username" @login="router.push({ name: 'home' })" />
+                    <ResetPasswordForm
+                        :token="token"
+                        :username="username"
+                        :labels="{
+                            newPassword: $t('newPassword'),
+                            confirmPassword: $t('confirmPassword'),
+                            mismatch: $t('passwordsDontMatch'),
+                            submit: $t('resetPassword'),
+                            succeeded: $t('passwordReset'),
+                            signIn: $t('signIn'),
+                            failed: $t('resetPasswordFailed'),
+                        }"
+                        @login="router.push({ name: 'home' })"
+                    />
                 </FormSection>
                 <p v-else class="text-danger">{{ $t("invalidResetLink") }}</p>
             </div>

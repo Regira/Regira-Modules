@@ -17,6 +17,8 @@ export interface ForgotPasswordFormProps {
 
 export type ForgotPasswordModalProps = {
     username?: string
+    /** "Forgot password" by default */
+    title?: string
     isVisible?: boolean
 }
 export type ForgotPasswordModalSlots = {

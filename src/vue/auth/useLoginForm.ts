@@ -14,13 +14,36 @@ export interface LoginFormEmits {
 export interface LoginModalEmits extends LoginFormEmits {
     (e: "close"): void
 }
+/** the texts `LoginForm` shows; each one left out stays English */
+export type LoginFormLabels = {
+    /** "Username" */
+    username?: string
+    /** "Password" */
+    password?: string
+    /** "Sign in" */
+    signIn?: string
+    /** "Signing in ..." */
+    signingIn?: string
+    /** "Forgot password?" */
+    forgotPassword?: string
+    /** "Unfortunately, signing in failed." */
+    failed?: string
+    /** "Try again in 5 min.", after `failed` for a locked-out account */
+    lockedOut?: string
+    /** "This account is not confirmed yet. Follow the link we mailed you." */
+    notConfirmed?: string
+}
 export interface LoginFormProps {
     username?: string
+    labels?: LoginFormLabels
 }
 
 export type LoginModalProps = {
     username?: string
+    /** "Sign in" by default */
     title?: string
+    /** handed to the default `LoginForm`; a slotted form takes its own */
+    labels?: LoginFormLabels
     /** visibility is a real prop (defaults on); prefer gating the whole component with v-if —
      * it unmounts mask + dialog in one go and cannot strand a leave-transition */
     isVisible?: boolean

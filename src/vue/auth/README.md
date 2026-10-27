@@ -45,6 +45,10 @@ a page stays on screen only while the signed-in identity may see it — after an
 refresh or tenant switch changes its roles. Without this plugin nothing reads `meta.policy`: an app with roles of its
 own resolves them before mounting and gates the route with `beforeEnter`.
 
+The account components show English text. Each form takes a `labels` prop, one key per text, and each modal a
+`title`, so a translated app passes its own wherever it uses them; a key left out stays English. `LogoutForm`'s
+`signOut` label puts the user's display name where it writes `{name}` (`"Sign out {name}"` by default).
+
 A sign-in endpoint of the app's own (a PIN, a one-time code) posts with the shared axios and hands the
 `{ token, isAuthenticated }` answer to the store: `authStore.authData = useAuth().service.authenticate(data)`. A server
 cookie session (no token in the browser) needs none of this module: send its requests with credentials and keep the

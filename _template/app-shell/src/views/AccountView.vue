@@ -13,8 +13,19 @@ const accountName = computed(() => getAccountName())
         <div class="row mb-3">
             <div class="col-md-8 col-lg-6">
                 <FormSection :title="$t('changePassword')">
-                    <!-- username feeds the hidden password-manager field -->
-                    <ChangePasswordForm :username="accountName" />
+                    <!-- username feeds the hidden password-manager field; labels follow the app's language -->
+                    <ChangePasswordForm
+                        :username="accountName"
+                        :labels="{
+                            currentPassword: $t('currentPassword'),
+                            newPassword: $t('newPassword'),
+                            confirmPassword: $t('confirmPassword'),
+                            mismatch: $t('passwordsDontMatch'),
+                            submit: $t('changePassword'),
+                            succeeded: $t('passwordChanged'),
+                            failed: $t('changePasswordFailed'),
+                        }"
+                    />
                 </FormSection>
             </div>
         </div>

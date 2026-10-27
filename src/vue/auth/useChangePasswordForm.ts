@@ -6,9 +6,27 @@ export interface ChangePasswordFormEmits {
     (e: "success"): void
     (e: "fail", ex?: any): void
 }
+/** the texts `ChangePasswordForm` shows; each one left out stays English */
+export type ChangePasswordFormLabels = {
+    /** "Current password" */
+    currentPassword?: string
+    /** "New password" */
+    newPassword?: string
+    /** "Confirm password" */
+    confirmPassword?: string
+    /** "Passwords don't match." */
+    mismatch?: string
+    /** "Change password" */
+    submit?: string
+    /** "Password changed." */
+    succeeded?: string
+    /** "Unfortunately, changing the password failed." */
+    failed?: string
+}
 export interface ChangePasswordFormProps {
     /** account name for the (hidden) username field, so password managers can link the new password */
     username?: string
+    labels?: ChangePasswordFormLabels
 }
 
 export function useChangePasswordForm(emit: ChangePasswordFormEmits) {

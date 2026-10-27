@@ -782,7 +782,7 @@ describe("scaffold.mjs --shell config.json", () => {
     })
 
     test("--no-auth drops the auth UI's texts and its #loginModal host", () => {
-        const authTexts = ["signIn", "signOut", "account", "resetPassword", "recoveryMailSent", "username"]
+        const authTexts = ["signIn", "signOut", "account", "resetPassword", "recoveryMailSent", "username", "password", "signInFailed", "passwordsDontMatch"]
         const read = shell("--no-auth")
         const translations = JSON.parse(read("public", "data", "translations.json"))
 
@@ -791,6 +791,16 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(read("index.html")).not.toContain("loginModal")
         expect(read("index.html")).toContain('id="modals"')
         expect(read("index.html")).not.toContain("@auth")
+    })
+
+    test("the account screens translate their forms with keys the shell's translations.json holds", () => {
+        const read = shell()
+        const translations = JSON.parse(read("public", "data", "translations.json"))
+        const screens = [read("src", "App.vue"), read("src", "views", "AccountView.vue"), read("src", "views", "ResetPasswordView.vue")]
+        const keys = new Set(screens.flatMap((source) => [...source.matchAll(/\$t\(["']([^"']+)["']/g)].map((m) => m[1])))
+
+        expect(keys).toContain("signInFailed") // the forms' labels, not only the headings
+        expect([...keys].filter((key) => !(key in translations))).toEqual([])
     })
 
     test("--no-auth leaves out the sign-in page, its /401 route and the role names nothing reads", () => {

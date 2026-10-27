@@ -52,7 +52,10 @@ export class AuthData implements IAuthData {
         // unaffected; this hides it from serialization, not from callers.
         Object.defineProperty(this, "token", { value: token, enumerable: false, writable: false, configurable: true })
         this.isAuthenticated = options.isAuthenticated
-        this.expires = (this._decodedToken.exp ?? 0) - (this._decodedToken.nbf ?? 0)
+        // the lifetime runs from nbf, or from iat when a token has none; without either it is unknown (0), where a
+        // token's exp alone made it the epoch timestamp
+        const { exp, nbf, iat } = this._decodedToken as { exp?: number; nbf?: number; iat?: number }
+        this.expires = exp != null ? exp - (nbf ?? iat ?? exp) : 0
         this.userId = this.get("sub") as string
         this.name = this.get("name") as string
         this.email = this.get("email") as string

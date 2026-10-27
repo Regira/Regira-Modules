@@ -7,6 +7,36 @@ heading.
 
 ## Unreleased
 
+- `vue/auth`: Fix: the plugin no longer re-validates the token in a tight loop. Its timer waits at most 2^31-1 ms
+  (24.8 days), where a longer lifetime overflowed it and the browser fired it every few milliseconds (about 250
+  `POST auth/validate` a second per tab). `AuthData.expires` takes a token's lifetime from `iat` when it has no
+  `nbf`, where `exp` alone read as the epoch timestamp and looped the same way; a token with neither, or without
+  `exp`, starts no timer, and signing out stops it.
+- `vue/auth`: New: the account components take their text as props, English by default, so a translated app uses them
+  as shipped: `labels` on `LoginForm` (`LoginFormLabels`), `ChangePasswordForm` (`ChangePasswordFormLabels`),
+  `ResetPasswordForm` (`ResetPasswordFormLabels`) and `LogoutForm` (`LogoutFormProps`), `LoginModal` hands its
+  `labels` to its default form, and `ForgotPasswordModal` takes a `title`. ⚠️ Upgrade: `LogoutForm` reads
+  "Sign out {name}" by default, where it read "{name} afmelden"; a Dutch app passes `:labels="{ signOut: '{name}
+  afmelden' }"`.
+- Scaffold: the shell's account screens pass their forms translated `labels` (`App.vue`'s `LoginForm`,
+  `views/AccountView.vue`'s `ChangePasswordForm`, `views/ResetPasswordView.vue`'s `ResetPasswordForm`) and the
+  recovery modal a `title`, from 15 new keys in `translations.json` (`password`, `signingIn`, `forgotPassword`,
+  `forgotPasswordTitle`, `signInFailed`, `lockedOut`, `notConfirmed`, `currentPassword`, `newPassword`,
+  `confirmPassword`, `passwordsDontMatch`, `passwordChanged`, `changePasswordFailed`, `passwordReset`,
+  `resetPasswordFailed`), which `--no-auth` leaves out with the other account texts. ⚠️ Upgrade: copy the `:labels`
+  and `:title` bindings from the three files and add the keys.
+- `vue/entities`: New: `useSearchView({ append: true })` grows the list instead of turning pages. `loadMore()` adds the
+  server's next page below the rows on screen and `hasMore` says whether there is one; a refresh (`searchHandler()`)
+  fetches every page on screen again, one request per page, so the list keeps its length and the reader's place.
+  `loadMore()` fetches the last page again before the next one and drops the rows already shown, so no row shows
+  twice and rows that moved up because a row left the server's result since (up to a page of them, a row the screen
+  keeps included) are not skipped; a list that drifted further is realigned by a refresh. It does nothing while a
+  search runs. `pageSize` must stay within the API's `MaxPageSize`.
+- `vue/entities`: Fix: a save or delete (`applySave`, `applyRemove`) that starts while a `useSearchView` search runs no
+  longer drops that search's rows, which left the previous filter's rows on screen under the new one.
+- Guides — the entities card says `service.save()` returns `{ saved, isNew }`, not the API's `{ item }`; the
+  front-end bootstrap's multilanguage bullet points to the account forms' `labels`; `ui.customize`'s *Built-ins that
+  hide their own text below a breakpoint* is a heading, so the `ui.signatures` pointer to it resolves.
 - `vue/entities`: New: `liftDates(item, ...fields)` (with `DateKeys<T>`) converts the named ISO-string fields of an
   item to `Date`, in place, for a service's `toEntity`. It converts only a string, so a second call changes nothing,
   and it takes only fields the model types as `Date`, so a `DateOnly` string field is a type error. New:

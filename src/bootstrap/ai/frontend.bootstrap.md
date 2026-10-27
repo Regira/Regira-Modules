@@ -232,7 +232,8 @@ level; what you preserve is the contract (composables, props/emits/slots, DI, pl
   `meta.policy` (`entities.patterns` → _Permission-gated UI_). The full backend-to-SPA chain is `Regira.Security` →
   security.instructions → _Roles end-to-end_ (`how_to` key `roles-end-to-end`).
 - **Multilanguage means a visible selector.** Wire `LangSelector` (from `vue/lang`) into the header
-  whenever the app is multilanguage.
+  whenever the app is multilanguage. The account forms are English until they get `labels` (`auth.instructions`
+  → _Account UI_), so pass translated ones wherever the app uses them.
 - **Group form fields** with `FormSection` (+ `FormLabel`, `input-group` icon prefixes) instead of flat
   field lists.
 - **Every component you add or modify gets deliberate styling and placement.** Spacing (`mb-2`/`mb-3`,

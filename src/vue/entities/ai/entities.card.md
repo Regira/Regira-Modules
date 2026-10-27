@@ -168,6 +168,9 @@ initialization` loop the erased type import avoids, with the same dev-server-onl
       so that view's own sort or includes is a `sortBy?` or `includes?` declared on its `SearchObject`
       (`entities.signatures` §3). `new PagingInfo(pageSize?,
 page?)` (from `@regira/modules/vue/entities`) is positional, and is for the overview composable's `pagingInfo` ref — **not** for `search()`.
+    - `service.save(item)` returns `SaveResult` = `{ saved, isNew, affected?, duration? }`: the client's own
+      shape, not the API's `{ item, isNew, … }`, so read `result.saved`. `patch()` returns the row itself
+      (`get_type(id: "regira_modules.vue.entities", typeName: "SaveResult")`).
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
       `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"`; give it a locale tag instead and it

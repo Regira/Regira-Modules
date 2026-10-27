@@ -93,7 +93,7 @@ In a template, `$auth.isAuthenticated` is TS2339: `$auth` is a union, so narrow 
 
 `authData` (`IAuthData`) is decoded from the JWT's claims: `token` (the raw JWT), `userId` ← `sub`, `name` ← `name`,
 `email` ← `email`, `displayName` ← `displayName` (or `display_name`), `culture` ← `culture`, `role` ← the first of
-`role`, `roles` or the `ClaimTypes.Role` URI (for display), `expires` ← `exp` − `nbf` (the lifetime in seconds), plus
+`role`, `roles` or the `ClaimTypes.Role` URI (for display), `expires` ← `exp` − `nbf`, or `exp` − `iat` without `nbf` (the lifetime in seconds; 0 without either), plus
 `get(claim)`, `hasClaim`, `hasPermission`, `hasRole`. The API emits `culture` and `displayName` only when its claims
 principal factory adds them.
 
@@ -424,6 +424,18 @@ components and composables exist for all of it — use them instead of hand-roll
 - All form components are plain-Bootstrap reference skins — restyle, wrap, or eject them
   (`scaffold.mjs --ui LoginForm|LoginModal|ForgotPasswordModal|ChangePasswordForm|ResetPasswordForm`); the modals render the app-wide
   modal via `injectModal()`, so a `modalPlugin { Modal }` swap reskins them too.
+- **Their text is English until you pass your own.** Each form takes `labels` (one key per text, a key left out
+  stays English) and each modal a `title`, so a multilingual app translates them where it uses them:
+
+    ```vue
+    <LoginModal v-if="showLogin" :title="$t('signIn')" :labels="{ username: $t('username'), password: $t('password'), signIn: $t('signIn') }" />
+    <ChangePasswordForm :username="accountName" :labels="{ currentPassword: $t('currentPassword'), submit: $t('changePassword') }" />
+    <LogoutForm :labels="{ signOut: $t('signOutName') }" />
+    <!-- "{name} afmelden": {name} is the display name -->
+    ```
+
+    The keys per form are in [auth.signatures.md](auth.signatures.md) → _Account UI_. A form slotted into
+    `LoginModal` takes its own `labels`, since the modal's go to its default form only.
 
 ### Sign-up
 

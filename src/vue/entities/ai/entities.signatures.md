@@ -307,6 +307,14 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
 export interface IListViewIn<T, SO> extends OverviewCoreIn<T, SO> {
     debounceDelay?: number
 }
+export interface ISearchViewIn<T, SO> extends IListViewIn<T, SO> {
+    // A list that grows instead of turning pages ("Show more", a screen that must not shift while more loads):
+    // loadMore() adds the server's next page below the rows on screen, and searchHandler() without resetPaging fetches
+    // every page on screen again, one request per page, so a refresh keeps the list's length and place.
+    // searchHandler(true) starts the list over at one page. pagingInfo.page is not used, and no Paging goes with it.
+    // pageSize must not exceed the API's MaxPageSize (100 with UseDefaults()), or a page comes back short.
+    append?: boolean // default false
+}
 export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // ⚠️ NOTHING FETCHES ON MOUNT. The scaffolded Overview.vue gets its first search from useRouteOverview,
     // a separate composable — a hand-written view owns it: onAuthenticated(() => searchHandler(true)).
@@ -316,6 +324,14 @@ export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // which write the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
+    // append only: the server's next page below the rows on screen, in two requests: the last page fetched again, then
+    // the next. Rows already on screen are dropped by $id, so no row shows twice, and rows that moved up because a row
+    // left the server's result since (deleted, or edited out of the filter while the screen keeps it; up to a page of
+    // them) are picked up from the last page, not skipped. A list that drifted further is realigned by searchHandler().
+    // Does nothing while a search runs; a call while one loads joins it; a new search drops a page that settles after
+    // it. Without append it does nothing.
+    loadMore(): Promise<void>
+    hasMore: ComputedRef<boolean> // append only: the server has rows past the pages fetched so far; false without append
 }
 export interface IListViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // Sends the current searchObject + pagingInfo to service.list(); same concurrency guarantee as
@@ -329,7 +345,8 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
     searchObject,
     defaultPageSize,
     debounceDelay,
-}: IListViewIn<T, SO>): ISearchViewOut<T, SO>
+    append,
+}: ISearchViewIn<T, SO>): ISearchViewOut<T, SO>
 export function useListView<T extends IEntity, SO extends ISearchObject = ISearchObject>({
     service,
     searchObject,

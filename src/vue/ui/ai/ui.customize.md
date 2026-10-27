@@ -152,8 +152,10 @@ of `theme.scss`.
 descendants (a dropdown menu in a row) and breaks `position: sticky` inside it. The
 library rule omits it deliberately; `entity-list--scroll-x` is the per-list opt-in.
 
-**Built-ins that hide their own text below a breakpoint.** The defaults suit a desktop admin UI; on a
-phone-first app they are a functional decision, and they show up at 375 px, never in a type-check:
+### Built-ins that hide their own text below a breakpoint
+
+The defaults suit a desktop admin UI; on a phone-first app they are a functional decision, and they show up at
+375 px, never in a type-check:
 
 | Component        | What disappears                   | Below | Condition                               |
 | ---------------- | --------------------------------- | ----- | --------------------------------------- |

@@ -35,6 +35,13 @@ Calling `handleRemove(item)` unconditionally removes the row even when the serve
 (a validator's 400, or a 409 while the row is still referenced), so the list and the failure message
 contradict each other until the next fetch.
 
+**A list that grows instead of turning pages** — `useSearchView({ …, append: true })` also returns `loadMore()`
+and `hasMore`. `loadMore()` adds the server's next page below the rows on screen; it fetches the last page again
+first, so rows that moved up because a row left the server's result (up to a page of them) are not skipped, and it
+drops the rows already shown. A `searchHandler()` refresh fetches every page on screen again, one request per
+page, so the list keeps its length; `searchHandler(true)` starts it over. Show a "Show more" button under the
+rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize` (100 by default).
+
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
 `useListView` when a plain list is enough (`service.list()` → `Array<T>`, already unwrapped — never

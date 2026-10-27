@@ -7,6 +7,9 @@ import type { ITokenManager } from "./token-manager"
 import { createAuth, setGlobalAuth, type IAuthOptions } from "./auth"
 import type { IAuthData } from "./AuthData"
 
+// setInterval's delay is a 32-bit signed int: past 2^31-1 ms (24.8 days) the browser fires at once, every tick
+const MAX_TIMER_DELAY = 2 ** 31 - 1
+
 type Input<TStore extends IAuthStore, TTokenManager extends ITokenManager> = IAuthOptions & {
     tokenManager: TTokenManager
     authStore?: TStore
@@ -89,10 +92,12 @@ export default {
             watch(
                 () => store.isAuthenticated,
                 () => {
-                    if (store.isAuthenticated) {
+                    clearInterval(tokenInterval)
+                    // a token without exp (expires 0) has no lifetime to time a check by; the 401 interceptor below
+                    // still signs it out once the server refuses it
+                    if (store.isAuthenticated && store.authData.expires > 0) {
                         // triggers login-popup when token becomes invalid
-                        clearInterval(tokenInterval)
-                        tokenInterval = setInterval(() => store.validateToken(), store.authData.expires * 1000)
+                        tokenInterval = setInterval(() => store.validateToken(), Math.min(store.authData.expires * 1000, MAX_TIMER_DELAY))
                     }
                     onAuthenticationChange(store.authData)
                 }
