@@ -26,7 +26,9 @@ been authored cleanly, with no record of prior errors or revisions.
 
 ## 2. Layout
 
-- **Core:** `src/{utilities,extensions,treelist,events,io}`. **Vue:** `src/vue/{entities,http,ioc,auth,ui,app,lang,formatters,directives,online,debug}` + `src/vue/vue-helper.ts` (code; its docs live in `src/vue/vue-helper/`).
+- **Core:** `src/{utilities,extensions,treelist,events,io}`, and `src/core` — the framework-free half of the Vue
+  modules (entity model and services, http, ioc, formatters, auth service, translations, the error mapping),
+  published as `@regira/modules/core`; the `vue/*` barrels re-export what lives there. **Vue:** `src/vue/{entities,http,ioc,auth,ui,app,lang,formatters,directives,online,debug}` + `src/vue/vue-helper.ts` (code; its docs live in `src/vue/vue-helper/`).
 - Each module: `README.md` (developer docs) + `ai/` = `<m>.instructions.md`, `<m>.signatures.md`, `<m>.examples.md`, `module.json`, and optionally `<m>.card.md` (the hand-authored index card the MCP serves via `get_package_card`; entities and auth ship one). Entities adds `namespaces.md`, `patterns.md`, `setup.md`, `template.md`, `shell.template.md`, `attachments.template.md`, `advanced.example.md`, `blueprints.md`, a `docs/` folder, and `vue-entities-agent.md` at the module root —
 a Claude Code sub-agent definition, deliberately outside `ai/` because that folder is the MCP's knowledge
 base and this is tooling. Nothing here loads it: it is in neither `package.json` `files` nor a
@@ -41,7 +43,9 @@ base and this is tooling. Nothing here loads it: it is in neither `package.json`
 ## 3. Commands
 
 `npm run dev` · `npm run build` (writes `dist/` + `.d.ts`) · `npm run types` · `npm test` (Vitest) ·
-`npm run format` (Prettier).
+`npm run format` (Prettier) · `npm run test:consumers` (after a build: installs the packed package into each app
+under `__tests__/fixtures`, outside the repository, and type-checks and builds it). `.github/workflows/test.yml`
+runs types, build, tests and consumers on every push and pull request.
 
 Docs site — from `docs/`, which has its own dependencies (`cd docs && npm install` once):
 `npm run docs:dev` · `npm run docs:build` · `npm run docs:preview`. The first two run `sync-modules.mjs`
@@ -55,6 +59,12 @@ before VitePress, so they pick up module doc edits without a separate step.
 - After changing a public type, rebuild and reconcile `ai/*.signatures.md` with the new `.d.ts`.
 - Match local style; import across modules via their `exports` subpath, not deep relative paths;
   run `npm run format` before finishing.
+- **`src/core` imports no framework** — not `vue`, `@vue/*`, `vue-router`, `pinia` or React, not even as a type,
+  and no `declare module "@vue/runtime-core"`: an app without Vue compiles against its declarations.
+  `src/vue/**` imports framework-free code from `src/core` directly. Two tests read the built `dist/` and guard
+  this: `__tests__/packaging/boundaries.test.js` (what each entry reaches) and `__tests__/packaging/exports.test.js`
+  (every entry's runtime and declared exports, snapshotted — an existing entry's snapshot changes only when its
+  public API is meant to).
 - **Cross-module links in `ai/*.md` stay source-tree relative** — `](../../http/ai/http.instructions.md)`.
   They are read two ways, and this form serves the one that has a file system: a contributor browsing
   the repo. Over the MCP an agent gets the text without a tree to resolve against, so the path is inert

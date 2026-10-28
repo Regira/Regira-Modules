@@ -229,7 +229,7 @@ const MODULE_MAP = {
     "vue/ui/input/formButtonsRow": { spec: "@regira/modules/vue/ui" },
     "vue/ui/input/fileDropZone": { spec: "@regira/modules/vue/ui" },
     "vue/vue-helper": { spec: "@regira/modules/vue/vue-helper" },
-    "vue/entities/abstractions/PagingInfo": { spec: "@regira/modules/vue/entities" },
+    "core/entities/abstractions/PagingInfo": { spec: "@regira/modules/vue/entities" },
     "vue/entities/form/inputSelectorInline": { spec: "@regira/modules/vue/entities" },
     "vue/auth/useLoginForm": { spec: "@regira/modules/vue/auth" },
     "vue/auth/useChangePasswordForm": { spec: "@regira/modules/vue/auth" },
@@ -246,7 +246,7 @@ const MODULE_MAP = {
     "vue/lang/useLang": { spec: "@regira/modules/vue/lang" },
     "vue/lang/langSelector": { spec: "@regira/modules/vue/lang" },
     "vue/entities/details/detailsSummary": { spec: "@regira/modules/vue/entities" },
-    "vue/formatters": { spec: "@regira/modules/vue/formatters" },
+    "core/formatters": { spec: "@regira/modules/vue/formatters" },
     "utilities/string-utility": { spec: "@regira/modules/utilities" },
 }
 

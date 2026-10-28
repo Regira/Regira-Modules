@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest"
 import { setActivePinia, createPinia } from "pinia"
-import { AuthData } from "../../../src/vue/auth/AuthData"
+import { AuthData } from "../../../src/core/auth/AuthData"
 import { createAuth } from "../../../src/vue/auth/auth"
 import { useAuthStore } from "../../../src/vue/auth/store"
 

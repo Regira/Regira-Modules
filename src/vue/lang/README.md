@@ -4,6 +4,8 @@
 composable that holds the active language as reactive state, and a Vue plugin that wires `$t` / `$tm`
 global properties. Entity labels and any user-facing strings are translated through this layer.
 
+An app without Vue imports `translate`, `translateMessage` and `formatText` from [`@regira/modules/core`](../../core/README.md); `useLang` and the plugin are Vue-only.
+
 ## What it provides
 
 | Export                                             | Purpose                                                                                                                      |

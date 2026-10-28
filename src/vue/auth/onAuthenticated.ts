@@ -1,7 +1,7 @@
 import { watch, type WatchStopHandle } from "vue"
 import { useGlobalAuth } from "./auth"
 import { useAuthStore, type IAuthStore } from "./store"
-import type { IAuthData } from "./AuthData"
+import type { IAuthData } from "../../core/auth/AuthData"
 
 // Stands in for the token in an app whose auth plugin is installed disabled (`enabled: false`): no token can
 // ever arrive there, so watching for one would never fire and the caller's fetch would never run — the blank

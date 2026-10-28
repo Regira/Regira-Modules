@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { formatText } from "../../../src/vue/lang/formatText"
+import { formatText } from "../../../src/core/lang/formatText"
 
 // `{name}` placeholders take their args; one without an arg of its name stays as written
 describe("formatText", () => {

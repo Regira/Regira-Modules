@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest"
-import { dateInputString, dateTimeInputString, formatDate, formatDateTime, formatShortDate, formatTime } from "../../src/vue/formatters"
+import { dateInputString, dateTimeInputString, formatDate, formatDateTime, formatShortDate, formatTime } from "../../src/core/formatters"
 
 // local-time constructor + local-time getters, so these are timezone independent
 const evening = new Date(2026, 6, 25, 23, 5, 9, 7) // 2026-07-25 23:05:09.007

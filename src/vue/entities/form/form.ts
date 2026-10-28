@@ -2,8 +2,8 @@ import { ref, watch, onMounted, type Ref } from "vue"
 import { useRouter, type RouteLocationRaw } from "vue-router"
 import { deepCopy } from "../../../utilities/object-utility"
 import useFeedback, { toFeedbackError, type FeedbackOut } from "../../ui/feedback"
-import type { IEntity } from "../abstractions/IEntity"
-import type { IEntityService, SaveResult } from "../abstractions/IEntityService"
+import type { IEntity } from "../../../core/entities/abstractions/IEntity"
+import type { IEntityService, SaveResult } from "../../../core/entities/abstractions/IEntityService"
 
 /**
  * What `changeState` reports: a write emits `pending`, then one final state — `saved` for a save or restore that

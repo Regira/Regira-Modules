@@ -1,9 +1,9 @@
 import { ref, computed, watch, onMounted, type Ref, type ComputedRef } from "vue"
 import { useRouter, type RouteRecordRaw } from "vue-router"
 import { useFeedback, type FeedbackOut } from "../../ui/feedback"
-import type { IEntity } from "../abstractions/IEntity"
-import type { IEntityService } from "../abstractions/IEntityService"
-import { ArchivedFilter } from "../abstractions/ISearchObject"
+import type { IEntity } from "../../../core/entities/abstractions/IEntity"
+import type { IEntityService } from "../../../core/entities/abstractions/IEntityService"
+import { ArchivedFilter } from "../../../core/entities/abstractions/ISearchObject"
 
 export type DetailsOut<T extends IEntity> = {
     item: Ref<T | undefined>

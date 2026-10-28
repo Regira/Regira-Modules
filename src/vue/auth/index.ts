@@ -1,11 +1,17 @@
-import { type IAuthData } from "./AuthData"
+import { type IAuthData } from "../../core/auth/AuthData"
 
-export { AuthService, type IAuthenticateInput, type IChangePasswordInput, type IForgotPasswordInput, type IResetPasswordInput } from "./auth-service"
+export {
+    AuthService,
+    type IAuthenticateInput,
+    type IChangePasswordInput,
+    type IForgotPasswordInput,
+    type IResetPasswordInput,
+} from "../../core/auth/auth-service"
 export { default as routeGuard, routeAllows } from "./route-guard"
-export { type ITokenManager, CookieTokenManager, MemoryTokenManager, LocalStorageTokenManager } from "./token-manager"
+export { type ITokenManager, CookieTokenManager, MemoryTokenManager, LocalStorageTokenManager } from "../../core/auth/token-manager"
 
 export { useAuth, useGlobalAuth, getAccountName, type IAuth, type IGlobalAuth, type GlobalAuth, type IAuthOptions } from "./auth"
-export { registerCredentialUrls } from "./error-logging"
+export { registerCredentialUrls } from "../../core/auth/error-logging"
 export { useAuthStore, createStore, type IDefineAuthStore, type IAuthStore } from "./store"
 export { onAuthenticated, type OnAuthenticatedOptions } from "./onAuthenticated"
 export { default as plugin } from "./plugin"

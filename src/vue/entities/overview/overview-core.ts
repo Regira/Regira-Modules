@@ -1,6 +1,13 @@
 import { toFeedbackError, useFeedback } from "../../ui"
 import { ref, type Ref } from "vue"
-import { DEFAULT_PAGESIZE, PagingInfo, type IEntity, type IPagingInfo, type ISearchObject, type SaveResult } from "../abstractions"
+import {
+    DEFAULT_PAGESIZE,
+    PagingInfo,
+    type IEntity,
+    type IPagingInfo,
+    type ISearchObject,
+    type SaveResult,
+} from "../../../core/entities/abstractions"
 import type { OverviewCoreIn, OverviewCoreInternals, OverviewCoreOut } from "./overview"
 
 export function useOverviewCore<T extends IEntity, SO extends ISearchObject = ISearchObject>({

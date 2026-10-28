@@ -1,14 +1,14 @@
 # A React alternative to the Vue modules
 
-As of 2026-10-25. Sources: the `Regira-Modules` repository, branch `wip` at `6a65849`: `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Nothing on this page has been built.
+As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 is built on the branch `react-alternative`; Phases 1 and 2 are not.
 
-**Status: proposal, not scheduled. Two decisions are open (see *Decisions*). An Angular layer is out of scope; the design leaves room for one without changing the core.**
+**Status: approved with amendments, reviewed 2026-10-28. Phase 0 is built on `react-alternative`, pending merge into `wip`. Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
 
 ## Recommendation
 
 Offer React by sharing the logic, not by porting the components. Move the logic in the Vue composables into one framework-free module, `src/core/`, published as `@regira/modules/core`. Keep `vue/*` as thin wrappers whose public API does not change, and add `src/react/`, published as `@regira/modules/react`, as a second set of thin wrappers.
 
-The core depends on no framework, not even on Vue's reactivity package. Where it keeps state, it creates that state through a `box` function the layer passes in. The Vue layer passes Vue's own `ref`, so the composables return the same refs they return today. The React layer passes a small box that tells React to re-render. That one function is the whole bridge between the core and a framework.
+The core depends on no framework, not even on Vue's reactivity package. Where it keeps state, it creates that state through a `box` function the layer passes in. The Vue layer passes Vue's own `ref`, so the composables return the same refs they return today. The React layer passes a small box that tells React to re-render. That function, and the rule that derived values are plain functions (rule 6), are the whole bridge between the core and a framework.
 
 The reason to share is what the composables hold. `useOverviewCore`, `useDetails`, `useForm` and the auth store carry "newest request wins" guards, the mapping of 400, 404 and 409 answers to feedback, and the order in which a stored token is restored. About 600 tests pin that behaviour. A React copy would need every one of those fixes made twice, and the two copies would drift.
 
@@ -17,7 +17,7 @@ The tests come first. Before a module's logic moves, its composable tests are re
 | Phase | What | Size | Release |
 |---|---|---|---|
 | 0 | Safety nets, and the code that already has no Vue dependency moved into `src/core/` | Small | Minor |
-| 1 | The logic moves into the core; Vue only, its API unchanged | Medium | Patch |
+| 1 | The logic moves into the core; Vue only, its API unchanged | Medium | Minor (see *Risks*: `items` gets a new array) |
 | 2 | React hooks and providers, no UI | Medium | Minor, marked experimental |
 
 A React UI kit, a React scaffold and a full React guide set are not part of this proposal (see *Out of scope*).
@@ -27,20 +27,21 @@ A React UI kit, a React scaffold and a full React guide set are not part of this
 | What | Where | Effect |
 |---|---|---|
 | Framework-free core modules | `src/utilities`, `extensions`, `treelist`, `events`, `io`: 2,946 lines | A React app can use them as they are |
-| Framework-free code under `src/vue` | 2,658 of the 6,838 TypeScript lines import neither `vue`, `vue-router` nor `pinia`: `entities/abstractions`, `config`, `describers`, `navigation`, `entities/utilities`, `http`, `ioc/ServiceProvider.ts`, `formatters`, `auth/auth-service.ts`, `token-manager.ts`, `AuthData.ts`, `error-logging.ts`, `lang/translate.ts`, `formatText.ts`. Two of them, `overview/search-view.ts` and `list-view.ts`, import no Vue themselves but build on `useOverviewCore`'s refs | The code is there, under `vue/…` paths |
+| Framework-free code under `src/vue` | `entities/abstractions`, `config`, `navigation`, `entities/utilities`, `http`, `ioc/ServiceProvider.ts`, `formatters`, `auth/auth-service.ts`, `token-manager.ts`, `AuthData.ts`, `error-logging.ts`, `lang/translate.ts` and `formatText.ts` import no framework. Three of them reached Vue's types through an import, which a runtime trace does not show: `SearchObjectBase` imported `ISearchObject` from the `vue/entities` barrel, `EntityDescriptor` imported `IServiceProvider` from the `vue/ioc` barrel, and `auth-service.ts` imported `IAuthOptions` from `auth.ts`. `describers` reaches `Ref` through `IPoolHandler`, so it is not framework-free. `list-view.ts` imports no Vue itself but builds on `useOverviewCore`'s refs; `search-view.ts` imports `computed` and `ref` for its append mode | Phase 0 moved the framework-free files to `src/core` |
 | Entry points that load without Vue | Traced through `dist/`: `utilities`, `treelist`, `events`, `io`, `vue/http`, `vue/http/axios`, `vue/ioc`, `vue/entities/abstractions`, `vue/formatters` | `vue/entities` and `vue/ui` pull in `vue` and `vue-router`; `vue/auth` pulls in all three; `vue/lang` and `vue/ui/feedback` pull in `vue` |
 | Framework-free logic reachable only through Vue files | `toFeedbackError`, `fieldMessages` and `setErrorTranslator` live in `ui/feedback/feedback.ts`, which imports `vue`; the error mapping's default translator reads `useLang`'s refs. `AuthService`, `TokenManager` and `AuthData` are exported only from the `vue/auth` barrel. `translate` is exported only from `vue/lang` | A React app cannot reach the error mapping, the auth service or the translations without loading Vue |
 | Vue-bound code | 4,180 TypeScript lines import `vue`, `vue-router` or `pinia`; 45 single-file components (1,883 lines) in `src/vue` | Phase 1 moves the logic out of the composables among them |
-| Peer dependencies | `vue`, `vue-router`, `pinia`, `axios` and `date-fns` are required peers in `package.json` | npm 7 and later install required peers, so a React app gets all three Vue packages |
+| Peer dependencies | `vue`, `vue-router`, `pinia`, `axios` and `date-fns` were required peers, and the repository's own development relied on npm installing them | Optional peers need the three Vue packages as dev dependencies too, or `npm ci` drops them from the lockfile |
 | Logic and state are interleaved | `claimWrite` in `overview/overview-core.ts`, `latestLoadId` in `details/details.ts`, the failure mapping in `form/form.ts`, `createStore` in `auth/store.ts` | The logic exists once, written against Vue refs |
+| Derived state | `computed` in `search-view.ts` (`hasMore`), `details.ts` (`routeId`, `isNew`, `isForm`, `isFiche`, `hasFiche`), `listInput.ts`, `ownedCollections.ts`, `feedback.ts` (`isPending`), the auth store (seven) and three auth form composables; a `customRef` for `clientApp` in the auth store; `watchEffect` in the lang plugin | A box covers `ref` only; rule 6 covers the rest |
 | Lifecycle inside composables | `onMounted` in `useDetails`, `useRouteOverview`, `useForm`, `useOwnedCollection` and `useLeanOverview`; `watch(router.currentRoute)` in `useDetails` and `useRouteOverview`; `watch(() => props.modelValue)` in `useForm`, `useOwnedCollection` and `useListInput` | These calls cannot move into a framework-free core |
-| In-place edits of a ref's contents | Three, all in `overview/overview-core.ts`: two `items.value.splice(…)` and one `items.value.push(…)`. Every other write in the logic assigns `.value` | A core that only assigns works with any box |
+| In-place edits of a ref's contents | Four: in `overview/overview-core.ts`, two `items.value.splice(…)` and one `items.value.push(…)`; in `search-view.ts`, `items.value.push(...fresh)` when append mode loads a page. Every other write in the logic assigns `.value` | A core that only assigns works with any box |
 | Shared entity objects, edited in place | `PoolCache` keeps one `Ref` per entity, and every view edits that object (`v-model="item.title"`). `$id` and `$title` are prototype getters, and `EntityServiceBase.requireId` throws when a spread dropped them | React's usual `setItem({ ...item })` breaks the model |
 | Named routes | `_template/entity-slice/setup.ts` names `${key}Overview`, `${key}Details`, `${key}Fiche` and `${key}Form`. `details.ts` reads `router.options.routes` and `router.options.history.state.back`. `FormIn.afterInsertRoute` returns vue-router's `RouteLocationRaw` | React Router has no named routes and no `history.state.back` |
 | Route meta | `allowAnonymous`, `permissions` and `policy` in `auth/route-guard.ts` | Needs a home on React Router's route objects |
 | App wiring | `app.config.globalProperties`: `$services`, `$configs`, `$icons`, `$t`, `$tm`, `$auth`, `$culture`, `$feedback`. Pinia stores in `app/store.ts`, `auth/store.ts` and every slice's `data/store.ts` | React gets a provider and hooks instead |
-| Tests | 60 files, about 600 tests: 366 under `__tests__/vue`, 109 under `__tests__/template`. Composable tests settle service calls by hand (`deferredService` in `overview-fetching.test.js`) or mount with `createApp` and a memory router. *scaffold.mjs output type-checks* in `scaffold.test.js` runs `vue-tsc` over a scaffolded app that reads the package through its `exports`, as an install does | The scenarios can be reused, and the type-check already guards the types a Vue app uses |
-| CI | The tests run only inside `publish-npm.yml`. `deploy-docs.yml` builds the docs site | Nothing runs on a push or a pull request |
+| Tests | Before Phase 0, 63 files and 694 tests: 426 under `__tests__/vue`, 119 under `__tests__/template`. Composable tests settle service calls by hand (`deferredService` in `overview-fetching.test.js`) or mount with `createApp` and a memory router. *scaffold.mjs output type-checks* in `scaffold.test.js` runs `vue-tsc` over a scaffolded app that reads the package through its `exports`, as an install does | The scenarios can be reused, and the type-check already guards the types a Vue app uses |
+| CI | Before Phase 0 the tests ran only inside `publish-npm.yml`; `deploy-docs.yml` builds the docs site | `test.yml` now runs on every push and pull request |
 | Unused Vue JSX | `src/vue/ui/feedback/controls.jsx` is imported nowhere; `tsconfig.json` sets `jsx: preserve` | It would break under the React JSX transform |
 
 ## Design
@@ -52,6 +53,9 @@ A React UI kit, a React scaffold and a full React guide set are not part of this
 3. **Assign, never edit in place.** The core writes `items.value = …`, never `items.value.push(…)`, so a box only has to notice assignments.
 4. **No lifecycle, no router, no watchers.** A controller exposes a method for each outside event, such as `load()` or `onModelValueChange(value)`, and the layer calls it from `onMounted` and `watch`, or from `useEffect`. Where the core needs the route, it takes plain values, such as the route id or the current query, and callbacks, such as `navigateAfterInsert(saved)`; never a router. Vue's watchers stay in the Vue layer, so they keep firing when they do today.
 5. **Factories, not reactive singletons.** The core exports `createPoolCache`, `createLangState`, `createAuthState` and so on; each layer creates its own app-wide instances, as the Vue layer's `defaultPoolCache` and `useLang` state are today. Only plain singletons, such as the default `ServiceProvider` and the registered error translator, live in the core.
+6. **Derived values are functions.** The core exposes a derived value, such as `hasMore` or `isPending`, as a function over its boxes. The Vue layer wraps each one in `computed()`, which tracks the boxes because they are refs; the React layer calls it during render. The box function and this rule are the whole bridge. A `customRef` that reads through to another owner, as the auth store's `clientApp` does, stays in the Vue layer, over a getter and a setter the core exposes.
+7. **Compare entities by `$id`.** In Vue a box hands back a reactive proxy, in the core and React the object itself, so `===` between an entity in a box and one from outside differs per driver.
+8. **Feedback goes to a sink.** A controller takes the four methods `pending`, `success`, `fail` and `reset`, so a `FeedbackOut` a caller passes in works unchanged.
 
 The search view shows the shape:
 
@@ -77,6 +81,7 @@ Each composable calls its core controller with `ref`, wires the lifecycle with `
 
 ### The React layer
 
+- **No JSX in the library.** The hooks and `RegiraProvider` are `.ts` files that call `createElement`, so the library build keeps one JSX setting (`jsx: preserve`, for Vue) and `vue-tsc` emits the React declarations with the rest. `@vitejs/plugin-react` is a dev dependency of the React tests only, if they use JSX.
 - **A box that notifies.** Assigning a box bumps a version that the hook reads with `useSyncExternalStore`. Editing an entity's field in place, as a form input does, goes through an `update(item => …)` the hook returns, which re-assigns the box.
 - **`RegiraProvider`** holds the language, auth and app-wide feedback. Services come from the existing IoC container.
 - **Hooks mirror the composables** that move in Phase 1. Events become callback props: `onSave`, `onRemove`, and `onChange` for `update:modelValue`.
@@ -135,7 +140,7 @@ The lifecycle scenarios are new. Vue alone never needed them, and they pin the b
 
 - **The core:** none beyond today's `axios` and `date-fns`.
 - **`react` and `react-dom`**, version floor per decision 2, and **`react-router`** (decision 1): optional peers, and dev dependencies for the tests.
-- **Dev only:** `@vitejs/plugin-react` and `@testing-library/react`. Versions are pinned when the step that needs them is built.
+- **Dev only:** `@testing-library/react`, and `@vitejs/plugin-react` if the React tests use JSX. Versions are pinned when the step that needs them is built.
 
 ## Decisions
 
@@ -150,12 +155,12 @@ The lifecycle scenarios are new. Vue alone never needed them, and they pin the b
 
 ### Phase 0: safety nets and the core module
 
-1. **CI on every push and pull request.** A `test.yml` workflow runs `npm ci`, `npm run types`, `npm run build` and `npx vitest run`.
+1. **CI on every push and pull request.** A `test.yml` workflow runs `npm ci`, `npm run types`, `npm run build`, `npx vitest run` and `npm run test:consumers`.
 2. **An export snapshot.** A test imports every `vue/*` entry from `dist/` and snapshots its export names. With *scaffold.mjs output type-checks*, a change to what a Vue app uses fails CI.
 3. **A boundary test.** `__tests__/packaging/boundaries.test.js` traces the imports of every built entry: `core` may reach no framework package, `react` no Vue package, and `vue/*` no React package.
 4. **One consumer fixture.** `npm pack`, then install the tarball into `__tests__/fixtures/consumer-no-vue`, a TypeScript app with no Vue installed that imports `@regira/modules/core`. It runs `tsc --noEmit` and a Vite build, under its own `test:consumers` script, because it is slow.
 5. **`src/core/` with the code that already has no Vue dependency.**
-   - Move `entities/abstractions`, `config`, `describers`, `navigation`, `entities/utilities`, `http`, `ioc/ServiceProvider.ts`, `formatters`, the auth service files (`auth-service.ts`, `token-manager.ts`, `AuthData.ts`, `error-logging.ts`, `auth-axios.ts`), `lang/translate.ts` and `formatText.ts`. `auth-axios.ts` imports Pinia's `Store` type; the core version uses a structural type instead.
+   - Move `entities/abstractions`, `config`, `navigation`, `entities/utilities`, `http`, `ioc/ServiceProvider.ts`, `formatters`, the auth service files (`auth-service.ts`, `token-manager.ts`, `AuthData.ts`, `error-logging.ts`), `lang/translate.ts` and `formatText.ts`. `describers` and `auth-axios.ts` stay in the Vue layer for now (see *As built*).
    - Move `toFeedbackError`, `fieldMessages` and `setErrorTranslator` too. Their default translator reads `useLang`'s refs, so the core version takes its default from a registration that `vue/ui/feedback` makes when it loads: a Vue app keeps its translated errors, and a React app registers its own translator or shows the server's text.
    - The `vue/*` paths re-export everything that moved; the snapshot from step 2 stays unchanged.
 6. **Optional peers.** Mark `vue`, `vue-router` and `pinia` optional in `peerDependenciesMeta`.
@@ -163,6 +168,15 @@ The lifecycle scenarios are new. Vue alone never needed them, and they pin the b
 8. **Docs and release.** `src/core/README.md` and its `ai/` set; the root `README.md` index; `package.json` `exports` and `typesVersions`; a `core` entry in the *Core* group of `MODULES` in `docs/sync-modules.mjs` (AGENTS.md §5). CHANGELOG bullet; minor version.
 
 Done when the fixture builds without Vue, the export snapshot is unchanged, and every existing test passes.
+
+As built:
+
+- The export snapshot records each entry's declared value and type names as well as its runtime names, and a test checks that `core` and the `vue/*` entries hand out the same instances.
+- The boundary test also follows `core`'s declarations, including `declare module` and `import("…")` types; the consumer fixture type-checks with `skipLibCheck` off.
+- `describers` stays in `vue/entities` until the pool moves in Phase 1, and `auth-axios.ts` stays in `vue/auth` until the auth state moves: its contract is the Pinia store's `$patch`, and a structural copy of that in the core would only rename the coupling.
+- The core keeps two error translators: the default a framework layer registers when it loads, and the app's own from `setErrorTranslator`, which wins in whichever order the two are set.
+- `vue`, `vue-router` and `pinia` became dev dependencies as well as optional peers. This ships as a minor: the documented install lists all three peers, an app that relied on npm installing them fails its build at once rather than at runtime, and the CHANGELOG entry says which dependency to add.
+- `core` exports only names a `vue/*` entry already exports, plus `defaultServiceProvider`. The auth internals the auth guides call internal, such as the `AuthData` class and `maskAxiosError`, stay unexported until the auth state moves.
 
 ### Phase 1: the logic moves into the core
 
@@ -192,7 +206,7 @@ Done when those composables are thin wrappers and every scenario passes. Patch r
 
 ### Phase 2: React hooks
 
-13. **Tooling.** `@vitejs/plugin-react` limited to `src/react/**`; a `tsconfig.react.json` with `jsx: react-jsx`; the Vite entry and `exports` for `./react`; `react`, `react-dom` and `react-router` as optional peers.
+13. **Tooling.** The Vite entry and `exports` for `./react`; `react`, `react-dom` and `react-router` as optional peers and as dev dependencies; `@types/react`; `@vitejs/plugin-react` for the React tests only, if they use JSX.
 14. **The React layer**: the box, `RegiraProvider`, a hook for every module Phase 1 moved, and the React Router glue, as *Design* describes.
 15. **The React driver.** Each moved module's scenarios add `react` to their drivers, the lifecycle scenarios included.
 16. **The consumer fixture** also imports the hooks, with a hand-written overview and form.
@@ -218,9 +232,10 @@ Done when every shared scenario runs on all three drivers and the fixture builds
 
 ## Risks
 
-- **Assigning instead of editing in place.** The three edits in `overview-core.ts` become assignments, so after a save or delete in the overview, `items` holds a new array. A Vue component that kept the old array keeps a stale one. The overview tests and the core driver's frozen arrays are the guard.
+- **Assigning instead of editing in place.** The four edits become assignments, so after a save, a delete or a loaded page, `items` holds a new array. A Vue component that kept the old array keeps a stale one, and a shallow `watch(items)` now fires where it did not; that is why Phase 1 is a minor release with a changelog note. The overview tests and the core driver's frozen arrays are the guard.
 - **Casts in the Vue layer.** Each composable casts the core's boxes to `Ref<T>`, which they are at runtime. A wrong cast would still type-check; the Vue scenarios and the scaffold type-check are the guard.
 - **React rendering.** StrictMode mounts twice in development, so fetches run twice there; the newest-wins guards keep the final state right. A box re-renders the whole component that uses it, which suits a form or a page of rows; step 10 measures it.
 - **The pool under React.** A component that copies an entity into `useState` drops out of the pool without an error. The React guide says so, and the class-survival scenario guards it.
 - **Phase 1 touches the central composables.** The export snapshot, the scaffold type-check, the shared scenarios and the existing tests are the guard, and each module moves in its own change.
+- **The MCP's type index.** The knowledge builder reads the `.d.ts` files in `dist/`. Since Phase 0, the declarations of most `vue/*` entries import or re-export from `dist/core/**`: all of `vue/http`, `vue/formatters` and `vue/entities/abstractions`, and part of `vue/ioc`, `vue/entities`, `vue/auth`, `vue/lang` and `vue/ui`. Before releasing Phase 0, confirm that the builder follows `export … from "../../core/…"`, with `get_type` on a moved type from each of these modules; if it reads only the files under a module's own folder, `get_type` comes back empty for every moved type.
 - **Two guide sets.** Under AGENTS.md §1, a change to a moved composable's guide may need a React counterpart. The React guide covers the hooks only, which keeps that text short.

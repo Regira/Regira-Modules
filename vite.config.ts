@@ -20,6 +20,7 @@ export default defineConfig({
                 // root
                 "index": resolve(root, "src/index.ts"),
                 // top-level modules
+                "core/index": resolve(root, "src/core/index.ts"),
                 "entities/index": resolve(root, "src/entities/index.ts"),
                 "events/index": resolve(root, "src/events/index.ts"),
                 "extensions/index": resolve(root, "src/extensions/index.ts"),

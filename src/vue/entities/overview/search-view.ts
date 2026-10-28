@@ -1,6 +1,6 @@
 import { computed, ref } from "vue"
 import { debounceToPromise } from "../../../utilities/promise-utility"
-import { DEFAULT_PAGESIZE, type IEntity, type ISearchObject } from "../abstractions"
+import { DEFAULT_PAGESIZE, type IEntity, type ISearchObject } from "../../../core/entities/abstractions"
 import { DEFAULT_DEBOUNCE, type ISearchViewIn, type ISearchViewOut } from "./overview"
 import { toFeedbackError } from "../../ui/feedback"
 import useOverviewCore from "./overview-core"

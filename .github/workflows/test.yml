@@ -1,0 +1,44 @@
+name: Test
+
+# Type-checks, builds and tests every push and pull request — the same steps `publish-npm.yml` runs before it
+# publishes, so a break shows up on the change that made it rather than on the release. The packaging tests
+# (__tests__/packaging) read the built dist/, so the build runs before them.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run types
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npx vitest run
+
+      # An app that installs the packed tarball without Vue, in a folder outside this repository — slow, so it
+      # is a script of its own rather than part of the Vitest run
+      - name: Consumer apps
+        run: npm run test:consumers

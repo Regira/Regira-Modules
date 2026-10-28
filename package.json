@@ -1,7 +1,7 @@
 {
     "name": "@regira/modules",
     "private": false,
-    "version": "6.6.1",
+    "version": "6.7.0",
     "description": "Regira front-end library: TypeScript utility modules and Vue 3 components for building SPAs against a Regira.Entities API.",
     "author": "Regira bv",
     "license": "Apache-2.0",
@@ -23,6 +23,10 @@
             "import": "./dist/index.js"
         },
         "./style.css": "./dist/style.css",
+        "./core": {
+            "types": "./dist/core/index.d.ts",
+            "import": "./dist/core/index.js"
+        },
         "./entities": {
             "types": "./dist/entities/index.d.ts",
             "import": "./dist/entities/index.js"
@@ -163,6 +167,9 @@
     },
     "typesVersions": {
         "*": {
+            "core": [
+                "./dist/core/index.d.ts"
+            ],
             "entities": [
                 "./dist/entities/index.d.ts"
             ],
@@ -274,7 +281,8 @@
         "types": "vue-tsc --noEmit",
         "preview": "vite preview",
         "test": "vitest",
-        "format": "prettier --write src/"
+        "format": "prettier --write src/",
+        "test:consumers": "node scripts/test-consumers.mjs"
     },
     "peerDependencies": {
         "axios": "^1.16.1",
@@ -283,16 +291,30 @@
         "vue": "^3.5.34",
         "vue-router": "^5.0.4"
     },
+    "peerDependenciesMeta": {
+        "pinia": {
+            "optional": true
+        },
+        "vue": {
+            "optional": true
+        },
+        "vue-router": {
+            "optional": true
+        }
+    },
     "devDependencies": {
         "@types/node": "^26.6.5",
         "@vitejs/plugin-vue": "^6.0.10",
         "jsdom": "^30.1.3",
+        "pinia": "^3.0.4",
         "prettier": "^3.9.10",
         "regenerator-runtime": "^0.14.1",
         "sass-embedded": "^1.105.2",
         "typescript": "^6.0.3",
         "vite": "^8.3.4",
         "vitest": "^5.0.5",
+        "vue": "^3.5.34",
+        "vue-router": "^5.0.4",
         "vue-tsc": "^3.3.13"
     }
 }

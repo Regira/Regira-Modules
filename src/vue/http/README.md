@@ -1,7 +1,8 @@
 # Regira HTTP (front-end)
 
 `@regira/modules/vue/http` — the app's single axios instance plus file and query-string helpers. The
-[entities client](../entities/README.md) and the auth plugin are both built on this instance.
+[entities client](../entities/README.md) and the auth plugin are both built on this instance. An app without Vue
+imports the same exports from [`@regira/modules/core`](../../core/README.md).
 
 ## What it provides
 

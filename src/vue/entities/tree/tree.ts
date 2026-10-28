@@ -1,6 +1,6 @@
 import { ref, computed, toRaw, type Ref } from "vue"
 import { TreeList, type IFindParents, TreeNode } from "../../../treelist"
-import type { IEntity } from "../abstractions/IEntity"
+import type { IEntity } from "../../../core/entities/abstractions/IEntity"
 
 function defaultEquals<T extends { $id: number | string }>(item1: T, item2: T) {
     return item1.$id != null && item1.$id == item2.$id && item1.constructor == item2.constructor

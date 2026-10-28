@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from "vitest"
 import { ref } from "vue"
 import { setActivePinia, createPinia } from "pinia"
-import { AuthData } from "../../../src/vue/auth/AuthData"
+import { AuthData } from "../../../src/core/auth/AuthData"
 import { useAuthStore } from "../../../src/vue/auth/store"
 
 // authData travels further than it looks: the plugin hands it straight to onAuthenticationChange — whose

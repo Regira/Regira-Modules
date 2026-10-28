@@ -1,11 +1,11 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
 import { AxiosHeaders } from "axios"
 import { autoLogoutOnFailedRequest } from "../../../src/vue/auth/auth-axios"
-import { maskAxiosError, maskCredentials, registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../../src/vue/auth/error-logging"
-import { AuthService } from "../../../src/vue/auth/auth-service"
+import { maskAxiosError, maskCredentials, registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../../src/core/auth/error-logging"
+import { AuthService } from "../../../src/core/auth/auth-service"
 import { createAuth } from "../../../src/vue/auth/auth"
 import { useChangePasswordForm } from "../../../src/vue/auth/useChangePasswordForm"
-import { AuthData } from "../../../src/vue/auth/AuthData"
+import { AuthData } from "../../../src/core/auth/AuthData"
 
 // Everything this module logs goes through maskAxiosError, because console output is captured verbatim by
 // breadcrumb and session-replay telemetry and an axios error carries the request that produced it. Every

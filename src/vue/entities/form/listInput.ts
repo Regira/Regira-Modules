@@ -1,7 +1,7 @@
 import { computed, ref, watch, type Ref } from "vue"
 import { min } from "../../../utilities/array-utility"
 import { useVModelField } from "../../vue-helper"
-import type { IEntity, SaveResult } from "./../abstractions"
+import type { IEntity, SaveResult } from "../../../core/entities/abstractions"
 
 type ListInputIn<T> = {
     props: { modelValue?: Array<T> }

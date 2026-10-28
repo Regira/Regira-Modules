@@ -1,5 +1,5 @@
 import type { Ref } from "vue"
-import type { IEntity, IEntityService, IPagingInfo, ISearchObject, SearchResult } from "../abstractions"
+import type { IEntity, IEntityService, IPagingInfo, ISearchObject, SearchResult } from "../../../core/entities/abstractions"
 import type { IPoolCache } from "./PoolCache"
 
 export interface IPoolService<T extends IEntity> extends IEntityService<T> {

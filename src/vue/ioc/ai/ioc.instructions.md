@@ -1,7 +1,9 @@
 # Regira IoC — AI Agent Instructions
 
 A tiny inversion-of-control container (`@regira/modules/vue/ioc`): register service factories with `add`,
-resolve them with `get`. Entity services are registered and resolved through it.
+resolve them with `get`. Entity services are registered and resolved through it. An app without Vue imports the
+container from `@regira/modules/core`, where this module's default export is `defaultServiceProvider`
+([core guide](../../../core/ai/core.instructions.md)).
 
 > **Never guess** a signature — verify in [ioc.signatures.md](ioc.signatures.md).
 

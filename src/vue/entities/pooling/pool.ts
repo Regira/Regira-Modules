@@ -1,5 +1,5 @@
 import type { Ref } from "vue"
-import { type IEntity, type IEntityService, isNewEntity } from "../abstractions"
+import { type IEntity, type IEntityService, isNewEntity } from "../../../core/entities/abstractions"
 import { PoolService, type IPoolService } from "./PoolService"
 import { PoolCache, type IPoolCache } from "./PoolCache"
 

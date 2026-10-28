@@ -1,8 +1,8 @@
 import { watch, onMounted, type Ref, type WatchStopHandle } from "vue"
 import { useRouter } from "vue-router"
 import { stringifyDate } from "../../../utilities/datetime-utility"
-import { parseQueryParams, cleanQueryParams } from "../utilities/query"
-import { DEFAULT_PAGESIZE, type IPagingInfo, type ISearchObject } from "../abstractions"
+import { parseQueryParams, cleanQueryParams } from "../../../core/entities/utilities/query"
+import { DEFAULT_PAGESIZE, type IPagingInfo, type ISearchObject } from "../../../core/entities/abstractions"
 
 export type RouteOverviewIn<SO extends ISearchObject = ISearchObject> = {
     pagingInfo: Ref<IPagingInfo>

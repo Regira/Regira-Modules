@@ -1,4 +1,4 @@
-import type { IConfig, IEntity } from "../abstractions"
+import type { IConfig, IEntity } from "../../../core/entities/abstractions"
 import type { IPoolHandler } from "../pooling"
 
 type EntityDescriber = {

@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { dateInputString, dateTimeInputString } from "../../formatters"
+import { dateInputString, dateTimeInputString } from "../../../core/formatters"
 import { isValid } from "date-fns"
 import type { DateInputProps, DateInputEmits } from "./inputs"
 

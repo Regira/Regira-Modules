@@ -1,9 +1,9 @@
 import { shallowRef } from "vue"
 import type { AxiosInstance } from "axios"
-import type { ITokenManager } from "./token-manager"
-import { AuthService, type IAuthService } from "./auth-service"
-import { registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "./error-logging"
-import type { IAuthData } from "./AuthData"
+import type { ITokenManager } from "../../core/auth/token-manager"
+import { AuthService, type IAuthOptions, type IAuthService } from "../../core/auth/auth-service"
+import { registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../core/auth/error-logging"
+import type { IAuthData } from "../../core/auth/AuthData"
 
 export interface IAuth {
     enabled: boolean
@@ -24,18 +24,7 @@ export interface IGlobalAuth {
     /** the auth store's route-driven `isRequired`: auth is enabled and the current route is not `allowAnonymous` */
     isRequired: boolean
 }
-export type IAuthOptions = {
-    clientApp?: string
-    loginUrl?: string
-    /**
-     * Endpoints of the *application* that carry a credential, on top of this module's own. The failed-request
-     * logging masks the `Authorization` header everywhere, but only drops a request BODY for endpoints known
-     * to carry a credential — register an app's own here (`users/*\/password`, an invite-accept, an admin
-     * "create user") so their bodies never reach the console either. A `string` matches a whole path or its
-     * trailing segments, with `*` standing for one segment; a `RegExp` is tested against the lower-cased path.
-     */
-    credentialUrls?: Array<string | RegExp>
-}
+export type { IAuthOptions }
 
 interface Input extends IAuthOptions {
     enabled: boolean

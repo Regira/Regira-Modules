@@ -1,6 +1,6 @@
 import { ref, type Ref } from "vue"
 import { orderByDesc } from "../../../utilities/array-utility"
-import { EntityBase, type IEntity } from "../abstractions"
+import { EntityBase, type IEntity } from "../../../core/entities/abstractions"
 
 const DEFAULTS = {
     INTERVAL: 60,

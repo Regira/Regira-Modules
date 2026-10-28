@@ -1,6 +1,6 @@
 import { ref } from "vue"
 import { useAuthStore } from "./store"
-import { maskAxiosError } from "./error-logging"
+import { maskAxiosError } from "../../core/auth/error-logging"
 
 export type LoginInput = { username: string; password: string }
 

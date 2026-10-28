@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest"
 import { setActivePinia, createPinia } from "pinia"
-import { EntityServiceBase } from "../../../src/vue/entities/abstractions"
+import { EntityServiceBase } from "../../../src/core/entities/abstractions"
 import { PoolService } from "../../../src/vue/entities/pooling/PoolService"
 import { PoolCache } from "../../../src/vue/entities/pooling/PoolCache"
 

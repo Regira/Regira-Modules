@@ -1,4 +1,4 @@
-import type { IPagingInfo } from "../../entities/abstractions/PagingInfo"
+import type { IPagingInfo } from "../../../core/entities/abstractions/PagingInfo"
 import { computed, type AllowedComponentProps, type ComputedRef, type Ref, type VNodeProps } from "vue"
 import { useRouter, type RouteLocationRaw } from "vue-router"
 import { PAGING_DEFAULTS } from "./defaults"

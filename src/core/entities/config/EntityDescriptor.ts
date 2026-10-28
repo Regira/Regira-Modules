@@ -1,4 +1,4 @@
-import type { IServiceProvider } from "../../ioc"
+import type { IServiceProvider } from "../../ioc/ServiceProvider"
 import type { IConfig, IEntity, IEntityService } from "../abstractions"
 
 type IEntityControls = { Overview?: any; Details?: any; Form?: any; Fiche?: any }

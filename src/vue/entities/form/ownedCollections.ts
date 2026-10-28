@@ -1,7 +1,7 @@
 import { computed, ref, watch, onMounted } from "vue"
 import { min } from "../../../utilities/array-utility"
 import { useVModelField } from "../../vue-helper"
-import type { IEntity, SaveResult } from "../abstractions"
+import type { IEntity, SaveResult } from "../../../core/entities/abstractions"
 
 type Input<T> = {
     props: {

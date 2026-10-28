@@ -1,6 +1,6 @@
 import { ref, computed, watch } from "vue"
 import { useAuth } from "./auth"
-import { maskAxiosError } from "./error-logging"
+import { maskAxiosError } from "../../core/auth/error-logging"
 
 export interface ForgotPasswordFormEmits {
     (e: "success", username?: string): void

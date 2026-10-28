@@ -5,6 +5,8 @@ published as `@regira/modules/vue/entities`. You describe an entity once (model,
 and get a list/search overview, a details page, a create/edit form, and a filter, all wired through a
 shared HTTP client and a reactive entity cache.
 
+An app without Vue imports the entity model and `EntityServiceBase`, the search objects, navigation and the query helpers from [`@regira/modules/core`](../../core/README.md); the composables and views are Vue-only.
+
 ## Core concepts
 
 | Piece       | What it is                                                                                                     |

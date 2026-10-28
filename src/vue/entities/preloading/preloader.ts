@@ -1,4 +1,4 @@
-import type { EntityBase, IEntity, IEntityService } from "../abstractions"
+import type { EntityBase, IEntity, IEntityService } from "../../../core/entities/abstractions"
 import usePooling from "../pooling"
 import { get } from "../../ioc"
 import type { App } from "vue"

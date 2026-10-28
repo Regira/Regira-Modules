@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest"
 import { AxiosError } from "axios"
-import { initAxios } from "../../../src/vue/http/axios"
+import { initAxios } from "../../../src/core/http/axios"
 
 // A download (`responseType: "blob"`) receives its error body as a Blob too, so the response interceptor reads a
 // JSON-typed one back into an object. The read runs in a FileReader callback: a body that does not parse there

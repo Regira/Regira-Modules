@@ -1,5 +1,5 @@
 import type { App } from "vue"
-import defaultServiceProvider, { type IServiceProvider } from "./ServiceProvider"
+import defaultServiceProvider, { type IServiceProvider } from "../../core/ioc/ServiceProvider"
 
 export const plugin = {
     install(app: App<Element>, { configure }: { configure?(services: IServiceProvider): IServiceProvider } = {}) {

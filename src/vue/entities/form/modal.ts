@@ -1,7 +1,7 @@
 import { deepCopy } from "../../../utilities/object-utility"
 import { ref, unref, type Ref, getCurrentInstance } from "vue"
 import { type FeedbackOut } from "../../ui"
-import { ArchivedFilter, type IEntity, type IEntityService, type SaveResult, isNewEntity } from "../../entities/abstractions"
+import { ArchivedFilter, type IEntity, type IEntityService, type SaveResult, isNewEntity } from "../../../core/entities/abstractions"
 import type { FormEmits, FormProps } from "./form"
 
 export interface FormModalEmits<T extends IEntity> extends FormEmits<T> {

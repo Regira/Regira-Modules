@@ -1,9 +1,9 @@
 import type { Store } from "pinia"
 import { startsWith } from "../../utilities/string-utility"
-import { maskAxiosError } from "./error-logging"
-import type { IAuthData } from "./AuthData"
+import { maskAxiosError } from "../../core/auth/error-logging"
+import type { IAuthData } from "../../core/auth/AuthData"
 import type { AxiosInstance } from "axios"
-import type { ITokenManager } from "./token-manager"
+import type { ITokenManager } from "../../core/auth/token-manager"
 
 export function addBearerHeader(axios: AxiosInstance, tokenManager: ITokenManager): AxiosInstance {
     axios.interceptors.request.use((config) => {

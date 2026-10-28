@@ -1,4 +1,4 @@
-import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../abstractions"
+import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../../../core/entities/abstractions"
 import type { FeedbackOut } from "../../ui/feedback"
 import type { ComputedRef, Ref } from "vue"
 

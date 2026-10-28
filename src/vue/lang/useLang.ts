@@ -1,6 +1,6 @@
 import { ref } from "vue"
-import { translate, translateMessage, type ITranslationMessages, type ITranslationMessage } from "./translate"
-import type { IFormatInput } from "./formatText"
+import { translate, translateMessage, type ITranslationMessages, type ITranslationMessage } from "../../core/lang/translate"
+import type { IFormatInput } from "../../core/lang/formatText"
 
 const langCode = ref<string>("")
 const fallbackLangCode = ref<string>("")

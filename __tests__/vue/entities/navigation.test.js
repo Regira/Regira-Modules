@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { importNavbar, importDashboard, isNavItem } from "../../../src/vue/entities/navigation/functions"
+import { importNavbar, importDashboard, isNavItem } from "../../../src/core/entities/navigation/functions"
 
 const configs = [
     { key: "Ticket", name: "Ticket", overviewTitle: "Tickets" },

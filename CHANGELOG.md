@@ -5,6 +5,19 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- `core`: New: `@regira/modules/core`, the part of the Vue modules that needs no framework, for an app without Vue —
+  the entity model and `EntityServiceBase`, navigation, the shared axios instance, the service container
+  (`defaultServiceProvider`), the formatters, `AuthService` and the token managers, `translate`/`formatText`, and
+  `toFeedbackError` with `fieldMessages`, `fieldLabel` and `setErrorTranslator`. The `vue/*` entries export the same
+  modules and instances as before, so a Vue app changes nothing. Without a framework layer, `toFeedbackError` shows
+  a validation message as the server sent it until the app sets a translator.
+- Package: `vue`, `vue-router` and `pinia` are optional peer dependencies, so npm no longer installs them into an app
+  that does not use the Vue modules. ⚠️ Upgrade: an app that uses `vue/auth`, `vue/app` or the entity stores and
+  never listed `pinia` (or `vue-router`) in its own `dependencies` adds it there; the known-good dependency set in
+  the entities setup guide already lists all three.
+
 ## 6.6.1 — 2026-10-28
 
 - `vue/auth`: Fix: the plugin no longer re-validates the token in a tight loop. Its timer waits at most 2^31-1 ms

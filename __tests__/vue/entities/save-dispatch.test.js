@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { EntityServiceBase, isNewEntity } from "../../../src/vue/entities/abstractions";
+import { EntityServiceBase, isNewEntity } from "../../../src/core/entities/abstractions";
 
 describe("isNewEntity", () => {
   test.each([

@@ -1,8 +1,8 @@
 import { ref, computed, customRef, type Ref, type ComputedRef } from "vue"
 import { useRouter } from "vue-router"
 import { defineStore, type Store } from "pinia"
-import { emptyAuthData } from "./auth-service"
-import type { IAuthData } from "./AuthData"
+import { emptyAuthData } from "../../core/auth/auth-service"
+import type { IAuthData } from "../../core/auth/AuthData"
 import { useAuth } from "./auth"
 import type { LoginInput } from "./useLoginForm"
 

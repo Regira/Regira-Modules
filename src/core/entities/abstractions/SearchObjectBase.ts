@@ -1,4 +1,4 @@
-import type { ISearchObject } from "../../entities"
+import type { ISearchObject } from "./ISearchObject"
 
 export abstract class SearchObjectBase implements ISearchObject {
     q?: string

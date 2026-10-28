@@ -4,6 +4,7 @@ The front-end internationalization layer (`@regira/modules/vue/lang`): keyed tra
 dictionaries, `{param}` interpolation via `formatText`, the `useLang` composable that holds the active
 language as reactive state, and a Vue `plugin` that wires `$t` / `$tm` global properties. Entity labels
 and any user-facing strings flow through `$t`/`useLang().translate`.
+An app without Vue imports `translate`, `translateMessage` and `formatText` from `@regira/modules/core` ([core guide](../../../core/ai/core.instructions.md)); `useLang` and the plugin are Vue-only.
 
 > **Never guess** a signature — verify in [lang.signatures.md](lang.signatures.md).
 

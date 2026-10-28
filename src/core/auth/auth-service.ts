@@ -3,7 +3,19 @@ import { createQueryString } from "../http/query"
 import type { ITokenManager } from "./token-manager"
 import { AuthData, type IAuthData } from "./AuthData"
 import { maskAxiosError } from "./error-logging"
-import type { IAuthOptions } from "./auth"
+
+export type IAuthOptions = {
+    clientApp?: string
+    loginUrl?: string
+    /**
+     * Endpoints of the *application* that carry a credential, on top of this module's own. The failed-request
+     * logging masks the `Authorization` header everywhere, but only drops a request BODY for endpoints known
+     * to carry a credential — register an app's own here (`users/*\/password`, an invite-accept, an admin
+     * "create user") so their bodies never reach the console either. A `string` matches a whole path or its
+     * trailing segments, with `*` standing for one segment; a `RegExp` is tested against the lower-cased path.
+     */
+    credentialUrls?: Array<string | RegExp>
+}
 
 export type IAuthenticateInput = { token: string; isAuthenticated: boolean }
 export type IChangePasswordInput = { newPassword: string; currentPassword: string }

@@ -1,5 +1,5 @@
 import { ref, onMounted, type Ref } from "vue"
-import type { IEntity, IEntityService } from "../abstractions"
+import type { IEntity, IEntityService } from "../../../core/entities/abstractions"
 
 export type LeanFormProps<T extends IEntity> = {
     service: IEntityService<T>

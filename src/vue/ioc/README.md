@@ -2,7 +2,8 @@
 
 `@regira/modules/vue/ioc` — a tiny inversion-of-control container that wires the app's services. Entity
 services are registered and resolved through it. It also holds the library's cross-plugin
-**global options**.
+**global options**. An app without Vue imports the container from [`@regira/modules/core`](../../core/README.md),
+where this module's default export is `defaultServiceProvider`.
 
 ## What it provides
 
