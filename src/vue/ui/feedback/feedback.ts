@@ -1,6 +1,8 @@
-import { computed, reactive, ref } from "vue"
+import { computed, reactive } from "vue"
 import { fillArgs, setDefaultErrorTranslator, type ErrorTranslator, type FeedbackError } from "../../../core/feedback/errors"
+import { createFeedback, FeedbackStatus, type FeedbackIn } from "../../../core/feedback/feedback"
 import { useLang } from "../../lang/useLang"
+import { vueBox } from "../../box"
 
 export {
     toFeedbackError,
@@ -11,16 +13,8 @@ export {
     type FeedbackError,
 } from "../../../core/feedback/errors"
 
-export enum FeedbackStatus {
-    none = "",
-    pending = "Pending",
-    success = "Success",
-    failed = "Failed",
-}
+export { FeedbackStatus, type FeedbackIn } from "../../../core/feedback/feedback"
 
-export type FeedbackIn = {
-    autoHideDelay?: number
-}
 /**
  * A reactive object, not a bag of refs: read the fields directly (`feedback.isPending`), in script and
  * template alike, and bind them without `.value` — `:disabled="feedback.isPending"`.
@@ -71,66 +65,10 @@ const translateWithLang: ErrorTranslator = (message, args) => {
 }
 setDefaultErrorTranslator(translateWithLang)
 
-export function useFeedback({ autoHideDelay = 1500 }: FeedbackIn = {}): FeedbackOut {
-    const status = ref<FeedbackStatus>(FeedbackStatus.none)
-    const message = ref<string>("")
-    const error = ref<FeedbackError | undefined>(undefined)
-    const isPending = computed(() => status.value === FeedbackStatus.pending)
-
-    // only a success hides itself; every other state change cancels a hide still pending, or a failure or
-    // a new pending shown within autoHideDelay of a success would be wiped by that success's timer
-    let timeout: any
-
-    function fadeOut() {
-        if (autoHideDelay > 0) {
-            clearTimeout(timeout)
-            timeout = setTimeout(reset, autoHideDelay)
-        }
-    }
-
-    function reset() {
-        clearTimeout(timeout)
-        status.value = FeedbackStatus.none
-        message.value = ""
-        error.value = undefined
-    }
-    function pending(msg: string) {
-        clearTimeout(timeout)
-        status.value = FeedbackStatus.pending
-        message.value = msg
-        error.value = undefined
-    }
-    function success(msg: string) {
-        status.value = FeedbackStatus.success
-        message.value = msg
-        error.value = undefined
-        autoHideDelay && fadeOut()
-    }
-    function fail(msg: string, errors: FeedbackError) {
-        clearTimeout(timeout)
-        status.value = FeedbackStatus.failed
-        message.value = msg
-        if (typeof errors === "string") {
-            message.value = `${message.value}: ${errors.split("\n")[0]}`
-        } else {
-            // a caller who passes the exception itself instead of the field map gets its text rather than a
-            // blank panel — tested on the instance, so a form field that happens to be named `message` stays a field
-            error.value = (errors as unknown) instanceof Error ? (errors as unknown as Error).message : errors
-        }
-    }
-
-    // reactive() unwraps the refs, so consumers never write `.value` — the internals keep using them
-    return reactive({
-        status,
-        message,
-        error,
-        isPending,
-
-        pending,
-        success,
-        fail,
-        reset,
-    }) as FeedbackOut
+export function useFeedback(input: FeedbackIn = {}): FeedbackOut {
+    const feedback = createFeedback({ ...input, box: vueBox })
+    // reactive() unwraps the boxes, which are refs, so consumers never write `.value` — the core keeps using them
+    return reactive({ ...feedback, isPending: computed(feedback.isPending) }) as unknown as FeedbackOut
 }
 
 export default useFeedback

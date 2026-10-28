@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest"
-import { readFileSync, existsSync } from "fs"
-import { resolve, dirname } from "path"
+import { readFileSync, existsSync, readdirSync } from "fs"
+import { resolve, dirname, relative } from "path"
+import ts from "typescript"
 
 // Which framework packages each built entry can reach, by following the imports of `dist/` file by file — shared
 // chunks included, so a framework-free module that a bundler merged into a chunk with a Vue one shows up here.
@@ -97,6 +98,86 @@ test("the import scan reads formatted and minified code", () => {
     expect(specifiersOf(formatted, false)).toEqual(["vue", "vue-router", "./chunk.js", "./side-effect.js", "./page.js"])
     expect(specifiersOf(minified, false)).toEqual(["vue", "./chunk.js", "./side.js", "pinia"])
     expect(specifiersOf('declare module "@vue/runtime-core" {}', true)).toEqual(["@vue/runtime-core"])
+})
+
+// What a TypeScript source imports, read from its syntax tree as the compiler parses it: imports, re-exports
+// (`export * as v from` too), `import = require`, `import("…")` types and calls, `require`, `declare module` and
+// `/// <reference types>` — and nothing written in a comment, a string or a regular expression
+function sourceSpecifiers(source, fileName = "source.ts") {
+    const kind = fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, kind)
+    const found = file.typeReferenceDirectives.map((directive) => directive.fileName)
+    const add = (node) => {
+        if (node && ts.isStringLiteralLike(node)) found.push(node.text)
+    }
+    function visit(node) {
+        if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) add(node.moduleSpecifier)
+        else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) add(node.moduleReference.expression)
+        else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) add(node.argument.literal)
+        else if (ts.isModuleDeclaration(node) && ts.isStringLiteral(node.name)) add(node.name)
+        else if (
+            ts.isCallExpression(node) &&
+            (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require"))
+        )
+            add(node.arguments[0])
+        ts.forEachChild(node, visit)
+    }
+    visit(file)
+    return found
+}
+
+test("the source scan reads code, not comments, strings or regular expressions", () => {
+    const source = [
+        "// accepts image/*",
+        'import { ref } from "vue"',
+        "/** a doc comment */",
+        'const accept = "image/*"',
+        "const quoted = /[`'\"]/g",
+        '// never imports from "vue-demi"',
+        'import type { Router } from "vue-router"',
+        'export * as store from "pinia"',
+        'type Lazy = typeof import("react")',
+        'const later = () => import("react-dom")',
+        'import legacy = require("vue-demi/legacy")',
+        'const loaded = require("react-router")',
+        'declare module "@vue/runtime-core" {}',
+    ].join("\n")
+    expect(sourceSpecifiers(source).sort()).toEqual([
+        "@vue/runtime-core",
+        "pinia",
+        "react",
+        "react-dom",
+        "react-router",
+        "vue",
+        "vue-demi/legacy",
+        "vue-router",
+    ])
+    expect(sourceSpecifiers('/// <reference types="vue/macros-global" />\nexport {}')).toEqual(["vue/macros-global"])
+    expect(sourceSpecifiers('declare module "@vue/runtime-core" {\n    interface ComponentCustomProperties {}\n}')).toEqual(["@vue/runtime-core"])
+    expect(sourceSpecifiers('const a = <p>don`t</p>\nimport { b } from "react"', "view.tsx")).toEqual(["react"])
+})
+
+// what a source's import reaches: a package by its name, and a single-file component (`./View.vue`) as Vue itself
+const reachedBy = (specifier) => (/\.vue$/.test(specifier) ? "vue" : specifier.startsWith(".") ? undefined : packageOf(specifier))
+
+test("a relative .vue import counts as reaching Vue", () => {
+    expect(["./Pending.vue", "../ui/Feedback.vue", "./errors", "vue-router/auto"].map(reachedBy)).toEqual(["vue", "vue", undefined, "vue-router"])
+})
+
+// every file under src/core, exported or not: the Vue layer imports the core's controllers directly, so the trace of
+// the built entries below never reaches the ones `./core` does not export
+test("src/core imports no framework, its unexported files included", () => {
+    const sources = readdirSync(resolve(root, "src/core"), { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name))
+        .map((entry) => relative(resolve(root, "src/core"), resolve(entry.parentPath, entry.name)))
+    const reached = sources.flatMap((file) =>
+        sourceSpecifiers(readFileSync(resolve(root, "src/core", file), "utf8"), file)
+            .map(reachedBy)
+            .filter((name) => name != null && (isFramework(name, VUE) || isFramework(name, REACT)))
+            .map((name) => `${file}: ${name}`)
+    )
+    expect(sources.length).toBeGreaterThan(0)
+    expect(reached).toEqual([])
 })
 
 describe.runIf(existsSync(dist))("package boundaries", () => {

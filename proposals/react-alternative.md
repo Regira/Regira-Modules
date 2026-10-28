@@ -1,8 +1,8 @@
 # A React alternative to the Vue modules
 
-As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 is built on the branch `react-alternative`; Phases 1 and 2 are not.
+As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 is committed on the branch `react-alternative`, and Phase 1's steps 9 and 10 are built there; steps 11 and 12 and Phase 2 are not.
 
-**Status: approved with amendments, reviewed 2026-10-28. Phase 0 is built on `react-alternative`, pending merge into `wip`. Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
+**Status: approved with amendments, reviewed 2026-10-28. Phase 0 is committed on `react-alternative`, pending merge into `wip`; Phase 1 has passed its gate (step 10). Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
 
 ## Recommendation
 
@@ -202,7 +202,17 @@ As built:
 
     Each module gets its scenarios first and moves second. After each, the scenarios pass on both drivers, and the export snapshot and the scaffold type-check are unchanged.
 
-Done when those composables are thin wrappers and every scenario passes. Patch release.
+Done when those composables are thin wrappers and every scenario passes. Minor release, with the changelog note *Risks* describes.
+
+As built (steps 9 and 10):
+
+- `__tests__/contract/` holds the drivers, the fake services and the scenarios; its README carries the table from step 9. A scenario builds a controller through its driver and reaches the controller's state only through `read`, `write` and `call`; a box an action returns, as the pool's `get` does, it reads by its `value`. The core driver freezes every array, and every object that is not an entity, assigned to a box, so an in-place edit throws. Whether a Vue view updates is Vue's own, tested under `__tests__/vue` (`box.test.js`, `overview-reactivity.test.js`). The Vue driver calls the composables directly; the components that mount, and the memory router, come with the modules that need them in step 12.
+- The feedback, the overview (`useOverviewCore`, `useSearchView`, `useListView`) and the pool, with `describers`, are in the core as `createFeedback`, `createOverviewCore`, `createSearchView`, `createListView`, `PoolCache`, `PoolService` and `createPoolHandler`. Their tests are scenarios now, on the core driver and the Vue driver.
+- The Vue layer's box, `vueBox`, keeps what `ref()` keeps: a deep reactive value, a readonly or shallow value as it is, and a ref passed in as that ref. An array the core builds from rows it read through a box holds their reactive proxies, so `vueBox` stores the raw rows, as Vue's own array methods do: `toRaw(items.value)` stays plain enough for `structuredClone`.
+- The Vue `PoolCache` and `PoolService` are subclasses of the core's: they pass `vueBox` and type the boxes as `Ref`, so the declarations a Vue app compiles against are unchanged. The core `PoolCache` keeps its box factory off the class, so the Vue class has the members it had.
+- The controllers stay out of `./core`'s exports until Phase 2 settles their shape. `boundaries.test.js` therefore also reads every source file under `src/core`, since the trace of the built entries never reaches a file `./core` does not export.
+- The React spike (`__tests__/contract/react-spike.test.js`) passes under StrictMode. The double mount runs two searches on one controller, and the newest one's rows render. Two components share one pooled entity: an edit through the `update` the hook returns shows in the other component, re-renders only the components that read that entity, and keeps its class. Unmounting ends every subscription, so a search that settles later re-renders nothing. The box needs no change. One point for Phase 2: the pool's `get` creates a box during render when the entity is not cached yet; the hooks should look up in render and add in an effect.
+- `react` and `react-dom` 19 are dev dependencies, for the spike; their peer range is decision 2's.
 
 ### Phase 2: React hooks
 

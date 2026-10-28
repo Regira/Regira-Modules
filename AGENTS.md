@@ -61,10 +61,15 @@ before VitePress, so they pick up module doc edits without a separate step.
   run `npm run format` before finishing.
 - **`src/core` imports no framework** — not `vue`, `@vue/*`, `vue-router`, `pinia` or React, not even as a type,
   and no `declare module "@vue/runtime-core"`: an app without Vue compiles against its declarations.
-  `src/vue/**` imports framework-free code from `src/core` directly. Two tests read the built `dist/` and guard
-  this: `__tests__/packaging/boundaries.test.js` (what each entry reaches) and `__tests__/packaging/exports.test.js`
-  (every entry's runtime and declared exports, snapshotted — an existing entry's snapshot changes only when its
-  public API is meant to).
+  `src/vue/**` imports framework-free code from `src/core` directly. Two tests guard this:
+  `__tests__/packaging/boundaries.test.js` (every source file under `src/core`, and what each built entry reaches)
+  and `__tests__/packaging/exports.test.js` (every entry's runtime and declared exports, snapshotted — an existing
+  entry's snapshot changes only when its public API is meant to).
+- **A composable whose logic lives in `src/core` is a thin wrapper** over a core controller (`createSearchView`,
+  `createPoolHandler`, …) that keeps its state in boxes the composable passes as `ref`s. Its behaviour is tested once,
+  as a shared scenario in `__tests__/contract/` that runs on a core and a Vue driver — add a behaviour test there, not
+  under `__tests__/vue`. Whether a Vue view reacts (the composable's refs, `computed`, `reactive()`) is Vue's own and
+  is tested under `__tests__/vue`; the README in `__tests__/contract/` says which tests belong where.
 - **Cross-module links in `ai/*.md` stay source-tree relative** — `](../../http/ai/http.instructions.md)`.
   They are read two ways, and this form serves the one that has a file system: a contributor browsing
   the repo. Over the MCP an agent gets the text without a tree to resolve against, so the path is inert
