@@ -205,7 +205,8 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
   `string[]` (one value: a plain string), so compare loosely or normalise (`entities.signatures` §5). A filter the
   view sets in code (a "mine" view's `userId`) is replaced by the URL's copy as well: set it in the search handler,
   or use `useSearchView` without `useRouteOverview`.
-  `pageSize: 0` returns all rows capped by the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
+  `pageSize: 0` returns all rows capped by the server's `MaxPageSize`. A list that grows on scroll ("Show more", infinite
+  scroll) is `useSearchView({ append: true })` + `loadMore()`/`hasMore`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
   `*Url` defaults off `api`, and `saveUrl` must stay the resource base or updates 404 while inserts pass.
 - **Forms show state through feedback.** `useForm` drives it, but only a rendered
   `<Feedback :feedback="feedback" />` shows it; any save you call yourself gets its own `useFeedback()`.

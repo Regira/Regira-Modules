@@ -84,7 +84,7 @@ The Pinia store is the reactive source of truth for components:
 
 - **state/getters:** `isAuthenticated`, `isRequired`, `authData`, `displayName`, `hasPermission(p)`,
   `hasRole(r)`, `hasClaim(type, value?)`, `getClaimValue(type)`, `clientApp`, `enabled`.
-- **actions:** `login({ username, password })`, `validateToken()`, `refresh(o)`, `logout()`, `setClientApp(c)`.
+- **actions:** `login({ username, password })`, `validateToken()`, `refresh(o?)`, `logout()`, `setClientApp(c)`.
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 

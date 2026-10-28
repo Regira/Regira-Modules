@@ -216,7 +216,7 @@ export interface IAuthStore extends Store {
     setClientApp(clientApp?: string): void
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
-    refresh(o: Record<string, unknown>): Promise<boolean> // o is sent as the query string: POST auth/refresh/?{o}
+    refresh(o?: Record<string, unknown>): Promise<boolean> // o is sent as the query string: POST auth/refresh/?{o}
     logout(): void
 }
 export function createStore(): IDefineAuthStore // createStore.storeName

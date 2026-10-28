@@ -30,6 +30,13 @@ export interface IAuthData {
     hasRole(role: string): boolean
 }
 
+// A JWT segment is base64url (`-` and `_` where base64 has `+` and `/`, no padding) over UTF-8 JSON: a bare `atob`
+// throws on `-`/`_`, which a claim's bytes produce at some offsets, and reads a non-ASCII claim ("Zoë") as Latin-1.
+function decodeJwtPayload(token: string): Record<string, any> {
+    const binary = window.atob(token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0))))
+}
+
 export class AuthData implements IAuthData {
     private _decodedToken: Record<string, any> // decoded JWT claim bag (mixed value types: string, number, string[])
     declare readonly token?: string // defined in the constructor, non-enumerable — see the interface
@@ -43,7 +50,7 @@ export class AuthData implements IAuthData {
     role?: string | undefined
 
     constructor(token?: string, options: { isAuthenticated: boolean } = { isAuthenticated: false }) {
-        this._decodedToken = token != null ? JSON.parse(window.atob(token.split(".")[1]!)) : {}
+        this._decodedToken = token != null ? decodeJwtPayload(token) : {}
         // Non-enumerable, so the credential is absent from `{ ...authData }` and `JSON.stringify(authData)`.
         // Both matter: the plugin hands `authData` straight to `onAuthenticationChange` — whose documented
         // use is welcoming the user and preloading, i.e. exactly where an app calls its telemetry SDK — and
