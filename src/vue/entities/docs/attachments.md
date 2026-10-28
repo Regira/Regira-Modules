@@ -79,8 +79,14 @@ In the form, a dedicated **files tab** binds the host's `attachments` array to t
 <EntityAttachments v-model="item.attachments" :readonly="readonly" />
 ```
 
-That component owns the add/remove/preview interactions; you do not hand-roll the file `<input>`. Wire it
-into a tab alongside the main form.
+That component owns the add/rename/replace/remove/preview interactions; you do not hand-roll the file `<input>`.
+Wire it into a tab alongside the main form.
+
+Replacing a file keeps the row's place in the list. The new file is staged like an added one and goes out on the
+host's save: a stored row `PUT`s it to `{api}/{id}/files/{linkId}`, then the host's own `PUT` applies the row's
+name, which follows the new file until the user edits it. The file goes out before the host's `PUT`, so when the API
+refuses that `PUT` the file is already stored, as an added file would be, and discarding the form does not restore the
+old one. When the API refuses the file's own upload, nothing is stored and the host's `PUT` is not sent.
 
 ## Download URLs
 

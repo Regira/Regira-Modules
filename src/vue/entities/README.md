@@ -29,7 +29,8 @@ token via an interceptor, so every entity request is authenticated. **Auth is op
 registered in a small IoC container keyed by `Entity.name` and resolved with `get()`.
 
 Signing in does not hide write actions the API would refuse. Mirror the API's write rules in the app and
-pass `readonly` through the slice — see [Views → Form](docs/views.md#form--useform-and-usemodal).
+answer them from each slice's `config.canWrite`, which the scaffolded views pass on as `readonly` — see
+[Views → Form](docs/views.md#form--useform-and-usemodal).
 
 ## Quick start
 

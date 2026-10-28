@@ -16,6 +16,8 @@ node node_modules/@regira/modules/_template/scaffold.mjs Product --no-auth
 node node_modules/@regira/modules/_template/scaffold.mjs Order --owns OrderLine
 # a to-one relation? generate the pooled overview column AND its advanced filter (repeat --rel per relation):
 node node_modules/@regira/modules/_template/scaffold.mjs Intervention --rel Vehicle
+# the API cannot filter on that relation? --no-filter after its --rel leaves the advanced filter out:
+node node_modules/@regira/modules/_template/scaffold.mjs Intervention --rel Vehicle --no-filter
 # the entity owns files? scaffold the shared attachments slice and wire it into this one:
 node node_modules/@regira/modules/_template/scaffold.mjs Intervention --attachments
 # server exposes the resource under a different name than the slice folder?
@@ -81,7 +83,7 @@ guide → Install: a hand-written `index.html` would be kept, and one without th
 
 ## Attachments (`--attachments`)
 
-`entity-attachments/` is the shared offline file slice — an add / rename / remove list plus a drop zone
+`entity-attachments/` is the shared offline file slice — an add / rename / replace / remove list plus a drop zone
 (`useOwnedCollection` over `EntityAttachment` rows), committed on the parent's save. Scaffold it once per
 app — naming an entity does that and wires the slice up in one go:
 
@@ -97,7 +99,7 @@ that already exists it prints those edits instead, since those files are yours.
 
 Left to you either way: the `<EntityAttachments>` tab in the form — ⚠️ it renders its **own**
 `FormSection`, so it goes in a tab or beside the form's section, never inside one — the `files` /
-`addNewFile(s)` translations, and the back-end registration (`WithAttachments` + `HasAttachments<>`).
+`addNewFile(s)` / `replaceFile` translations, and the back-end registration (`WithAttachments` + `HasAttachments<>`).
 `setup.ts` needs no change: the helpers upload through `useAxios()`.
 
 ## Ejected UI skins (`--ui <Component>`)

@@ -272,7 +272,7 @@ export interface ITab {
 }
 export class Tab implements ITab {
     constructor(title: string, key?: string, isDefault?: boolean, isDisabled?: boolean, isVisible?: boolean)
-    static create(key: string, values?: object): Tab & object
+    static create(key: string, values?: Partial<Omit<ITab, "key">>): Tab
 }
 // USAGE: create(key, { title, icon, isDefault?, isDisabled? }). The first positional arg is the tab KEY —
 // it seeds both `key` and `title`, then `values.title` overrides the label. Pass a slug-safe key that
@@ -280,6 +280,7 @@ export class Tab implements ITab {
 // icon: "form", isDefault: true }). Never Tab.create("My Products", …) — a spaced/cased key breaks both.
 // TabNavigation renders `tab.title` VERBATIM — it does not run `$t()`. Omitting `values.title` shows the
 // raw key in the tab strip; translate eagerly (useLang().translate(...)) when building the tabs array.
+// With an `icon`, the title is hidden below `lg` (`d-none d-lg-inline`): ui.customize → L1 → *Built-ins that hide their own text below a breakpoint*.
 export type TabContainerProps = { tabs: Array<ITab | string | undefined>; useRouteNav?: boolean; active?: string }
 export type TabsEmits = { (e: "select", tab: string): void }
 export type TabNavigationProps = { tabs: Array<ITab>; activeTab: string }
@@ -390,7 +391,7 @@ import {
     NullableCheckBox,
     FileDropZone,
     Anchor,
-    FormLabel,
+    FormLabel, // a <small class="form-text text-muted"> caption below its input, not a <label> above it: ui.instructions → Gotchas
     FormSection,
     NullableLabel,
     CopyToClipboardButton,

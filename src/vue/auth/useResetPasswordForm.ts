@@ -7,11 +7,29 @@ export interface ResetPasswordFormEmits {
     (e: "fail", ex?: any): void
     (e: "login"): void
 }
+/** the texts `ResetPasswordForm` shows; each one left out stays English */
+export type ResetPasswordFormLabels = {
+    /** "New password" */
+    newPassword?: string
+    /** "Confirm password" */
+    confirmPassword?: string
+    /** "Passwords don't match." */
+    mismatch?: string
+    /** "Reset password" */
+    submit?: string
+    /** "Password reset." */
+    succeeded?: string
+    /** "Sign in", the link after `succeeded` */
+    signIn?: string
+    /** "Unfortunately, resetting the password failed." */
+    failed?: string
+}
 export interface ResetPasswordFormProps {
     /** reset token from the recovery link (e-mail) */
     token: string
     /** account name for the (hidden) username field, so password managers can link the new password */
     username?: string
+    labels?: ResetPasswordFormLabels
 }
 
 export function useResetPasswordForm(props: ResetPasswordFormProps, emit: ResetPasswordFormEmits) {

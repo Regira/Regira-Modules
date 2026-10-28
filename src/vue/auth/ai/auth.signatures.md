@@ -42,15 +42,15 @@ import {
 ```ts
 export interface IAuthData {
     isAuthenticated: boolean
-    expires: number // the token's lifetime in seconds (exp − nbf), not a timestamp
+    expires: number // the token's lifetime in seconds (exp − nbf, or exp − iat without nbf; 0 without either), not a timestamp
     readonly token?: string // the raw JWT — changes on sign-in and every refresh, equal when the same token is re-validated.
     // NON-ENUMERABLE: absent from { ...authData } and JSON.stringify(authData), so the credential cannot ride
     // along into a log or a telemetry payload. Reading authData.token still works.
     userId?: string
     name?: string
     email?: string
-    displayName?: string
-    culture?: string
+    displayName?: string // ← the "displayName" (or "display_name") claim
+    culture?: string // ← the "culture" claim (BCP-47, e.g. "nl-BE")
     role?: string // first role found across the three claim spellings — display only; check with hasRole()
     get(claimType: string): string | Array<string> | undefined
     hasClaim(claimType: string, claimValue?: string): boolean
@@ -99,7 +99,7 @@ export interface IAuthService {
     readonly options: IAuthOptions // owns clientApp as plain state; change it via authStore.setClientApp() — that is what notifies Vue
     authenticate({ token, isAuthenticated }: IAuthenticateInput): IAuthData
     login(username: string, password: string): Promise<IAuthData>
-    refresh(o?: Record<string, unknown>): Promise<IAuthData>   // o is sent as the query string: POST auth/refresh/?{o}
+    refresh(o?: Record<string, unknown>): Promise<IAuthData> // o is sent as the query string: POST auth/refresh/?{o}
     validateToken(): Promise<IAuthData>
     logout(): void
     changePassword(input: IChangePasswordInput): Promise<void>
@@ -216,7 +216,7 @@ export interface IAuthStore extends Store {
     setClientApp(clientApp?: string): void
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
-    refresh(o: Record<string, unknown>): Promise<boolean>   // o is sent as the query string: POST auth/refresh/?{o}
+    refresh(o: Record<string, unknown>): Promise<boolean> // o is sent as the query string: POST auth/refresh/?{o}
     logout(): void
 }
 export function createStore(): IDefineAuthStore // createStore.storeName
@@ -263,7 +263,7 @@ export function routeAllows(to: Pick<RouteLocationNormalized, "matched" | "meta"
 export type LoginInput = { username: string; password: string }
 
 export function useLoginForm(
-    props: LoginFormProps, // { username?: string }
+    props: LoginFormProps, // { username?: string; labels? } — the composable reads username only
     emit: LoginFormEmits
 ): {
     username: Ref<string>
@@ -303,7 +303,7 @@ export function useChangePasswordForm(emit: ChangePasswordFormEmits): {
 // ChangePasswordFormEmits: "success" | "fail"
 
 export function useResetPasswordForm(
-    props: ResetPasswordFormProps, // { token: string; username?: string } — reset token from the recovery link; optional account name for the hidden username field (password managers)
+    props: ResetPasswordFormProps, // { token: string; username?: string; labels? } — reset token from the recovery link; optional account name for the hidden username field (password managers)
     emit: ResetPasswordFormEmits
 ): {
     password: Ref<string>
@@ -318,16 +318,22 @@ export function useResetPasswordForm(
 
 // Components (default exports): LoginForm, LoginModal, LogoutForm, ForgotPasswordModal,
 //                                ChangePasswordForm, ResetPasswordForm
-// LoginForm props: LoginFormProps { username?: string } ; emits: LoginFormEmits
-// LoginModal props: LoginModalProps { username?; title?; isVisible?; showClose? } ; slots: LoginModalSlots = default{ username } (replace the form)
+// Every text these components show is English by default; `labels` (and a modal's `title`) override it, one key at a time
+// LoginForm props: LoginFormProps { username?: string; labels?: LoginFormLabels } ; emits: LoginFormEmits
+//   LoginFormLabels: { username?; password?; signIn?; signingIn?; forgotPassword?; failed?; lockedOut?; notConfirmed? } (all string)
+// LoginModal props: LoginModalProps { username?; title? ("Sign in"); labels?: LoginFormLabels; isVisible?; showClose? } ; slots: LoginModalSlots = default{ username } (replace the form)
+//   labels go to the default LoginForm; a slotted form takes its own
 //   showClose (default true): the header's X; pass false while sign-in is required — it fills the modal's header-close-button slot
 //   emits: LoginModalEmits = LoginFormEmits (from its default form only; a slotted form emits its own) + close (header X or Esc; a required gate binds none)
-// ForgotPasswordModal props: ForgotPasswordModalProps { username?; isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
+// ForgotPasswordModal props: ForgotPasswordModalProps { username?; title? ("Forgot password"); isVisible? } ; slots: ForgotPasswordModalSlots = default{ username }
 //   emits: ForgotPasswordModalEmits = close (header X or Esc)
 // Both slot and emits types are exported from the barrel — import them when you type a wrapper that forwards the slot
 // or the events
-// ChangePasswordForm props: ChangePasswordFormProps { username?: string }, emits: ChangePasswordFormEmits
-// ResetPasswordForm props: ResetPasswordFormProps, emits: ResetPasswordFormEmits
+// ChangePasswordForm props: ChangePasswordFormProps { username?: string; labels?: ChangePasswordFormLabels }, emits: ChangePasswordFormEmits
+//   ChangePasswordFormLabels: { currentPassword?; newPassword?; confirmPassword?; mismatch?; submit?; succeeded?; failed? }
+// ResetPasswordForm props: ResetPasswordFormProps { token; username?; labels?: ResetPasswordFormLabels }, emits: ResetPasswordFormEmits
+//   ResetPasswordFormLabels: { newPassword?; confirmPassword?; mismatch?; submit?; succeeded?; signIn?; failed? }
+// LogoutForm props: LogoutFormProps { labels?: { signOut? } } — "Sign out {name}" by default; {name} is the user's display name
 // Both password forms render a visually-hidden `autocomplete="username"` input (NOT display:none — that
 // removes it from most password managers' form parse) so managers link the new password to the account —
 // pass `username` from the host (`getAccountName()`); the components deliberately read no store (the app

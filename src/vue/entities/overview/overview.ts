@@ -1,6 +1,6 @@
 import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../abstractions"
 import type { FeedbackOut } from "../../ui/feedback"
-import type { Ref } from "vue"
+import type { ComputedRef, Ref } from "vue"
 
 export const DEFAULT_DEBOUNCE = 250
 
@@ -69,6 +69,15 @@ export interface IListViewOut<T extends IEntity, SO extends ISearchObject = ISea
     debouncedListHandler(): Promise<void>
 }
 
+export interface ISearchViewIn<T extends IEntity, SO extends ISearchObject = ISearchObject> extends IListViewIn<T, SO> {
+    /**
+     * A list that grows instead of turning pages: `loadMore()` adds the server's next page below the rows on
+     * screen, and a search without `resetPaging` fetches every page on screen again, one request per page, so a
+     * refresh keeps the list's length and the reader's place. `pagingInfo.page` is not used. Off by default.
+     */
+    append?: boolean
+}
+
 export interface ISearchViewOut<T extends IEntity, SO extends ISearchObject = ISearchObject> extends OverviewCoreOut<T, SO> {
     /**
      * ⚠️ **Nothing fetches on mount.** The scaffolded overview's first search comes from `useRouteOverview`,
@@ -78,4 +87,12 @@ export interface ISearchViewOut<T extends IEntity, SO extends ISearchObject = IS
      */
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
+    /**
+     * `append` only: adds the server's next page below the rows on screen. It fetches the last page again first, so
+     * rows that moved up because a row left the server's result (up to a page of them) are not skipped, and drops
+     * the rows already on screen. Does nothing while a search runs; a call while one loads joins it.
+     */
+    loadMore(): Promise<void>
+    /** `append` only: the server has rows past the pages fetched so far. Always `false` without `append`. */
+    hasMore: ComputedRef<boolean>
 }

@@ -69,18 +69,20 @@ export function useOverviewCore<T extends IEntity, SO extends ISearchObject = IS
         }
         return false
     }
+    // `itemsCount` moves with the rows: it is the total the list stands for (the server's count across pages for
+    // `useSearchView`, the rows' own length for `useListView`), and the result count and the paging read it.
     function handleSave({ saved, isNew }: SaveResult<T>) {
         if (items.value == null) {
             return
         }
 
-        if (!isNew) {
-            const index = items.value.findIndex((x) => x.$id === saved.$id)
-            if (index !== -1) {
-                items.value.splice(index, 1, saved)
-            }
-        } else {
+        // a new row a fetch that settled after the save already brought is replaced, not added and counted twice
+        const index = items.value.findIndex((x) => x.$id === saved.$id)
+        if (index !== -1) {
+            items.value.splice(index, 1, saved)
+        } else if (isNew) {
             items.value.push(saved)
+            if (itemsCount.value != null) itemsCount.value++
         }
     }
     function handleRemove(item: T): void {
@@ -91,6 +93,7 @@ export function useOverviewCore<T extends IEntity, SO extends ISearchObject = IS
         const index = items.value.findIndex((x) => x.$id === item.$id)
         if (index !== -1) {
             items.value.splice(index, 1)
+            if (itemsCount.value != null) itemsCount.value = Math.max(0, itemsCount.value - 1)
         }
     }
     function resetPage() {

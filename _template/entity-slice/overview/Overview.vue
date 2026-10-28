@@ -1,5 +1,6 @@
 <template>
     <section class="overview">
+        <h1 class="my-4">{{ $t(config.overviewTitle || "") }}</h1>
         <div class="row justify-content-between gx-0 gx-sm-1">
             <div class="col col-lg-auto order-1">
                 <!-- Filter -->
@@ -28,14 +29,15 @@
             <div class="col-12 col-lg order-3 order-lg-2">
                 <Feedback v-bind="{ feedback }" :hideCloseButton="true" />
             </div>
-            <div class="col-auto order-2 order-lg-3 ps-2">
+            <div v-if="canWrite" class="col-auto order-2 order-lg-3 ps-2">
                 <template v-if="config.isComplex">
                     <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </RouterLink>
                 </template>
                 <template v-else>
-                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)">
+                    <!-- @remove too: a row created and then deleted in the same modal leaves the list as well -->
+                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)" @remove="searchHandler(false)">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </FormModalButton>
                 </template>
@@ -66,6 +68,7 @@
                 :is="List"
                 v-if="items && items.length > 0"
                 v-model="items"
+                :readonly="!canWrite"
                 @request-save="handleRequestSave"
                 @request-remove="handleRequestRemove"
                 @save="handleSave"
@@ -98,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue"
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
@@ -115,6 +119,9 @@ interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {}
 defineEmits<Emits>()
 
 const { service } = useEntityStore()
+// config.canWrite gates New, Edit and Delete for the signed-in user (absent = everyone may): while it answers false,
+// no "New" button and read-only rows. It hides buttons only — the API still decides every write.
+const canWrite = computed(() => config.canWrite?.() ?? true)
 
 const { searchObject, pagingInfo, items, itemsCount, isLoading, feedback, applySave, applyRemove, handleSave, handleRemove, searchHandler } =
     useSearchView<Entity, SearchObject>({

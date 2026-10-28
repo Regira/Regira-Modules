@@ -13,6 +13,7 @@ export {
     useLoginForm,
     type LoginFormEmits,
     type LoginFormProps,
+    type LoginFormLabels,
     type LoginModalEmits,
     type LoginModalProps,
     type LoginModalSlots,
@@ -26,8 +27,14 @@ export {
     type ForgotPasswordModalProps,
     type ForgotPasswordModalSlots,
 } from "./useForgotPasswordForm"
-export { useChangePasswordForm, type ChangePasswordFormEmits, type ChangePasswordFormProps } from "./useChangePasswordForm"
-export { useResetPasswordForm, type ResetPasswordFormProps, type ResetPasswordFormEmits } from "./useResetPasswordForm"
+export {
+    useChangePasswordForm,
+    type ChangePasswordFormEmits,
+    type ChangePasswordFormProps,
+    type ChangePasswordFormLabels,
+} from "./useChangePasswordForm"
+export { useResetPasswordForm, type ResetPasswordFormProps, type ResetPasswordFormEmits, type ResetPasswordFormLabels } from "./useResetPasswordForm"
+export type { LogoutFormProps } from "./logout-form"
 
 export { default as LoginForm } from "./LoginForm.vue"
 export { default as LogoutForm } from "./LogoutForm.vue"

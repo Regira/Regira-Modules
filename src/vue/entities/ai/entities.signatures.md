@@ -109,13 +109,12 @@ export abstract class EntityServiceBase<T extends IEntity> implements IEntitySer
 inside a `computed`, so an unconditional conversion (`item.startsOn = new Date(item.startsOn)`) mutates the
 computed's own reactive dependency and Vue aborts with `Maximum recursive updates exceeded` — reported
 against the **library** component, which sends you looking in the wrong file. Return an existing instance
-untouched, and guard every extra date/field conversion:
+untouched, and guard every extra date/field conversion (`liftDates`, §9, converts only a string):
 
 ```ts
 override toEntity(item: object): Entity {
     if (item instanceof Entity) return item
-    const entity = Object.assign(this.createInstance(Entity as new () => Entity), item || {})
-    if (entity.startsOn && !(entity.startsOn instanceof Date)) entity.startsOn = new Date(entity.startsOn)
+    const entity = liftDates(Object.assign(this.createInstance(Entity as new () => Entity), item || {}), "startsOn")
     // an owned-collection lift needs the same guard — a fresh array is a mutation like a fresh Date
     if (entity.lines?.some((row) => !(row instanceof Line))) entity.lines = entity.lines.map((row) => Line.create(row))
     return entity
@@ -225,6 +224,9 @@ export interface IConfig extends Record<string, any> {
     isComplex?: boolean // form on a Details PAGE (default true) vs a modal; also gates the FilterAdv toggle.
     //                     >~6 fields, any relation or any collection → page. Distinct from the back-end
     //                     simple/complex split, which is about For<> generic arity.
+    canWrite?: () => boolean // may the signed-in user create/edit/delete it? Absent = yes. While false the scaffolded
+    //                          Overview hides "New" and shows read-only rows, Details a read-only form (entities.patterns →
+    //                          Permission-gated UI). Hides buttons only — the API still authorizes every write
     routePrefix: string // the slice's URL path, without the leading "/": one segment ("products") or several ("admin/products")
     baseQueryParams?: Record<string, unknown> // merged into every list/search request
     initialQuery?: Record<string, unknown> // seeds the generated nav link's route query — nothing else reads it
@@ -290,7 +292,7 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     searchObject: Ref<SO> // the same object as a ref: what the view binds and mutates
     pagingInfo: Ref<IPagingInfo>
     items: Ref<Array<T> | undefined> // undefined until the first fetch resolves
-    itemsCount: Ref<number | undefined>
+    itemsCount: Ref<number | undefined> // search: the server's total across pages; list: the rows' own length
     isLoading: Ref<boolean>
     feedback: FeedbackOut
     // applySave/applyRemove share the "newest wins" gate with searchHandler/listHandler: only the newest
@@ -298,12 +300,20 @@ export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearc
     // The return value is never gated — the caller still learns what the server said.
     applySave(item: T): Promise<SaveResult<T> | undefined> // undefined = the save failed
     applyRemove(item: T): Promise<boolean> // false = the server refused the delete (a validator's 400, 409, 403, …)
-    handleSave({ saved, isNew }: SaveResult<T>): void
-    handleRemove(item: T): void
+    handleSave({ saved, isNew }: SaveResult<T>): void // replaces the row by $id, or appends a new one and raises itemsCount
+    handleRemove(item: T): void // drops the row by $id and lowers itemsCount (never below 0); a row not listed changes nothing
     resetPage(): void
 }
 export interface IListViewIn<T, SO> extends OverviewCoreIn<T, SO> {
     debounceDelay?: number
+}
+export interface ISearchViewIn<T, SO> extends IListViewIn<T, SO> {
+    // A list that grows instead of turning pages ("Show more", a screen that must not shift while more loads):
+    // loadMore() adds the server's next page below the rows on screen, and searchHandler() without resetPaging fetches
+    // every page on screen again, one request per page, so a refresh keeps the list's length and place.
+    // searchHandler(true) starts the list over at one page. pagingInfo.page is not used, and no Paging goes with it.
+    // pageSize must not exceed the API's MaxPageSize (100 with UseDefaults()), or a page comes back short.
+    append?: boolean // default false
 }
 export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // ⚠️ NOTHING FETCHES ON MOUNT. The scaffolded Overview.vue gets its first search from useRouteOverview,
@@ -314,6 +324,14 @@ export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // which write the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
     debouncedSearchHandler(): Promise<void>
+    // append only: the server's next page below the rows on screen, in two requests: the last page fetched again, then
+    // the next. Rows already on screen are dropped by $id, so no row shows twice, and rows that moved up because a row
+    // left the server's result since (deleted, or edited out of the filter while the screen keeps it; up to a page of
+    // them) are picked up from the last page, not skipped. A list that drifted further is realigned by searchHandler().
+    // Does nothing while a search runs; a call while one loads joins it; a new search drops a page that settles after
+    // it. Without append it does nothing.
+    loadMore(): Promise<void>
+    hasMore: ComputedRef<boolean> // append only: the server has rows past the pages fetched so far; false without append
 }
 export interface IListViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // Sends the current searchObject + pagingInfo to service.list(); same concurrency guarantee as
@@ -327,7 +345,8 @@ export function useSearchView<T extends IEntity, SO extends ISearchObject = ISea
     searchObject,
     defaultPageSize,
     debounceDelay,
-}: IListViewIn<T, SO>): ISearchViewOut<T, SO>
+    append,
+}: ISearchViewIn<T, SO>): ISearchViewOut<T, SO>
 export function useListView<T extends IEntity, SO extends ISearchObject = ISearchObject>({
     service,
     searchObject,
@@ -461,8 +480,9 @@ export interface FormIn<T extends IEntity> {
     props: { modelValue: T; readonly?: boolean; isPopup?: boolean } // pass the component's props object itself
     emit: FormEmits<T>
     feedback?: FeedbackOut // defaults to a fresh useFeedback()
+    afterInsertRoute?: (saved: T) => RouteLocationRaw // where an insert goes in place of its own route with the new id; replaces `/new`, not used when props.isPopup
 }
-export function useForm<T extends IEntity>({ entityService, props, emit, feedback }: FormIn<T>): FormOut<T>
+export function useForm<T extends IEntity>({ entityService, props, emit, feedback, afterInsertRoute }: FormIn<T>): FormOut<T>
 export interface FormOut<T> {
     item: Ref<T>
     original?: Ref<T>
@@ -475,12 +495,15 @@ export interface FormOut<T> {
 }
 ```
 
-**What `handleSubmit` does besides saving**, in order: `feedback.pending` → `entityService.save` → emits `save` →
-`feedback.success` → replaces `item` and `original` with copies of the saved entity → emits `update:modelValue` →
+**What `handleSubmit` does besides saving**, in order: `feedback.pending` → `entityService.save` → `feedback.success`
+→ emits `save` → replaces `item` and `original` with copies of the saved entity → emits `update:modelValue` →
 on an **insert**, unless `props.isPopup`, `router.replace`s the current route with `params.id` set to the new id
-(query and hash kept, `src` dropped). That replace is not awaited, so a component that navigates in the same tick —
-a route write of its own — cancels it and leaves the URL on `/new`. `props.readonly` and `props.isPopup` are read
-each time a handler runs, so a form whose access resolves after mount (a permission-gated `:readonly`) follows it.
+(query and hash kept, `src` dropped), or with the route `afterInsertRoute(saved)` gives. That replace is not awaited,
+so a component that navigates in the same tick — a route write of its own — cancels it and leaves the URL on `/new`.
+A `@save` handler runs before the replace, so a navigation there is the one cancelled: to leave the form's route after
+an insert, pass `afterInsertRoute: (saved) => ({ name: "TicketConversation", params: { id: saved.$id } })`.
+`props.readonly` and `props.isPopup` are read each time a handler runs, so a form whose access resolves after mount
+(a permission-gated `:readonly`) follows it.
 
 > **`handleRemove` arity differs by composable.** The **form**'s `handleRemove()` takes **no arguments**
 > (it removes the bound `item.value`); the **overview**'s `handleRemove(item: T)` takes the row. Don't
@@ -819,6 +842,18 @@ export const plugin: { install(_: App): void; preload: typeof preload; ready: ty
 import { cleanQueryParams, parseQueryParams } from "@regira/modules/vue/entities"
 export function cleanQueryParams(queryParams: Record<string, unknown>, _defaultPageSize?: number): Record<string, unknown>
 export function parseQueryParams(queryParams: Record<string, unknown>): { searchObject: Record<string, unknown>; pagingInfo: IPagingInfo } // → { searchObject, pagingInfo }
+```
+
+```ts
+import { liftDates, type DateKeys } from "@regira/modules/vue/entities"
+export type DateKeys<T> = { [K in keyof T]-?: Date extends T[K] ? K : never }[keyof T] // the keys of T whose type admits a Date
+// For toEntity: converts the named ISO-string fields of `item` to Date, in place, and returns `item`. Only a string is
+// converted (an empty or unparseable one becomes undefined); a Date, null or undefined is left as it is, so a second
+// call changes nothing — the idempotency toEntity needs. Never name a DateOnly/TimeOnly field: it stays a string.
+export function liftDates<T extends object>(item: T, ...fields: Array<DateKeys<T>>): T
+// override toEntity(item: object): Entity {
+//     return item instanceof Entity ? item : liftDates(Object.assign(this.createInstance(Entity as new () => Entity), item || {}), "publishedOn")
+// }
 ```
 
 ---

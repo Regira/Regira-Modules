@@ -17,8 +17,9 @@ export class EntityService extends EntityServiceBase<Entity> {
     }
 
     // Keep this IDEMPOTENT — it runs inside computeds (fromPool, FormModalButton.modalTitle). Return an
-    // existing instance untouched, and guard every conversion you add — dates:
-    //   if (typeof (e as any).publishedOn === "string") e.publishedOn = new Date((e as any).publishedOn)
+    // existing instance untouched, and guard every conversion you add. Dates: liftDates (imported beside
+    // EntityServiceBase) converts only a string, so it is guarded already:
+    //   liftDates(e, "publishedOn", "dueOn")
     // and owned-collection lifts, where a fresh array is a mutation just like a fresh Date:
     //   if (e.children?.some((row) => !(row instanceof Child))) e.children = e.children.map((row) => Child.create(row))
     // An unconditional conversion throws "Maximum recursive updates exceeded" against a LIBRARY component.

@@ -82,7 +82,7 @@ import { initAxios, useAxios, createQueryString } from "@regira/modules/vue/http
 | Navigation             | `NavItem`, `NavGroup`, `INavItem`, `INavCore`, `createNavItem`, `createNavGroup`, `buildNavigationTree`, `importDashboard`, `importNavbar`, `isNavItem`                                                                                                                        |
 | Tree                   | `useTree`, `useDragDrop`                                                                                                                                                                                                                                                       |
 | Preloading             | `usePreloader`, `preloaderPlugin`                                                                                                                                                                                                                                              |
-| Utilities              | `cleanQueryParams`, `parseQueryParams`                                                                                                                                                                                                                                         |
+| Utilities              | `cleanQueryParams`, `parseQueryParams`, `liftDates`, `DateKeys`                                                                                                                                                                                                                |
 
 `Selector.vue` (entity picker) is not on the barrel — it is generated per slice as `selecting/Selector.vue`.
 

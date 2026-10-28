@@ -424,13 +424,32 @@ watch(showLogin, (gateOpen) => {
                  No X while sign-in is required: closing would leave a page that needs it. A gate widened to an
                  on-demand sign-in (a loginRequested ref) shows the X there; clear the request on @close. -->
             <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired">
-                <LoginForm @forgot-password="handleForgotPassword" />
+                <!-- the form's texts are English until they get labels: these follow the app's language -->
+                <LoginForm
+                    :labels="{
+                        username: $t('username'),
+                        password: $t('password'),
+                        signIn: $t('signIn'),
+                        signingIn: $t('signingIn'),
+                        forgotPassword: $t('forgotPassword'),
+                        failed: $t('signInFailed'),
+                        lockedOut: $t('lockedOut'),
+                        notConfirmed: $t('notConfirmed'),
+                    }"
+                    @forgot-password="handleForgotPassword"
+                />
             </LoginModal>
             <!-- the library ships the recovery MODAL, not the form — slot in the app's own (users/).
                  `showLogin &&` matters: without it, authenticating by another path (token refresh, a sign-in
                  in a second tab) leaves this modal stranded over an authenticated app.
                  @close is the modal's header X or Esc, which would otherwise do nothing. -->
-            <ForgotPasswordModal v-if="showLogin && showForgot" :username="forgotUsername" @close="showForgot = false" v-slot="{ username }">
+            <ForgotPasswordModal
+                v-if="showLogin && showForgot"
+                :username="forgotUsername"
+                :title="$t('forgotPasswordTitle')"
+                @close="showForgot = false"
+                v-slot="{ username }"
+            >
                 <ForgotPasswordForm :username="username" @login="showForgot = false" />
             </ForgotPasswordModal>
         </Teleport>
@@ -483,9 +502,12 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "backToSignIn": { "en": "Back to sign in" },
     "cancel": { "en": "Cancel" },
     "changePassword": { "en": "Change password" },
+    "changePasswordFailed": { "en": "Unfortunately, changing the password failed." },
     "chooseNewPassword": { "en": "Choose a new password" },
     "clear": { "en": "Clear" },
+    "confirmPassword": { "en": "Confirm password" },
     "created": { "en": "Created" },
+    "currentPassword": { "en": "Current password" },
     "delete": { "en": "Delete" },
     "deleteItem": { "en": "Delete {title}?" },
     "download": { "en": "Download" },
@@ -493,26 +515,40 @@ A placeholder icon, so a page load asks for no missing `/favicon.ico` — replac
     "files": { "en": "Files" },
     "filter": { "en": "Filter" },
     "filtersAreApplied": { "en": "Filters are applied" },
+    "forgotPassword": { "en": "Forgot password?" },
+    "forgotPasswordTitle": { "en": "Forgot password" },
     "invalidResetLink": { "en": "This recovery link is invalid or incomplete. Request a new one from the sign-in screen." },
     "keywords": { "en": "Keywords" },
+    "lockedOut": { "en": "Try again in 5 min." },
     "main": { "en": "Main" },
     "menu": { "en": "Menu" },
     "name": { "en": "Name" },
     "new": { "en": "New" },
+    "newPassword": { "en": "New password" },
     "noResults": { "en": "No results" },
+    "notConfirmed": { "en": "This account is not confirmed yet. Follow the link we mailed you." },
     "overview": { "en": "Overview" },
+    "password": { "en": "Password" },
+    "passwordChanged": { "en": "Password changed." },
+    "passwordReset": { "en": "Password reset." },
+    "passwordsDontMatch": { "en": "Passwords don't match." },
     "popOut": { "en": "Open in new tab" },
     "recoveryMailFailed": { "en": "Sending the recovery link failed. Please try again." },
     "recoveryMailSent": { "en": "If that account exists, a recovery link is on its way." },
     "remove": { "en": "Remove" },
+    "replaceFile": { "en": "Replace file" },
     "resetPassword": { "en": "Reset password" },
+    "resetPasswordFailed": { "en": "Unfortunately, resetting the password failed." },
     "restore": { "en": "Restore" },
     "results": { "en": "results" },
     "save": { "en": "Save" },
     "search": { "en": "Search" },
+    "searchIn": { "en": "Search {title}" },
     "select": { "en": "Select" },
     "sendRecoveryLink": { "en": "Send recovery link" },
     "signIn": { "en": "Sign in" },
+    "signInFailed": { "en": "Unfortunately, signing in failed." },
+    "signingIn": { "en": "Signing in ..." },
     "signOut": { "en": "Sign out" },
     "username": { "en": "Username" }
 }
@@ -788,7 +824,7 @@ function handleSearch() {
             v-model.trim="q"
             type="search"
             class="form-control me-2"
-            :placeholder="`${$t('search')} ${$t(searchItemConfig.overviewTitle || '')}`"
+            :placeholder="$t('searchIn', { title: $t(searchItemConfig.overviewTitle || '') })"
         />
         <IconButton icon="search" class="btn-outline-primary" type="submit" :aria-label="$t('search')" />
     </form>
@@ -833,11 +869,22 @@ const accountLabel = computed(() => getAccountName()) // @auth:only
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" :class="{ show: open }">
+                <!-- @auth:block-start -->
+                <!-- the menu and the search open pages that read the API: hidden while auth is on and nobody is signed in, so a search from the sign-in or reset page opens no page that answers 401 -->
+                <!-- an app with public (allowAnonymous) entity pages drops these two v-ifs. $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
+                <NavBar v-if="!$auth.enabled || $auth.isAuthenticated" @select="closeMenu" />
+                <!-- @auth:block-end -->
+                <!-- @noauth:block-start -->
                 <NavBar @select="closeMenu" />
+                <!-- @noauth:block-end -->
                 <div class="d-flex ms-auto align-items-center gap-2">
-                    <NavSearch @search="closeMenu" />
                     <!-- @auth:block-start -->
-                    <!-- $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
+                    <NavSearch v-if="!$auth.enabled || $auth.isAuthenticated" @search="closeMenu" />
+                    <!-- @auth:block-end -->
+                    <!-- @noauth:block-start -->
+                    <NavSearch @search="closeMenu" />
+                    <!-- @noauth:block-end -->
+                    <!-- @auth:block-start -->
                     <router-link v-if="$auth.enabled && $auth.isAuthenticated" class="nav-link" :to="{ name: 'account' }" @click="closeMenu">
                         <!-- the $t fallback guards a token with no name claims at all — never an empty (invisible) link -->
                         {{ accountLabel ?? $t("account") }}
@@ -953,8 +1000,19 @@ const accountName = computed(() => getAccountName())
         <div class="row mb-3">
             <div class="col-md-8 col-lg-6">
                 <FormSection :title="$t('changePassword')">
-                    <!-- username feeds the hidden password-manager field -->
-                    <ChangePasswordForm :username="accountName" />
+                    <!-- username feeds the hidden password-manager field; labels follow the app's language -->
+                    <ChangePasswordForm
+                        :username="accountName"
+                        :labels="{
+                            currentPassword: $t('currentPassword'),
+                            newPassword: $t('newPassword'),
+                            confirmPassword: $t('confirmPassword'),
+                            mismatch: $t('passwordsDontMatch'),
+                            submit: $t('changePassword'),
+                            succeeded: $t('passwordChanged'),
+                            failed: $t('changePasswordFailed'),
+                        }"
+                    />
                 </FormSection>
             </div>
         </div>
@@ -998,7 +1056,20 @@ const username = computed<string | undefined>(() => {
             <div class="col-md-8 col-lg-6">
                 <FormSection v-if="token" :title="$t('chooseNewPassword')">
                     <!-- @login fires from the success message's "Sign in" button: home is protected, so the login modal pops there -->
-                    <ResetPasswordForm :token="token" :username="username" @login="router.push({ name: 'home' })" />
+                    <ResetPasswordForm
+                        :token="token"
+                        :username="username"
+                        :labels="{
+                            newPassword: $t('newPassword'),
+                            confirmPassword: $t('confirmPassword'),
+                            mismatch: $t('passwordsDontMatch'),
+                            submit: $t('resetPassword'),
+                            succeeded: $t('passwordReset'),
+                            signIn: $t('signIn'),
+                            failed: $t('resetPasswordFailed'),
+                        }"
+                        @login="router.push({ name: 'home' })"
+                    />
                 </FormSection>
                 <p v-else class="text-danger">{{ $t("invalidResetLink") }}</p>
             </div>

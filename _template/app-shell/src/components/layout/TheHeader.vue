@@ -20,11 +20,22 @@ const accountLabel = computed(() => getAccountName()) // @auth:only
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" :class="{ show: open }">
+                <!-- @auth:block-start -->
+                <!-- the menu and the search open pages that read the API: hidden while auth is on and nobody is signed in, so a search from the sign-in or reset page opens no page that answers 401 -->
+                <!-- an app with public (allowAnonymous) entity pages drops these two v-ifs. $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
+                <NavBar v-if="!$auth.enabled || $auth.isAuthenticated" @select="closeMenu" />
+                <!-- @auth:block-end -->
+                <!-- @noauth:block-start -->
                 <NavBar @select="closeMenu" />
+                <!-- @noauth:block-end -->
                 <div class="d-flex ms-auto align-items-center gap-2">
-                    <NavSearch @search="closeMenu" />
                     <!-- @auth:block-start -->
-                    <!-- $auth is a union (GlobalAuth): test $auth.enabled first, or read useAuthStore().isAuthenticated (auth.instructions → $auth global) -->
+                    <NavSearch v-if="!$auth.enabled || $auth.isAuthenticated" @search="closeMenu" />
+                    <!-- @auth:block-end -->
+                    <!-- @noauth:block-start -->
+                    <NavSearch @search="closeMenu" />
+                    <!-- @noauth:block-end -->
+                    <!-- @auth:block-start -->
                     <router-link v-if="$auth.enabled && $auth.isAuthenticated" class="nav-link" :to="{ name: 'account' }" @click="closeMenu">
                         <!-- the $t fallback guards a token with no name claims at all — never an empty (invisible) link -->
                         {{ accountLabel ?? $t("account") }}

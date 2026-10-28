@@ -14,8 +14,7 @@ import { useAuthStore } from "../../../src/vue/auth/store";
 
 // AuthData base64-decodes the JWT payload, so the stub has to be shaped like one. `expires` is exp - nbf and
 // the plugin turns it into setInterval(validateToken, expires * 1000) — keep the span small but sane (600s)
-// so the re-validation timer never fires during the run. A far-future `exp` with nbf 0 overflows setInterval's
-// 32-bit delay and Node clamps it to 1ms, re-validating on every tick for the rest of the suite.
+// so the re-validation timer never fires during the run (revalidation-timer.test.js covers the timer itself).
 const fakeJwt = `header.${btoa(JSON.stringify({ sub: "1", name: "u", nbf: 1_000_000, exp: 1_000_600 }))}.signature`;
 
 // Each test mounts a real app; unmount it so its auth watcher and interval are disposed.

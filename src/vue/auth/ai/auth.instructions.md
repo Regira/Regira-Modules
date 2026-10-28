@@ -93,7 +93,7 @@ In a template, `$auth.isAuthenticated` is TS2339: `$auth` is a union, so narrow 
 
 `authData` (`IAuthData`) is decoded from the JWT's claims: `token` (the raw JWT), `userId` ← `sub`, `name` ← `name`,
 `email` ← `email`, `displayName` ← `displayName` (or `display_name`), `culture` ← `culture`, `role` ← the first of
-`role`, `roles` or the `ClaimTypes.Role` URI (for display), `expires` ← `exp` − `nbf` (the lifetime in seconds), plus
+`role`, `roles` or the `ClaimTypes.Role` URI (for display), `expires` ← `exp` − `nbf`, or `exp` − `iat` without `nbf` (the lifetime in seconds; 0 without either), plus
 `get(claim)`, `hasClaim`, `hasPermission`, `hasRole`. The API emits `culture` and `displayName` only when its claims
 principal factory adds them.
 
@@ -361,13 +361,56 @@ components and composables exist for all of it — use them instead of hand-roll
     const showLogin = computed(() => authStore.isRequired && !authStore.isAuthenticated)
     ```
 
-    An app whose public pages are `allowAnonymous` opens it on demand too: `isRequired` is set only by a
-    protected route, so a "Sign in" button sets a `loginRequested` ref, the gate reads
-    `(authStore.isRequired || loginRequested.value) && !authStore.isAuthenticated`, and the modal's `@close`
-    and the form's `@success` clear the ref. `showClose` hides the header's X while sign-in is required, where
-    closing would leave a page that needs it. Esc emits the same `close`, since the modal takes focus when it opens,
-    so a required gate that binds no `@close`, as the shell's `App.vue` does, ignores both; on demand the X stays,
-    and its `@close` (X or Esc) clears the request.
+    An app whose public pages are `allowAnonymous` (a storefront) opens it on demand too. `isRequired` is set only
+    by a protected route, so one app-wide flag widens the gate: a "Sign in" button, a checkout step or a wishlist
+    heart requests the sign-in, and the shell's `App.vue` reads the request beside `isRequired`:
+
+    ```ts
+    // src/composables/useLoginPrompt.ts — one request for the whole app, so any component can ask for a sign-in
+    import { ref } from "vue"
+
+    const loginRequested = ref(false)
+    export function useLoginPrompt() {
+        return {
+            loginRequested,
+            requestLogin: () => (loginRequested.value = true),
+            clearLoginRequest: () => (loginRequested.value = false),
+        }
+    }
+    ```
+
+    ```ts
+    // App.vue — the shell's script with its gate and its watch widened; forgotUsername, showForgot and
+    // handleForgotPassword stay as they are
+    import { useLoginPrompt } from "@/composables/useLoginPrompt"
+
+    const authStore = useAuthStore()
+    const { loginRequested, clearLoginRequest } = useLoginPrompt()
+    const showLogin = computed(() => (authStore.isRequired || loginRequested.value) && !authStore.isAuthenticated)
+    watch(showLogin, (gateOpen) => {
+        if (gateOpen) return
+        showForgot.value = false
+        clearLoginRequest() // signed in (by the form or any other path) or closed: the request is answered
+    })
+    ```
+
+    ```vue
+    <!-- App.vue — the shell's LoginModal with @close bound: on demand its X stays, and closing drops the request -->
+    <LoginModal v-if="showLogin && !showForgot" :title="$t('signIn')" :show-close="!authStore.isRequired" @close="clearLoginRequest">
+        <LoginForm @forgot-password="handleForgotPassword" />
+    </LoginModal>
+
+    <!-- any component, with authStore = useAuthStore() and { requestLogin } = useLoginPrompt(): the header's "Sign in" -->
+    <button v-if="!authStore.isAuthenticated" type="button" class="btn btn-outline-primary" @click="requestLogin">{{ $t("signIn") }}</button>
+    ```
+
+    `showClose` hides the header's X while sign-in is required, where closing would leave a page that needs it.
+    Esc emits the same `close`, since the modal takes focus when it opens; while sign-in is required both leave the
+    modal open, since clearing the request does not lift `isRequired`. On demand the X stays, and its `@close` (X or
+    Esc) clears the request. The public page behind the modal renders for a signed-out visitor as it is: the shell's
+    `LoadingContainer` waits only while a signed-in session starts. The shell's header hides its menu and search
+    while nobody is signed in: drop their two `v-if`s in `layout/TheHeader.vue`, or a visitor finds no way to the
+    public pages.
 
 - **Gate `LoginModal` with `v-if="showLogin"`** (the canonical `App.vue` does): unmounting removes the
   mask and dialog atomically. Keeping it mounted and toggling visibility can strand the leave-transition,
@@ -381,6 +424,18 @@ components and composables exist for all of it — use them instead of hand-roll
 - All form components are plain-Bootstrap reference skins — restyle, wrap, or eject them
   (`scaffold.mjs --ui LoginForm|LoginModal|ForgotPasswordModal|ChangePasswordForm|ResetPasswordForm`); the modals render the app-wide
   modal via `injectModal()`, so a `modalPlugin { Modal }` swap reskins them too.
+- **Their text is English until you pass your own.** Each form takes `labels` (one key per text, a key left out
+  stays English) and each modal a `title`, so a multilingual app translates them where it uses them:
+
+    ```vue
+    <LoginModal v-if="showLogin" :title="$t('signIn')" :labels="{ username: $t('username'), password: $t('password'), signIn: $t('signIn') }" />
+    <ChangePasswordForm :username="accountName" :labels="{ currentPassword: $t('currentPassword'), submit: $t('changePassword') }" />
+    <LogoutForm :labels="{ signOut: $t('signOutName') }" />
+    <!-- "{name} afmelden": {name} is the display name -->
+    ```
+
+    The keys per form are in [auth.signatures.md](auth.signatures.md) → _Account UI_. A form slotted into
+    `LoginModal` takes its own `labels`, since the modal's go to its default form only.
 
 ### Sign-up
 
@@ -430,6 +485,10 @@ The route is anonymous — `{ path: "/sign-up", name: "signUp", component: SignU
 - **The API opens `POST users` on an override.** The base action requires a signed-in caller, so a sign-up
   answers `401` until the app's `UserControllerBase` subclass overrides `Create` with `[AllowAnonymous]`:
   `Regira.Security` → security.instructions → _Authorization: guarded by default_.
+- ⚠️ **A sign-up that links the new account to an existing record** (a customer, an employee, a speaker) links it
+  on the API, only by an e-mail address the user has confirmed or by a stored external login. Never by an
+  unconfirmed e-mail or an OIDC e-mail claim without `email_verified`, or anyone can take over that record:
+  `Regira.Security` → security.instructions → _Sign-up with profile fields_.
 - **A taken name answers `400`** with ASP.NET Identity's `DuplicateUserName` as the key, like a password the
   API's rules refuse. `toFeedbackError` reads both, and `<Feedback>` lists them.
 - To have the API mail a confirmation link, post `confirmEmailUrl` too: the absolute URL of the app's confirm

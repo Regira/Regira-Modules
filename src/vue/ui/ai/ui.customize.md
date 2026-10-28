@@ -108,7 +108,8 @@ Theming belongs in `theme.scss` — never fork or patch the library css.
 ## L1 — CSS restyle via class hooks
 
 Every built-in carries stable semantic classes alongside the Bootstrap ones. Write plain css against
-them in `theme.scss` — no `::v-deep`, no `!important` needed.
+them in `theme.scss` — no `::v-deep`, and no `!important` except over the Bootstrap utilities a built-in
+puts on its own parts (the `FormSection` header bar and the labels hidden below a breakpoint, both below).
 
 - **Root hooks** (`rg-*`): `rg-modal`, `rg-paging`, `rg-autocomplete` (the input), `rg-feedback`,
   `rg-pending`, `rg-success`, `rg-error-summary`, `rg-confirm-button`, `rg-icon`, `rg-icon-button`,
@@ -151,8 +152,10 @@ of `theme.scss`.
 descendants (a dropdown menu in a row) and breaks `position: sticky` inside it. The
 library rule omits it deliberately; `entity-list--scroll-x` is the per-list opt-in.
 
-**Built-ins that hide their own text below a breakpoint.** The defaults suit a desktop admin UI; on a
-phone-first app they are a functional decision, and they show up at 375 px, never in a type-check:
+### Built-ins that hide their own text below a breakpoint
+
+The defaults suit a desktop admin UI; on a phone-first app they are a functional decision, and they show up at
+375 px, never in a type-check:
 
 | Component        | What disappears                   | Below | Condition                               |
 | ---------------- | --------------------------------- | ----- | --------------------------------------- |

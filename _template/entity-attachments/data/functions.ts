@@ -64,6 +64,23 @@ export function useEntityAttachments({
         handleBrowse(await browse(opts))
     }
 
+    // Replace a row's file in place: the row keeps its id and position. A stored row (id > 0) keeps its staged file
+    // until the parent's save PUTs it to {api}/{id}/files/{linkId}; its name follows the new file (newFileName, applied
+    // by the owner's PUT) and stays editable until then. A Blob without a name keeps the row's current one.
+    function handleReplace(row: Entity, file: Blob & { name?: string }) {
+        if (props.readonly) return // defense-in-depth, like handleBrowse
+        if (row.uri?.startsWith("blob:")) URL.revokeObjectURL(row.uri) // the preview of a file replaced before it was saved
+        const fileName = file.name || (row.id > 0 ? row.newFileName || row.fileName : row.fileName)
+        Object.assign((row.attachment ??= new Attachment()), { _file: file, fileName, contentType: file.type, length: file.size })
+        if (row.id > 0) row.newFileName = fileName
+        row.uri = URL.createObjectURL(file)
+        sync()
+    }
+    async function triggerReplace(row: Entity, opts: { accept?: string } = {}) {
+        const [file] = await browse({ ...opts, multiple: false })
+        if (file) handleReplace(row, file)
+    }
+
     // Drag-to-reorder — native HTML5 drag & drop, no dependency. The handle records the source index on
     // dragstart; dropping on a row moves the source there (the new array order is what the parent save
     // sends — the server derives SortOrder from it). Rows preventDefault unconditionally — an unhandled
@@ -95,7 +112,7 @@ export function useEntityAttachments({
         sync()
     }
 
-    return { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd, handleDrop }
+    return { items, sync, triggerBrowse, handleBrowse, triggerReplace, handleReplace, handleDragStart, handleDragEnd, handleDrop }
 }
 
 // Insert needs the parent's id before it can POST files → save the record first, then upload.
@@ -141,12 +158,16 @@ async function saveAll(api: string, item: { id: number; attachments?: Array<Enti
     const pending = (item.attachments ?? []).filter((x) => x.attachment?._file != null && !x._deleted)
     await enqueue(
         pending.map((x) => async () => {
-            // re-wrap under the edited name so the uploaded file carries it
-            if (x.fileName && x.fileName !== x.attachment!._file!.name)
-                x.attachment!._file = await fileToBlob(x.attachment!._file as File, x.fileName)
+            // re-wrap under the edited name so the uploaded file carries it (a stored row edits newFileName)
+            const name = x.id > 0 ? x.newFileName || x.fileName : x.fileName
+            if (name && name !== x.attachment!._file!.name) x.attachment!._file = await fileToBlob(x.attachment!._file as File, name)
+            // a stored row replaces its file (PUT on the link id); a new one is added — field name "file"; baseURL-relative
             const {
                 data: { item: saved },
-            } = await useAxios().upload(`${api}/${item.id}/files`, [x.attachment!._file!]) // field name "file"; baseURL-relative
+            } =
+                x.id > 0
+                    ? await useAxios().upload(`${api}/${item.id}/files/${x.id}`, [x.attachment!._file!], { method: "PUT" })
+                    : await useAxios().upload(`${api}/${item.id}/files`, [x.attachment!._file!])
             Object.assign(x, { id: saved.id, objectId: saved.objectId, attachmentId: saved.attachmentId })
         })
     )

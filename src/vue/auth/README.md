@@ -35,7 +35,8 @@ Install **after** the router and `initAxios`, passing that same axios instance. 
 relative to the axios `baseURL` (`auth`, `auth/validate`, `auth/refresh`, `auth/password*`). `logout()`
 is client-side (clears the token); unauthenticated navigation is allowed (the app shows a login popup),
 so provide the login modal (`:show-close="!authStore.isRequired"` hides its X while sign-in is required) and a
-`forbidden` route. Gate a route by role with `meta.policy`
+`forbidden` route. On a public (`allowAnonymous`) page `isRequired` stays false, so a "Sign in" button opens the modal
+through a request flag of the app's own, which the modal's gate reads beside `isRequired`. Gate a route by role with `meta.policy`
 (`(store: IAuthStore) => store.hasRole("Administrator")`), not `beforeEnter`: a stored token is restored only after the first
 navigation, so a `beforeEnter` check sends an administrator who reloads the page to `forbidden`. The guard
 itself is registered after that restore, so the plugin then checks the route already shown as well, and a
@@ -43,6 +44,10 @@ reload or deep link to a gated page is caught once the token is known. Every new
 a page stays on screen only while the signed-in identity may see it — after another account signs in on it, or a
 refresh or tenant switch changes its roles. Without this plugin nothing reads `meta.policy`: an app with roles of its
 own resolves them before mounting and gates the route with `beforeEnter`.
+
+The account components show English text. Each form takes a `labels` prop, one key per text, and each modal a
+`title`, so a translated app passes its own wherever it uses them; a key left out stays English. `LogoutForm`'s
+`signOut` label puts the user's display name where it writes `{name}` (`"Sign out {name}"` by default).
 
 A sign-in endpoint of the app's own (a PIN, a one-time code) posts with the shared axios and hands the
 `{ token, isAuthenticated }` answer to the store: `authStore.authData = useAuth().service.authenticate(data)`. A server

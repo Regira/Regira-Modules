@@ -5,6 +5,96 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.6.1 — 2026-10-28
+
+- `vue/auth`: Fix: the plugin no longer re-validates the token in a tight loop. Its timer waits at most 2^31-1 ms
+  (24.8 days), where a longer lifetime overflowed it and the browser fired it every few milliseconds (about 250
+  `POST auth/validate` a second per tab). `AuthData.expires` takes a token's lifetime from `iat` when it has no
+  `nbf`, where `exp` alone read as the epoch timestamp and looped the same way; a token with neither, or without
+  `exp`, starts no timer, and signing out stops it.
+- `vue/auth`: New: the account components take their text as props, English by default, so a translated app uses them
+  as shipped: `labels` on `LoginForm` (`LoginFormLabels`), `ChangePasswordForm` (`ChangePasswordFormLabels`),
+  `ResetPasswordForm` (`ResetPasswordFormLabels`) and `LogoutForm` (`LogoutFormProps`), `LoginModal` hands its
+  `labels` to its default form, and `ForgotPasswordModal` takes a `title`. ⚠️ Upgrade: `LogoutForm` reads
+  "Sign out {name}" by default, where it read "{name} afmelden"; a Dutch app passes `:labels="{ signOut: '{name}
+  afmelden' }"`.
+- Scaffold: the shell's account screens pass their forms translated `labels` (`App.vue`'s `LoginForm`,
+  `views/AccountView.vue`'s `ChangePasswordForm`, `views/ResetPasswordView.vue`'s `ResetPasswordForm`) and the
+  recovery modal a `title`, from 15 new keys in `translations.json` (`password`, `signingIn`, `forgotPassword`,
+  `forgotPasswordTitle`, `signInFailed`, `lockedOut`, `notConfirmed`, `currentPassword`, `newPassword`,
+  `confirmPassword`, `passwordsDontMatch`, `passwordChanged`, `changePasswordFailed`, `passwordReset`,
+  `resetPasswordFailed`), which `--no-auth` leaves out with the other account texts. ⚠️ Upgrade: copy the `:labels`
+  and `:title` bindings from the three files and add the keys.
+- `vue/entities`: New: `useSearchView({ append: true })` grows the list instead of turning pages. `loadMore()` adds the
+  server's next page below the rows on screen and `hasMore` says whether there is one; a refresh (`searchHandler()`)
+  fetches every page on screen again, one request per page, so the list keeps its length and the reader's place.
+  `loadMore()` fetches the last page again before the next one and drops the rows already shown, so no row shows
+  twice and rows that moved up because a row left the server's result since (up to a page of them, a row the screen
+  keeps included) are not skipped; a list that drifted further is realigned by a refresh. It does nothing while a
+  search runs. `pageSize` must stay within the API's `MaxPageSize`.
+- `vue/entities`: Fix: a save or delete (`applySave`, `applyRemove`) that starts while a `useSearchView` search or a
+  `useListView` fetch runs no longer drops that fetch's rows, which left the previous filter's rows on screen under the
+  new one.
+- Guides — the entities card says `service.save()` returns `{ saved, isNew }`, not the API's `{ item }`; the
+  front-end bootstrap's multilanguage bullet points to the account forms' `labels`; `ui.customize`'s *Built-ins that
+  hide their own text below a breakpoint* is a heading, so the `ui.signatures` pointer to it resolves.
+- `vue/entities`: New: `liftDates(item, ...fields)` (with `DateKeys<T>`) converts the named ISO-string fields of an
+  item to `Date`, in place, for a service's `toEntity`. It converts only a string, so a second call changes nothing,
+  and it takes only fields the model types as `Date`, so a `DateOnly` string field is a type error. New:
+  `IConfig.canWrite?: () => boolean`, whether the signed-in user may create, edit and delete the entity; the
+  scaffolded views read it. Fixes: the overview's `handleRemove` lowers `itemsCount` (never below 0) and `handleSave`
+  raises it for a new row, so the result count and the paging follow a delete or an add without a fetch; a new row
+  that a fetch settling after the save already brought is replaced, not listed twice.
+- Scaffold: new flags `--modal` (`isComplex: false`, with the advanced-filter toggle kept on in `filter/Filter.vue`)
+  and `--data-only` (`config/`, `data/`, a `setup.ts` without routes and an `index.ts` without views; refused with
+  `--rel`, `--owns`, `--attachments` and `--modal`). `overview/Overview.vue` and `details/Details.vue` read
+  `config.canWrite`: while it answers `false` there is no "New" button, and the rows and the form are read-only.
+  `config/config.ts` shows the `canWrite` line commented out, and `data/EntityService.ts` points to `liftDates`. The
+  header search's placeholder is one translation, `searchIn` ("Search {title}"), so a language can place the title
+  itself, where two joined translations read "Zoeken Opleidingen". Fix: the overview's "New" button of a modal entity
+  re-runs the search on `remove` as it does on `save`, so a row created and then deleted in the same modal leaves the
+  list. ⚠️ Upgrade: copy the `canWrite` computed and its bindings (`overview/Overview.vue`, `details/Details.vue`), the
+  New button's `@remove="searchHandler(false)"` (`overview/Overview.vue`), the placeholder
+  (`entity-navigation/NavSearch.vue`) and the `searchIn` key.
+- Scaffold: the `entity-attachments` slice can replace a file. Each row has a replace button (`replaceFile`) that stages
+  the new file in place, keeping the row's position. On the owner's save a stored row `PUT`s the file to
+  `{api}/{id}/files/{linkId}` and takes its name; a row that is not saved yet just swaps its staged file.
+  `useEntityAttachments` returns `triggerReplace(row)` and `handleReplace(row, file)`, and the shell's translations add
+  `replaceFile`. ⚠️ Upgrade: copy `data/functions.ts`, `overview/Overview.vue` and `overview/ListItem.vue` from the
+  template, and add the `replaceFile` key. Re-scaffolding with `--attachments --force` instead overwrites every file
+  of the shared slice, a customised `data/Entity.ts` included.
+- `vue/auth`: Guide: a public storefront with on-demand sign-in, as code — an app-wide request flag, the gate that
+  reads it beside `isRequired`, and the `@close` that drops it.
+- Guides — `ui.customize` names the two places a built-in needs `!important` (the `FormSection` header bar and the
+  labels hidden below a breakpoint), and the Tabs signature says an icon tab hides its title below `lg`; the
+  `AuthData` signature names the claims `displayName` and `culture` come from; the type-import advice for slices
+  covers an import beside a value import from the same barrel; the permission-gated UI recipe sets `config.canWrite`;
+  the worked examples' `ListItem` forwards `remove` from its `FormModalButton`; in the recipe for owned rows with a
+  relation and scalars, Enter in an add-row scalar adds the row instead of submitting the parent form.
+- `vue/entities`: New: `FormIn.afterInsertRoute?: (saved) => RouteLocationRaw`, the route an insert goes to once
+  saved, in place of the form's own route with the new id. It replaces `/new`, so Back skips the emptied form, and a
+  popup form does not use it. A navigation in a `@save` handler cannot do this: the form's own route replace runs
+  after the emit and cancels it.
+- Scaffold: new `--no-filter` after a `--rel` (or its `--as`) leaves that relation's advanced filter out — no
+  `SearchObject` field and no `FilterAdv.vue` control — for an API whose `SearchObject` cannot filter on it, where a
+  parameter it lacks answers every row. The `--owns` wiring hint for `toEntity` names the child model's import.
+- Scaffold: `overview/Overview.vue` opens with a page heading, the config's `overviewTitle`. The shell's header hides
+  the entity menu and the search while auth is enabled and nobody is signed in, so a search from the sign-in or reset
+  page opens no page that answers 401; an app with public (`allowAnonymous`) entity pages drops the two `v-if`s. ⚠️
+  Upgrade: copy the heading (`overview/Overview.vue`) and the `NavBar` and `NavSearch` guards (`layout/TheHeader.vue`).
+- Guides — the upload-rights recipe sends the files of a user who may create the owner but not update it inside the
+  create (_Files in the creating request_); the `FormLabel` import line says it is a caption below its input; the
+  `vue/auth` sign-up warns to link a new account to an existing record only by a confirmed e-mail address or a stored
+  external login, and the on-demand sign-in recipe says to drop the header's two `v-if`s for public pages.
+- `vue/ui`: **Type change:** `Tab.create(key, values?)` types `values` as `Partial<Omit<ITab, "key">>`, where it took
+  any `object`, so a misspelt tab field is a type error: an object literal with a key `ITab` lacks no longer compiles
+  (TS2353); drop the key. Every documented call passes only `ITab` keys.
+- Scaffold: `selecting/SelectorDropdown.vue` takes a `placeholder` prop, the text of its empty option (empty when not
+  given). ⚠️ Upgrade: copy the `defineProps` line and the `{{ placeholder }}` in the empty `<option>`.
+- Guides — an `OverviewEmits` interface with a body declares only the events it lists at runtime, so it lists the
+  inherited events the component emits too, or Vue warns on each (the gotcha row, the advanced example's lists and the
+  scaffold's `selecting/SelectorList.vue`); the `ConfirmButton` props comment names its exposed `open()` / `close()`.
+
 ## 6.6.0 — 2026-10-20
 
 - `vue/auth`: **behaviour change — `$auth.isRequired` is the route-driven `isRequired`** (it was the sticky

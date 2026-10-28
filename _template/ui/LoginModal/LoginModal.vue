@@ -5,6 +5,7 @@
         <template #default>
             <slot v-bind="{ username }">
                 <LoginForm
+                    :labels="labels"
                     @success="$emit('success', $event)"
                     @forgot-password="$emit('forgotPassword', $event)"
                     @signing-in="$emit('signingIn', $event)"

@@ -305,6 +305,41 @@ describe("scaffold.mjs --rel", () => {
         expect(isDir("lib")).toBe(false)
         expect(isDir("src", "regions")).toBe(false)
     })
+
+    test("--no-filter leaves that relation's advanced filter out, and keeps its column and model fields", () => {
+        // an API whose SearchObject cannot filter on a relation ignores the parameter and answers every row
+        run("Desk", "--no-auth")
+        run("Shift", "--no-auth")
+        const out = run("Rota", "--rel", "Desk", "--no-filter", "--rel", "Shift", "--as", "slot", "--no-auth")
+        const slice = (...segments) => readFileSync(app("src", "entities", "rotas", ...segments), "utf8")
+
+        expect(slice("overview", "ListItem.vue")).toContain('<DeskButton v-if="item.desk"')
+        expect(slice("data", "Entity.ts")).toContain("deskId?: number")
+        expect(slice("filter", "SearchObject.ts")).not.toContain("deskId")
+        expect(slice("filter", "FilterAdv.vue")).not.toContain("Desk")
+        // the relation without the flag keeps its filter
+        expect(slice("filter", "SearchObject.ts")).toContain("slotId?: number // filter on Shift")
+        expect(slice("filter", "FilterAdv.vue")).toContain('v-model:idValue="searchObject.slotId as number"')
+        expect(out).toContain("No filter for Desk (--no-filter)")
+        expect(out).toContain("Filter for Shift: searchObject.slotId")
+    })
+
+    test("--no-filter on every relation leaves the filter files as a run without --rel writes them", () => {
+        run("Booth", "--no-auth")
+        run("Lectern", "--rel", "Desk", "--as", "counter", "--no-filter", "--no-auth")
+        const filter = (folder, file) => readFileSync(app("src", "entities", folder, "filter", file), "utf8")
+
+        expect(filter("lecterns", "FilterAdv.vue")).toBe(filter("booths", "FilterAdv.vue"))
+        expect(filter("lecterns", "SearchObject.ts")).toBe(filter("booths", "SearchObject.ts"))
+        expect(readFileSync(app("src", "entities", "lecterns", "data", "Entity.ts"), "utf8")).toContain("counterId?: number")
+    })
+
+    test("--no-filter must come directly after a --rel, or after its --as", () => {
+        expect(runFailing("Stall", "--no-filter", "--rel", "Desk", "--no-auth")).toContain("directly after the --rel")
+        expect(runFailing("Stall", "--owns", "StallLine", "--no-filter", "--no-auth")).toContain("directly after the --rel")
+        expect(runFailing("Stall", "--rel", "Desk", "--no-filter", "--no-filter", "--no-auth")).toContain("directly after the --rel")
+        expect(isDir("src", "entities", "stalls")).toBe(false)
+    })
 })
 
 describe("scaffold.mjs stdout", () => {
@@ -688,6 +723,22 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(noAuth).not.toMatch(/auth|router/i)
     })
 
+    test("the header hides the menu and the search while nobody is signed in, and a --no-auth shell always shows them", () => {
+        const header = ["src", "components", "layout", "TheHeader.vue"]
+        const withAuth = shell()(...header)
+        const noAuth = shell("--no-auth")(...header)
+
+        expect(withAuth).toContain('<NavBar v-if="!$auth.enabled || $auth.isAuthenticated" @select="closeMenu" />')
+        expect(withAuth).toContain('<NavSearch v-if="!$auth.enabled || $auth.isAuthenticated" @search="closeMenu" />')
+        expect(withAuth.match(/<Nav(Bar|Search)\b/g)).toHaveLength(2)
+        expect(withAuth).not.toMatch(/@(no)?auth:/)
+        expect(noAuth).toContain('<NavBar @select="closeMenu" />')
+        expect(noAuth).toContain('<NavSearch @search="closeMenu" />')
+        expect(noAuth.match(/<Nav(Bar|Search)\b/g)).toHaveLength(2)
+        expect(noAuth).not.toContain("$auth")
+        expect(noAuth).not.toMatch(/@(no)?auth:/)
+    })
+
     test("--no-auth drops the auth-only keys — no marker can live in JSON, so the file is edited by key", () => {
         const raw = shellConfig("--no-auth")
         const config = JSON.parse(raw)
@@ -731,7 +782,7 @@ describe("scaffold.mjs --shell config.json", () => {
     })
 
     test("--no-auth drops the auth UI's texts and its #loginModal host", () => {
-        const authTexts = ["signIn", "signOut", "account", "resetPassword", "recoveryMailSent", "username"]
+        const authTexts = ["signIn", "signOut", "account", "resetPassword", "recoveryMailSent", "username", "password", "signInFailed", "passwordsDontMatch"]
         const read = shell("--no-auth")
         const translations = JSON.parse(read("public", "data", "translations.json"))
 
@@ -740,6 +791,16 @@ describe("scaffold.mjs --shell config.json", () => {
         expect(read("index.html")).not.toContain("loginModal")
         expect(read("index.html")).toContain('id="modals"')
         expect(read("index.html")).not.toContain("@auth")
+    })
+
+    test("the account screens translate their forms with keys the shell's translations.json holds", () => {
+        const read = shell()
+        const translations = JSON.parse(read("public", "data", "translations.json"))
+        const screens = [read("src", "App.vue"), read("src", "views", "AccountView.vue"), read("src", "views", "ResetPasswordView.vue")]
+        const keys = new Set(screens.flatMap((source) => [...source.matchAll(/\$t\(["']([^"']+)["']/g)].map((m) => m[1])))
+
+        expect(keys).toContain("signInFailed") // the forms' labels, not only the headings
+        expect([...keys].filter((key) => !(key in translations))).toEqual([])
     })
 
     test("--no-auth leaves out the sign-in page, its /401 route and the role names nothing reads", () => {
@@ -855,6 +916,61 @@ describe("scaffold.mjs guards", () => {
     })
 })
 
+describe("scaffold.mjs --modal", () => {
+    test("sets isComplex false and keeps the advanced-filter toggle on, which isComplex would otherwise hide", () => {
+        const out = run("Dossier", "--modal", "--no-auth")
+        const config = readFileSync(app("src", "entities", "dossiers", "config", "config.ts"), "utf8")
+        const filter = readFileSync(app("src", "entities", "dossiers", "filter", "Filter.vue"), "utf8")
+
+        expect(config).toMatch(/^\s*isComplex: false,/m)
+        expect(config).not.toMatch(/isComplex: true/)
+        expect(filter).toMatch(/<FilterInline v-model="searchObject" :show-toggle-adv="true"/)
+        expect(out).toContain("Modal slice")
+    })
+
+    test("without --modal the slice is a page entity and the toggle follows isComplex", () => {
+        run("Quire", "--no-auth")
+
+        expect(readFileSync(app("src", "entities", "quires", "config", "config.ts"), "utf8")).toMatch(/^\s*isComplex: true,/m)
+        expect(readFileSync(app("src", "entities", "quires", "filter", "Filter.vue"), "utf8")).not.toContain("show-toggle-adv")
+    })
+
+    test("is refused on an existing slice it would leave untouched", () => {
+        run("Coffer", "--no-auth")
+
+        expect(runFailing("Coffer", "--modal", "--owns", "CofferLine", "--no-auth")).toContain("--modal rewrites the slice's own")
+        expect(isDir("src", "entities", "coffers", "coffer-lines")).toBe(false)
+    })
+})
+
+describe("scaffold.mjs --data-only", () => {
+    test("writes the data layer and a plugin without routes, and nothing else", () => {
+        const out = run("Hamper", "--data-only", "--no-auth")
+        const root = app("src", "entities", "hampers")
+
+        expect(readdirSync(root).sort()).toEqual(["config", "data", "index.ts", "setup.ts"])
+        const setup = readFileSync(join(root, "setup.ts"), "utf8")
+        expect(setup).not.toMatch(/createRoutes|RouteRecordRaw|DetailsSummary|routes\.push/)
+        expect(setup).toContain("install(app: App<Element>) {")
+        expect(setup).toContain("$configs[Entity.name] = config")
+        const barrel = readFileSync(join(root, "index.ts"), "utf8")
+        expect(barrel).not.toMatch(/\.\/(filter|selecting|details|overview)\//)
+        expect(barrel).toContain('export { default as useEntityStore } from "./data/store"')
+        expect(barrel).toContain('export { default as plugin } from "./setup"')
+        // only the two (c) files it emits are listed, and the navigation warning names the missing route
+        const listed = out.split("\n").filter((l) => l.trim().startsWith("· src"))
+        expect(listed).toHaveLength(2)
+        expect(out).toContain("HamperOverview route it does not have")
+    })
+
+    test("refuses the flags that write into views, before anything is written", () => {
+        for (const flags of [["--rel", "Hamper"], ["--owns", "TillLine"], ["--attachments"], ["--modal"]]) {
+            expect(runFailing("Till", "--data-only", ...flags, "--no-auth")).toContain("--data-only scaffolds no views")
+        }
+        expect(isDir("src", "entities", "tills")).toBe(false)
+    })
+})
+
 describe("scaffold.mjs output type-checks", () => {
     // vue-tsc over a scaffolded app, which reads @regira/modules through its exports map as an install does: the
     // built dist/, so the test skips until `npm run build` has run
@@ -876,7 +992,7 @@ describe("scaffold.mjs output type-checks", () => {
     })
 
     test.skipIf(!built)(
-        "a slice type-checks with a number key and with a string key",
+        "slices type-check: a number and a string key, --modal, --data-only, --rel with and without --no-filter, --attachments, config.canWrite and liftDates",
         () => {
             // the slice is key-generic: `id: string = ""` (a Guid or code key) compiles as the default `id: number = 0` does
             root = mkdtempSync(join(tmpdir(), "regira-typecheck-"))
@@ -885,9 +1001,41 @@ describe("scaffold.mjs output type-checks", () => {
             scaffoldHere("--shell", "--no-auth")
             scaffoldHere("Note", "--no-auth")
             scaffoldHere("Tag", "--no-auth")
+            scaffoldHere("Memo", "--modal", "--no-auth")
+            scaffoldHere("Basket", "--data-only", "--no-auth")
+            // one relation filtered and one not, and a slice whose only relation is not: its FilterAdv.vue stays as shipped
+            scaffoldHere("Book", "--rel", "Note", "--no-filter", "--rel", "Memo", "--no-auth")
+            scaffoldHere("Shelf", "--rel", "Note", "--no-filter", "--no-auth")
+            // the shared attachments slice, wired into an owner (add, rename, replace, remove, reorder)
+            scaffoldHere("Folder", "--attachments", "--no-auth")
             const model = join(root, "src", "entities", "tags", "data", "Entity.ts")
             writeFileSync(model, readFileSync(model, "utf8").replace(/^(\s*)id: number = 0\b/m, '$1id: string = ""'))
             expect(readFileSync(model, "utf8")).toMatch(/^\s*id: string = ""/m)
+
+            // a config that gates writes, and a toEntity that lifts a date field the model types as Date
+            const edit = (path, change) => writeFileSync(path, change(readFileSync(path, "utf8")))
+            const note = (...segments) => join(root, "src", "entities", "notes", ...segments)
+            edit(note("config", "config.ts"), (s) => s.replace(/^(\s*)isComplex: true,/m, "$1canWrite: () => false,\n$1isComplex: true,"))
+            edit(note("data", "Entity.ts"), (s) => s.replace(/^(\s*)lastModified\?: Date$/m, "$1lastModified?: Date\n$1dueOn?: Date"))
+            edit(note("data", "EntityService.ts"), (s) =>
+                s
+                    .replace("import { EntityServiceBase, type IConfig }", "import { EntityServiceBase, liftDates, type IConfig }")
+                    .replace(
+                        "Object.assign(this.createInstance(Entity as new () => Entity), item || {})",
+                        'liftDates(Object.assign(this.createInstance(Entity as new () => Entity), item || {}), "dueOn")'
+                    )
+            )
+            expect(readFileSync(note("config", "config.ts"), "utf8")).toContain("canWrite: () => false,")
+            expect(readFileSync(note("data", "Entity.ts"), "utf8")).toContain("dueOn?: Date")
+            expect(readFileSync(note("data", "EntityService.ts"), "utf8")).toContain('item || {}), "dueOn")')
+            // liftDates takes only the fields a model types as Date: a DateOnly string is a type error
+            writeFileSync(
+                join(root, "src", "lift-dates-check.ts"),
+                'import { liftDates } from "@regira/modules/vue/entities"\n' +
+                    'export const row = liftDates({ dueOn: undefined as Date | undefined, day: "2026-10-21" }, "dueOn")\n' +
+                    '// @ts-expect-error "day" is a string field\n' +
+                    'liftDates(row, "day")\n'
+            )
 
             // the repository's packages, and @regira/modules itself, linked in as an install would place them
             const modules = join(root, "node_modules")

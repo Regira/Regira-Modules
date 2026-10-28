@@ -25,6 +25,8 @@
 //                       Person --plural people, still resolves). A differently-named FK
 //                       takes an optional trailing `--as <field>`: `--rel Employee --as assignedToEmployee`
 //                       binds assignedToEmployee(Id) instead of the default employee(Id), still the Employee slice.
+//                       A trailing `--no-filter` leaves that relation's advanced filter out, for an API whose
+//                       SearchObject cannot filter on it: `--rel Employee --as assignedToEmployee --no-filter`.
 //   --dir <path>        target base folder for a slice (default: src/entities; under src/, the @/ alias) or an ejected
 //                       skin (default: src/components/ui)
 //   --owns <Child>      also scaffold an editable owned-collection sub-slice (a `_deleted`-marked scalar-row
@@ -47,11 +49,19 @@
 //                       the parent class (default camelCase parent + "Id": QCreditRequest → qCreditRequestId;
 //                       a C# property `RequestId` needs --fk requestId). Chains after its --owns, with --as.
 //                       Editable-table sub-slices only: a --picker join carries no parent FK on the client.
+//   --modal             a modal slice: config.ts sets isComplex: false (create/edit in FormModalButton, not on a
+//                       Details page), and filter/Filter.vue passes :show-toggle-adv="true" so FilterAdv stays
+//                       reachable — isComplex also gates that toggle. For a very basic entity only (entities.card →
+//                       Page vs modal).
+//   --data-only         the data layer only: config/, data/ (model, service, store), setup.ts and index.ts. The
+//                       plugin registers the service, the icon and $configs, and adds no routes; no views, no
+//                       filter, no selectors. For an entity the app reads and writes from pages of its own (a
+//                       cart). Not with --rel, --owns, --attachments or --modal, which write into those views.
 //   --shell             scaffold the app shell (toolchain, main.ts, App.vue, config, router, dashboard/navbar, layout, views) into the app root
 //   --ui <Component>    copy a UI-kit component's reference skin into the app for free restyling; the copy
 //                       imports only public @regira/modules/... API, so behavior keeps flowing from the library
 //   --attachments       this entity owns files: scaffold the shared entity-attachments slice (offline
-//                       add/rename/remove + drop zone, committed on the parent's save) and wire it into the
+//                       add/rename/replace/remove + drop zone, committed on the parent's save) and wire it into the
 //                       slice — the attachments field, the insert/update overrides, and the prepareItem
 //                       filter that drops rows marked for deletion. Only the form tab is left to place.
 //                       Passed alone (no entity), it scaffolds the shared slice and stops.
@@ -70,6 +80,8 @@
 //   node .../scaffold.mjs Order --owns OrderLine
 //   node .../scaffold.mjs Order --owns OrderLine --as lines   # back-end nav `Lines` → JSON key "lines"
 //   node .../scaffold.mjs QCreditRequest --owns QCreditRequestItem --as items --fk requestId   # C# FK `RequestId`
+//   node .../scaffold.mjs Department --modal
+//   node .../scaffold.mjs Cart --data-only
 //   node .../scaffold.mjs --shell --no-auth
 //   node .../scaffold.mjs --ui DefaultModal
 
@@ -96,6 +108,8 @@ const firstBareArg = () => argv.find((a, i) => !a.startsWith("--") && !VALUE_FLA
 const noAuth = argv.includes("--no-auth")
 const force = argv.includes("--force")
 const overwriteSlice = argv.includes("--overwrite-slice")
+const modal = argv.includes("--modal")
+const dataOnly = argv.includes("--data-only")
 const here = dirname(fileURLToPath(import.meta.url))
 
 // ----------------------------------------------------------------- help / usage
@@ -184,6 +198,17 @@ if (!/^[A-Z][A-Za-z0-9]*$/.test(name)) {
         .join("")
     console.error(`✗ <Entity> must be PascalCase (a class name) — received "${name}". Try: scaffold.mjs ${suggestion}`)
     process.exit(1)
+}
+// --data-only emits no views, and these flags write into them (or, for --modal, shape them): refused before
+// anything is written rather than leaving a half-wired slice
+if (dataOnly) {
+    const viewFlags = ["--rel", "--owns", "--attachments", "--modal"].filter((flag) => argv.includes(flag))
+    if (viewFlags.length) {
+        console.error(
+            `✗ --data-only scaffolds no views, so ${viewFlags.join(", ")} ${viewFlags.length === 1 ? "has" : "have"} nothing to write into. Drop --data-only, or add the fields to data/Entity.ts by hand.`
+        )
+        process.exit(1)
+    }
 }
 // A model class shadows a same-named DOM global inside every module that imports the slice barrel. It
 // type-checks and usually works (module scope wins), but the failures it does cause are baffling: `(e: Event)`
@@ -293,7 +318,7 @@ for (let i = 0; i < argv.length; i++) {
             console.error("✗ --rel requires a PascalCase related class name (e.g. --rel Vehicle).")
             process.exit(1)
         }
-        const entry = { name: value, field: undefined }
+        const entry = { name: value, field: undefined, filter: true }
         rels.push(entry)
         pending = { entry, set: (f) => (entry.field = f), kind: "--rel", valueIndex: i + 1 }
     } else if (flag === "--as") {
@@ -325,6 +350,14 @@ for (let i = 0; i < argv.length; i++) {
         // consumed, so a second --as is misplaced rather than silently overwriting the first.
         pending.as = true
         pending.valueIndex = i + 1
+    } else if (flag === "--no-filter") {
+        if (!pending || pending.kind !== "--rel" || pending.valueIndex !== i - 1 || pending.noFilter) {
+            console.error("✗ --no-filter must come directly after the --rel it applies to (e.g. --rel Employee --no-filter), chaining with --as.")
+            process.exit(1)
+        }
+        pending.entry.filter = false
+        pending.noFilter = true
+        pending.valueIndex = i // a flag without a value: the next one chains from here
     } else if (flag === "--fk") {
         if (!pending || pending.kind !== "--owns" || pending.valueIndex !== i - 1 || pending.fk) {
             console.error(
@@ -463,11 +496,14 @@ const relations = rels
             folder,
             key: r.field ?? lowerFirst(r.name), // header i18n key — distinct per role when `--as` renames it
             alias: `@/${aliasRoot}/${folder}`,
+            filter: r.filter, // false: --no-filter, no SearchObject field and no FilterAdv control
         }
     })
 // The per-ENTITY blocks (imports, store consts, model imports) de-dupe by class name, so two --rel to the
 // SAME entity (--rel Employee --as assignedTo --rel Employee --as reportedBy) never emit a duplicate identifier.
 const relEntities = [...new Map(relations.map((r) => [r.name, r])).values()]
+const filteredRelations = relations.filter((r) => r.filter)
+const filteredEntities = [...new Map(filteredRelations.map((r) => [r.name, r])).values()]
 // Generated content is inserted after a stable line in the template rather than at a placeholder, so the
 // doc sources these templates are built from stay readable as worked examples.
 // Same as insertAfter, but a missing anchor is fatal. Generated content that silently fails to land ships a
@@ -529,12 +565,12 @@ const relationBlocks = {
     // filter/SearchObject.ts — a filter per relation. SCALAR by design: an InputSelector speaks one id
     // (`idValue?: number | string`), so widening this to an array is 9 TS2322s in FilterAdv.vue. The API's
     // ICollection<TKey> binds one value or many, so widening later — behind a multi-select — is UI-only.
-    searchFields: relations.map((r) => `    ${r.field}Id?: number // filter on ${r.name}`).join("\n"),
+    searchFields: filteredRelations.map((r) => `    ${r.field}Id?: number // filter on ${r.name}`).join("\n"),
     // filter/FilterAdv.vue — the control, its entity ref, and the reset that clears it
-    filterImports: relEntities
+    filterImports: filteredEntities
         .map((r) => `import { InputSelector as ${r.name}InputSelector } from "${r.alias}"\nimport type { Entity as ${r.name} } from "${r.alias}"`)
         .join("\n"),
-    filterControls: relations
+    filterControls: filteredRelations
         .map(
             (r) =>
                 `        <div class="mb-2">\n` +
@@ -550,8 +586,8 @@ const relationBlocks = {
         .join("\n"),
     // Both v-models are bound on purpose: `idValue` is what filters, `modelValue` is what the control renders.
     // Bind only idValue and InputSelector's own dev warning fires — it resolves the entity into nothing.
-    filterRefs: relations.map((r) => `const filter${upperFirst(r.field)} = ref<${r.name}>()`).join("\n"),
-    filterResets: relations.map((r) => `    filter${upperFirst(r.field)}.value = undefined`).join("\n"),
+    filterRefs: filteredRelations.map((r) => `const filter${upperFirst(r.field)} = ref<${r.name}>()`).join("\n"),
+    filterResets: filteredRelations.map((r) => `    filter${upperFirst(r.field)}.value = undefined`).join("\n"),
 }
 function applyRelations(relPath, text) {
     if (!relations.length) return text
@@ -572,8 +608,10 @@ function applyRelations(relPath, text) {
             text = insertAfter(text, `import { EntityBase } from "@regira/modules/vue/entities"`, relationBlocks.modelImports)
             return insertAfterOrFail(text, MODEL_FIELDS_ANCHOR, relationBlocks.fields, "data/Entity.ts")
         case "filter/SearchObject.ts":
+            if (!filteredRelations.length) return text
             return insertAfterOrFail(text, `title?: string`, relationBlocks.searchFields, "filter/SearchObject.ts")
         case "filter/FilterAdv.vue": {
+            if (!filteredRelations.length) return text
             const at = (anchor, addition) => (text = insertAfterOrFail(text, anchor, addition, "filter/FilterAdv.vue"))
             at(`<input v-model.lazy.trim="searchObject.title"`, relationBlocks.filterControls)
             at(`import SearchObject from "./SearchObject"`, relationBlocks.filterImports)
@@ -595,7 +633,7 @@ function applyRelations(relPath, text) {
 // longer applied. Wrap it rather than asking the reader to remember.
 const FILTER_RESET_ANCHOR = "const { handleReset, handleUpdate, filterIsActive } = useFilter({ searchObject, emit, Constructor: SearchObject })"
 function withFilterReset(text) {
-    if (!relations.length) return text
+    if (!filteredRelations.length) return text
     if (!text.includes(FILTER_RESET_ANCHOR)) {
         console.error(
             `✗ filter/FilterAdv.vue no longer carries the useFilter destructure this scaffolder rewrites — regenerate _template/entity-slice from the ai docs, or update FILTER_RESET_ANCHOR in scaffold.mjs.`
@@ -705,7 +743,85 @@ function applyAttachments(relPath, text) {
     }
 }
 
+// ---------------------------------------------------------------------- --modal
+// A modal slice: the form opens in FormModalButton instead of on a Details page. isComplex also gates the
+// advanced-filter toggle, so the generated FilterAdv would be unreachable — Filter.vue turns the toggle back on.
+const MODAL_ANCHORS = {
+    isComplex: "isComplex: true, // create/edit on a Details PAGE (default).",
+    filterInline: `<FilterInline v-model="searchObject"`,
+}
+function applyModal(relPath, text) {
+    if (!modal) return text
+    const path = relPath.replace(/\\/g, "/")
+    const swap = (anchor, replacement) => {
+        if (!text.includes(anchor)) {
+            console.error(
+                `✗ ${path} no longer carries "${anchor}" — regenerate _template/entity-slice from the ai docs, or update MODAL_ANCHORS in scaffold.mjs.`
+            )
+            process.exit(1)
+        }
+        return text.replace(anchor, replacement)
+    }
+    switch (path) {
+        case "config/config.ts":
+            return swap(
+                MODAL_ANCHORS.isComplex,
+                "isComplex: false, // create/edit in a MODAL (scaffold.mjs --modal; filter/Filter.vue keeps the FilterAdv toggle on)."
+            )
+        case "filter/Filter.vue":
+            return swap(MODAL_ANCHORS.filterInline, `${MODAL_ANCHORS.filterInline} :show-toggle-adv="true"`)
+        default:
+            return text
+    }
+}
+
+// ------------------------------------------------------------------ --data-only
+// The data layer without views: config/, data/, setup.ts and index.ts. The barrel loses the view exports and the
+// plugin its routes — it registers the service, the icon and $configs only, as the guide's lookup slice does.
+const DATA_ONLY_ENTRIES = new Set(["config", "data", "setup.ts", "index.ts"])
+const DATA_ONLY_SETUP = [
+    [`import type { RouteRecordRaw } from "vue-router"\n`, ""],
+    [`import { DetailsSummary } from "@regira/modules/vue/entities"\n`, ""],
+    [`install(app: App<Element>, { routes }: { routes: Array<RouteRecordRaw> }) {`, `install(app: App<Element>) {`],
+    [`        routes.push(...createRoutes())\n`, ""],
+    [`export default {`, `// no routes and no views (scaffold.mjs --data-only): the app's own pages use the store and the service\nexport default {`],
+]
+function applyDataOnly(relPath, text) {
+    const path = relPath.replace(/\\/g, "/")
+    if (!dataOnly || (path !== "index.ts" && path !== "setup.ts")) return text
+    const fail = (what) => {
+        console.error(`✗ ${path} ${what} — regenerate _template/entity-slice from the ai docs, or update DATA_ONLY_SETUP in scaffold.mjs.`)
+        process.exit(1)
+    }
+    const eol = text.includes("\r\n") ? "\r\n" : "\n"
+    let out = text.replace(/\r\n/g, "\n")
+    // every import or re-export from a folder this slice does not get
+    const dropped = [...sliceEntries].filter((entry) => !DATA_ONLY_ENTRIES.has(entry))
+    const fromDropped = new RegExp(`from ["']\\./(?:${dropped.join("|")})/`)
+    out = out
+        .split("\n")
+        .filter((line) => !fromDropped.test(line))
+        .join("\n")
+    if (path === "setup.ts") {
+        for (const [find, replacement] of DATA_ONLY_SETUP) {
+            if (!out.includes(find)) fail(`no longer carries "${find.trim()}"`)
+            out = out.replace(find, replacement)
+        }
+        // createRoutes, through its closing brace at column 0
+        out = out.replace(/^export function createRoutes\(\)[\s\S]*?^\}\n\n?/m, "")
+        if (/createRoutes|RouteRecordRaw|DetailsSummary/.test(out)) fail("still references the routes after the --data-only rewrite")
+    }
+    return out.replace(/\n{3,}/g, "\n\n").replace(/\n/g, eol)
+}
+
 const sliceExists = existsSync(destRoot)
+// --modal rewrites two of the slice's own files, which a run against an existing slice leaves alone
+if (sliceExists && !overwriteSlice && modal) {
+    console.error(
+        `✗ --modal rewrites the slice's own config/config.ts and filter/Filter.vue, and ${destRoot} already exists — set isComplex: false and <FilterInline … :show-toggle-adv="true" /> by hand (entities.card → Page vs modal), or pass --overwrite-slice to regenerate it.`
+    )
+    process.exit(1)
+}
 // "Product exists; now it should own files" is an ordinary request, not an error — so --attachments joins
 // --owns as a reason to proceed against an existing slice. Neither rewrites the (c) files: --owns adds a
 // sub-slice, and --attachments hands back its edits at the end (see the sliceGenerated branch below).
@@ -756,6 +872,7 @@ const stripAuth = (s) => {
 function copyDir(from, to, rootFrom = from) {
     mkdirSync(to, { recursive: true })
     for (const entry of readdirSync(from, { withFileTypes: true })) {
+        if (dataOnly && from === rootFrom && !DATA_ONLY_ENTRIES.has(entry.name)) continue // a view folder
         const src = join(from, entry.name)
         const dst = join(to, entry.name)
         if (entry.isDirectory()) copyDir(src, dst, rootFrom)
@@ -767,6 +884,8 @@ function copyDir(from, to, rootFrom = from) {
             content = applyAttachments(relative(rootFrom, src), content)
             content = applyRelations(relative(rootFrom, src), content)
             content = applyOwnedCollections(relative(rootFrom, src), content)
+            content = applyModal(relative(rootFrom, src), content)
+            content = applyDataOnly(relative(rootFrom, src), content)
             writeFileSync(dst, content)
         }
     }
@@ -818,21 +937,33 @@ if (sliceGenerated) {
         "overview/ListItem.vue",
         "details/Form.vue",
         "selecting/SelectorList.vue",
-    ]
-    console.log(`  Customize these ${customize.length} (c) files (a lookup drops the overview trio List/ListItem/FilterAdv):`)
+    ].filter((f) => !dataOnly || DATA_ONLY_ENTRIES.has(f.split("/")[0]))
+    console.log(
+        dataOnly
+            ? `  Data only — no views and no routes. Customize these ${customize.length} (c) files:`
+            : `  Customize these ${customize.length} (c) files (a lookup drops the overview trio List/ListItem/FilterAdv):`
+    )
     for (const f of customize) console.log(`    · ${join(baseDir, plural, f)}`)
     console.log(`  Then register its plugin in ${join(baseDir, "index.ts")} (see the entities setup guide → Add entities).`)
+    if (dataOnly) {
+        console.log(`  Leave "${name}" out of public/config.json → navigation: an entry there links to a ${name}Overview route it does not have.`)
+    }
+    if (modal) {
+        console.log(`  Modal slice: isComplex is false (create/edit in FormModalButton), and filter/Filter.vue keeps the FilterAdv toggle on.`)
+    }
     console.log(
         `  Confirm api "${api}" equals the server route — [Route("${api.slice(1)}")] on ${name}Controller, or with mapped entity endpoints (MapEntityEndpoints) the route of ${name}'s registration. A mismatch 404s every call; re-run with --api <path> to change it.`
     )
-    missingChromeKeys()
+    if (!dataOnly) missingChromeKeys()
     if (attachmentsOwner) {
         console.log(`  Files: the attachments field, the insert/update overrides and the prepareItem filter are written in.`)
         attachmentsTodo()
     }
     for (const r of relations) {
         console.log(
-            `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key. The API must filter on it too: its SearchObject needs ICollection<int>? ${upperFirst(r.field)}Id and a filter (back-end entities.instructions → Steps 2 and 6), or remove this filter — a parameter the SearchObject lacks is ignored and every row comes back.`
+            !r.filter
+                ? `  No filter for ${r.name} (--no-filter): SearchObject.ts and FilterAdv.vue carry none.`
+                : `  Filter for ${r.name}: searchObject.${r.field}Id + a ${r.name}InputSelector in FilterAdv.vue, cleared by handleReset. Add the "${r.key}" translation key. The API must filter on it too: its SearchObject needs ICollection<int>? ${upperFirst(r.field)}Id and a filter (back-end entities.instructions → Steps 2 and 6), or remove this filter (--no-filter after the --rel leaves it out) — a parameter the SearchObject lacks is ignored and every row comes back.`
         )
         // the list, filter and model are written for the relation, the form is not — say so, or the run reads as done
         // and a required FK scaffolds into a form that cannot save
@@ -1001,7 +1132,7 @@ function scaffoldOwned(childName, fieldName, pickerName, fkName) {
     )
     if (!pickerName) {
         console.log(
-            `    ${sliceGenerated ? "2" : "4"}. ${p("data/EntityService.ts")}  toEntity      lift item.${childField} with ${childName}.create, guarded, as ${join(childFolder, "Entity.ts")} shows`
+            `    ${sliceGenerated ? "2" : "4"}. ${p("data/EntityService.ts")}  toEntity      lift item.${childField} with ${childName}.create, guarded, as ${join(childFolder, "Entity.ts")} shows   // import { Entity as ${childName} } from "../${childFolder}"`
         )
     }
     console.log(`    back-end: e.Related(x => x.${ChildrenPascal}) on ${name} (owned child — no For<>()/controller/budget slot).`)
@@ -1045,13 +1176,28 @@ function scaffoldShell() {
             "account",
             "backToSignIn",
             "changePassword",
+            "changePasswordFailed",
             "chooseNewPassword",
+            "confirmPassword",
+            "currentPassword",
+            "forgotPassword",
+            "forgotPasswordTitle",
             "invalidResetLink",
+            "lockedOut",
+            "newPassword",
+            "notConfirmed",
+            "password",
+            "passwordChanged",
+            "passwordReset",
+            "passwordsDontMatch",
             "recoveryMailFailed",
             "recoveryMailSent",
             "resetPassword",
+            "resetPasswordFailed",
             "sendRecoveryLink",
             "signIn",
+            "signInFailed",
+            "signingIn",
             "signOut",
             "username",
         ],
@@ -1118,7 +1264,7 @@ function attachmentsTodo() {
         `    ⚠️ It renders its OWN <FormSection> — put it in a tab or beside the form's section, never inside one, or you get a titled panel within a titled panel.`
     )
     console.log(
-        `    public/data/translations.json  the shell ships "files" and "addNewFile(s)" (literal key, parentheses included) in English — add the other languages from config.json → langs`
+        `    public/data/translations.json  the shell ships "files", "addNewFile(s)" (literal key, parentheses included) and "replaceFile" in English (a shell scaffolded before "replaceFile" lacks it: add "replaceFile": { "en": "Replace file" }) — add the other languages from config.json → langs`
     )
     console.log(`    back-end: register the owner's files (WithAttachments + HasAttachments<>).`)
     console.log(
@@ -1265,8 +1411,14 @@ Entity slice:
   --rel <Entity>      overview column and a FilterAdv filter for a to-one relation (the related entity's
                       FormModalButton + a label resolved through its pool). Repeatable; the related slice must already be scaffolded.
                       A differently-named FK takes a trailing --as <field> (--rel Employee --as assignedToEmployee)
+  --no-filter         after a --rel (or its --as): no FilterAdv filter for that relation, for an API whose
+                      SearchObject cannot filter on it (--rel Employee --no-filter)
   --dir <path>        target base folder (slice default: src/entities, under src/ — the @/ alias; ejected skin
                       default: src/components/ui)
+  --modal             a modal slice: isComplex: false (create/edit in FormModalButton), with the FilterAdv toggle
+                      kept on in filter/Filter.vue. For a very basic entity only
+  --data-only         the data layer only — config/, data/, setup.ts, index.ts; the plugin adds no routes. Not with
+                      --rel, --owns, --attachments or --modal
 
 Owned collections (a back-end e.Related(...) child):
   --owns <Child>      also scaffold an editable owned-collection sub-slice. Repeatable, PascalCase, e.g.
@@ -1303,6 +1455,8 @@ Examples:
   scaffold.mjs Order --owns OrderLine --as lines
   scaffold.mjs QCreditRequest --owns QCreditRequestItem --as items --fk requestId
   scaffold.mjs Article --owns ArticleCategory --as categories --picker Category
+  scaffold.mjs Department --modal
+  scaffold.mjs Cart --data-only
   scaffold.mjs --shell --no-auth
   scaffold.mjs --ui DefaultModal`)
 }

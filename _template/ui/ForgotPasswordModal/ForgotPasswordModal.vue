@@ -1,5 +1,5 @@
 <template>
-    <component :is="Modal" :is-visible="isVisible" title="Forgot password" :showFooter="false" @close="$emit('close')">
+    <component :is="Modal" :is-visible="isVisible" :title="title" :showFooter="false" @close="$emit('close')">
         <slot v-bind="{ username }"></slot>
     </component>
 </template>
@@ -9,7 +9,7 @@ import { injectModal } from "@regira/modules/vue/ui"
 import type { ForgotPasswordModalEmits, ForgotPasswordModalProps, ForgotPasswordModalSlots } from "@regira/modules/vue/auth"
 
 defineEmits<ForgotPasswordModalEmits>()
-withDefaults(defineProps<ForgotPasswordModalProps>(), { isVisible: true })
+withDefaults(defineProps<ForgotPasswordModalProps>(), { title: "Forgot password", isVisible: true })
 defineSlots<ForgotPasswordModalSlots>()
 
 const Modal = injectModal()

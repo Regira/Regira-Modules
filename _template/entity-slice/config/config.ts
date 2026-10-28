@@ -10,6 +10,7 @@ const config: IConfig = {
     key: "__Entity__", // TODO: route-name prefix + icon key (conventionally = Entity.name)
     isComplex: true, // create/edit on a Details PAGE (default). Set false ONLY for a very basic entity — a few scalar
     //                  fields, no relations/tabs — that is fine to edit in a modal (FormModalButton). See entities.card → page vs modal.
+    // canWrite: () => useAccess().canWrite("__Entity__"), // false hides New/Edit/Delete for the signed-in user — entities.patterns → Permission-gated UI
 
     routePrefix: "__entities__", // TODO: the slice's URL path, without the leading "/": one segment ("products") or several ("admin/products")
     baseQueryParams: {}, // add includes ONLY for a COLLECTION the API gates behind its named [Flags] enum, e.g. { includes: ["Lines"] }; a to-one shown on every row belongs in the API's unconditional e.Includes instead

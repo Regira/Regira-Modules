@@ -1,6 +1,9 @@
 import { ModalType } from "../modal/modal"
 
-/** `disabled`, `aria-label` and any other attribute fall through to the root `<button>` */
+/**
+ * `disabled`, `aria-label` and any other attribute fall through to the root `<button>`. It exposes `open()` / `close()`:
+ * to confirm from a swipe or a shortcut, keep it in the tree and call `confirmRef.value?.open()`.
+ */
 export type ConfirmButtonProps = {
     icon?: string
     buttonLabel?: string

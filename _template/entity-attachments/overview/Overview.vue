@@ -19,7 +19,14 @@
             >
                 <Icon name="move" />
             </span>
-            <ListItem v-model="items[i]!" :class="{ 'is-deleted': row._deleted }" class="flex-grow-1" :readonly="readonly" @change="sync" />
+            <ListItem
+                v-model="items[i]!"
+                :class="{ 'is-deleted': row._deleted }"
+                class="flex-grow-1"
+                :readonly="readonly"
+                @change="sync"
+                @replace="triggerReplace(row)"
+            />
         </div>
         <FileDropZone v-if="!readonly" @drop-files="handleBrowse" @click="triggerBrowse()">
             <template #default="{ isDropping }">
@@ -42,5 +49,5 @@ import ListItem from "./ListItem.vue"
 const emit = defineEmits<{ (e: "update:modelValue", v: Array<Entity>): void }>()
 const props = withDefaults(defineProps<{ modelValue?: Array<Entity>; readonly?: boolean }>(), { modelValue: () => [] })
 
-const { items, sync, triggerBrowse, handleBrowse, handleDragStart, handleDragEnd, handleDrop } = useEntityAttachments({ props, emit })
+const { items, sync, triggerBrowse, handleBrowse, triggerReplace, handleDragStart, handleDragEnd, handleDrop } = useEntityAttachments({ props, emit })
 </script>

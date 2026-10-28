@@ -19,7 +19,7 @@ export class __Entity__ extends EntityBase {
     //    vue-tsc stays green
 
     // the only two Date fields hydrated for you (EntityServiceBase.processItem) — every OTHER DateTime field
-    // arrives as an ISO string and needs a guarded lift in EntityService.toEntity, nested rows included,
+    // arrives as an ISO string and needs a lift in EntityService.toEntity (liftDates), nested rows included,
     // or `.getTime()`/a mask formatter throws at runtime while vue-tsc stays green. A DateOnly / TimeOnly
     // field is the exception: it stays a "yyyy-MM-dd" string (a Date goes back as a timestamp → 400)
     // (see entities.instructions.md → Item hydration)

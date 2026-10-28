@@ -509,7 +509,7 @@ const items = computed<Array<Entity>>({
             </template>
             <template v-else>
                 <!-- Simple enitty: Open form modal -->
-                <FormModalButton v-model="item" @save="$emit('save', $event)" />
+                <FormModalButton v-model="item" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
             </template>
         </div>
         <div class="col-2 col-lg-1 text-truncate">
@@ -565,6 +565,7 @@ const item = defineModel<Entity>({ required: true })
 ```vue
 <template>
     <section class="overview">
+        <h1 class="my-4">{{ $t(config.overviewTitle || "") }}</h1>
         <div class="row justify-content-between gx-0 gx-sm-1">
             <div class="col col-lg-auto order-1">
                 <!-- Filter -->
@@ -593,14 +594,15 @@ const item = defineModel<Entity>({ required: true })
             <div class="col-12 col-lg order-3 order-lg-2">
                 <Feedback v-bind="{ feedback }" :hideCloseButton="true" />
             </div>
-            <div class="col-auto order-2 order-lg-3 ps-2">
+            <div v-if="canWrite" class="col-auto order-2 order-lg-3 ps-2">
                 <template v-if="config.isComplex">
                     <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </RouterLink>
                 </template>
                 <template v-else>
-                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)">
+                    <!-- @remove too: a row created and then deleted in the same modal leaves the list as well -->
+                    <FormModalButton class="btn btn-info" :aria-label="$t('new')" @save="searchHandler(false)" @remove="searchHandler(false)">
                         <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                     </FormModalButton>
                 </template>
@@ -631,6 +633,7 @@ const item = defineModel<Entity>({ required: true })
                 :is="List"
                 v-if="items && items.length > 0"
                 v-model="items"
+                :readonly="!canWrite"
                 @request-save="handleRequestSave"
                 @request-remove="handleRequestRemove"
                 @save="handleSave"
@@ -663,6 +666,7 @@ const item = defineModel<Entity>({ required: true })
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue"
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
@@ -680,6 +684,9 @@ interface Emits extends /* @vue-ignore */ OverviewEmits<Entity> {}
 defineEmits<Emits>()
 
 const { service } = useEntityStore()
+// config.canWrite gates New, Edit and Delete for the signed-in user (absent = everyone may): while it answers false,
+// no "New" button and read-only rows. It hides buttons only — the API still decides every write.
+const canWrite = computed(() => config.canWrite?.() ?? true)
 
 const { searchObject, pagingInfo, items, itemsCount, isLoading, feedback, applySave, applyRemove, handleSave, handleRemove, searchHandler } =
     useSearchView<Entity, SearchObject>({
@@ -731,6 +738,7 @@ async function handleRequestRemove(item: Entity) {
                     :is="Component"
                     v-if="item != null"
                     v-model="item"
+                    :readonly="!canWrite"
                     :overviewUrl="overviewUrl"
                     @change-state="isLoading = $event == FormStates.pending"
                     @remove="handleRemove"
@@ -741,6 +749,7 @@ async function handleRequestRemove(item: Entity) {
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue"
 import { RouterView, useRouter } from "vue-router"
 import { onAuthenticated, useAuth, useGlobalAuth } from "@regira/modules/vue/auth"
 import { LoadingContainer, Feedback } from "@regira/modules/vue/ui"
@@ -752,6 +761,8 @@ import useEntityStore from "../data/store"
 const { service } = useEntityStore()
 
 const { item, isLoading, overviewUrl, load, feedback } = useDetails(service)
+// config.canWrite answering false (the signed-in user may not write this entity) renders the form read-only
+const canWrite = computed(() => config.canWrite?.() ?? true)
 
 // load whenever a token arrives and the row on screen is none, or another account's: someone else signing in behind the
 // LoginModal gets their own row, and the previous one is cleared first, so a reload refused for them (403/404) never leaves
@@ -1271,7 +1282,7 @@ onMounted(async () => {
 ```vue
 <template>
     <select v-model="selectedId" class="form-select">
-        <option :value="undefined"></option>
+        <option :value="undefined">{{ placeholder }}</option>
         <option v-for="item in items" :value="item.id" :key="item.id">
             {{ item.$title }}
         </option>
@@ -1290,6 +1301,8 @@ import { onMounted, ref, watch } from "vue"
 import { onAuthenticated } from "@regira/modules/vue/auth"
 import useEntityStore from "../data/store"
 
+// placeholder: the empty option's text ("Any status", "Choose a team"); empty when not given
+defineProps<{ placeholder?: string }>()
 const selectedItem = defineModel<Entity>()
 const selectedId = defineModel<number | string>("idValue")
 watch(selectedId, () => (selectedItem.value = items.value.find((x) => x.id == selectedId.value)))
@@ -2442,7 +2455,7 @@ const items = computed<Array<Entity>>({
                 </template>
                 <template v-else>
                     <!-- Simple enitty: Open form modal -->
-                    <FormModalButton v-model="item" @save="$emit('save', $event)" />
+                    <FormModalButton v-model="item" @save="$emit('save', $event)" @remove="$emit('remove', $event)" />
                 </template>
             </div>
             <div class="col text-truncate">
@@ -2519,6 +2532,7 @@ const { fromPool: getFacet } = useFacetStore()
 ```vue
 <template>
     <section class="overview">
+        <h1 class="my-4">{{ $t(config.overviewTitle || "") }}</h1>
         <div class="row justify-content-between gx-0 gx-sm-1">
             <div class="col col-lg-auto order-1">
                 <!-- Filter -->
@@ -2548,7 +2562,7 @@ const { fromPool: getFacet } = useFacetStore()
             <div class="col-12 col-lg order-3 order-lg-2">
                 <Feedback v-bind="{ feedback }" :hideCloseButton="true" />
             </div>
-            <div class="col-auto order-2 order-lg-3 ps-2">
+            <div v-if="canWrite" class="col-auto order-2 order-lg-3 ps-2">
                 <RouterLink :to="{ name: config.key + 'Details', params: { id: 'new' } }" class="btn btn-info" :aria-label="$t('new')">
                     <Icon name="new" /><span class="d-none d-sm-inline ms-1">{{ $t("new") }}</span>
                 </RouterLink>
@@ -2579,6 +2593,7 @@ const { fromPool: getFacet } = useFacetStore()
                 :is="List"
                 v-if="items && items.length > 0"
                 v-model="items"
+                :readonly="!canWrite"
                 @request-save="handleRequestSave"
                 @request-remove="handleRequestRemove"
                 @save="handleSave"
@@ -2618,6 +2633,7 @@ const { fromPool: getFacet } = useFacetStore()
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue"
 import { useSearchView, useRouteOverview, type OverviewEmits } from "@regira/modules/vue/entities"
 import { Icon, Paging, LoadingContainer, Feedback, ResultSummary } from "@regira/modules/vue/ui"
 import { Debug } from "@regira/modules/vue/debug"
@@ -2639,6 +2655,9 @@ defineEmits<
 >()
 
 const { service } = useEntityStore()
+// config.canWrite gates New, Edit and Delete for the signed-in user (absent = everyone may): while it answers false,
+// no "New" button and read-only rows. It hides buttons only — the API still decides every write.
+const canWrite = computed(() => config.canWrite?.() ?? true)
 
 const { searchObject, pagingInfo, items, itemsCount, isLoading, feedback, applySave, applyRemove, handleSave, handleRemove, searchHandler } =
     useSearchView<Entity, SearchObject>({

@@ -35,11 +35,21 @@ Calling `handleRemove(item)` unconditionally removes the row even when the serve
 (a validator's 400, or a 409 while the row is still referenced), so the list and the failure message
 contradict each other until the next fetch.
 
+**A list that grows instead of turning pages** — `useSearchView({ …, append: true })` also returns `loadMore()`
+and `hasMore`. `loadMore()` adds the server's next page below the rows on screen; it fetches the last page again
+first, so rows that moved up because a row left the server's result (up to a page of them) are not skipped, and it
+drops the rows already shown. A `searchHandler()` refresh fetches every page on screen again, one request per
+page, so the list keeps its length; `searchHandler(true)` starts it over. With `useRouteOverview`, pass
+`handler: () => searchHandler(true)`, or a filter change fetches every page on screen again. Show a "Show more"
+button under the rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize`
+(100 by default).
+
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
 `useListView` when a plain list is enough (`service.list()` → `Array<T>`, already unwrapped — never
 destructure `{ items }` from it). Both send the current search object merged with the paging info, and
-`useListView` derives `itemsCount` from the rows it got back rather than from a server total.
+`useListView` derives `itemsCount` from the rows it got back rather than from a server total. `handleSave` (for a new
+row) and `handleRemove` move `itemsCount` with the row, so the result count and the paging stay right without a fetch.
 
 > **Neither fetches on mount.** The scaffolded overview's first search comes from `useRouteOverview`, a
 > separate composable; take either of these on its own and the initial fetch is the view's to make —
@@ -48,9 +58,11 @@ destructure `{ items }` from it). Both send the current search object merged wit
 > **Guard the lazy refs.** `items` / `itemsCount` are `undefined` until the first fetch, so bind
 > `v-for="x in items ?? []"` and `:count="itemsCount ?? 0"`.
 
-> **Overlapping calls settle predictably.** `searchHandler`, `listHandler`, `applySave` and `applyRemove`
-> share one "newest wins" gate: only the newest of them writes `items`, `itemsCount`, `feedback` and
-> `isLoading`, so a slower earlier call is dropped when it lands. They really do overlap: a filter change or
+> **Overlapping calls settle predictably.** A fetch (`searchHandler`, `listHandler`) writes `items` and
+> `itemsCount` unless a newer fetch has started, so a slower earlier fetch is dropped when it lands, while a
+> save or delete in the meantime does not stop it. `feedback` and `isLoading` go to the newest of all four
+> calls, `applySave` and `applyRemove` included, so a fetch that fails while a newer save runs reports to the
+> console only, and the rows already on screen stay. They really do overlap: a filter change or
 > fast paging starts a second fetch, the slice's `onAuthenticated` reload hook re-fetches as soon as a
 > restored token arrives while `useRouteOverview`'s mount fetch is still in flight, and a row saved or
 > deleted from the list settles against whichever of those is on the wire. Only the shared state is gated —
@@ -76,19 +88,23 @@ refused it or it failed — a refused delete never reports `removed`. `useModal`
 without leaving the page.
 
 After an insert, `handleSubmit` replaces the current route with one carrying the new id (skipped when
-`isPopup` is set). A failed save lands in `feedback`: a 400's field errors on `feedback.error` (the ProblemDetails
-`errors`, read with `toFeedbackError` from `vue/ui`, which shows a validation error in the user's language when its
-message is a key in the app's translation messages), otherwise the server's text on `feedback.message`. The
-form's `Feedback` lists those field errors under the message, each headed by the field's label; a form that shows
-them at its inputs sets `:hide-field-errors="true"` on it. `failure` keeps the last refused write's HTTP status and
-ProblemDetails `title`, so a 409 titled `"Concurrency conflict"` (a stale concurrency token) can offer a reload where
-one titled `"Conflict"` (a database constraint) cannot; the next write and a new `modelValue` clear it.
+`isPopup` is set). To go elsewhere, pass `afterInsertRoute`, which gets the saved item and returns the route that
+replaces `/new`: a navigation in a `@save` handler is cancelled by the form's own replace. A failed save lands in
+`feedback`: a 400's field errors on `feedback.error` (the ProblemDetails `errors`, read with `toFeedbackError` from
+`vue/ui`, which shows a validation error in the user's language when its message is a key in the app's translation
+messages), otherwise the server's text on `feedback.message`. The form's `Feedback` lists those field errors under
+the message, each headed by the field's label; a form that shows them at its inputs sets `:hide-field-errors="true"`
+on it. `failure` keeps the last refused write's HTTP status and ProblemDetails `title`, so a 409 titled
+`"Concurrency conflict"` (a stale concurrency token) can offer a reload where one titled `"Conflict"` (a database
+constraint) cannot; the next write and a new `modelValue` clear it.
 
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.
 When the API gates writes by role or row ownership, derive `readonly` from the signed-in user and pass it down
 the slice — the overview's `List` / `ListItem` and the details form all take it — so the UI offers only what
-that user may do. This hides buttons; the API remains the only place writes are authorized.
+that user may do. A scaffolded slice does that from its config: while `config.canWrite()` answers `false`, its
+overview has no "New" button and read-only rows, and its details form is read-only. This hides buttons; the API
+remains the only place writes are authorized.
 
 For child/owned collections inside a form, render the rows with **`InputSelectorInline`** — chips that
 mark _persisted_ removals `_deleted` (undoable until save, filtered out in the service's `prepareItem`

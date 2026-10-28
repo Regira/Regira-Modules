@@ -43,6 +43,13 @@ export interface FormIn<T extends IEntity> {
     }
     emit: FormEmits<T>
     feedback?: FeedbackOut
+    /**
+     * where an insert goes once it is saved, in place of the form's own route with the new id, e.g.
+     * `(saved) => ({ name: "TicketConversation", params: { id: saved.$id } })`. It replaces the current route, as the
+     * default does, so Back skips the emptied `/new` form; not used when `props.isPopup` is set. A `@save` handler
+     * cannot navigate instead: the form's own route replace, which runs after the emit, cancels it.
+     */
+    afterInsertRoute?: (saved: T) => RouteLocationRaw
 }
 export interface FormOut<T extends IEntity> {
     item: Ref<T>
@@ -61,7 +68,7 @@ export interface FormOut<T extends IEntity> {
 }
 
 // FormContainer
-export function useForm<T extends IEntity>({ entityService, props, emit, feedback = useFeedback() }: FormIn<T>): FormOut<T> {
+export function useForm<T extends IEntity>({ entityService, props, emit, feedback = useFeedback(), afterInsertRoute }: FormIn<T>): FormOut<T> {
     type IArchivable = T & { isArchived: boolean }
 
     // `readonly` and `isPopup` are read when a handler runs, never destructured: a permission-gated form mounts
@@ -105,6 +112,22 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
     }
 
     const router = useRouter()
+    // the current route with the new id: query and hash kept, `src` dropped
+    function toSavedRoute(saved: T): RouteLocationRaw {
+        const currentRoute = router.currentRoute.value
+        delete currentRoute.query.src
+        return {
+            name: currentRoute.name!,
+            params: {
+                ...currentRoute.params,
+                id: saved.$id,
+            },
+            query: {
+                ...currentRoute.query,
+            },
+            hash: currentRoute.hash,
+        }
+    }
     async function handleSubmit(): Promise<void> {
         if (!checkReadonly()) {
             return
@@ -150,20 +173,7 @@ export function useForm<T extends IEntity>({ entityService, props, emit, feedbac
             original.value = entityService.toEntity(deepCopy(saved))
             emit("update:modelValue", item.value)
             if (isNew && !props.isPopup) {
-                const currentRoute = router.currentRoute.value
-                delete currentRoute.query.src
-                const newRoute: RouteLocationRaw = {
-                    name: currentRoute.name!,
-                    params: {
-                        ...currentRoute.params,
-                        id: saved.$id,
-                    },
-                    query: {
-                        ...currentRoute.query,
-                    },
-                    hash: currentRoute.hash,
-                }
-                router.replace(newRoute)
+                router.replace(afterInsertRoute ? afterInsertRoute(saved) : toSavedRoute(saved))
             }
         } catch (ex) {
             console.error("Saved, but the form could not take the answer", { ex })
