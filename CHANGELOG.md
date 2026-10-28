@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.6.1 — 2026-10-28
 
 - `vue/auth`: Fix: the plugin no longer re-validates the token in a tight loop. Its timer waits at most 2^31-1 ms
   (24.8 days), where a longer lifetime overflowed it and the browser fired it every few milliseconds (about 250
