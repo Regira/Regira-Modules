@@ -27,7 +27,7 @@ export interface IDefineAuthStore {
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
     /** Re-issues the token: `o` is sent as the query string of `POST auth/refresh/` (e.g. `{ tenantId }`). */
-    refresh(o: Record<string, unknown>): Promise<boolean>
+    refresh(o?: Record<string, unknown>): Promise<boolean>
     logout(): void
 }
 export interface IAuthStore extends Store {
@@ -50,7 +50,7 @@ export interface IAuthStore extends Store {
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
     /** Re-issues the token: `o` is sent as the query string of `POST auth/refresh/` (e.g. `{ tenantId }`). */
-    refresh(o: Record<string, unknown>): Promise<boolean>
+    refresh(o?: Record<string, unknown>): Promise<boolean>
     logout(): void
 }
 

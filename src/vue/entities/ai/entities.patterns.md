@@ -236,6 +236,10 @@ const { updateOverviewRoute } = useRouteOverview({ searchObject, pagingInfo, han
 // Paging @change → updateOverviewRoute()
 ```
 
+A list that grows as the reader scrolls instead of turning pages ("Show more", infinite scroll) is
+`useSearchView({ …, append: true })` with `loadMore()` and `hasMore`, and no `Paging`; with `useRouteOverview`, pass
+`handler: () => searchHandler(true)` (`entities.instructions` → _Overview: `useListView` vs `useSearchView`_).
+
 ## Overview list layout (avoiding horizontal scroll)
 
 `overview/List.vue` (headers) and `overview/ListItem.vue` (rows) render one Bootstrap `.row` per line. A

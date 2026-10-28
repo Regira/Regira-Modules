@@ -24,6 +24,13 @@ heading.
   that does not use the Vue modules. ⚠️ Upgrade: an app that uses `vue/auth`, `vue/app` or the entity stores and
   never listed `pinia` (or `vue-router`) in its own `dependencies` adds it there; the known-good dependency set in
   the entities setup guide already lists all three.
+- `vue/auth`: Fix: `AuthData` decodes the token's payload as base64url over UTF-8, as a JWT carries it. A bare `atob`
+  threw on the `-` or `_` a claim's bytes produce at some offsets, so signing in failed although `POST auth` answered
+  200, and it read a non-ASCII claim (a display name such as "Zoë") as Latin-1.
+- `vue/auth`: Fix: the store's `refresh(o?)` takes its query object as optional, as the auth service does, so
+  `authStore.refresh()` type-checks; `IDefineAuthStore` and `IAuthStore` declared it required.
+- Guides — the *Paging* pattern and the entities card name `useSearchView({ append: true })` with `loadMore()` and
+  `hasMore` for a list that grows as the reader scrolls.
 
 ## 6.6.1 — 2026-10-28
 
