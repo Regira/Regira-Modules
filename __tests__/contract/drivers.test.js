@@ -13,7 +13,7 @@ test("the core driver's box rejects an in-place edit of an array, and takes a ne
     expect(Object.isFrozen(box.value)).toBe(true)
 })
 
-test("an object it holds is frozen too, unless it is an entity, which views edit in place", () => {
+test("an object it holds is frozen too, unless it is a row, which views edit in place", () => {
     const paging = frozenBox({ page: 1, pageSize: 25 })
     const entity = frozenBox(
         Object.assign(
@@ -25,8 +25,10 @@ test("an object it holds is frozen too, unless it is an entity, which views edit
             { id: 7, title: "Laptop" }
         )
     )
+    const addRow = frozenBox({ id: 0 }) // a list input's bare add-row
 
     expect(() => (paging.value.page = 2)).toThrow(TypeError)
     entity.value.title = "Laptop Pro"
-    expect(entity.value.title).toBe("Laptop Pro")
+    addRow.value.title = "Mouse"
+    expect([entity.value.title, addRow.value.title]).toEqual(["Laptop Pro", "Mouse"])
 })

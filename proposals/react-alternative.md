@@ -1,8 +1,8 @@
 # A React alternative to the Vue modules
 
-As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 is committed on the branch `react-alternative`, and Phase 1's steps 9 and 10 are built there; steps 11 and 12 and Phase 2 are not.
+As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 and Phase 1's steps 9 and 10 are committed on the branch `react-alternative`; step 11, and step 12 up to auth, are built there. Auth and Phase 2 are not.
 
-**Status: approved with amendments, reviewed 2026-10-28. Phase 0 is committed on `react-alternative`, pending merge into `wip`; Phase 1 has passed its gate (step 10). Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
+**Status: approved with amendments, reviewed 2026-10-28. Phase 0 and Phase 1's steps 9 and 10 are committed on `react-alternative`, pending merge into `wip`; Phase 1 has passed its gate (step 10), and steps 11 and 12 are built up to auth. Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
 
 ## Recommendation
 
@@ -213,6 +213,22 @@ As built (steps 9 and 10):
 - The controllers stay out of `./core`'s exports until Phase 2 settles their shape. `boundaries.test.js` therefore also reads every source file under `src/core`, since the trace of the built entries never reaches a file `./core` does not export.
 - The React spike (`__tests__/contract/react-spike.test.js`) passes under StrictMode. The double mount runs two searches on one controller, and the newest one's rows render. Two components share one pooled entity: an edit through the `update` the hook returns shows in the other component, re-renders only the components that read that entity, and keeps its class. Unmounting ends every subscription, so a search that settles later re-renders nothing. The box needs no change. One point for Phase 2: the pool's `get` creates a box during render when the entity is not cached yet; the hooks should look up in render and add in an effect.
 - `react` and `react-dom` 19 are dev dependencies, for the spike; their peer range is decision 2's.
+
+As built (steps 11 and 12, up to auth):
+
+- The lifecycle scenarios (`__tests__/contract/lifecycle.test.js`) run on the Vue driver, which mounts each view under a memory router (`mount.js`): a details page and a route overview fetch once per mount, two views of one pooled entity share an edit and only they re-render, a form's edits keep the entity's class, and two appends to an owned collection in one tick keep both rows.
+- A load that settles after unmount re-renders nothing and warns nothing, which is what the scenario pins; on Vue it cannot fail, since unmounting stops the render. What a late answer still does:
+    - a load writes into the unmounted view's own boxes, which nothing reads;
+    - a details page that was given an app-wide feedback reports a late failure to it, and names the id of the route the user is on by then — `#undefined` on an overview — since `routeId()` is read after the fetch;
+    - a form whose insert answers after the user left still navigates them: `toSavedRoute` swaps the saved id into the route they are on by then, so a Thing saved from `/things/new` sends a user now on `/customers/5` to `/customers/9`, and an `afterInsertRoute` sends them to the saved entity's page from wherever they are.
+
+    Stopping that takes a `dispose()` each layer calls on unmount; it changes what a Vue app sees, so it waits for the React layer, which has the same question.
+
+- Lang, the route overview, details, the form, and the owned-collection editors are in the core: `createLangState` (`useLang` is the Vue layer's one app-wide instance), `createRouteOverview` with `toRouteValue` and `isNewQuery`, `createDetails` with `isOtherItem`, `createForm` with `FormStates`, and `createOwnedCollection`, `createListInput` and `createListItemInput`. Each takes the route or the owner as plain values and callbacks — `routeId()`, `query()` and `navigate(query)`, `modelValue()` and `update(value)`, `navigateAfterInsert(saved)` — and exposes what the layer's `onMounted` and `watch` call: `load()` on details and the route overview, `mount()` on the form and the owned collection, and `onModelValueChange` on the form (with the new value) and the collections (to drop a pending write). A collection's `items` is a getter with a setter, which the Vue layer wraps in a writable `computed`.
+- One point for Phase 2: the list-item editor's `handleRemove` toggles the row's `_deleted` in place and assigns nothing, as a view edits a row through v-model. A React box sees no assignment, so the hook re-renders nothing until the owner does.
+- What reads vue-router's shape stays in the Vue layer: the details page's `overviewUrl`, `isForm`, `isFiche` and `hasFiche`, the route a form replaces `/new` with, and the watchers themselves. So does the lang plugin's message loader.
+- The core driver plays a route and an owner itself: a URL whose query values come back as strings and whose navigations run `isNewQuery` / `isOtherItem`, and an owner whose prop catches up only on its next render. Its `frozenBox` leaves a row open — any object with an `$id` or an `id`, such as an entity or a bare `{ id: 0 }` add-row — since a view edits rows in place.
+- Auth is the next change: the state, `onAuthenticated` and `routeAllows`.
 
 ### Phase 2: React hooks
 

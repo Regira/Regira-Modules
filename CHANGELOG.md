@@ -12,8 +12,9 @@ heading.
   `watch(items)` now fires on each, and code that kept the old array keeps a stale copy: read `items.value` again.
   An array of rows assigned to `items` is kept with each row's raw object in place of its reactive proxy, as Vue's
   own array writes keep it, so code that holds that array finds the raw rows in it.
-  The feedback, overview and pool logic now runs in the framework-free core; the exports and types of
-  `vue/ui/feedback` and `vue/entities` are unchanged.
+  The logic of the feedback, the overview and the route overview, the pool, the details page, the form, the
+  owned-collection editors and the language state now runs in the framework-free core; the exports and types of
+  `vue/ui/feedback`, `vue/entities` and `vue/lang` are unchanged.
 - `core`: New: `@regira/modules/core`, the part of the Vue modules that needs no framework, for an app without Vue —
   the entity model and `EntityServiceBase`, navigation, the shared axios instance, the service container
   (`defaultServiceProvider`), the formatters, `AuthService` and the token managers, `translate`/`formatText`, and
