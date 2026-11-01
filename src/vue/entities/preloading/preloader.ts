@@ -1,6 +1,6 @@
 import type { EntityBase, IEntity, IEntityService } from "../../../core/entities/abstractions"
+import { get } from "../../../core/ioc/ServiceProvider"
 import usePooling from "../pooling"
-import { get } from "../../ioc"
 import type { App } from "vue"
 
 const preloaderTypes: Array<string> = []

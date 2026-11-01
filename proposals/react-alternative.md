@@ -8,7 +8,7 @@ As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7f
 
 Offer React by sharing the logic, not by porting the components. Move the logic in the Vue composables into one framework-free module, `src/core/`, published as `@regira/modules/core`. Keep `vue/*` as thin wrappers whose public API does not change, and add `src/react/`, published as `@regira/modules/react`, as a second set of thin wrappers.
 
-The core depends on no framework, not even on Vue's reactivity package. Where it keeps state, it creates that state through a `box` function the layer passes in. The Vue layer passes Vue's own `ref`, so the composables return the same refs they return today. The React layer passes a small box that tells React to re-render. That function, and the rule that derived values are plain functions (rule 6), are the whole bridge between the core and a framework.
+The core depends on no framework, not even on Vue's reactivity package. Where it keeps state, it creates that state through a `box` function the layer passes in. The Vue layer passes `vueBox`, which keeps what `ref()` keeps, so the composables return refs as they do today. The React layer passes a small box that tells React to re-render. That function, and the rule that derived values are plain functions (rule 6), are the whole bridge between the core and a framework.
 
 The reason to share is what the composables hold. `useOverviewCore`, `useDetails`, `useForm` and the auth store carry "newest request wins" guards, the mapping of 400, 404 and 409 answers to feedback, and the order in which a stored token is restored. About 600 tests pin that behaviour. A React copy would need every one of those fixes made twice, and the two copies would drift.
 
@@ -49,10 +49,10 @@ A React UI kit, a React scaffold and a full React guide set are not part of this
 ### The core's rules
 
 1. **No framework imports.** The core imports only axios, date-fns, the existing utility modules and its own files.
-2. **State lives in boxes.** A box is `{ value: T }`, and every controller that keeps state takes `box: <T>(initial: T) => Box<T>`. The Vue layer passes `ref`; the core's own tests pass a plain object.
+2. **State lives in boxes.** A box is `{ value: T }`, and every controller that keeps state takes `box: <T>(initial: T) => Box<T>`. The Vue layer passes `vueBox`, which keeps what `ref()` keeps; the core's own tests pass a box that freezes what it holds.
 3. **Assign, never edit in place.** The core writes `items.value = …`, never `items.value.push(…)`, so a box only has to notice assignments.
 4. **No lifecycle, no router, no watchers.** A controller exposes a method for each outside event, such as `load()` or `onModelValueChange(value)`, and the layer calls it from `onMounted` and `watch`, or from `useEffect`. Where the core needs the route, it takes plain values, such as the route id or the current query, and callbacks, such as `navigateAfterInsert(saved)`; never a router. Vue's watchers stay in the Vue layer, so they keep firing when they do today.
-5. **Factories, not reactive singletons.** The core exports `createPoolCache`, `createLangState`, `createAuthState` and so on; each layer creates its own app-wide instances, as the Vue layer's `defaultPoolCache` and `useLang` state are today. Only plain singletons, such as the default `ServiceProvider` and the registered error translator, live in the core.
+5. **Factories, not reactive singletons.** The core exports `PoolCache`, which takes a `box` option, `createLangState`, `createAuthState` and so on; each layer creates its own app-wide instances, as the Vue layer's `defaultPoolCache` and `useLang` state are today. Only plain singletons, such as the default `ServiceProvider` and the registered error translator, live in the core.
 6. **Derived values are functions.** The core exposes a derived value, such as `hasMore` or `isPending`, as a function over its boxes. The Vue layer wraps each one in `computed()`, which tracks the boxes because they are refs; the React layer calls it during render. The box function and this rule are the whole bridge. A `customRef` that reads through to another owner, as the auth store's `clientApp` does, stays in the Vue layer, over a getter and a setter the core exposes.
 7. **Compare entities by `$id`.** In Vue a box hands back a reactive proxy, in the core and React the object itself, so `===` between an entity in a box and one from outside differs per driver.
 8. **Feedback goes to a sink.** A controller takes the four methods `pending`, `success`, `fail` and `reset`, so a `FeedbackOut` a caller passes in works unchanged.
@@ -69,7 +69,7 @@ export function createSearchView<T extends IEntity, SO extends ISearchObject>({ 
 
 // vue: the same signature as today
 export function useSearchView<T extends IEntity, SO extends ISearchObject = ISearchObject>(input: IListViewIn<T, SO>): ISearchViewOut<T, SO> {
-    return createSearchView({ ...input, box: ref as BoxFactory }) as unknown as ISearchViewOut<T, SO>
+    return createSearchView({ ...input, box: vueBox }) as unknown as ISearchViewOut<T, SO>
 }
 ```
 
@@ -77,7 +77,7 @@ The cast is safe because at runtime every box the Vue layer gets is a Vue ref. W
 
 ### The Vue layer
 
-Each composable calls its core controller with `ref`, wires the lifecycle with `onMounted` and `watch`, and binds `emit`. It keeps its declared types. The values that depend on vue-router's shape, such as `isForm`, `hasFiche` and the overview back-link in `useDetails`, stay here. Pinia stays where it is.
+Each composable calls its core controller with `vueBox`, wires the lifecycle with `onMounted` and `watch`, and binds `emit`. It keeps its declared types. The values that depend on vue-router's shape, such as `isForm`, `hasFiche` and the overview back-link in `useDetails`, stay here. Pinia stays where it is.
 
 ### The React layer
 

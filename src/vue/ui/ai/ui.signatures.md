@@ -116,7 +116,7 @@ export interface FeedbackOut {
     fail(msg: string, errors?: FeedbackError): void // second arg is the FIELD-ERROR MAP above, never an Error
     reset(): void
 }
-export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
+export function useFeedback(input?: FeedbackIn): FeedbackOut
 // the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own. Call it during
 // setup (in a component, or a composable a component calls) and keep the result: outside setup, and without the
 // plugin, it throws

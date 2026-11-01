@@ -1,5 +1,5 @@
 // The framework-free half of the Vue modules: what an app can use without loading Vue. The `vue/*` entries re-export
-// these unchanged, so a Vue app keeps importing them from where it always has.
+// these unchanged.
 
 // entities: the client-side model and the HTTP service an Entities API is reached through
 export * from "./entities/abstractions"

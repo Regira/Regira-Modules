@@ -291,7 +291,9 @@ export type OverviewCoreIn<T extends IEntity, SO extends ISearchObject = ISearch
 export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
     searchObject: Ref<SO> // the same object as a ref: what the view binds and mutates
     pagingInfo: Ref<IPagingInfo>
-    items: Ref<Array<T> | undefined> // undefined until the first fetch resolves
+    // undefined until the first fetch resolves. handleSave, handleRemove and loadMore assign a new array, so a shallow
+    // watch(items) fires on each: read items.value each time, a variable that holds the array goes stale.
+    items: Ref<Array<T> | undefined>
     itemsCount: Ref<number | undefined> // search: the server's total across pages; list: the rows' own length
     isLoading: Ref<boolean>
     feedback: FeedbackOut
@@ -748,10 +750,12 @@ export interface IPoolCache {
     getAll<T extends IEntity>(type: string): Array<Ref<T>>
     getEntityMap(type: string): Map<number | string, any>
 }
-export class PoolCache implements IPoolCache {
-    constructor({ interval, expires, maxItems }?: ICacheOptions) /* + IPoolCache members */
+type ICacheOptions = { interval?: number; expires?: number; maxItems?: number }
+// CorePoolCache and CorePoolService are the framework-free classes these extend; no entry exports them
+export class PoolCache extends CorePoolCache implements IPoolCache {
+    constructor(options?: ICacheOptions) /* + IPoolCache members */
 }
-export class PoolService<T extends IEntity> implements IPoolService<T> {
+export class PoolService<T extends IEntity> extends CorePoolService<T> implements IPoolService<T> {
     constructor(service: IEntityService<T>, cache: IPoolCache, type: string) /* + IEntityService + get/getMany/set/setMany */
 }
 ```

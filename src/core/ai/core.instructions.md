@@ -3,7 +3,7 @@
 `@regira/modules/core` is the part of the Vue modules that loads no framework: the entity model and its HTTP
 services, the shared axios instance, the service container, the formatters, the auth service and token
 managers, the translation helpers, and `toFeedbackError`. Use it in an app **without Vue** (React, plain
-TypeScript). In a Vue app, keep importing from the `vue/*` entries — they re-export these same modules.
+TypeScript). A Vue app imports from the `vue/*` entries, which re-export these same modules.
 
 > **Never guess** a signature — verify in [core.signatures.md](core.signatures.md). Examples:
 > [core.examples.md](core.examples.md).
@@ -60,5 +60,5 @@ is set first; `setErrorTranslator(undefined)` restores the default.
   on an update or a delete of an object without them. Build a new state from an entity with
   `Object.assign(new Product(), …)` or the service's `toEntity`, never with a spread (`{ ...item }`), which drops
   the getters.
-- The composables, stores, plugins, route guard and components stay in the `vue/*` modules; this entry has no
+- The composables, stores, plugins, route guard and components live in the `vue/*` modules; this entry has no
   equivalent for them.

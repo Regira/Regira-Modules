@@ -5,8 +5,8 @@ services, the shared axios instance, the service container, the formatters, the 
 the translation helpers, and the mapping of a failed request to the errors a form shows. An app without Vue — a
 React or plain TypeScript app — imports these from here and installs no Vue package.
 
-A Vue app keeps importing them from the `vue/*` entries it always has (`vue/entities`, `vue/http`, …): those
-re-export the same modules. Both entries hand out the same instances — a service registered on
+A Vue app imports them from the `vue/*` entries (`vue/entities`, `vue/http`, …), which re-export the same
+modules. Both entries hand out the same instances — a service registered on
 `defaultServiceProvider` here is the one `$services` resolves, and the axios instance `initAxios` creates here is
 the one `useAxios()` returns from `vue/http`.
 
@@ -51,7 +51,7 @@ The server may name an arg `maxLength` for a `{MaxLength}` placeholder, so match
 default does. An app's translator wins over the default whichever of the two is set first;
 `setErrorTranslator(undefined)` restores the default.
 
-## What stays in the Vue modules
+## What only the Vue modules have
 
 The composables (`useSearchView`, `useDetails`, `useForm`, …), the stores, the plugins, the route guard and every
-component import Vue, and stay in their `vue/*` modules.
+component import Vue. They live in the `vue/*` modules, and this entry has no equivalent for them.

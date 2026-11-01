@@ -1,8 +1,9 @@
 name: Test
 
-# Type-checks, builds and tests every push and pull request — the same steps `publish-npm.yml` runs before it
-# publishes, so a break shows up on the change that made it rather than on the release. The packaging tests
-# (__tests__/packaging) read the built dist/, so the build runs before them.
+# Type-checks, builds and tests every push and pull request — the steps `publish-npm.yml` runs before it publishes,
+# so a break shows up on the change that made it rather than on the release — and runs the consumer apps, which
+# only this workflow does. The packaging tests (__tests__/packaging) read the built dist/, so the build runs
+# before them.
 
 on:
   push:
