@@ -1,83 +1,19 @@
-import { debounceToPromise } from "../../../utilities/promise-utility"
-import { DEFAULT_PAGESIZE, type IEntity, type ISearchObject } from "../abstractions"
-import { DEFAULT_DEBOUNCE, type IListViewIn, type IListViewOut } from "./overview"
-import { toFeedbackError } from "../../ui/feedback"
-import { useOverviewCore } from "./overview-core"
+import type { IEntity, ISearchObject } from "../../../core/entities/abstractions"
+import { createListView } from "../../../core/entities/overview/list-view"
+import type { IListViewIn, IListViewOut } from "./overview"
+import { useFeedback } from "../../ui/feedback"
+import { vueBox } from "../../box"
 
 export function useListView<T extends IEntity, SO extends ISearchObject = ISearchObject>({
     service,
     searchObject,
-    defaultPageSize = DEFAULT_PAGESIZE,
-    debounceDelay = DEFAULT_DEBOUNCE,
+    defaultPageSize,
+    debounceDelay,
 }: IListViewIn<T, SO>): IListViewOut<T, SO> {
-    const {
-        searchObject: searchObjectRef,
-        pagingInfo,
-        items,
-        itemsCount,
-        isLoading,
-        feedback,
-        applySave,
-        applyRemove,
-        handleSave,
-        handleRemove,
-        resetPage,
-        claimWrite,
-    } = useOverviewCore({ service, searchObject, defaultPageSize })
-
-    let listGeneration = 0
-
-    // Only the newest list may write — the same reasoning as `useSearchView`'s `searchHandler`: a second
-    // call starts before the first settles (a filter change, fast paging, or the slice's login/refresh
-    // reload hook firing over a mount fetch), and the one that settles last would otherwise win, up to
-    // painting a 401's banner (`fail()` does not auto-hide) over rows already on screen. The rows are this
-    // fetch's own to write until a newer one starts (`listGeneration`): a save in the meantime must not drop
-    // them, or the previous filter's rows stay. The spinner and the banner go by the core's counter, shared
-    // with `applySave`/`applyRemove` — a save settling mid-fetch must not clear this spinner.
-    async function listHandler(): Promise<void> {
-        const isLatest = claimWrite()
-        const generation = ++listGeneration
-        isLoading.value = true
-        try {
-            feedback.reset()
-            // the REF, not the `searchObject` argument still in scope — that one is only the initial value,
-            // while the ref is what the view mutates. `.value` on the argument type-checks (`ISearchObject`
-            // extends `Record<string, any>`) and reads undefined, which silently sends paging alone.
-            const data = await service.list({ ...(searchObjectRef.value || {}), ...(pagingInfo.value || {}) })
-            if (generation !== listGeneration) return
-            items.value = data
-            itemsCount.value = data.length
-        } catch (ex) {
-            console.error("fetching failed", { ex })
-            // a superseded list still reports to the console, but its banner would sit over a newer result
-            if (isLatest()) {
-                feedback.fail("fetching data failed", toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
-            }
-        } finally {
-            // a superseded list leaves the spinner to the one that replaced it
-            if (isLatest()) isLoading.value = false
-        }
-    }
-    const debouncedListHandler = debounceToPromise(listHandler, debounceDelay) as unknown as () => Promise<void>
-
-    return {
-        searchObject: searchObjectRef,
-        pagingInfo,
-        items,
-        itemsCount,
-
-        isLoading,
-        feedback,
-
-        applySave,
-        applyRemove,
-        handleSave,
-        handleRemove,
-        resetPage,
-
-        listHandler,
-        debouncedListHandler,
-    }
+    return createListView({ box: vueBox, service, searchObject, defaultPageSize, debounceDelay, feedback: useFeedback() }) as unknown as IListViewOut<
+        T,
+        SO
+    >
 }
 
 export default useListView

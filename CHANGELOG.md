@@ -27,6 +27,25 @@ heading.
 - `vue/ui`: Fix: the arrow keys scroll `Autocomplete`'s result panel to the row they reach, and no longer throw while
   results are loading.
 - `vue/entities`: Fix: `filterIsActive` no longer counts an empty array as an active filter.
+- `vue/entities`: `useSearchView`, `useListView` and `useOverviewCore` hand `items` a new array after a save, a delete or
+  a loaded page (`handleSave`, `handleRemove`, `loadMore`) instead of editing the array on screen. A shallow
+  `watch(items)` now fires on each, and code that kept the old array keeps a stale copy: read `items.value` again.
+  An array of rows assigned to `items` is kept with each row's raw object in place of its reactive proxy, as Vue's
+  own array writes keep it, so code that holds that array finds the raw rows in it.
+  The logic of the feedback, the overview and the route overview, the pool, the details page, the form, the
+  owned-collection editors, the language state and auth (the store's state, `onAuthenticated`, `routeAllows`, the
+  axios interceptors, the login and password forms) now runs in the framework-free core; the exports and types of
+  `vue/ui/feedback`, `vue/entities`, `vue/lang` and `vue/auth` are unchanged.
+- `core`: New: `@regira/modules/core`, the part of the Vue modules that needs no framework, for an app without Vue —
+  the entity model and `EntityServiceBase`, navigation, the shared axios instance, the service container
+  (`defaultServiceProvider`), the formatters, `AuthService` and the token managers, `translate`/`formatText`, and
+  `toFeedbackError` with `fieldMessages`, `fieldLabel` and `setErrorTranslator`. The `vue/*` entries export the same
+  modules and instances as before, so a Vue app changes nothing. Without a framework layer, `toFeedbackError` shows
+  a validation message as the server sent it until the app sets a translator.
+- Package: `vue`, `vue-router` and `pinia` are optional peer dependencies, so npm no longer installs them into an app
+  that does not use the Vue modules. ⚠️ Upgrade: an app that uses `vue/auth`, `vue/app` or the entity stores and
+  never listed `pinia` (or `vue-router`) in its own `dependencies` adds it there; the known-good dependency set in
+  the entities setup guide already lists all three.
 - `vue/auth`: Fix: `AuthData` decodes the token's payload as base64url over UTF-8, as a JWT carries it. A bare `atob`
   threw on the `-` or `_` a claim's bytes produce at some offsets, so signing in failed although `POST auth` answered
   200, and it read a non-ASCII claim (a display name such as "Zoë") as Latin-1.

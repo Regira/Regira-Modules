@@ -1,5 +1,6 @@
 import type { Store } from "pinia"
 import type { RouteLocationNormalized, RouteLocationRaw, Router } from "vue-router"
+import { routeAllows as recordsAllow, type RouteAccess } from "../../core/auth/route-allows"
 
 type GuardStore = Store & { isAuthenticated: boolean; hasPermission(value: string): boolean }
 
@@ -9,16 +10,10 @@ type GuardStore = Store & { isAuthenticated: boolean; hasPermission(value: strin
  * the guard would refuse, such as a navigation entry: `routeAllows(router.resolve({ name: "ApprovalsOverview" }), store)`.
  */
 export function routeAllows(to: Pick<RouteLocationNormalized, "matched" | "meta">, store: { hasPermission(value: string): boolean }): boolean {
-    if (to.meta?.allowAnonymous) {
-        return true
-    }
-    // a policy receives the store it was given — the plugin's auth store, as for the guard
-    const policies = to.matched.map((r) => r.meta?.policy as (s: typeof store) => boolean).filter((p) => typeof p == "function")
-    if (!policies.every((p) => p(store))) {
-        return false
-    }
-    const requiredPermissions = to.matched.flatMap((r) => (r.meta?.permissions as Array<string>) || [])
-    return requiredPermissions.every((r) => store.hasPermission(r))
+    // `to.meta` starts as the merge of these records' meta, and an app's own guard can edit it, so it decides whether
+    // the route is open, as it does for the guard below. Always a boolean: `undefined` would leave it to the records.
+    // A policy receives the store it was given — the plugin's auth store, as for the guard
+    return recordsAllow(to.matched.map((r) => r.meta) as Array<RouteAccess<typeof store>>, store, !!to.meta?.allowAnonymous)
 }
 
 /**

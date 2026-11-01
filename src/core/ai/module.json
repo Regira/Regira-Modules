@@ -1,0 +1,6 @@
+{
+    "id": "regira_modules.core",
+    "import": "@regira/modules/core",
+    "description": "The framework-free half of the Vue modules, for an app without Vue (React or plain TypeScript): entity model and EntityServiceBase, navigation, the shared axios instance, the ServiceProvider container, formatters, AuthService and token managers, translate/formatText, and toFeedbackError — the mapping of a failed request to field errors. The vue/* entries re-export the same modules and instances.",
+    "tags": ["frontend", "typescript", "framework-agnostic", "entities", "http", "auth", "regira_modules"]
+}

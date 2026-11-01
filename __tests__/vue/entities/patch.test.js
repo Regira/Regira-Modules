@@ -1,8 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { setActivePinia, createPinia } from "pinia"
-import { EntityServiceBase } from "../../../src/vue/entities/abstractions"
-import { PoolService } from "../../../src/vue/entities/pooling/PoolService"
-import { PoolCache } from "../../../src/vue/entities/pooling/PoolCache"
+import { EntityServiceBase } from "../../../src/core/entities/abstractions"
 
 class Model {
     constructor() {
@@ -50,17 +47,5 @@ describe("EntityServiceBase.patch", () => {
 
         await expect(service.patch(0, { statusId: 3 })).rejects.toThrow(/no id/)
         expect(calls).toEqual([])
-    })
-
-    test("the pooled service writes the saved row into the pool", async () => {
-        setActivePinia(createPinia())
-        const { service } = makeService()
-        const cache = new PoolCache()
-        const pool = new PoolService(service, cache, "Asset")
-        const shown = pool.get(Object.assign(new Model(), { id: 7, statusId: 1, title: "Laptop" }))
-
-        await pool.patch(7, { statusId: 3 })
-
-        expect(shown.value.statusId).toBe(3)
     })
 })

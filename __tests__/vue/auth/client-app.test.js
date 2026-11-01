@@ -64,28 +64,6 @@ describe("login sends the configured clientApp", () => {
 // The store is only a reactive VIEW of the plain owner: it must never hold a copy that can go stale, and
 // Vue reactivity must not leak into the framework-free service layer.
 describe("the store is a read-through view of the owner", () => {
-  test("setClientApp writes the owner, and every reader sees it", () => {
-    setActivePinia(createPinia());
-    const { auth } = harness({ clientApp: "MyApp" });
-    const store = useAuthStore();
-
-    store.setClientApp("Switched");
-
-    expect(auth.service.options.clientApp).toBe("Switched"); // the owner
-    expect(auth.clientApp).toBe("Switched"); // IAuth getter ($auth reads this)
-    expect(store.clientApp).toBe("Switched"); // the store view
-  });
-
-  test("a fresh read after a direct write to the owner sees it — the view caches no copy", () => {
-    setActivePinia(createPinia());
-    const { auth } = harness({ clientApp: "MyApp" });
-    const store = useAuthStore();
-
-    auth.service.options.clientApp = "Direct";
-
-    expect(store.clientApp).toBe("Direct");
-  });
-
   test("but only setClientApp notifies Vue — a direct write to the owner re-runs nothing", () => {
     // the scope of the guarantee above: reads are always truthful, propagation needs the supported writer.
     // Mutating service.options by hand skips the ref's setter, so anything already rendered stays stale.

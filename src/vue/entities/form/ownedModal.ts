@@ -1,6 +1,6 @@
 import { ref, unref, type Ref } from "vue"
 import { deepCopy } from "../../../utilities/object-utility"
-import type { IEntity, SaveResult } from "../abstractions"
+import type { IEntity, SaveResult } from "../../../core/entities/abstractions"
 
 type Input<T> = {
     props: {

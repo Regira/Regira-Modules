@@ -1,0 +1,13 @@
+{
+    "name": "consumer-no-vue",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "axios": "^1.16.1",
+        "date-fns": "^4.1.0"
+    },
+    "devDependencies": {
+        "typescript": "^6.0.3",
+        "vite": "^8.3.4"
+    }
+}

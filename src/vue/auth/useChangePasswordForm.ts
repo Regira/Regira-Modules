@@ -1,11 +1,10 @@
-import { ref, computed } from "vue"
+import { computed, type Ref } from "vue"
 import { useAuth } from "./auth"
-import { maskAxiosError } from "./error-logging"
+import { createChangePasswordForm, type ChangePasswordFormEmits } from "../../core/auth/forms"
+import { vueBox } from "../box"
 
-export interface ChangePasswordFormEmits {
-    (e: "success"): void
-    (e: "fail", ex?: any): void
-}
+export type { ChangePasswordFormEmits }
+
 /** the texts `ChangePasswordForm` shows; each one left out stays English */
 export type ChangePasswordFormLabels = {
     /** "Current password" */
@@ -31,49 +30,18 @@ export interface ChangePasswordFormProps {
 
 export function useChangePasswordForm(emit: ChangePasswordFormEmits) {
     const { service } = useAuth()
-
-    const currentPassword = ref("")
-    const newPassword = ref("")
-    const confirmPassword = ref("")
-
-    const isLoading = ref(false)
-    const isSuccess = ref<boolean>()
-    const passwordsMatch = computed(() => newPassword.value === confirmPassword.value)
-    const isFormValid = computed(() => currentPassword.value != "" && newPassword.value != "" && passwordsMatch.value)
-
-    async function handleSubmit() {
-        if (!isFormValid.value) {
-            return
-        }
-        isSuccess.value = undefined
-        isLoading.value = true
-        try {
-            await service.changePassword({ currentPassword: currentPassword.value, newPassword: newPassword.value })
-            isSuccess.value = true
-            currentPassword.value = ""
-            newPassword.value = ""
-            confirmPassword.value = ""
-            emit("success")
-        } catch (ex: any) {
-            isSuccess.value = false
-            // the error carries the request that produced it — both posted passwords included
-            console.error("changing password failed", maskAxiosError(ex))
-            emit("fail", ex)
-        } finally {
-            isLoading.value = false
-        }
-    }
+    const form = createChangePasswordForm({ box: vueBox, service, emit })
 
     return {
-        currentPassword,
-        newPassword,
-        confirmPassword,
+        currentPassword: form.currentPassword as Ref<string>,
+        newPassword: form.newPassword as Ref<string>,
+        confirmPassword: form.confirmPassword as Ref<string>,
 
-        isLoading,
-        isSuccess,
-        passwordsMatch,
-        isFormValid,
+        isLoading: form.isLoading as Ref<boolean>,
+        isSuccess: form.isSuccess as Ref<boolean | undefined>,
+        passwordsMatch: computed(form.passwordsMatch),
+        isFormValid: computed(form.isFormValid),
 
-        handleSubmit,
+        handleSubmit: form.handleSubmit,
     }
 }

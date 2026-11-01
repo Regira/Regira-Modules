@@ -1,8 +1,8 @@
-import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../abstractions"
+import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../../../core/entities/abstractions"
 import type { FeedbackOut } from "../../ui/feedback"
 import type { ComputedRef, Ref } from "vue"
 
-export const DEFAULT_DEBOUNCE = 250
+export { DEFAULT_DEBOUNCE } from "../../../core/entities/overview/types"
 
 export interface OverviewEmits<T extends IEntity, SO extends ISearchObject = ISearchObject> {
     "update:modelValue": [Array<T>]

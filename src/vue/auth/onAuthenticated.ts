@@ -1,13 +1,8 @@
 import { watch, type WatchStopHandle } from "vue"
 import { useGlobalAuth } from "./auth"
 import { useAuthStore, type IAuthStore } from "./store"
-import type { IAuthData } from "./AuthData"
-
-// Stands in for the token in an app whose auth plugin is installed disabled (`enabled: false`): no token can
-// ever arrive there, so watching for one would never fire and the caller's fetch would never run — the blank
-// panel this primitive exists to prevent. Nothing is gated in such an app, so it counts as authenticated.
-// A symbol can never collide with a real token, and it changes at most once, so the handler runs at most once.
-const AUTH_DISABLED = Symbol("auth-disabled")
+import { createOnAuthenticated } from "../../core/auth/on-authenticated"
+import type { IAuthData } from "../../core/auth/AuthData"
 
 export type OnAuthenticatedOptions = {
     /**
@@ -82,21 +77,17 @@ export function onAuthenticated(handler: () => unknown, { immediate = true, stor
               return (defaultStore ??= useAuthStore()).authData
           }
 
-    return watch(
-        // The disabled state is watched as a value rather than short-circuited before the watch, so that it
-        // honours `immediate` through the same path (a throwing handler reaches `app.config.errorHandler`
-        // instead of aborting the caller's `setup()`) and so a plugin that installs disabled AFTER this
-        // registration still releases the handler. An explicit `{ store }` is exempt: it names the store to
-        // watch, and the per-call argument outranks the app-wide flag — the plugin being disabled says
-        // nothing about a store the caller handed us.
-        () => (!store && useGlobalAuth()?.enabled === false ? AUTH_DISABLED : readAuthData()?.token),
-        (token) => {
-            // `isAuthenticated` as well as the token: a custom IAuthService may build AuthData around a
-            // token it has not accepted, and the shipped one pairs them anyway, so this costs nothing.
-            if (token === AUTH_DISABLED || (token && readAuthData()?.isAuthenticated)) handler()
-        },
-        { immediate }
-    )
+    const { signal, onSignal } = createOnAuthenticated({
+        // An explicit `{ store }` is exempt: it names the store to watch, and the per-call argument outranks the
+        // app-wide flag — the plugin being disabled says nothing about a store the caller handed us.
+        disabled: () => !store && useGlobalAuth()?.enabled === false,
+        authData: readAuthData,
+        handler,
+    })
+
+    // a throwing handler reaches `app.config.errorHandler` through the watch, on every path, instead of aborting
+    // the caller's `setup()`
+    return watch(signal, onSignal, { immediate })
 }
 
 export default onAuthenticated

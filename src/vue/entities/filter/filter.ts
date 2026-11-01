@@ -1,6 +1,6 @@
 import { computed, type Ref, type ComputedRef } from "vue"
-import type { ISearchObject } from "../abstractions/ISearchObject"
-import { DefaultSearchObject } from "../abstractions/SearchObjectBase"
+import type { ISearchObject } from "../../../core/entities/abstractions/ISearchObject"
+import { DefaultSearchObject } from "../../../core/entities/abstractions/SearchObjectBase"
 
 export interface FilterEmits<SO extends ISearchObject = ISearchObject> {
     (e: "update:modelValue", args: SO): void

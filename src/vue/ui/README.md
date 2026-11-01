@@ -4,6 +4,8 @@
 components, composables, and plugins for paging, loading, feedback, modal, tabs, icons, autocomplete,
 form inputs, and responsive layout.
 
+An app without Vue imports `toFeedbackError`, `fieldMessages`, `fieldLabel` and `setErrorTranslator` from [`@regira/modules/core`](../../core/README.md); `useFeedback` and the components are Vue-only.
+
 ## Areas
 
 | Area         | Components                                                                                                                                                            | Programmatic                                                                                                                                                 |

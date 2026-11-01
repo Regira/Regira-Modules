@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends IEntity">
-import type { IEntity } from "../abstractions"
+import type { IEntity } from "../../../core/entities/abstractions"
 import { useLeanOverview, leanOverviewDefaults, type LeanOverviewProps, type LeanOverviewSlots } from "./overview"
 
 const props = withDefaults(defineProps<LeanOverviewProps<T>>(), { ...leanOverviewDefaults })

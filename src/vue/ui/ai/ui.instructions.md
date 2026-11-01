@@ -3,6 +3,7 @@
 The front-end UI toolkit (`@regira/modules/vue/ui`): the Vue components, composables, and plugins the
 [entity views](../../entities/ai/entities.instructions.md) render with — paging, loading, feedback,
 modal, tabs, icons, autocomplete, form inputs, and a reactive screen helper.
+An app without Vue imports `toFeedbackError`, `fieldMessages`, `fieldLabel` and `setErrorTranslator` from `@regira/modules/core` ([core guide](../../../core/ai/core.instructions.md)); `useFeedback` and the components are Vue-only.
 
 > **Never guess** a prop, emit, or signature — verify in [ui.signatures.md](ui.signatures.md) (programmatic
 > API + key component props) or via the MCP source map (`list_types`/`get_type` on `regira_modules.vue.ui`).
