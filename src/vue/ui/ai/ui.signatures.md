@@ -368,7 +368,7 @@ import { type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots,
 //   panel searches and opens it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
 //   click outside the control, not by Tab, and Enter with nothing to select leaves the panel open. On a closed panel
 //   handleSelect keeps the current selection: select in code through modelValue. Without confirmSelection the arrow
-//   keys select as they move.
+//   keys select as they move; on a closed panel with nothing selected they search and open it instead.
 // AutocompleteEmits<T>: "update:modelValue" | "update:idValue" | "select" | "qInput"
 // AutocompleteSlots<T>: { default?({ item: T; q: string }): any }
 //   the scoped default slot is THE result-item rendering seam; the fallback renders
@@ -382,6 +382,9 @@ export function useAutocomplete<T = any, TKey = number | string | T>(props, { em
 // selectedItem, search(term?), reset(), resetQ() }
 // AutocompleteOut.listboxId: string — the results listbox's id, unique on the page across every skin (the
 // input's aria-controls); AutocompleteOut.optionId(index): string — that result's id (aria-activedescendant)
+// AutocompleteOut.handleEscape(e: KeyboardEvent): void — bind to @keydown.esc: closes an open panel, clears text
+// that selected nothing, drops a pending closeGently, and stops the key and its default action there, so a modal
+// around the control stays open until the next Escape
 // AutocompleteOut.resultOffset is @deprecated — always { top: 0, left: 0 }; read the placement from resultStyle
 ```
 

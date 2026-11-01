@@ -16,6 +16,10 @@ heading.
   selects it. Once the results are in, Enter or a click outside the control also selects a result whose exact text is
   typed, and Enter with nothing to select leaves the panel open. The generated `InputSelector` passes it on, and its
   `multiple` picker always sets it.
+- `vue/ui`: New: Escape closes `Autocomplete`'s result panel and clears text that selected nothing, without selecting; a
+  modal around the control stays open until the next Escape. `useAutocomplete` returns `handleEscape` for skins.
+- `vue/ui`: Fix: with nothing selected, an arrow key on `Autocomplete`'s closed panel searches and opens it instead of
+  selecting a row nobody can see.
 - `vue/ui`: Fix: `Autocomplete` decides whether to open above its control from the height the panel wants. It measured
   the panel at the limit it had already been given, so a long list could stay below as a sliver cut off by the screen,
   a panel that had flipped dropped back below when the page scrolled, and the `Loading...` row made a short list flip

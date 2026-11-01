@@ -496,6 +496,128 @@ describe("Autocomplete component", () => {
         expect(selected).toEqual(["item 0", "item 1"])
     })
 
+    test("Escape closes the panel and leaves the next Escape to a surrounding modal", async () => {
+        const reachedModal = vi.fn()
+        document.addEventListener("keydown", reachedModal)
+        const { input, ac } = await mountAtRoom({ count: 3, below: 300 })
+        await ac.search("")
+        await settle()
+        const escape = () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+
+        escape()
+        await settle()
+
+        expect(input.getAttribute("aria-expanded")).toBe("false")
+        expect(reachedModal).not.toHaveBeenCalled()
+
+        escape()
+        document.removeEventListener("keydown", reachedModal)
+
+        expect(reachedModal).toHaveBeenCalledTimes(1)
+    })
+
+    test("Escape clears text that selected nothing", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().q.value = "it"
+        get().handleSearch()
+        await settle()
+
+        get().handleEscape(new KeyboardEvent("keydown"))
+
+        expect(get().q.value).toBe("")
+    })
+
+    test("Escape keeps the text of the selection", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["item 0"], debounceTime: 0, modelValue: "item 0" }, (e, v) => emitted.push([e, v]))
+        get().handleSearch()
+        await settle()
+
+        get().handleEscape(new KeyboardEvent("keydown"))
+
+        expect(get().q.value).toBe("item 0")
+        expect(emitted.filter(([e]) => e == "select")).toEqual([])
+    })
+
+    test("Escape on a closed panel leaves the text and the key alone", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().q.value = "it"
+        const key = new KeyboardEvent("keydown", { cancelable: true })
+
+        get().handleEscape(key)
+
+        expect(get().q.value).toBe("it")
+        expect(key.defaultPrevented).toBe(false)
+    })
+
+    test("Escape keeps its default action from a native dialog around the control", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().handleSearch()
+        await settle()
+        const key = new KeyboardEvent("keydown", { cancelable: true })
+
+        get().handleEscape(key)
+
+        expect(key.defaultPrevented).toBe(true)
+    })
+
+    test("Escape drops the pending close of every click outside", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["alpha"], debounceTime: 0, autoSelect: true }, (e, v) => emitted.push([e, v]))
+        get().handleSearch()
+        await settle()
+        get().closeGently()
+        get().closeGently()
+
+        get().handleEscape(new KeyboardEvent("keydown"))
+        get().q.value = "typed next"
+        get().openResults()
+        await new Promise((resolve) => setTimeout(resolve, 300))
+
+        expect(emitted.filter(([e]) => e == "select")).toEqual([])
+        expect(get().q.value).toBe("typed next")
+        expect(get().isOpen.value).toBe(true)
+    })
+
+    test("a click outside still closes the panel after its delay", async () => {
+        const { get } = mountComposable({ data: ["alpha"], debounceTime: 0 })
+        get().handleSearch()
+        await settle()
+
+        get().closeGently()
+        await new Promise((resolve) => setTimeout(resolve, 300))
+
+        expect(get().isOpen.value).toBe(false)
+    })
+
+    test("an arrow key after Escape searches and opens, selecting nothing", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["alpha", "beta"], debounceTime: 0 }, (e, v) => emitted.push([e, v]))
+        get().q.value = "al"
+        get().handleSearch()
+        await settle()
+        get().handleEscape(new KeyboardEvent("keydown"))
+
+        get().moveSelection(1)
+        await settle()
+
+        expect(emitted.filter(([e]) => e == "select")).toEqual([])
+        expect(get().isOpen.value).toBe(true)
+    })
+
+    test("an arrow key on a closed panel moves on from a selection", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["item 0", "item 0 b"], debounceTime: 0, modelValue: "item 0" }, (e, v) => emitted.push([e, v]))
+        get().handleSearch()
+        await settle()
+        get().closeResults()
+
+        get().moveSelection(1)
+
+        expect(emitted.filter(([e]) => e == "select")).toEqual([["select", "item 0 b"]])
+        expect(get().isOpen.value).toBe(false)
+    })
+
     test("Enter with nothing to select closes the panel", async () => {
         const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
         get().handleSearch()

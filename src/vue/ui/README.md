@@ -136,6 +136,9 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   search, a row added to a list — set `confirmSelection`: the arrow keys then only highlight a result, and Enter or
   a click selects it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
   click outside the control, not by Tab. Enter with nothing to select leaves the panel open.
+- Escape closes `Autocomplete`'s result panel and clears text that selected nothing, without selecting. A modal around
+  the control stays open until the next Escape. With nothing selected, an arrow key then searches and opens it
+  again.
 - `Autocomplete` renders its result panel on `<body>` (a `Teleport`) with `position: fixed`, so no
   ancestor's `overflow` — a scrollable modal body, an `overflow: hidden` card — clips it. It places the panel
   against the viewport itself: it opens below the control, flips **above** it when the results do not fit

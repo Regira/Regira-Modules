@@ -135,6 +135,17 @@ describe("generated InputSelector — multiple, over the real Autocomplete", () 
         expect(input.value).toBe("")
     })
 
+    test("Escape adds nothing, whatever title is typed", async () => {
+        const { state, input } = mountControl({ multiple: true })
+        await type(input, "Row 2")
+
+        await press(input, "Escape")
+
+        expect(state.ids).toEqual([])
+        expect(input.value).toBe("")
+        expect(input.getAttribute("aria-expanded")).toBe("false")
+    })
+
     test("Tab adds nothing", async () => {
         const { state, input } = mountControl({ multiple: true })
         await type(input, "Row 2")

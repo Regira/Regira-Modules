@@ -228,6 +228,9 @@ it before writing a new component.
   once — a search, a row added to a list — set `confirmSelection`: the arrow keys then only highlight a result, and
   Enter or a click selects it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
   click outside the control, not by Tab. Enter with nothing to select leaves the panel open.
+- **Escape closes `Autocomplete`'s result panel** and clears text that selected nothing, without selecting. A modal
+  around the control stays open until the next Escape. With nothing selected, an arrow key then searches and opens it
+  again.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns

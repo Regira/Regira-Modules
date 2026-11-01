@@ -128,6 +128,8 @@ export type AutocompleteOut<T = any, TKey = IDefaultKey | T> = {
     handleInput(): void
     handleChange(): void
     handleSelect(item: T, index: number): void
+    /** bind to `@keydown.esc`: closes an open panel and clears text that selected nothing */
+    handleEscape(e: KeyboardEvent): void
     handleSearch(term?: string): void
     openResults(): void
     closeResults(): void
@@ -308,8 +310,8 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     }
     function moveSelection(step: number): void {
         console.debug("moveSelection", { step, selectedIndex: selectedIndex.value, items: items.value })
-        if (props.confirmSelection && !isOpen.value) {
-            // nothing to highlight on a closed panel: Enter would select a row nobody can see
+        if (!isOpen.value && (props.confirmSelection || selectedItem.value == null)) {
+            // nothing to move through on a closed panel: the key would pick a row nobody can see
             handleSearch()
             return
         }
@@ -346,12 +348,28 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     function closeResults(): void {
         isOpen.value = false
     }
+    let closing: ReturnType<typeof setTimeout> | undefined
+    function handleEscape(e: KeyboardEvent): void {
+        if (!isOpen.value) {
+            return
+        }
+        // the panel takes this Escape: a modal around the control keeps its own for the next one, and a native
+        // <dialog> closes on the default action rather than on the event
+        e.stopPropagation()
+        e.preventDefault()
+        clearTimeout(closing) // a dismissed panel selects nothing and leaves what is typed next alone
+        if (selectedItem.value == null) {
+            q.value = ""
+        }
+        closeResults()
+    }
     function closeGently(): void {
         if (!isOpen.value) {
             return
         }
 
-        setTimeout(() => {
+        clearTimeout(closing)
+        closing = setTimeout(() => {
             // clear visible input if no selection was made
             checkMatch(true)
             if (selectedItem.value == null) {
@@ -477,6 +495,7 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         openResults,
         closeResults,
         closeGently,
+        handleEscape,
         moveSelection,
         checkMatch,
         clearSelection,
