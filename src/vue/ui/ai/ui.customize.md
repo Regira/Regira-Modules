@@ -273,7 +273,10 @@ slots. Every replacement/ejected skin MUST:
       is what lets it escape a modal body's `overflow`. Keep the combobox wiring the reference skin renders,
       with the ids `useAutocomplete` hands out: `:aria-controls="listboxId"` on the input and
       `:id="listboxId"` on the `role="listbox"` list, `:id="optionId(i)"` on each `role="option"` result, and
-      `aria-activedescendant` set to `optionId(selectedIndex)` while the panel is open.
+      `aria-activedescendant` set to `optionId(selectedIndex)` while the panel is open. `moveSelection` finds
+      the option by that id to scroll it into view. Wire Enter as `handleSelect(selectedItem, selectedIndex)` and a
+      click as `handleSelect(item, i)`, and declare `confirmSelection` on a skin with hand-written props: undeclared,
+      it falls through as an attribute and the arrow keys keep selecting.
     - **Feedback**: render the pending/success/error regions per `FeedbackStatus`; keep the close
       button emitting `close` and resetting.
     - **EntityOverview**: reload on mount; expose `reload`/`setPage`.

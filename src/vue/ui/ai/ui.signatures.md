@@ -361,9 +361,14 @@ picks from.
 import { useAutocomplete, autocompleteDefaults, Autocomplete } from "@regira/modules/vue/ui"
 import { type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots, type AutocompleteOut } from "@regira/modules/vue/ui"
 // AutocompleteProps<T>: { idValue?, modelValue?, data?, maxResults?, debounceTime?, enableDblClick?, autoSelect?, allowFreeInput?,
-//                         resultClass?, itemsClass?, itemClass?,
+//                         confirmSelection?, resultClass?, itemsClass?, itemClass?,
 //                         search?(term?): Promise<Array<T>>, idSelector?(item?): TKey|undefined,
 //                         displayItemFormatter?(item?): string }
+//   confirmSelection: the arrow keys only highlight a result, and Enter or a click selects it; Down or Up on a closed
+//   panel searches and opens it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
+//   click outside the control, not by Tab, and Enter with nothing to select leaves the panel open. On a closed panel
+//   handleSelect keeps the current selection: select in code through modelValue. Without confirmSelection the arrow
+//   keys select as they move.
 // AutocompleteEmits<T>: "update:modelValue" | "update:idValue" | "select" | "qInput"
 // AutocompleteSlots<T>: { default?({ item: T; q: string }): any }
 //   the scoped default slot is THE result-item rendering seam; the fallback renders

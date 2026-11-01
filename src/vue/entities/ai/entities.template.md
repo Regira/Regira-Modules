@@ -243,7 +243,7 @@ export class EntitySearchObject extends SearchObjectBase {
     //                                    // control speaks one id (`idValue?: number | string`), so widening it
     //                                    // to an array is 9 TS2322s in FilterAdv.vue
     // tagId?: number | Array<number>     // arrays serialize as repeated query keys — for filters you populate
-    //                                    // from code or a multi-select, not from an InputSelector. The API
+    //                                    // from code or bind to an <InputSelector multiple> (`idsValue`). The API
     //                                    // accepts both (its ICollection<TKey> binds one value or many), so
     //                                    // widening later is a UI-only change
 
@@ -836,7 +836,7 @@ below) rather than hand-stubbing them here, so there is one source of truth:
 | `filter/FilterInline.vue`           | the inline keyword bar                                                                                                                 | [entities.examples.md](entities.examples.md) Part 1 §7  |
 | `details/FormModalButton.vue`       | opens the Form in a modal (`useModal`) — the new/edit affordance for simple entities                                                   | [entities.examples.md](entities.examples.md) Part 1 §14 |
 | `selecting/Autocomplete.vue`        | type-ahead search input                                                                                                                | [entities.examples.md](entities.examples.md) Part 1 §15 |
-| `selecting/InputSelector.vue`       | single-item picker                                                                                                                     | [entities.examples.md](entities.examples.md) Part 1 §16 |
+| `selecting/InputSelector.vue`       | single-item picker; several items with `multiple`                                                                                      | [entities.examples.md](entities.examples.md) Part 1 §16 |
 | `selecting/Selector.vue`            | multi-item picker (chips)                                                                                                              | [entities.examples.md](entities.examples.md) Part 1 §17 |
 | `selecting/SelectorDropdown.vue`    | simple `<select>` that loads every row; `placeholder` labels its empty option                                                          | [entities.examples.md](entities.examples.md) Part 1 §18 |
 | `selecting/SelectorModalButton.vue` | opens the search/select modal                                                                                                          | [entities.examples.md](entities.examples.md) Part 1 §20 |

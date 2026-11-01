@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUnmounted, type Ref, type StyleValue } from "vue"
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, type Ref, type StyleValue } from "vue"
 import { debounceToPromise } from "../../../utilities/promise-utility"
 
 type IDefaultKey = number | string
@@ -20,6 +20,8 @@ type IResultStyle = StyleValue & {
 
 // Breathing room kept between the result panel and the viewport edge it opens towards.
 const VIEWPORT_GUTTER = 8
+// The tallest the panel renders, before the room around it limits it further.
+const RESULT_MAX_HEIGHT = "var(--rg-dropdown-max-height, 13rem)"
 // Numbers every useAutocomplete on the page, whatever skin calls it: the library's Autocomplete and an ejected
 // copy both import this module, so their listbox ids cannot collide. (useId() numbers per app, and two apps on
 // one page would share its ids.)
@@ -77,6 +79,12 @@ export interface AutocompleteProps<T = any, TKey = IDefaultKey | T> {
     enableDblClick?: boolean
     autoSelect?: boolean
     allowFreeInput?: boolean
+    /**
+     * the arrow keys only highlight a result, and Enter or a click selects it — for a selection that acts on every
+     * change. Once the results are in, a result's exact text, typed, is selected by Enter or by a click outside the
+     * control, not by Tab. Enter with nothing to select leaves the panel open.
+     */
+    confirmSelection?: boolean
 
     resultClass?: string
     itemsClass?: string
@@ -156,10 +164,8 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     const selectedId = computed<TKey | undefined>(() => idSelector(selectedItem.value))
     const inputEl = ref<(HTMLElement & { value: string }) | undefined>()
     const resultEl = ref<HTMLElement | undefined>()
-    // the panel's measured box: `resultHeight` is what it renders at, `resultContentHeight` what its content
-    // wants — together they tell the placement below whether the panel is being cut off where it stands
+    // the height the panel wants, whatever the room around it leaves it: see measureResult
     const resultHeight = ref(0)
-    const resultContentHeight = ref(0)
     const resultOffset = ref<IOffset>({ top: 0, left: 0 })
     // The panel is `position: fixed` (Autocomplete also teleports it to <body>), so no ancestor with
     // `overflow: hidden/auto` — a scrollable modal body, a card, a list — can clip it. It is placed from the
@@ -196,11 +202,7 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         // still does not fit scrolls inside the viewport instead of running past its edge.
         const roomBelow = rect ? viewportHeight - rect.bottom - VIEWPORT_GUTTER : 0
         const roomAbove = rect ? rect.top - VIEWPORT_GUTTER : 0
-        // A panel that scrolls its own content is only as tall as the room already granted to it, so "fits"
-        // has to be strict there: one capped to a cramped roomBelow measures exactly roomBelow, and a loose
-        // comparison would call that a fit and never let it discover the roomier side above.
-        const isScrolling = resultContentHeight.value > resultHeight.value
-        const fitsBelow = isScrolling ? resultHeight.value < roomBelow : resultHeight.value <= roomBelow
+        const fitsBelow = resultHeight.value <= roomBelow
         const flipUp = viewportHeight > 0 && !fitsBelow && roomAbove > roomBelow
         const roomVertical = viewportHeight > 0 ? Math.max(0, Math.round(flipUp ? roomAbove : roomBelow)) : 0
         return {
@@ -214,7 +216,7 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
             minWidth: `${floor}px`,
             width: "max-content",
             maxWidth: room > 0 ? `min(90vw, 32rem, ${room}px)` : "min(90vw, 32rem)",
-            maxHeight: roomVertical > 0 ? `min(var(--rg-dropdown-max-height, 13rem), ${roomVertical}px)` : undefined,
+            maxHeight: roomVertical > 0 ? `min(${RESULT_MAX_HEIGHT}, ${roomVertical}px)` : undefined,
         }
     })
 
@@ -238,14 +240,18 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
             isLoading.value = false
         }
     }
+    function findMatch(): T | undefined {
+        const matches = ((items.value as Array<T> | undefined) ?? []).filter(
+            (item) => (displayItemFormatter(item)?.toString() || "").toLowerCase() === q.value?.toLowerCase()
+        )
+        return matches.length == 1 ? matches[0] : undefined
+    }
     function checkMatch(allowAutoSelect: boolean = false): void {
         // check (and set selection automatically) if the input value corresponds with a value in the results
         if (selectedItem.value == null && items.value) {
-            const matches = (items.value as Array<T>)?.filter(
-                (item) => (displayItemFormatter(item)?.toString() || "").toLowerCase() === q.value?.toLowerCase()
-            )
-            if (matches.length == 1) {
-                setSelection(matches[0])
+            const match = findMatch()
+            if (match != null) {
+                setSelection(match)
             } else if (allowAutoSelect && props.autoSelect) {
                 setSelection(items.value[0])
             }
@@ -260,8 +266,25 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         // emit select triggered automatically in selectedItem setter
     }
     function handleSelect(item: T, index: number): void {
+        const selected = props.confirmSelection ? confirmedItem(item, index) : item
+        // nothing to select yet: results on their way can still show, and a second Enter takes them
+        if (props.confirmSelection && selected == null) {
+            return
+        }
         closeResults()
-        setSelection(item, item ? index : -1)
+        setSelection(selected, selected ? index : -1)
+    }
+    function confirmedItem(item: T, index: number): T | undefined {
+        // a highlight left behind on a closed panel is nobody's choice
+        if (!isOpen.value) {
+            return selectedItem.value
+        }
+        // a click, or a skin's Enter that passes the highlighted row: `index` need not point into `items` there
+        if (item !== selectedItem.value) {
+            return item
+        }
+        // Enter arrives with the current selection and the index the arrow keys highlighted
+        return (items.value as Array<T> | undefined)?.[index] ?? item ?? (q.value ? findMatch() : undefined)
     }
     function setSelection(item?: T, index?: number): void {
         if (item == null && index == null) {
@@ -285,10 +308,20 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     }
     function moveSelection(step: number): void {
         console.debug("moveSelection", { step, selectedIndex: selectedIndex.value, items: items.value })
+        if (props.confirmSelection && !isOpen.value) {
+            // nothing to highlight on a closed panel: Enter would select a row nobody can see
+            handleSearch()
+            return
+        }
+        const results = (items.value as Array<T> | undefined) ?? []
         const newSelectedIndex = selectedIndex.value + step
-        const newSelectedItem = (items.value as Array<T>)[newSelectedIndex]
-        if (newSelectedIndex >= 0 && newSelectedIndex < (items.value as Array<T>).length) {
-            setSelection(newSelectedItem, newSelectedIndex)
+        if (newSelectedIndex >= 0 && newSelectedIndex < results.length) {
+            if (props.confirmSelection) {
+                selectedIndex.value = newSelectedIndex
+            } else {
+                setSelection(results[newSelectedIndex], newSelectedIndex)
+            }
+            document.getElementById(optionId(newSelectedIndex))?.scrollIntoView?.({ block: "nearest" })
         }
     }
     function clearSelection(): void {
@@ -301,7 +334,13 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
         closeResults()
     }
     function openResults(): void {
-        updateMeasurements()
+        // a search in flight keeps the previous measurement: measuring the loading row instead would bounce the
+        // panel between above and below on every keystroke
+        if (items.value) {
+            updateMeasurements()
+        } else {
+            layoutTick.value++
+        }
         isOpen.value = true
     }
     function closeResults(): void {
@@ -334,9 +373,18 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     ) => Promise<Array<T>>
 
     function measureResult(): void {
-        // the panel is visibility:hidden rather than display:none, so it measures while closed too
-        resultHeight.value = resultEl.value?.offsetHeight || 0
-        resultContentHeight.value = resultEl.value?.scrollHeight || 0
+        const el = resultEl.value
+        if (!el?.style) {
+            resultHeight.value = 0
+            return
+        }
+        // Measured without the limit of the room around it, and restored before anything paints: a panel limited
+        // to a cramped room measures as a fit there, and would never discover the roomier side. The panel is
+        // visibility:hidden rather than display:none, so it measures while closed too.
+        const limit = el.style.maxHeight
+        el.style.maxHeight = RESULT_MAX_HEIGHT
+        resultHeight.value = el.offsetHeight
+        el.style.maxHeight = limit
     }
     const updateMeasurements = () => {
         layoutTick.value++
@@ -395,12 +443,11 @@ export function useAutocomplete<T = any, TKey = IDefaultKey | T>(
     watch(
         items,
         () => {
-            // a search in flight keeps the previous measurement: measuring the loading row instead would
-            // bounce the panel between above and below on every keystroke
-            // (re-anchoring too: the form may have shifted since the panel opened — a message above it, a
-            // section that expanded — without a scroll or resize to report it)
+            // re-anchoring too: the form may have shifted since the panel opened — a message above it, a
+            // section that expanded — without a scroll or resize to report it
+            // nextTick: v-show hides the loading row in this same post-render queue, so it still counts here
             if (items.value) {
-                updateMeasurements()
+                nextTick(updateMeasurements)
             }
         },
         { flush: "post" }

@@ -7,6 +7,22 @@ heading.
 
 ## Unreleased
 
+- Scaffold: New: the generated `InputSelector` takes a `multiple` attribute. `v-model` then holds an array and
+  `v-model:idsValue` replaces `v-model:idValue`; the selected rows show as chips, and `@select` fires on every change
+  (the added row, or `undefined` when a chip is removed). Without the attribute the control behaves as before. A
+  slice scaffolded earlier keeps its own copy: copy `selecting/InputSelector.vue` and `selecting/Autocomplete.vue`
+  from the template to use it.
+- `vue/ui`: New: `Autocomplete` takes `confirmSelection`: the arrow keys only highlight a result, and Enter or a click
+  selects it. Once the results are in, Enter or a click outside the control also selects a result whose exact text is
+  typed, and Enter with nothing to select leaves the panel open. The generated `InputSelector` passes it on, and its
+  `multiple` picker always sets it.
+- `vue/ui`: Fix: `Autocomplete` decides whether to open above its control from the height the panel wants. It measured
+  the panel at the limit it had already been given, so a long list could stay below as a sliver cut off by the screen,
+  a panel that had flipped dropped back below when the page scrolled, and the `Loading...` row made a short list flip
+  while it fitted below or bounced a panel on every keystroke.
+- `vue/ui`: Fix: the arrow keys scroll `Autocomplete`'s result panel to the row they reach, and no longer throw while
+  results are loading.
+- `vue/entities`: Fix: `filterIsActive` no longer counts an empty array as an active filter.
 - `vue/auth`: Fix: `AuthData` decodes the token's payload as base64url over UTF-8, as a JWT carries it. A bare `atob`
   threw on the `-` or `_` a claim's bytes produce at some offsets, so signing in failed although `POST auth` answered
   200, and it read a non-ASCII claim (a display name such as "Zoë") as Latin-1.

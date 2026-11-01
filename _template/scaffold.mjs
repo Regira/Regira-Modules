@@ -564,7 +564,7 @@ const relationBlocks = {
         .join("\n"),
     // filter/SearchObject.ts — a filter per relation. SCALAR by design: an InputSelector speaks one id
     // (`idValue?: number | string`), so widening this to an array is 9 TS2322s in FilterAdv.vue. The API's
-    // ICollection<TKey> binds one value or many, so widening later — behind a multi-select — is UI-only.
+    // ICollection<TKey> binds one value or many, so widening later — with `multiple` and `idsValue` — is UI-only.
     searchFields: filteredRelations.map((r) => `    ${r.field}Id?: number // filter on ${r.name}`).join("\n"),
     // filter/FilterAdv.vue — the control, its entity ref, and the reset that clears it
     filterImports: filteredEntities

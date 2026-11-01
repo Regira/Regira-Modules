@@ -33,7 +33,7 @@ export function useFilter<SO extends ISearchObject = DefaultSearchObject>({ sear
         const defaultItem = Constructor ? new Constructor() : new DefaultSearchObject()
         const defaultKeys = Object.keys(defaultItem)
         const activeKeys = Object.entries(searchObject.value || {})
-            .filter(([, value]) => value != null)
+            .filter(([, value]) => value != null && !(Array.isArray(value) && !value.length))
             .map(([key]) => key)
         return defaultKeys.some((dk) => activeKeys.some((ak) => dk == ak))
     })

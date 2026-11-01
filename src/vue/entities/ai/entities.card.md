@@ -237,7 +237,8 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK
   it saves). Bind only `idValue` and a populated form renders the control blank: it resolves the entity from the id
-  (at setup, and whenever the id changes) and emits `update:modelValue` into nothing. Dev builds warn.
+  (at setup, and whenever the id changes) and emits `update:modelValue` into nothing. Dev builds warn. With
+  `multiple`, `v-model` is an array and `v-model:idsValue` replaces `v-model:idValue`; its rows show as chips.
 
 ## The URL & includes contract
 

@@ -693,21 +693,32 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 ```
 
 `InputSelector` (scaffolded per-slice into `selecting/`, re-exported from the slice barrel) is the
-single-relation (FK) picker — Autocomplete + inline create/edit + selector-modal in one `input-group`:
+relation picker — Autocomplete + inline create/edit + selector-modal in one `input-group`. It picks one row, or
+several with `multiple`:
 
 ```ts
 import { InputSelector } from "../../<slice>"
 
-// InputSelector — single-relation FK picker.
-//   props: { modelValue?: Entity (v-model — the displayed entity);
+// InputSelector — relation picker.
+//   props: { modelValue?: Entity | Array<Entity> (v-model — the displayed entity; an array with `multiple`);
 //            idValue?: number | string (v-model:idValue — the FK actually saved; bind BOTH, idValue alone renders blank);
+//            multiple?: boolean (chips for the selected rows, the control beside them picks the next one);
+//            idsValue?: Array<number | string> | number | string (v-model:idsValue — the ids with `multiple`, in place
+//              of idValue; bind BOTH; a scalar counts as a list of one, as a query string carries a single id);
 //            readonly?: boolean; canEdit?: boolean (default true — shows the inline FormModalButton);
 //            itemDefaults?: Ref<Record<string, any>> | Record<string, any>; filterDefaults?: Record<string, any>;
-//            closeOnSave?: boolean; placeholder?: string }
-//   slots: default (the Autocomplete) | prepend (create/edit button) | append (clear + selector-modal button)
-//   emits: "update:modelValue" (args?: Entity) | "update:idValue" (args?: number | string) | "select" (args?: Entity)
+//            closeOnSave?: boolean; placeholder?: string;
+//            confirmSelection?: boolean (the arrow keys only highlight a result, and Enter or a click selects it;
+//              once the results are in, a result's exact text, typed, is selected by Enter or by a click outside
+//              the control, not by Tab; Enter with nothing to select leaves the panel open;
+//              always on for the picker of `multiple`) }
+//   slots: default (the Autocomplete) | prepend (create/edit button) | append (clear + selector-modal button);
+//          with `multiple` they go to the picker
+//   emits: "update:modelValue" (args?: any — an Entity, an array with `multiple`) | "update:idValue" (args?: number | string)
+//        | "update:idsValue" (args: Array<number | string>) | "select" (args?: Entity)
 //   NOTE: the "select" payload is NULLABLE (Entity | undefined) — the clear button emits undefined — so a
 //         @select handler must accept undefined: @select="(e?: Entity) => …", not (e: Entity).
+//         With `multiple` it fires on every change: with the added row, or undefined when a chip is removed.
 ```
 
 ---
