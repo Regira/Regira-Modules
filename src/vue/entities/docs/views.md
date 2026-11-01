@@ -125,7 +125,7 @@ supplies it via `defineModel<SearchObject>`) and
 returns `handleUpdate`, `handleFilter`, `handleReset`, `handleToggle`, and `filterIsActive`. Pass the
 slice's search-object class as `Constructor` — the scaffold's filter components call
 `useFilter({ searchObject, emit, Constructor: SearchObject })` — because `filterIsActive` compares the
-model's non-null keys against a `new Constructor()`'s own keys; without it the fallback
+model's keys that hold a value (neither null nor an empty array) against a `new Constructor()`'s own keys; without it the fallback
 `DefaultSearchObject` has no own runtime keys, so `filterIsActive` is always `false`. Emit
 `filter` to trigger a search; the overview calls `updateOverviewRoute(true)` in response.
 
@@ -133,6 +133,21 @@ model's non-null keys against a `new Constructor()`'s own keys; without it the f
 
 `Selector.vue` (generated per slice under `selecting/`) is a reusable entity picker for choosing
 related entities in forms.
+
+`InputSelector.vue`, generated next to it, picks one row and binds both the entity (`v-model`) and its id
+(`v-model:idValue`). With the `multiple` attribute it picks several: `v-model` holds an array, `v-model:idsValue`
+replaces `v-model:idValue`, and the selected rows show as chips beside the control. There the arrow keys only
+highlight a result, and Enter or a click adds it. Once the results are in, a row's exact title, typed, is added by
+Enter or by a click outside the control, not by Tab, and Enter with nothing to add leaves the panel open. Removing a
+chip takes the row out of the array at once, so a collection that needs the marked-delete UX uses
+`InputSelectorInline`.
+
+```vue
+<BrandSelector multiple v-model="brands" v-model:idsValue="searchObject.brandId" @select="handleUpdate" />
+```
+
+`confirmSelection` gives a single control the same keyboard behaviour, for a filter that should not search on every
+arrow key.
 
 ## Overview
 

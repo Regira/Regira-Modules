@@ -1036,6 +1036,23 @@ describe("scaffold.mjs output type-checks", () => {
                     '// @ts-expect-error "day" is a string field\n' +
                     'liftDates(row, "day")\n'
             )
+            // InputSelector's two shapes: a handler typed for one row, and an array with `multiple`
+            writeFileSync(
+                join(root, "src", "input-selector-check.vue"),
+                "<template>\n" +
+                    '    <NoteSelector :model-value="one" @update:model-value="onOne" @select="onOne" />\n' +
+                    '    <NoteSelector multiple v-model="several" v-model:idsValue="ids" @select="onOne" />\n' +
+                    "</template>\n" +
+                    '<script setup lang="ts">\n' +
+                    'import { ref } from "vue"\n' +
+                    'import type Note from "./entities/notes/data/Entity"\n' +
+                    'import NoteSelector from "./entities/notes/selecting/InputSelector.vue"\n' +
+                    "const one = ref<Note>()\n" +
+                    "const several = ref<Array<Note>>([])\n" +
+                    "const ids = ref<Array<number | string>>([])\n" +
+                    "const onOne = (e?: Note) => (one.value = e)\n" +
+                    "</script>\n"
+            )
 
             // the repository's packages, and @regira/modules itself, linked in as an install would place them
             const modules = join(root, "node_modules")

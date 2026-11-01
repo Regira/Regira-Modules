@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from "vitest"
+import { describe, test, expect, beforeEach, vi } from "vitest"
 import { createApp, defineComponent, h, nextTick } from "vue"
 import { useAutocomplete } from "../../../src/vue/ui/autocomplete/autocomplete"
 import Autocomplete from "../../../src/vue/ui/autocomplete/Autocomplete.vue"
@@ -62,14 +62,14 @@ function stubControl({
     return input
 }
 
-function mountComposable(props = { data: [] }) {
+function mountComposable(props = { data: [] }, emit = () => {}) {
     const host = document.createElement("div")
     document.body.appendChild(host)
     let out
     const app = createApp(
         defineComponent({
             setup() {
-                out = useAutocomplete(props, { emit: () => {} })
+                out = useAutocomplete(props, { emit })
                 return () => h("div")
             },
         })
@@ -77,12 +77,18 @@ function mountComposable(props = { data: [] }) {
     app.mount(host)
     return { app, get: () => out }
 }
-// The panel's own box, which the vertical guard measures: `height` is what it renders at, `contentHeight`
-// what its content wants — the two differ once the list scrolls inside its max-height.
-function stubPanel({ height = 208, contentHeight = height } = {}) {
+// The panel's own box, which the vertical guard measures: `height` is what it wants, and `limit` an inline
+// max-height in px it already carries from an earlier placement. Like a real panel, it renders at that limit
+// and measures at what it wants once the limit is lifted.
+function stubPanel({ height = 208, limit } = {}) {
     const el = document.createElement("div")
-    Object.defineProperty(el, "offsetHeight", { value: height, configurable: true })
-    Object.defineProperty(el, "scrollHeight", { value: contentHeight, configurable: true })
+    if (limit != null) {
+        el.style.maxHeight = `${limit}px`
+    }
+    Object.defineProperty(el, "offsetHeight", {
+        get: () => (el.style.maxHeight.endsWith("px") ? Math.min(height, parseFloat(el.style.maxHeight)) : height),
+        configurable: true,
+    })
     document.body.appendChild(el)
     return el
 }
@@ -95,7 +101,29 @@ async function styleFor({ panel, ...control } = {}) {
         get().items.value = [] // results painting is what re-measures the panel
     }
     await nextTick()
+    await nextTick() // the measurement waits for the flush to end
     return { style: get().resultStyle.value, out: get() }
+}
+/** the real component with `count` results in a viewport with `below` px of room under the control */
+async function mountAtRoom({ count, below, ...props }) {
+    const host = document.createElement("div")
+    document.body.appendChild(host)
+    const exposed = {}
+    createApp({
+        render: () =>
+            h(Autocomplete, { data: Array.from({ length: count }, (_, i) => `item ${i}`), debounceTime: 0, ...props, ref: (r) => (exposed.ac = r) }),
+    })
+        .directive("clickOutside", {})
+        .mount(host)
+    await nextTick()
+    const input = host.querySelector("input")
+    input.getBoundingClientRect = () => rect(0, 232, 768 - below - 8 - 38)
+    return { input, ac: exposed.ac, panel: exposed.ac.resultEl }
+}
+const settle = () => new Promise((resolve) => setTimeout(resolve, 10))
+const press = async (input, key) => {
+    input.dispatchEvent(new KeyboardEvent("keydown", { key }))
+    await settle()
 }
 
 // jsdom's own defaults, set explicitly so the guards' numbers are pinned
@@ -227,12 +255,18 @@ describe("autocomplete result panel bottom-edge guard", () => {
         expect(style.maxHeight).toBe("min(var(--rg-dropdown-max-height, 13rem), 114px)") // 200 − 78 − 8
     })
 
-    test("a panel already capped below still discovers the roomier side above it", async () => {
-        // it measures exactly the room it was granted, and only its scrolling content says it wants more
-        const { style } = await styleFor({ controlTop: 700, panel: { height: 22, contentHeight: 300 } })
+    test("a panel already limited below still discovers the roomier side above it", async () => {
+        const { style } = await styleFor({ controlTop: 700, panel: { height: 300, limit: 22 } })
 
         expect(style.top).toBe("auto")
         expect(style.bottom).toBe("68px")
+    })
+
+    test("a limit rounded down below the room does not count as a fit", async () => {
+        // the room below is 22.22px: the limit rounds to 22, and a panel measured at 22 would look like it fits
+        const { style } = await styleFor({ controlTop: 699.78, panel: { height: 300, limit: 22 } })
+
+        expect(style.top).toBe("auto")
     })
 
     test("leaves a panel that genuinely fits that cramped room below", async () => {
@@ -240,6 +274,81 @@ describe("autocomplete result panel bottom-edge guard", () => {
 
         expect(style.top).toBe("738px")
         expect(style.bottom).toBe("auto")
+    })
+
+    test("a panel that wants exactly the room below stays there", async () => {
+        const { style } = await styleFor({ controlTop: 522, panel: { height: 200 } }) // 768 − 560 − 8
+
+        expect(style.top).toBe("560px")
+    })
+
+    test("measuring leaves the panel's own limit in place", async () => {
+        const { out } = await styleFor({ controlTop: 700, panel: { height: 300, limit: 22 } })
+
+        expect(out.resultEl.value.style.maxHeight).toBe("22px")
+    })
+
+    test("a flipped panel stays above while the room below grows past its old limit", async () => {
+        const { get } = mountComposable()
+        let top = 700
+        const input = stubControl()
+        input.parentElement.getBoundingClientRect = () => rect(0, 232, top)
+        get().inputEl.value = input
+        get().resultEl.value = stubPanel({ height: 300, limit: 22 })
+        get().openResults()
+        await nextTick()
+        expect(get().resultStyle.value.top).toBe("auto")
+
+        top = 680 // a page scroll: 42px below now, which the panel's old limit of 22 would fit in
+        await new Promise((resolve) => setTimeout(resolve, 50)) // a few animation frames
+
+        expect(get().resultStyle.value.top).toBe("auto")
+        expect(get().resultStyle.value.bottom).toBe("88px")
+    })
+
+    test("a keystroke during a search keeps the previous measurement", async () => {
+        // the second keystroke finds the results gone and the loading row up: 42px, which would drop the panel below
+        let height = 300
+        const { get } = mountComposable()
+        get().inputEl.value = stubControl({ controlTop: 660 })
+        const panel = stubPanel()
+        Object.defineProperty(panel, "offsetHeight", { get: () => height })
+        get().resultEl.value = panel
+        get().items.value = ["a"]
+        await settle()
+        expect(get().resultStyle.value.top).toBe("auto")
+
+        height = 42
+        get().items.value = undefined
+        get().openResults()
+        await nextTick()
+
+        expect(get().resultStyle.value.top).toBe("auto")
+    })
+
+    test("a panel bound to a component, not an element, measures as nothing", async () => {
+        const { get } = mountComposable()
+        get().resultEl.value = {} // a component instance has no style
+        get().items.value = []
+        await settle()
+
+        expect(() => get().openResults()).not.toThrow()
+    })
+
+    test("measures the results once the loading row is hidden", async () => {
+        // two rows of 42px with 92px below: with the loading row still counted the panel reads 126px and flips
+        const { input, ac, panel } = await mountAtRoom({ count: 2, below: 92 })
+        Object.defineProperty(panel, "offsetHeight", {
+            get: () => [...panel.querySelectorAll(".list-group-item")].filter((x) => x.style.display != "none").length * 42,
+        })
+
+        input.dispatchEvent(new FocusEvent("focus"))
+        await settle()
+        await settle()
+        await ac.search("")
+        await settle()
+
+        expect(panel.style.bottom).toBe("auto")
     })
 
     test("leaves the vertical guard off entirely when there is no window to measure", async () => {
@@ -373,6 +482,315 @@ describe("Autocomplete component", () => {
         expect(input.getAttribute("aria-activedescendant")).toBe(options[0].id)
         expect(options[0].getAttribute("aria-selected")).toBe("true")
         expect(options[1].getAttribute("aria-selected")).toBe("false")
+    })
+
+    test("the arrow keys select as they move", async () => {
+        const selected = []
+        const { input, ac } = await mountAtRoom({ count: 3, below: 300, onSelect: (x) => selected.push(x) })
+        await ac.search("")
+        await settle()
+
+        await press(input, "ArrowDown")
+        await press(input, "ArrowDown")
+
+        expect(selected).toEqual(["item 0", "item 1"])
+    })
+
+    test("Escape closes the panel and leaves the next Escape to a surrounding modal", async () => {
+        const reachedModal = vi.fn()
+        document.addEventListener("keydown", reachedModal)
+        const { input, ac } = await mountAtRoom({ count: 3, below: 300 })
+        await ac.search("")
+        await settle()
+        const escape = () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+
+        escape()
+        await settle()
+
+        expect(input.getAttribute("aria-expanded")).toBe("false")
+        expect(reachedModal).not.toHaveBeenCalled()
+
+        escape()
+        document.removeEventListener("keydown", reachedModal)
+
+        expect(reachedModal).toHaveBeenCalledTimes(1)
+    })
+
+    test("Escape clears text that selected nothing", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().q.value = "it"
+        get().handleSearch()
+        await settle()
+
+        get().handleEscape(new KeyboardEvent("keydown"))
+
+        expect(get().q.value).toBe("")
+    })
+
+    test("Escape keeps the text of the selection", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["item 0"], debounceTime: 0, modelValue: "item 0" }, (e, v) => emitted.push([e, v]))
+        get().handleSearch()
+        await settle()
+
+        get().handleEscape(new KeyboardEvent("keydown"))
+
+        expect(get().q.value).toBe("item 0")
+        expect(emitted.filter(([e]) => e == "select")).toEqual([])
+    })
+
+    test("Escape on a closed panel leaves the text and the key alone", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().q.value = "it"
+        const key = new KeyboardEvent("keydown", { cancelable: true })
+
+        get().handleEscape(key)
+
+        expect(get().q.value).toBe("it")
+        expect(key.defaultPrevented).toBe(false)
+    })
+
+    test("Escape keeps its default action from a native dialog around the control", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().handleSearch()
+        await settle()
+        const key = new KeyboardEvent("keydown", { cancelable: true })
+
+        get().handleEscape(key)
+
+        expect(key.defaultPrevented).toBe(true)
+    })
+
+    test("Escape drops the pending close of every click outside", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["alpha"], debounceTime: 0, autoSelect: true }, (e, v) => emitted.push([e, v]))
+        get().handleSearch()
+        await settle()
+        get().closeGently()
+        get().closeGently()
+
+        get().handleEscape(new KeyboardEvent("keydown"))
+        get().q.value = "typed next"
+        get().openResults()
+        await new Promise((resolve) => setTimeout(resolve, 300))
+
+        expect(emitted.filter(([e]) => e == "select")).toEqual([])
+        expect(get().q.value).toBe("typed next")
+        expect(get().isOpen.value).toBe(true)
+    })
+
+    test("a click outside still closes the panel after its delay", async () => {
+        const { get } = mountComposable({ data: ["alpha"], debounceTime: 0 })
+        get().handleSearch()
+        await settle()
+
+        get().closeGently()
+        await new Promise((resolve) => setTimeout(resolve, 300))
+
+        expect(get().isOpen.value).toBe(false)
+    })
+
+    test("an arrow key after Escape searches and opens, selecting nothing", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["alpha", "beta"], debounceTime: 0 }, (e, v) => emitted.push([e, v]))
+        get().q.value = "al"
+        get().handleSearch()
+        await settle()
+        get().handleEscape(new KeyboardEvent("keydown"))
+
+        get().moveSelection(1)
+        await settle()
+
+        expect(emitted.filter(([e]) => e == "select")).toEqual([])
+        expect(get().isOpen.value).toBe(true)
+    })
+
+    test("an arrow key on a closed panel moves on from a selection", async () => {
+        const emitted = []
+        const { get } = mountComposable({ data: ["item 0", "item 0 b"], debounceTime: 0, modelValue: "item 0" }, (e, v) => emitted.push([e, v]))
+        get().handleSearch()
+        await settle()
+        get().closeResults()
+
+        get().moveSelection(1)
+
+        expect(emitted.filter(([e]) => e == "select")).toEqual([["select", "item 0 b"]])
+        expect(get().isOpen.value).toBe(false)
+    })
+
+    test("Enter with nothing to select closes the panel", async () => {
+        const { get } = mountComposable({ data: ["item"], debounceTime: 0 })
+        get().handleSearch()
+        await settle()
+
+        get().handleSelect(undefined, -1)
+
+        expect(get().isOpen.value).toBe(false)
+    })
+
+    test("an arrow key while the results load does nothing", async () => {
+        const { get } = mountComposable({ data: ["a"], debounceTime: 0 })
+        get().handleSearch()
+
+        expect(() => get().moveSelection(1)).not.toThrow()
+    })
+
+    test("the arrow keys scroll the panel to the row they reach", async () => {
+        const scrollIntoView = vi.fn()
+        Element.prototype.scrollIntoView = scrollIntoView
+        const { input, ac } = await mountAtRoom({ count: 3, below: 300, confirmSelection: true })
+        await ac.search("")
+        await settle()
+
+        await press(input, "ArrowDown")
+        await press(input, "ArrowDown")
+        delete Element.prototype.scrollIntoView
+
+        expect(scrollIntoView).toHaveBeenCalledTimes(2)
+        expect(scrollIntoView.mock.contexts[1].id).toBe(`${input.getAttribute("aria-controls")}-1`)
+        expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "nearest" })
+    })
+
+    describe("confirmSelection", () => {
+        function mountConfirming(props = {}) {
+            const selected = []
+            return mountAtRoom({ count: 3, below: 300, confirmSelection: true, onSelect: (x) => selected.push(x), ...props }).then((out) => ({
+                ...out,
+                selected,
+                option: (i) => document.getElementById(`${out.input.getAttribute("aria-controls")}-${i}`),
+            }))
+        }
+
+        test("the arrow keys only highlight, and Enter selects the highlighted result", async () => {
+            const { input, ac, selected, option } = await mountConfirming()
+            await ac.search("")
+            await settle()
+
+            await press(input, "ArrowDown")
+            await press(input, "ArrowDown")
+            expect(selected).toEqual([])
+            expect(input.getAttribute("aria-activedescendant")).toBe(option(1).id)
+            expect(option(1).getAttribute("aria-selected")).toBe("true")
+            expect(input.value).toBe("")
+
+            await press(input, "Enter")
+
+            expect(selected).toEqual(["item 1"])
+        })
+
+        test("a click selects without the arrow keys", async () => {
+            const { ac, selected, option } = await mountConfirming()
+            await ac.search("")
+            await settle()
+
+            option(2).click()
+            await settle()
+
+            expect(selected).toEqual(["item 2"])
+        })
+
+        test("Enter selects the highlighted result over a value already selected", async () => {
+            const { input, ac, selected } = await mountConfirming({ modelValue: "item 0" })
+            await ac.search("")
+            await settle()
+
+            await press(input, "ArrowDown")
+            await press(input, "Enter")
+
+            expect(selected).toEqual(["item 1"])
+        })
+
+        test("Enter on a closed panel ignores a highlight left behind", async () => {
+            const emitted = []
+            // the search runs on the selected row's text, so a second row has to match it
+            const { get } = mountComposable({ data: ["item 0", "item 0 b"], debounceTime: 0, confirmSelection: true, modelValue: "item 0" }, (e, v) =>
+                emitted.push([e, v])
+            )
+            get().handleSearch()
+            await settle()
+            get().moveSelection(1)
+            expect(get().selectedIndex.value).toBe(1)
+            get().closeResults()
+
+            get().handleSelect("item 0", 1) // what the input's Enter does
+
+            expect(emitted.filter(([e]) => e == "select")).toEqual([])
+        })
+
+        test("Enter on a closed panel ignores a highlighted row a skin passes", async () => {
+            const emitted = []
+            const { get } = mountComposable({ data: ["item 0", "item 1"], debounceTime: 0, confirmSelection: true }, (e, v) => emitted.push([e, v]))
+            get().handleSearch()
+            await settle()
+            get().moveSelection(1)
+            get().closeResults()
+
+            get().handleSelect(get().items.value[get().selectedIndex.value], get().selectedIndex.value)
+
+            expect(emitted.filter(([e]) => e == "select")).toEqual([])
+        })
+
+        test("a click takes its own row, whatever index the skin's order gives it", async () => {
+            const emitted = []
+            const { get } = mountComposable({ data: ["item 0", "item 1"], debounceTime: 0, confirmSelection: true }, (e, v) => emitted.push([e, v]))
+            get().handleSearch()
+            await settle()
+
+            get().handleSelect("item 1", 0)
+
+            expect(emitted.filter(([e]) => e == "select")).toEqual([["select", "item 1"]])
+        })
+
+        test("Enter takes the highlight over the current selection", async () => {
+            const emitted = []
+            const { get } = mountComposable({ data: ["item 0", "item 0 b"], debounceTime: 0, confirmSelection: true, modelValue: "item 0" }, (e, v) =>
+                emitted.push([e, v])
+            )
+            get().handleSearch()
+            await settle()
+            get().moveSelection(1)
+
+            get().handleSelect(get().selectedItem.value, get().selectedIndex.value)
+
+            expect(emitted.filter(([e]) => e == "select").at(-1)).toEqual(["select", "item 0 b"])
+        })
+
+        test("Enter on an emptied input selects no row with a blank title", async () => {
+            const emitted = []
+            const { get } = mountComposable({ data: ["", "item"], debounceTime: 0, confirmSelection: true }, (e, v) => emitted.push([e, v]))
+            get().handleSearch()
+            await settle()
+
+            get().handleSelect(undefined, -1)
+
+            expect(emitted.filter(([e]) => e == "select")).toEqual([])
+            expect(get().isOpen.value).toBe(true)
+        })
+
+        test("Enter without a highlight selects nothing", async () => {
+            const { input, ac, selected } = await mountConfirming()
+            await ac.search("")
+            await settle()
+
+            await press(input, "Enter")
+
+            expect(selected).toEqual([])
+        })
+
+        test("an arrow key on a closed panel opens it instead of highlighting a row nobody sees", async () => {
+            const { input, selected } = await mountConfirming()
+            expect(input.getAttribute("aria-expanded")).toBe("false")
+
+            await press(input, "ArrowDown")
+            await settle()
+
+            expect(input.getAttribute("aria-expanded")).toBe("true")
+            expect(input.getAttribute("aria-activedescendant")).toBeNull()
+
+            await press(input, "Enter")
+
+            expect(selected).toEqual([])
+        })
     })
 
     test("gives every instance its own listbox id, across apps too", async () => {

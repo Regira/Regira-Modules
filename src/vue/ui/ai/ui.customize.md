@@ -261,11 +261,12 @@ slots. Every replacement/ejected skin MUST:
    screens, `$screen` for JS-side switches.
 4. Render every slot and fire every emit of the contract, per component:
     - **Modal**: render the default slot when `isVisible`; focus the dialog when it opens, give focus back when it closes, and emit `close` on Esc
-      and the header close; emit `cancel`/`submit` from the footer actions; honor
+      and the header close; emit `cancel`/`submit` from the footer actions; hear Esc on `keydown` in the bubble
+      phase, so an open `Autocomplete` panel inside the modal takes the key first; honor
       `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
-    - **Autocomplete**: keyboard selection (up/down/enter), debounced search, and the scoped default
+    - **Autocomplete**: keyboard selection (up/down/enter/escape), debounced search, and the scoped default
       slot for items — all provided by `useAutocomplete`; keep them wired. The result panel also needs
       `:style="resultStyle"` **and** `ref="resultEl"`: the composable measures that element to decide
       whether the results open below the control or flip above it, and how tall they may get. Render the
@@ -273,7 +274,10 @@ slots. Every replacement/ejected skin MUST:
       is what lets it escape a modal body's `overflow`. Keep the combobox wiring the reference skin renders,
       with the ids `useAutocomplete` hands out: `:aria-controls="listboxId"` on the input and
       `:id="listboxId"` on the `role="listbox"` list, `:id="optionId(i)"` on each `role="option"` result, and
-      `aria-activedescendant` set to `optionId(selectedIndex)` while the panel is open.
+      `aria-activedescendant` set to `optionId(selectedIndex)` while the panel is open. `moveSelection` finds
+      the option by that id to scroll it into view. Wire Enter as `handleSelect(selectedItem, selectedIndex)`, a
+      click as `handleSelect(item, i)` and Escape as `handleEscape`, and declare `confirmSelection` on a skin with
+      hand-written props: undeclared, it falls through as an attribute and the arrow keys keep selecting.
     - **Feedback**: render the pending/success/error regions per `FeedbackStatus`; keep the close
       button emitting `close` and resetting.
     - **EntityOverview**: reload on mount; expose `reload`/`setPage`.

@@ -223,7 +223,15 @@ it before writing a new component.
   `aria-activedescendant` (`optionId(selectedIndex)` while open), the list as `role="listbox"` with
   `:id="listboxId"`, each result as `role="option"` with `:id="optionId(i)"` — because the teleported panel
   is otherwise unrelated to the input in DOM order. Take both ids from `useAutocomplete`: they are unique
-  across every skin on the page, so an ejected copy and the library's own never share one.
+  across every skin on the page, so an ejected copy and the library's own never share one. `moveSelection` scrolls
+  the option with that id into view.
+- **`Autocomplete`'s arrow keys select as they move**, so each press fires `select`. Where a selection acts at
+  once — a search, a row added to a list — set `confirmSelection`: the arrow keys then only highlight a result, and
+  Enter or a click selects it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
+  click outside the control, not by Tab. Enter with nothing to select leaves the panel open.
+- **Escape closes `Autocomplete`'s result panel** and clears text that selected nothing, without selecting. A modal
+  around the control stays open until the next Escape. With nothing selected, an arrow key then searches and opens it
+  again.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns

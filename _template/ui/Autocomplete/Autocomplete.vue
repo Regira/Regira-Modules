@@ -18,6 +18,7 @@
         @keydown.down="moveSelection(1)"
         @keydown.up="moveSelection(-1)"
         @keydown.enter.prevent="handleSelect(selectedItem!, selectedIndex)"
+        @keydown.esc="handleEscape"
         ref="inputEl"
     />
     <!-- on <body>, so a scrollable modal body or an overflow:hidden card cannot clip the results; the input's
@@ -88,6 +89,7 @@ const {
     handleInput,
     handleChange,
     handleSelect,
+    handleEscape,
     handleSearch,
     reset,
 } = useAutocomplete<T>(props, { emit })

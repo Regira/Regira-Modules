@@ -6,6 +6,7 @@
         :id-selector="idSelector"
         :display-item-formatter="displayItemFormatter"
         :placeholder="placeholder"
+        :confirm-selection="confirmSelection"
         ref="autoEl"
     >
         <template #default="{ item }">
@@ -35,6 +36,7 @@ const props = withDefaults(
         maxResults?: number
         filterDefaults?: Record<string, any>
         placeholder?: string
+        confirmSelection?: boolean
     }>(),
     { maxResults: 10 }
 )

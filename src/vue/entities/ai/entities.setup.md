@@ -415,7 +415,7 @@ src/entities/<name>/             # one entity slice — copy this folder set for
         Overview.vue             # useSearchView + useRouteOverview (useListView only for a count-less lookup)
     selecting/
         Autocomplete.vue         # type-ahead search input
-        InputSelector.vue        # single-item picker
+        InputSelector.vue        # single-item picker; several items with `multiple`
         Selector.vue             # multi-item picker (chips) — relation picker for this entity
         SelectorDropdown.vue     # simple <select>, loads every row
         SelectorList.vue (c)     # selectable results list
