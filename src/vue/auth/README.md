@@ -4,6 +4,8 @@
 [axios instance](../http/README.md): login/token management, a Pinia auth store, a
 permission-aware route guard, and login UI.
 
+An app without Vue imports `AuthService`, the token managers and `registerCredentialUrls` from [`@regira/modules/core`](../../core/README.md); the store, plugin, route guard and login UI are Vue-only.
+
 ## What it provides
 
 | Export                                                                                                                                                                                                   | Purpose                                                                                                                                                                                                                                                                                                                                                                                                             |

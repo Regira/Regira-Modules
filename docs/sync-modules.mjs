@@ -32,6 +32,7 @@ const MODULES = [
   { id: "vue-debug", dir: "vue/debug", title: "Debug", group: "Vue modules" },
   { id: "vue-helper", dir: "vue/vue-helper", title: "Vue Helper", group: "Vue modules" },
   // Core (framework-agnostic)
+  { id: "core", dir: "core", title: "Core", group: "Core" },
   { id: "utilities", dir: "utilities", title: "Utilities", group: "Core" },
   { id: "extensions", dir: "extensions", title: "Extensions", group: "Core" },
   { id: "treelist", dir: "treelist", title: "TreeList", group: "Core" },

@@ -1,6 +1,6 @@
 import { ref, watchEffect, type App } from "vue"
-import { type ITranslationMessage, type ITranslationMessages } from "./translate"
-import type { IFormatInput } from "./formatText"
+import { type ITranslationMessage, type ITranslationMessages } from "../../core/lang/translate"
+import type { IFormatInput } from "../../core/lang/formatText"
 import { useLang } from "./useLang"
 
 type IMessageLoader = () => Promise<ITranslationMessages>

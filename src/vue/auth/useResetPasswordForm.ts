@@ -1,12 +1,10 @@
-import { ref, computed } from "vue"
+import { computed, type Ref } from "vue"
 import { useAuth } from "./auth"
-import { maskAxiosError } from "./error-logging"
+import { createResetPasswordForm, type ResetPasswordFormEmits } from "../../core/auth/forms"
+import { vueBox } from "../box"
 
-export interface ResetPasswordFormEmits {
-    (e: "success"): void
-    (e: "fail", ex?: any): void
-    (e: "login"): void
-}
+export type { ResetPasswordFormEmits }
+
 /** the texts `ResetPasswordForm` shows; each one left out stays English */
 export type ResetPasswordFormLabels = {
     /** "New password" */
@@ -34,44 +32,17 @@ export interface ResetPasswordFormProps {
 
 export function useResetPasswordForm(props: ResetPasswordFormProps, emit: ResetPasswordFormEmits) {
     const { service } = useAuth()
-
-    const password = ref("")
-    const confirmPassword = ref("")
-
-    const isLoading = ref(false)
-    const isSuccess = ref<boolean>()
-    const passwordsMatch = computed(() => password.value === confirmPassword.value)
-    const isFormValid = computed(() => password.value != "" && passwordsMatch.value)
-
-    async function handleSubmit() {
-        if (!isFormValid.value) {
-            return
-        }
-        isSuccess.value = undefined
-        isLoading.value = true
-        try {
-            await service.resetPassword({ token: props.token, password: password.value })
-            isSuccess.value = true
-            emit("success")
-        } catch (ex: any) {
-            isSuccess.value = false
-            // the error carries the request that produced it — the reset token and new password included
-            console.error("resetting password failed", maskAxiosError(ex))
-            emit("fail", ex)
-        } finally {
-            isLoading.value = false
-        }
-    }
+    const form = createResetPasswordForm({ box: vueBox, service, token: () => props.token, emit })
 
     return {
-        password,
-        confirmPassword,
+        password: form.password as Ref<string>,
+        confirmPassword: form.confirmPassword as Ref<string>,
 
-        isLoading,
-        isSuccess,
-        passwordsMatch,
-        isFormValid,
+        isLoading: form.isLoading as Ref<boolean>,
+        isSuccess: form.isSuccess as Ref<boolean | undefined>,
+        passwordsMatch: computed(form.passwordsMatch),
+        isFormValid: computed(form.isFormValid),
 
-        handleSubmit,
+        handleSubmit: form.handleSubmit,
     }
 }

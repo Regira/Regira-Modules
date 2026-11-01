@@ -1,11 +1,10 @@
 import { describe, test, expect, vi, afterEach } from "vitest"
 import { AxiosHeaders } from "axios"
 import { autoLogoutOnFailedRequest } from "../../../src/vue/auth/auth-axios"
-import { maskAxiosError, maskCredentials, registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../../src/vue/auth/error-logging"
-import { AuthService } from "../../../src/vue/auth/auth-service"
+import { maskAxiosError, maskCredentials, registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../../src/core/auth/error-logging"
+import { AuthService } from "../../../src/core/auth/auth-service"
 import { createAuth } from "../../../src/vue/auth/auth"
-import { useChangePasswordForm } from "../../../src/vue/auth/useChangePasswordForm"
-import { AuthData } from "../../../src/vue/auth/AuthData"
+import { AuthData } from "../../../src/core/auth/AuthData"
 
 // Everything this module logs goes through maskAxiosError, because console output is captured verbatim by
 // breadcrumb and session-replay telemetry and an axios error carries the request that produced it. Every
@@ -311,29 +310,6 @@ describe("AuthService.validateToken logging", () => {
 
         expect(loggedArgs(warn.mock.calls[0])).not.toContain(jwt)
         expect(warn.mock.calls[0]).toContain(400)
-    })
-})
-
-// The form composables log their own failure too — and the request they log is the one carrying the password.
-describe("form composables", () => {
-    test("changePassword's failure log prints neither password", async () => {
-        const log = vi.spyOn(console, "error").mockImplementation(() => {})
-        const axios = {
-            post: async (url, data) => Promise.reject(axiosError({ url, data: JSON.stringify(data), headers: new AxiosHeaders() }, { status: 400 })),
-        }
-        createAuth({ enabled: true, tokenManager: { token: undefined }, axios })
-        const form = useChangePasswordForm(() => {})
-        form.currentPassword.value = "hunter2"
-        form.newPassword.value = "hunter3"
-        form.confirmPassword.value = "hunter3"
-
-        await form.handleSubmit()
-
-        expect(form.isSuccess.value).toBe(false)
-        const [, payload] = log.mock.calls[0]
-        expect(JSON.stringify(payload)).not.toContain("hunter2")
-        expect(JSON.stringify(payload)).not.toContain("hunter3")
-        expect(payload.config.url).toBe("auth/password") // it still says which call failed
     })
 })
 

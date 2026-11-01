@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { EntityServiceBase, ArchivedFilter } from "../../../src/vue/entities/abstractions"
+import { EntityServiceBase, ArchivedFilter } from "../../../src/core/entities/abstractions"
 
 class Model {
     constructor(id = 1) {

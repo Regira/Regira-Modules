@@ -3,7 +3,8 @@
 A flat set of locale-aware display helpers (`@regira/modules/vue/formatters`): dates, times, numbers,
 currency, percentage, plus a few string utilities (bank account, structured reference, initials,
 shortening). They format **values for display** — use them in Vue templates/computed props when rendering
-[entity](../../entities/ai/entities.instructions.md) fields; they never parse or fetch.
+[entity](../../entities/ai/entities.instructions.md) fields; they never parse or fetch. An app without Vue imports
+the same exports from `@regira/modules/core` ([core guide](../../../core/ai/core.instructions.md)).
 
 > **Never guess** a signature — verify in [formatters.signatures.md](formatters.signatures.md).
 

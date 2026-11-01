@@ -41,6 +41,9 @@ npm install
 > peer-resolution errors — install the whole set at once rather than one `ERESOLVE` at a time. The
 > authoritative list is the known-good dependency set in the `entities.setup` guide.
 
+An app without Vue, in React or plain TypeScript, imports from [`@regira/modules/core`](/reference/core/) and needs only
+`axios` and `date-fns`: the three Vue peers are optional.
+
 ### Optional dev alias
 
 A short alias keeps imports tidy in a consuming app (order matters):

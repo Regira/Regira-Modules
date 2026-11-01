@@ -44,6 +44,9 @@ page, so the list keeps its length; `searchHandler(true)` starts it over. With `
 button under the rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize`
 (100 by default).
 
+**`items` is a new array after each change** — `handleSave`, `handleRemove` and `loadMore()` assign a new array,
+so a shallow `watch(items)` fires on each. Read `items.value` each time; a variable that holds the array goes stale.
+
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
 `useListView` when a plain list is enough (`service.list()` → `Array<T>`, already unwrapped — never

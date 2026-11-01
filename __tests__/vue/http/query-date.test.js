@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { createQueryString } from "../../../src/vue/http/query"
+import { createQueryString } from "../../../src/core/http/query"
 import { toQueryString } from "../../../src/utilities/http-utility"
 
 // A request BODY passes through JSON.stringify, so `dateExtensions.use()`'s Date.prototype.toJSON applies.

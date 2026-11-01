@@ -5,26 +5,22 @@ import { createAuth, setGlobalAuth } from "../../../src/vue/auth/auth"
 import { useAuthStore } from "../../../src/vue/auth/store"
 import { onAuthenticated } from "../../../src/vue/auth/onAuthenticated"
 
-// `onAuthenticated` exists because enumerating store action names is fragile — a hook listening for
-// "login" misses the `validateToken` that restores a stored token on reload. Watching the TOKEN instead
-// fixes that and adds a second property the boolean `isAuthenticated` cannot give: a refresh that swaps
-// the token while staying authenticated (a tenant switch) still fires, while re-validating the SAME token
-// (the plugin's periodic check) does not.
+// What `onAuthenticated` does with a token is a shared scenario (`__tests__/contract/auth.test.js`). These are the
+// Vue layer's own: which store it reads, how a throwing handler reaches `app.config.errorHandler`, and pinia's hooks.
 
 const jwt = (claims = {}) => `header.${btoa(JSON.stringify({ sub: "1", name: "u", exp: 9999999999, nbf: 0, ...claims }))}.signature`
 
 const tokenA = jwt({ tenant: "a" })
 const tokenB = jwt({ tenant: "b" })
 
-/** Auth wired over a stubbed API whose next token you control. */
-function harness({ storedToken } = {}) {
-    const tokenManager = { token: storedToken }
-    let nextToken = tokenA
+/** Auth wired over a stubbed API. */
+function harness() {
+    const tokenManager = { token: undefined }
     const axios = {
-        post: async () => ({ status: 200, data: { token: nextToken, isAuthenticated: true } }),
+        post: async () => ({ status: 200, data: { token: tokenA, isAuthenticated: true } }),
     }
     createAuth({ enabled: true, tokenManager, axios, clientApp: "MyApp" })
-    return { store: useAuthStore(), setNextToken: (t) => (nextToken = t), tokenManager }
+    return { store: useAuthStore() }
 }
 
 /** Registers the handler inside an effect scope, as a component's setup would. */
@@ -44,76 +40,6 @@ beforeEach(() => setActivePinia(createPinia()))
 // `globalAuth` is module-level state the plugin owns; the tests below set it, so clear it or the ones
 // relying on the default-store fallback would read a leftover from an earlier test.
 afterEach(() => setGlobalAuth(undefined))
-
-describe("onAuthenticated", () => {
-    test("does not fire while unauthenticated", () => {
-        harness()
-        const { calls } = track()
-        expect(calls.count).toBe(0)
-    })
-
-    test("fires immediately when a token is already present (mount after login)", async () => {
-        const { store } = harness()
-        await store.login({ username: "u", password: "p" })
-
-        const { calls } = track()
-        expect(calls.count).toBe(1)
-    })
-
-    test("fires when a stored token is validated on reload — the case a login-only hook misses", async () => {
-        const { store } = harness({ storedToken: tokenA })
-
-        const { calls } = track()
-        expect(calls.count).toBe(0) // mounted before rehydration, as views really do
-
-        await store.validateToken()
-        await nextTick()
-        expect(calls.count).toBe(1)
-    })
-
-    test("fires again when a refresh swaps the token — the case watching isAuthenticated misses", async () => {
-        const { store, setNextToken } = harness()
-        await store.login({ username: "u", password: "p" })
-        const { calls } = track()
-        expect(calls.count).toBe(1)
-
-        setNextToken(tokenB) // e.g. refresh({ tenantId }) — still authenticated, new identity
-        await store.refresh({ tenantId: "b" })
-        await nextTick()
-        expect(calls.count).toBe(2)
-    })
-
-    test("does NOT re-fire when the same token is re-validated (the plugin's periodic check)", async () => {
-        const { store } = harness({ storedToken: tokenA })
-        await store.validateToken()
-        const { calls } = track()
-        expect(calls.count).toBe(1)
-
-        await store.validateToken() // same token comes back
-        await nextTick()
-        expect(calls.count).toBe(1)
-    })
-
-    test("does not fire on logout", async () => {
-        const { store } = harness()
-        await store.login({ username: "u", password: "p" })
-        const { calls } = track()
-
-        store.logout()
-        await nextTick()
-        expect(calls.count).toBe(1)
-    })
-
-    test("immediate: false skips the already-authenticated call", async () => {
-        const { store } = harness()
-        await store.login({ username: "u", password: "p" })
-
-        let count = 0
-        const scope = effectScope()
-        scope.run(() => onAuthenticated(() => count++, { immediate: false }))
-        expect(count).toBe(0)
-    })
-})
 
 // The plugin resolves `authStore ?? useAuthStore()`, so an app passing its own store never populates the
 // default one. Reading the default directly would watch a store that stays empty forever: no immediate
@@ -194,16 +120,6 @@ describe("onAuthenticated store resolution", () => {
         expect(useAuthStore().isAuthenticated).toBe(false) // proof it was NOT the default store that fired
     })
 
-    test("auth disabled: runs immediately, since no token will ever arrive", () => {
-        harness()
-        setGlobalAuth({ enabled: false }) // what the plugin sets for app.use(authPlugin, { enabled: false })
-
-        const { calls } = track()
-
-        // watching for a token in an auth-disabled app would never fire — the blank panel this prevents
-        expect(calls.count).toBe(1)
-    })
-
     // The disabled branch runs the handler itself rather than through a token that never arrives. A bare
     // call would put it OUTSIDE Vue's error handling: a throw aborts the caller's setup() and blanks the
     // subtree, where every watched path lands in app.config.errorHandler instead.
@@ -226,17 +142,6 @@ describe("onAuthenticated store resolution", () => {
 
         expect(errors.map((e) => e.message)).toEqual(["boom"])
         expect(host.textContent).toBe("rendered")
-    })
-
-    test("auth disabled + immediate: false stays a no-op — the composable already fetched", () => {
-        harness()
-        setGlobalAuth({ enabled: false })
-
-        let count = 0
-        const scope = effectScope()
-        scope.run(() => onAuthenticated(() => count++, { immediate: false }))
-
-        expect(count).toBe(0)
     })
 
     // Same ordering problem as the custom store, with a worse ending: the disabled flag arrives with the
@@ -278,19 +183,34 @@ describe("onAuthenticated store resolution", () => {
         await nextTick()
         expect(count).toBe(1)
     })
+})
 
-    test("does not fire for a token the store has not accepted", async () => {
-        harness()
-        const customAuthData = ref({ token: undefined, isAuthenticated: false })
-        globalAuthOver(customAuthData)
-        const { calls } = track()
+// The default store is resolved on the watcher's first read, during `setup()`, and kept: resolving it on each read would
+// run from the scheduler with no current instance, where pinia falls back to its module-global active instance.
+test("two apps on one page: a handler stays on the store of the app that registered it", async () => {
+    harness()
+    let fired = 0
+    const piniaA = createPinia()
+    const appA = createApp(
+        defineComponent({
+            setup() {
+                onAuthenticated(() => fired++, { immediate: false })
+                return () => h("div")
+            },
+        })
+    )
+    appA.use(piniaA)
+    appA.mount(document.createElement("div"))
+    // a second app takes over the module-global active pinia
+    const piniaB = createPinia()
+    createApp({ render: () => null }).use(piniaB)
 
-        // a custom IAuthService may build AuthData around a token it rejected
-        customAuthData.value = { token: tokenA, isAuthenticated: false }
-        await nextTick()
+    const loggingIn = useAuthStore(piniaA).login({ username: "u", password: "p" })
+    setActivePinia(piniaB) // the other app acts while the request runs
+    await loggingIn
+    await nextTick()
 
-        expect(calls.count).toBe(0)
-    })
+    expect(fired).toBe(1)
 })
 
 // `$onAction` is pinia's own subscription, not something this module wraps, so `onAuthenticated` arriving

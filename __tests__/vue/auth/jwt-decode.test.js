@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { AuthData } from "../../../src/vue/auth/AuthData"
+import { AuthData } from "../../../src/core/auth/AuthData"
 
 // A real JWT carries its payload as base64url without padding, over UTF-8 JSON. The other auth tests build their
 // stubs with btoa (plain base64, Latin-1), which never shows `-` or `_` and cannot hold "Zoë".

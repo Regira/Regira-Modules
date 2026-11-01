@@ -3,9 +3,9 @@ import type { AxiosInstance } from "axios"
 import { addBearerHeader, autoLogoutOnFailedRequest } from "./auth-axios"
 import { useAuthStore, type IAuthStore } from "./store"
 import routeGuard from "./route-guard"
-import type { ITokenManager } from "./token-manager"
+import type { ITokenManager } from "../../core/auth/token-manager"
 import { createAuth, setGlobalAuth, type IAuthOptions } from "./auth"
-import type { IAuthData } from "./AuthData"
+import type { IAuthData } from "../../core/auth/AuthData"
 
 // setInterval's delay is a 32-bit signed int: past 2^31-1 ms (24.8 days) the browser fires at once, every tick
 const MAX_TIMER_DELAY = 2 ** 31 - 1

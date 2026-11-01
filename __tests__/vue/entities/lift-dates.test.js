@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest"
-import { liftDates } from "../../../src/vue/entities/utilities"
-import { EntityServiceBase } from "../../../src/vue/entities/abstractions"
+import { liftDates } from "../../../src/core/entities/utilities"
+import { EntityServiceBase } from "../../../src/core/entities/abstractions"
 
 class Model {
     id = 0

@@ -33,6 +33,7 @@ present. Building a Vue 3 SPA against a Regira.Entities API? Start with the
 
 | Module                                                                                                                    | Developer docs                             |
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Core (the framework-free half of the Vue modules, for an app without Vue)                                                 | [src/core](src/core/README.md)             |
 | Utilities                                                                                                                 | [src/utilities](src/utilities/README.md)   |
 | Extensions                                                                                                                | [src/extensions](src/extensions/README.md) |
 | TreeList                                                                                                                  | [src/treelist](src/treelist/README.md)     |

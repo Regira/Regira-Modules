@@ -4,7 +4,7 @@ import { createRouter, createMemoryHistory } from "vue-router"
 import { useForm } from "../../../src/vue/entities/form"
 
 // After an insert, useForm replaces the `/new` route: with the new id by default, or with the route `afterInsertRoute`
-// gives. A popup form stays where it is, and so does an update.
+// gives. That a popup form and an update stay where they are is a shared scenario (__tests__/contract/form.test.js).
 class Thing {
     constructor(id = 0) {
         this.id = id
@@ -60,19 +60,5 @@ describe("useForm after an insert", () => {
         // replaced, not pushed: Back returns to the page that opened /new
         router.back()
         await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe("/things"))
-    })
-
-    test("a popup form and an update stay where they are", async () => {
-        const afterInsertRoute = vi.fn(() => ({ name: "things" }))
-        const popup = await mountForm({ modelValue: new Thing(), isPopup: true }, { afterInsertRoute })
-        const update = await mountForm({ modelValue: new Thing(7) }, { afterInsertRoute, saved: { saved: new Thing(7), isNew: false } })
-
-        await popup.form.handleSubmit()
-        await update.form.handleSubmit()
-        await new Promise((resolve) => setTimeout(resolve))
-
-        expect(afterInsertRoute).not.toHaveBeenCalled()
-        expect(popup.router.currentRoute.value.path).toBe("/things/new")
-        expect(update.router.currentRoute.value.path).toBe("/things/new")
     })
 })
