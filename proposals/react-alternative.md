@@ -1,8 +1,8 @@
 # A React alternative to the Vue modules
 
-As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 and Phase 1's steps 9 and 10 are committed on the branch `react-alternative`; step 11, and step 12 up to auth, are built there. Auth and Phase 2 are not.
+As of 2026-10-28. Sources: the `Regira-Modules` repository, branch `wip` at `b7fd6fb` (release 6.6.1): `src/`, `_template/`, `scripts/`, `__tests__/`, `.github/workflows/`, `package.json` and `package-lock.json`; and the local `dist/` build of the same day, whose imports were traced file by file from every entry point. React, React Router and npm behaviour is taken from their documented APIs and was not measured here. Phase 0 and Phase 1 are built on the branch `react-alternative`; Phase 2 is not.
 
-**Status: approved with amendments, reviewed 2026-10-28. Phase 0 and Phase 1's steps 9 and 10 are committed on `react-alternative`, pending merge into `wip`; Phase 1 has passed its gate (step 10), and steps 11 and 12 are built up to auth. Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
+**Status: approved with amendments, reviewed 2026-10-28. Phase 0 and Phase 1 are built on `react-alternative`, pending merge into `wip`; Phase 1 passed its gate at step 10. Two decisions are open (see *Decisions*); both concern Phase 2 only. An Angular layer is out of scope; the design leaves room for one without changing the core.**
 
 ## Recommendation
 
@@ -176,7 +176,7 @@ As built:
 - `describers` stays in `vue/entities` until the pool moves in Phase 1, and `auth-axios.ts` stays in `vue/auth` until the auth state moves: its contract is the Pinia store's `$patch`, and a structural copy of that in the core would only rename the coupling.
 - The core keeps two error translators: the default a framework layer registers when it loads, and the app's own from `setErrorTranslator`, which wins in whichever order the two are set.
 - `vue`, `vue-router` and `pinia` became dev dependencies as well as optional peers. This ships as a minor: the documented install lists all three peers, an app that relied on npm installing them fails its build at once rather than at runtime, and the CHANGELOG entry says which dependency to add.
-- `core` exports only names a `vue/*` entry already exports, plus `defaultServiceProvider`. The auth internals the auth guides call internal, such as the `AuthData` class and `maskAxiosError`, stay unexported until the auth state moves.
+- `core` exports only names a `vue/*` entry already exports, plus `defaultServiceProvider`. The auth internals the auth guides call internal, such as the `AuthData` class and `maskAxiosError`, stay unexported until Phase 2 settles the controllers' shape.
 
 ### Phase 1: the logic moves into the core
 
@@ -214,7 +214,7 @@ As built (steps 9 and 10):
 - The React spike (`__tests__/contract/react-spike.test.js`) passes under StrictMode. The double mount runs two searches on one controller, and the newest one's rows render. Two components share one pooled entity: an edit through the `update` the hook returns shows in the other component, re-renders only the components that read that entity, and keeps its class. Unmounting ends every subscription, so a search that settles later re-renders nothing. The box needs no change. One point for Phase 2: the pool's `get` creates a box during render when the entity is not cached yet; the hooks should look up in render and add in an effect.
 - `react` and `react-dom` 19 are dev dependencies, for the spike; their peer range is decision 2's.
 
-As built (steps 11 and 12, up to auth):
+As built (steps 11 and 12):
 
 - The lifecycle scenarios (`__tests__/contract/lifecycle.test.js`) run on the Vue driver, which mounts each view under a memory router (`mount.js`): a details page and a route overview fetch once per mount, two views of one pooled entity share an edit and only they re-render, a form's edits keep the entity's class, and two appends to an owned collection in one tick keep both rows.
 - A load that settles after unmount re-renders nothing and warns nothing, which is what the scenario pins; on Vue it cannot fail, since unmounting stops the render. What a late answer still does:
@@ -225,10 +225,12 @@ As built (steps 11 and 12, up to auth):
     Stopping that takes a `dispose()` each layer calls on unmount; it changes what a Vue app sees, so it waits for the React layer, which has the same question.
 
 - Lang, the route overview, details, the form, and the owned-collection editors are in the core: `createLangState` (`useLang` is the Vue layer's one app-wide instance), `createRouteOverview` with `toRouteValue` and `isNewQuery`, `createDetails` with `isOtherItem`, `createForm` with `FormStates`, and `createOwnedCollection`, `createListInput` and `createListItemInput`. Each takes the route or the owner as plain values and callbacks — `routeId()`, `query()` and `navigate(query)`, `modelValue()` and `update(value)`, `navigateAfterInsert(saved)` — and exposes what the layer's `onMounted` and `watch` call: `load()` on details and the route overview, `mount()` on the form and the owned collection, and `onModelValueChange` on the form (with the new value) and the collections (to drop a pending write). A collection's `items` is a getter with a setter, which the Vue layer wraps in a writable `computed`.
+- One point for Phase 2: `clientApp` lives in the service options, outside any box, so the core's `setClientApp` notifies nothing; the Vue layer's `customRef` triggers for itself, and the React layer needs its own way to do that.
 - One point for Phase 2: the list-item editor's `handleRemove` toggles the row's `_deleted` in place and assigns nothing, as a view edits a row through v-model. A React box sees no assignment, so the hook re-renders nothing until the owner does.
 - What reads vue-router's shape stays in the Vue layer: the details page's `overviewUrl`, `isForm`, `isFiche` and `hasFiche`, the route a form replaces `/new` with, and the watchers themselves. So does the lang plugin's message loader.
 - The core driver plays a route and an owner itself: a URL whose query values come back as strings and whose navigations run `isNewQuery` / `isOtherItem`, and an owner whose prop catches up only on its next render. Its `frozenBox` leaves a row open — any object with an `$id` or an `id`, such as an entity or a bare `{ id: 0 }` add-row — since a view edits rows in place.
-- Auth is the next change: the state, `onAuthenticated` and `routeAllows`.
+- Auth is in the core as `createAuth`, `createAuthState`, `createOnAuthenticated`, `routeAllows` over a route's records, root first (the Vue layer also passes what `to.meta` says about `allowAnonymous`, since an app's guard can edit it), `addBearerHeader` and `autoLogoutOnFailedRequest`, and the login and password forms. `createAuthState` reads the service when it is used, since a Pinia store can exist before the plugin installs, and takes the route as `isAnonymousRoute()`; `clientApp()` and `setClientApp(value)` read and write the service options, and the Vue layer keeps its `customRef` over them. `autoLogoutOnFailedRequest` takes an `AuthSession` of plain callbacks, so `store.$patch` stays in the Vue layer, in `requireAuth()`.
+- What stays in the Vue layer is its wiring: the plugin's install order (the token restored, then the guard, then the interceptor), the timer that revalidates the token, the guard's registration, `$auth`, and which store `onAuthenticated` reads. Phase 2 decides how much of that the provider shares; the tests that pin it stay under `__tests__/vue/auth`.
 
 ### Phase 2: React hooks
 

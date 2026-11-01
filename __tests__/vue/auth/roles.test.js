@@ -1,8 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { setActivePinia, createPinia } from "pinia"
 import { AuthData } from "../../../src/core/auth/AuthData"
-import { createAuth } from "../../../src/vue/auth/auth"
-import { useAuthStore } from "../../../src/vue/auth/store"
 
 // The SPA decodes the RAW token, so role checks must probe every spelling an issuer can put in the
 // payload: "role" (self-issued JWT), "roles" (Entra), or the ClaimTypes.Role URI (ASP.NET Identity's
@@ -61,27 +58,5 @@ describe("AuthData.role carries the first role, for display", () => {
 
     test("undefined on the empty (logged-out) AuthData", () => {
         expect(new AuthData().role).toBeUndefined()
-    })
-})
-
-describe("the store delegates hasRole to the current AuthData", () => {
-    const harness = (claims) => {
-        const axios = {
-            post: async () => ({ data: { token: jwtWith(claims), isAuthenticated: true } }),
-        }
-        return createAuth({ enabled: true, tokenManager: { token: undefined }, axios })
-    }
-
-    test("false before login, true after a token carrying the role arrives", async () => {
-        setActivePinia(createPinia())
-        const auth = harness({ role: "Admin" })
-        const store = useAuthStore()
-
-        expect(store.hasRole("Admin")).toBe(false)
-
-        store.authData = await auth.service.login("u", "p")
-
-        expect(store.hasRole("Admin")).toBe(true)
-        expect(store.hasRole("Manager")).toBe(false)
     })
 })

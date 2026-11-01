@@ -1,12 +1,10 @@
-import { ref, computed, watch } from "vue"
+import { computed, watch, type Ref } from "vue"
 import { useAuth } from "./auth"
-import { maskAxiosError } from "../../core/auth/error-logging"
+import { createForgotPasswordForm, type ForgotPasswordFormEmits, type ForgotPasswordOptions } from "../../core/auth/forms"
+import { vueBox } from "../box"
 
-export interface ForgotPasswordFormEmits {
-    (e: "success", username?: string): void
-    (e: "fail", ex?: any): void
-    (e: "login", username?: string): void
-}
+export type { ForgotPasswordFormEmits }
+
 /** the modal's close: its header X or Esc */
 export interface ForgotPasswordModalEmits {
     (e: "close"): void
@@ -26,49 +24,17 @@ export type ForgotPasswordModalSlots = {
     default?(props: { username?: string }): any
 }
 
-export function useForgotPasswordForm(
-    props: ForgotPasswordFormProps,
-    emit: ForgotPasswordFormEmits,
-    options: {
-        siteUrl: string
-        /** @deprecated The API names the mail itself and ignores this. */
-        siteName?: string
-    }
-) {
+export function useForgotPasswordForm(props: ForgotPasswordFormProps, emit: ForgotPasswordFormEmits, options: ForgotPasswordOptions) {
     const { service } = useAuth()
+    const form = createForgotPasswordForm({ box: vueBox, service, username: props.username, options, emit })
 
-    const isLoading = ref(false)
-    const username = ref(props.username || "")
-    const isFormValid = computed(() => username.value != "")
-    const isSuccess = ref<boolean>()
-
-    async function handleSubmit() {
-        isSuccess.value = undefined
-        isLoading.value = true
-        try {
-            await service.forgotPassword({ username: username.value!, siteUrl: options.siteUrl, siteName: options.siteName })
-            emit("success", username.value)
-            isSuccess.value = true
-        } catch (err: any) {
-            isSuccess.value = false
-            // the error carries the request that produced it, Authorization header included
-            console.error("Resetting password failed", maskAxiosError(err))
-            emit("fail", err)
-        } finally {
-            isLoading.value = false
-        }
-    }
-
-    watch(
-        () => props.username,
-        () => (username.value = props.username || "")
-    )
+    watch(() => props.username, form.onUsernameChange)
 
     return {
-        username,
-        isLoading,
-        isFormValid,
-        isSuccess,
-        handleSubmit,
+        username: form.username as Ref<string>,
+        isLoading: form.isLoading as Ref<boolean>,
+        isFormValid: computed(form.isFormValid),
+        isSuccess: form.isSuccess as Ref<boolean | undefined>,
+        handleSubmit: form.handleSubmit,
     }
 }

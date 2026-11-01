@@ -12,6 +12,12 @@ import { createRouteOverview, isNewQuery } from "../../src/core/entities/overvie
 import { createDetails, isOtherItem } from "../../src/core/entities/details/details"
 import { createForm } from "../../src/core/entities/form/form"
 import { createListInput, createListItemInput, createOwnedCollection } from "../../src/core/entities/form/collections"
+import { createAuth } from "../../src/core/auth/auth"
+import { addBearerHeader, autoLogoutOnFailedRequest } from "../../src/core/auth/auth-axios"
+import { createAuthState } from "../../src/core/auth/auth-state"
+import { createOnAuthenticated } from "../../src/core/auth/on-authenticated"
+import { routeAllows } from "../../src/core/auth/route-allows"
+import { createChangePasswordForm, createForgotPasswordForm, createLoginForm, createResetPasswordForm } from "../../src/core/auth/forms"
 import { useFeedback } from "../../src/vue/ui/feedback"
 import { useOverviewCore } from "../../src/vue/entities/overview/overview-core"
 import { useSearchView } from "../../src/vue/entities/overview/search-view"
@@ -19,7 +25,7 @@ import { useListView } from "../../src/vue/entities/overview/list-view"
 import { PoolCache as VuePoolCache } from "../../src/vue/entities/pooling/PoolCache"
 import { usePooling } from "../../src/vue/entities/pooling/pool"
 import { useEntityDescribers } from "../../src/vue/entities/describers/functions"
-import { mountsFor } from "./mount"
+import { collected, mountsFor } from "./mount"
 import { useLang } from "../../src/vue/lang/useLang"
 
 // A driver runs a scenario against one layer. Each gives a controller's state and actions the same shape: `read`
@@ -121,6 +127,9 @@ function withQuery(route, query) {
     return routeOf(route.name + (search.size ? `?${search}` : "") + route.hash)
 }
 
+/** the app's auth setup over `axios`, for the core driver */
+const authSetup = ({ disabled = false, ...input } = {}) => createAuth({ enabled: !disabled, tokenManager: { token: undefined }, ...input })
+
 export const core = {
     name: "core",
     box: frozenBox,
@@ -196,6 +205,79 @@ export const core = {
         const owner = owned(rows, createListInput)
         return { ...owner, view: core.view(owner.editor) }
     },
+    /**
+     * the auth state over `axios`. `go` moves the route, and `onAuthenticated` registers a handler: the driver plays the
+     * framework layer's watcher, reading the signal again after each write to a box.
+     */
+    async auth({ path = "/things", disabled = false, unset = false, ...input }) {
+        const auth = authSetup({ ...input, disabled })
+        const watchers = []
+        const box = (initial) => {
+            const inner = frozenBox(initial)
+            return {
+                [BOX]: true,
+                get value() {
+                    return inner.value
+                },
+                set value(next) {
+                    inner.value = next
+                    watchers.forEach((watcher) => watcher())
+                },
+            }
+        }
+        const state = createAuthState({ box, service: () => (unset ? undefined : auth.service), isAnonymousRoute: () => path === "/public" })
+        return {
+            auth,
+            view: core.view(state),
+            /** the interceptors an app installs over its `axios` */
+            intercept() {
+                addBearerHeader(input.axios, auth.tokenManager)
+                autoLogoutOnFailedRequest(input.axios, {
+                    isAuthenticated: state.isAuthenticated,
+                    authData: () => state.authData.value,
+                    validateToken: state.validateToken,
+                    requireAuth: () => void (state.authRequired.value = true),
+                })
+            },
+            go: async (next) => void (path = next),
+            settle: async () => {},
+            onAuthenticated(handler, { immediate = true } = {}) {
+                const { signal, onSignal } = createOnAuthenticated({ disabled: () => disabled, authData: () => state.authData.value, handler })
+                let last = signal()
+                if (immediate) onSignal(last)
+                watchers.push(() => {
+                    const next = signal()
+                    if (next !== last) onSignal((last = next))
+                })
+            },
+        }
+    },
+    /** the check on a route with one record per meta, root first */
+    routeAllows,
+    /** each form over `axios`; `events` collects its emits as [name, arg] */
+    async loginForm({ username, ...input }) {
+        const { service } = authSetup(input)
+        const { events, emit } = collected()
+        const { login } = createAuthState({ box: frozenBox, service: () => service, isAnonymousRoute: () => false })
+        return { view: core.view(createLoginForm({ box: frozenBox, username, login, emit })), events }
+    },
+    async changePasswordForm({ onEvent, ...input }) {
+        const { service } = authSetup(input)
+        const { events, emit } = collected(onEvent)
+        return { view: core.view(createChangePasswordForm({ box: frozenBox, service, emit })), events }
+    },
+    async forgotPasswordForm({ username, options, onEvent, ...input }) {
+        const { service } = authSetup(input)
+        const { events, emit } = collected(onEvent)
+        const form = createForgotPasswordForm({ box: frozenBox, service, username, options, emit })
+        return { view: core.view(form), events, setUsername: async (value) => form.onUsernameChange(value) }
+    },
+    async resetPasswordForm({ token, ...input }) {
+        const { service } = authSetup(input)
+        const { events, emit } = collected()
+        const form = createResetPasswordForm({ box: frozenBox, service, token: () => token, emit })
+        return { view: core.view(form), events, setToken: (value) => void (token = value) }
+    },
     /** a route overview on `url`, mounted: its first search has run */
     async routeOverview({ url, searchObject, pagingInfo = { page: 1, pageSize: 10 } }) {
         let route = routeOf(url)
@@ -246,6 +328,12 @@ export const vue = {
     ownedCollection: (input) => vue.mount.ownedCollection(input),
     listInput: (input) => vue.mount.listInput(input),
     listItemInput: (input) => vue.mount.listItemInput(input),
+    auth: (input) => vue.mount.auth(input),
+    routeAllows: (metas, store) => vue.mount.routeAllows(metas, store),
+    loginForm: (input) => vue.mount.loginForm(input),
+    changePasswordForm: (input) => vue.mount.changePasswordForm(input),
+    forgotPasswordForm: (input) => vue.mount.forgotPasswordForm(input),
+    resetPasswordForm: (input) => vue.mount.resetPasswordForm(input),
     // useLang is the app's one language state: each scenario starts it over
     lang() {
         const lang = useLang()

@@ -1,17 +1,10 @@
 import { shallowRef } from "vue"
-import type { AxiosInstance } from "axios"
 import type { ITokenManager } from "../../core/auth/token-manager"
-import { AuthService, type IAuthOptions, type IAuthService } from "../../core/auth/auth-service"
-import { registerCredentialUrls, registerLoginUrl, resetCredentialUrls } from "../../core/auth/error-logging"
+import type { IAuthOptions, IAuthService } from "../../core/auth/auth-service"
+import { createAuth as createAuthSetup, type AuthInput, type IAuth } from "../../core/auth/auth"
 import type { IAuthData } from "../../core/auth/AuthData"
 
-export interface IAuth {
-    enabled: boolean
-    /** the JWT audience — reads through to `service.options`, the single owner (never assign; use the store's `setClientApp`) */
-    readonly clientApp?: string
-    tokenManager: ITokenManager
-    service: IAuthService
-}
+export type { IAuth }
 
 export interface IGlobalAuth {
     enabled: boolean
@@ -26,35 +19,9 @@ export interface IGlobalAuth {
 }
 export type { IAuthOptions }
 
-interface Input extends IAuthOptions {
-    enabled: boolean
-    tokenManager: ITokenManager
-    axios: AxiosInstance
-}
-
 let auth: IAuth
-export function createAuth(options: Input): IAuth {
-    const { enabled, tokenManager, axios, clientApp, loginUrl, credentialUrls } = options
-    // Single owner for the audience: the service options login() actually sends from — plain state, no
-    // framework. Everything else (this getter, $auth, the store) reads through instead of keeping a copy,
-    // so the mirrors can't drift apart. The store wraps this in its own reactive view.
-    const service = new AuthService(axios, tokenManager, { clientApp, loginUrl })
-    // a login endpoint that is not `auth` still posts the password — tell the log masking about it
-    registerLoginUrl(loginUrl)
-    // The interceptor logs every failed request the app makes, not just this module's, so the app's own
-    // credential-bearing endpoints belong on the same list. Reset first: this setup owns what the options
-    // carry, and re-running it must not accumulate. `registerCredentialUrls` stays available afterwards.
-    resetCredentialUrls()
-    registerCredentialUrls(...(credentialUrls ?? []))
-    auth = {
-        enabled,
-        get clientApp() {
-            return service.options.clientApp
-        },
-        tokenManager,
-        service,
-    }
-
+export function createAuth(options: AuthInput): IAuth {
+    auth = createAuthSetup(options)
     return auth
 }
 

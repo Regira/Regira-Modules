@@ -1,11 +1,21 @@
-import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue"
+import { createApp, defineComponent, effectScope, h, nextTick, reactive, ref } from "vue"
 import { createRouter, createMemoryHistory } from "vue-router"
+import { createPinia } from "pinia"
 import { useDetails } from "../../src/vue/entities/details"
 import { useSearchView } from "../../src/vue/entities/overview/search-view"
 import { useRouteOverview } from "../../src/vue/entities/overview/route-overview"
 import { useForm } from "../../src/vue/entities/form/form"
 import { useOwnedCollection } from "../../src/vue/entities/form/ownedCollections"
 import { useListInput, useListItemInput } from "../../src/vue/entities/form/listInput"
+import { createAuth, setGlobalAuth } from "../../src/vue/auth/auth"
+import { useAuthStore } from "../../src/vue/auth/store"
+import { addBearerHeader, autoLogoutOnFailedRequest } from "../../src/vue/auth/auth-axios"
+import { onAuthenticated } from "../../src/vue/auth/onAuthenticated"
+import { routeAllows } from "../../src/vue/auth/route-guard"
+import { useLoginForm } from "../../src/vue/auth/useLoginForm"
+import { useChangePasswordForm } from "../../src/vue/auth/useChangePasswordForm"
+import { useForgotPasswordForm } from "../../src/vue/auth/useForgotPasswordForm"
+import { useResetPasswordForm } from "../../src/vue/auth/useResetPasswordForm"
 
 // The Vue driver's mounting half, for the lifecycle scenarios: each mounts a real component under a memory router,
 // as an app does, and hands back what a scenario needs — the controller's view, the text on screen, how often the
@@ -16,9 +26,10 @@ const flush = () => new Promise((resolve) => setTimeout(resolve))
 const routes = [
     { path: "/things", name: "ThingOverview", component: blank },
     { path: "/things/:id", name: "ThingForm", component: blank },
+    { path: "/public", name: "Public", component: blank, meta: { allowAnonymous: true } },
 ]
 
-async function mount(components, { path = "/things" } = {}) {
+async function mount(components, { path = "/things", plugins = [] } = {}) {
     const router = createRouter({ history: createMemoryHistory(), routes })
     await router.push(path)
     const host = document.createElement("div")
@@ -29,6 +40,7 @@ async function mount(components, { path = "/things" } = {}) {
                 components.map((component) => h(component))
             ),
     })
+    plugins.forEach((plugin) => app.use(plugin))
     app.use(router)
     app.mount(host)
     await router.isReady()
@@ -81,9 +93,97 @@ async function withParent(use, rows) {
     }
 }
 
+/** a form's events, as [name, arg], and the `emit` that collects them; `onEvent` runs as each one arrives */
+export function collected(onEvent) {
+    const events = []
+    return { events, emit: (name, arg) => (events.push([name, arg]), onEvent?.(name, arg)) }
+}
+
+/** `use()` in a component of an app with a pinia, over the module-wide auth setup `createAuth(auth)` makes */
+async function withAuth(use, auth, { path, disabled = false } = {}) {
+    const created = createAuth({ enabled: !disabled, tokenManager: { token: undefined }, ...auth })
+    // what the plugin does for an app that installs it disabled; each scenario starts the module-wide `$auth` over
+    setGlobalAuth(disabled ? { enabled: false } : undefined)
+    const probe = counted(use)
+    const mounted = await mount([probe.component], { path, plugins: [createPinia()] })
+    return {
+        ...mounted,
+        auth: created,
+        state: probe.state,
+        unmount() {
+            mounted.unmount()
+            setGlobalAuth(undefined)
+        },
+    }
+}
+
 export function mountsFor(view) {
     const withView = (mounted) => ({ ...mounted, view: view(mounted.editor) })
     return {
+        /**
+         * the auth store over `axios`, in a mounted app. `go` moves the route, and `onAuthenticated` registers a handler
+         * that stays until the app unmounts, as a component setup does.
+         */
+        async auth({ path, disabled, ...auth }) {
+            const scope = effectScope()
+            const mounted = await withAuth(useAuthStore, auth, { path, disabled })
+            return {
+                ...mounted,
+                view: view(mounted.state),
+                go: (path) => mounted.router.push(path),
+                onAuthenticated: (handler, options) => void scope.run(() => onAuthenticated(handler, options)),
+                /** the interceptors the plugin installs over the app's `axios` */
+                intercept() {
+                    addBearerHeader(auth.axios, mounted.auth.tokenManager)
+                    autoLogoutOnFailedRequest(auth.axios, mounted.state)
+                },
+                unmount() {
+                    scope.stop()
+                    mounted.unmount()
+                },
+            }
+        },
+
+        /** the verdict on a route with one record per meta, root first, as vue-router resolves it */
+        routeAllows(metas, store) {
+            const path = (depth) => (depth ? "level" : "/level")
+            const route = metas.reduceRight(
+                (child, meta, depth) => ({ path: path(depth), component: blank, meta, children: child ? [child] : [] }),
+                undefined
+            )
+            const router = createRouter({ history: createMemoryHistory(), routes: [route] })
+            return routeAllows(router.resolve(metas.map(() => "/level").join("")), store)
+        },
+
+        /** each form over `axios`; `events` collects its emits as [name, arg] */
+        async loginForm({ username, ...auth }) {
+            const { events, emit } = collected()
+            const mounted = await withAuth(() => useLoginForm({ username }, emit), auth)
+            return { ...mounted, view: view(mounted.state), events }
+        },
+        async changePasswordForm({ onEvent, ...auth }) {
+            const { events, emit } = collected(onEvent)
+            const mounted = await withAuth(() => useChangePasswordForm(emit), auth)
+            return { ...mounted, view: view(mounted.state), events }
+        },
+        async forgotPasswordForm({ username, options, onEvent, ...auth }) {
+            const { events, emit } = collected(onEvent)
+            const props = reactive({ username })
+            const mounted = await withAuth(() => useForgotPasswordForm(props, emit, options), auth)
+            return {
+                ...mounted,
+                view: view(mounted.state),
+                events,
+                setUsername: async (value) => ((props.username = value), await nextTick()),
+            }
+        },
+        async resetPasswordForm({ token, ...auth }) {
+            const { events, emit } = collected()
+            const props = reactive({ token })
+            const mounted = await withAuth(() => useResetPasswordForm(props, emit), auth)
+            return { ...mounted, view: view(mounted.state), events, setToken: (value) => void (props.token = value) }
+        },
+
         async details({ service, path = "/things/7" }) {
             const probe = counted(
                 () => useDetails(service),

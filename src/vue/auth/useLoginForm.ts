@@ -1,15 +1,10 @@
-import { ref } from "vue"
+import type { Ref } from "vue"
 import { useAuthStore } from "./store"
-import { maskAxiosError } from "../../core/auth/error-logging"
+import { createLoginForm, type LoginFormEmits, type LoginInput } from "../../core/auth/forms"
+import { vueBox } from "../box"
 
-export type LoginInput = { username: string; password: string }
+export type { LoginFormEmits, LoginInput }
 
-export interface LoginFormEmits {
-    (e: "forgotPassword", username?: string): void
-    (e: "signingIn", username?: string): void
-    (e: "success", username?: string): void
-    (e: "fail", username?: string): void
-}
 /** the default form's events, forwarded (a slotted form emits its own), plus the modal's close: its header X or Esc */
 export interface LoginModalEmits extends LoginFormEmits {
     (e: "close"): void
@@ -56,56 +51,20 @@ export type LoginModalSlots = {
 }
 
 export function useLoginForm(props: LoginFormProps, emit: LoginFormEmits) {
-    const username = ref(props.username || "")
-    const password = ref("")
-
-    const failed = ref(false)
-    const signingIn = ref(false)
-    const isLockedOut = ref(false)
-    /** the password was right but the account (or its e-mail/phone) is not confirmed yet */
-    const isNotAllowed = ref(false)
-
     const store = useAuthStore()
-
-    async function handleSubmit() {
-        signingIn.value = true
-        failed.value = false
-        isLockedOut.value = false
-        isNotAllowed.value = false
-
-        emit("signingIn", username.value)
-        try {
-            const success = await store.login({ username: username.value, password: password.value })
-            if (success) {
-                emit("success", username.value)
-            } else {
-                emit("fail", username.value)
-            }
-        } catch (ex: any) {
-            // the error carries the request that produced it — the posted { username, password } included
-            console.error("login failed", maskAxiosError(ex))
-            failed.value = true
-            isLockedOut.value = !!ex.response?.data?.isLockedOut
-            isNotAllowed.value = !!ex.response?.data?.isNotAllowed
-            emit("fail", username.value)
-        } finally {
-            signingIn.value = false
-        }
-    }
-    function handleForgotPassword() {
-        emit("forgotPassword", username.value)
-    }
+    const form = createLoginForm({ box: vueBox, username: props.username, login: (input) => store.login(input), emit })
 
     return {
-        username,
-        password,
+        username: form.username as Ref<string>,
+        password: form.password as Ref<string>,
 
-        failed,
-        signingIn,
-        isLockedOut,
-        isNotAllowed,
+        failed: form.failed as Ref<boolean>,
+        signingIn: form.signingIn as Ref<boolean>,
+        isLockedOut: form.isLockedOut as Ref<boolean>,
+        /** the password was right but the account (or its e-mail/phone) is not confirmed yet */
+        isNotAllowed: form.isNotAllowed as Ref<boolean>,
 
-        handleSubmit,
-        handleForgotPassword,
+        handleSubmit: form.handleSubmit,
+        handleForgotPassword: form.handleForgotPassword,
     }
 }
