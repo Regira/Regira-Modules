@@ -282,6 +282,15 @@ describe("scaffold.mjs --rel", () => {
         }
     })
 
+    // the row's fileName is a getter, so a plain row from the API reads undefined until toEntity lifts it
+    test("--attachments lifts the owner's attachment rows in toEntity", () => {
+        run("Binder", "--attachments", "--no-auth")
+        const service = readFileSync(app("src", "entities", "binders", "data", "EntityService.ts"), "utf8")
+
+        expect(service).toContain('import EntityAttachment from "../../entity-attachments/data/Entity"')
+        expect(service).toContain("e.attachments = e.attachments.map((r) => EntityAttachment.create(r))")
+    })
+
     test("--dir is honoured by the lookup as well as by the output", () => {
         run("Country", "--plural", "countries", "--no-auth", "--dir", "src/modules")
         run("City", "--rel", "Country", "--no-auth", "--dir", "src/modules")

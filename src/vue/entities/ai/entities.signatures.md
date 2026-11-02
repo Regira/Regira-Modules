@@ -325,7 +325,7 @@ export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // re-search on a hard reload, a filter change, fast paging). The same gate covers applySave/applyRemove,
     // which write the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
-    debouncedSearchHandler(): Promise<void>
+    debouncedSearchHandler(resetPaging?: boolean): Promise<void>
     // append only: the server's next page below the rows on screen, in two requests: the last page fetched again, then
     // the next. Rows already on screen are dropped by $id, so no row shows twice, and rows that moved up because a row
     // left the server's result since (deleted, or edited out of the filter while the screen keeps it; up to a page of

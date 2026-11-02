@@ -113,7 +113,7 @@ puts on its own parts (the `FormSection` header bar and the labels hidden below 
 
 - **Root hooks** (`rg-*`): `rg-modal`, `rg-paging`, `rg-autocomplete` (the input), `rg-feedback`,
   `rg-pending`, `rg-success`, `rg-error-summary`, `rg-confirm-button`, `rg-icon`, `rg-icon-button`,
-  `rg-loading`, `rg-loading-button`, `rg-loading-container`, `rg-form-label`, `rg-date-input`,
+  `rg-loading`, `rg-loading-button`, `rg-loading-container`, `rg-load-more`, `rg-form-label`, `rg-date-input`,
   `rg-nullable-checkbox`, `rg-nullable-label`, `rg-anchor`, `rg-copy-button`, `rg-file-drop-zone`,
   `rg-tab-nav`, `rg-login-form`, `rg-logout-form`, `rg-change-password-form`, `rg-reset-password-form`,
   `rg-lang-selector`.
@@ -177,6 +177,7 @@ Slots are typed (`XxxSlots`, visible via `get_type`) — the main seams:
 - `Autocomplete`: scoped default `{item, q}` — **the** result-item rendering seam
 - `Feedback`: `close-button`, `pending`, `success`, `error`
 - `ResultSummary`: default `{visibleCount, totalCount}`
+- `LoadMore`: default (the button's content)
 - `ConfirmButton`: `button-content`, `modal`, default (confirm body)
 - `LoginModal` / `ForgotPasswordModal`: default `{username}` — replace the whole form
 - `EntityOverview`: `toolbar`, `head`, `row{item, remove, reload}`, `paging{page, pageCount, count, setPage}`
@@ -238,7 +239,7 @@ Every imported built-in is ejectable — `--ui list` is the authority. The full 
 `Paging` (incl. button/anchor), `Autocomplete`, `Feedback`, `ConfirmButton`, `FormButtonsRow`,
 `FileDropZone`, `Tabs` (container + nav), `LoginForm`, `ChangePasswordForm`, `ResetPasswordForm`,
 `InputSelectorInline`, `Anchor`, `DateInput`, `DescriptionInput`, `FormLabel`, `FormSection`,
-`NullableCheckBox`, `NullableLabel`, `ResultSummary`, `Icon`, `IconButton`, `Loading` (incl.
+`NullableCheckBox`, `NullableLabel`, `ResultSummary`, `LoadMore`, `Icon`, `IconButton`, `Loading` (incl.
 container/button), `Debug`, `LangSelector`, `DetailsSummary`, `GMapButton`, `LoginModal`,
 `ForgotPasswordModal`.
 

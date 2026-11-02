@@ -149,6 +149,12 @@ const MANIFEST = [
         note: "import your copy instead of the library ResultSummary",
     },
     {
+        name: "LoadMore",
+        dir: "vue/ui/paging",
+        files: ["LoadMore.vue"],
+        note: "import your copy instead of the library LoadMore",
+    },
+    {
         name: "Icon",
         dir: "vue/ui/icons",
         files: ["Icon.vue"],
@@ -217,6 +223,7 @@ const MODULE_MAP = {
     "vue/ui/feedback/Pending.vue": { spec: "@regira/modules/vue/ui", named: "Pending" },
     "vue/ui/feedback/Success.vue": { spec: "@regira/modules/vue/ui", named: "Success" },
     "vue/ui/feedback/ErrorSummary.vue": { spec: "@regira/modules/vue/ui", named: "ErrorSummary" },
+    "vue/ui/loading/LoadingButton.vue": { spec: "@regira/modules/vue/ui", named: "LoadingButton" },
     "vue/ui/modal": { spec: "@regira/modules/vue/ui" },
     "vue/ui/modal/modal": { spec: "@regira/modules/vue/ui" },
     "vue/ui/paging/paging": { spec: "@regira/modules/vue/ui", defaultAs: "usePaging" },

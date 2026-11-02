@@ -573,8 +573,8 @@ Resolution: `products.search()` → axios base `/api` + `IConfig.api` `/products
 
 - `IConfig.api` repeats the base (`/api/products` → requests go to `/api/api/products`) — keep it relative.
 - The proxy forwards `/api/*` but the API serves controllers at root — add the prefix **once** on the
-  back-end: `builder.Services.AddControllers(o => o.Conventions.Add(new RoutePrefixConvention("api")));`
-  (controllers stay resource-relative; full convention in `Regira.Entities` → `entities.setup` → _API route
+  back-end: `builder.Services.AddControllers(o => o.UseCentralRoutePrefix(new RouteAttribute("api")));`
+  (`using Regira.Web.Routing;`; controllers stay resource-relative; full convention in `Regira.Entities` → `entities.setup` → _API route
   prefix_). An API that maps its entities as minimal-API endpoints instead takes the prefix where it maps them:
   `app.MapEntityEndpoints(o => o.Prefix = "api")`. Or skip the proxy and point `config.json → api` straight at the
   API origin (then configure CORS).

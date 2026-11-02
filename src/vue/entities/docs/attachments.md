@@ -47,6 +47,12 @@ export class EntityService extends EntityServiceBase<Entity> {
     override update(item) {
         return updateWithAttachments(this.config.api, item, () => super.update(item))
     }
+    // rows from the API are plain objects and a row's fileName is a getter, so lift them (guarded: toEntity runs in computeds)
+    override toEntity(item: object): Entity {
+        const e = item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
+        if (e.attachments?.some((r) => !(r instanceof EntityAttachment))) e.attachments = e.attachments.map((r) => EntityAttachment.create(r))
+        return e
+    }
 }
 ```
 
@@ -80,7 +86,9 @@ In the form, a dedicated **files tab** binds the host's `attachments` array to t
 ```
 
 That component owns the add/rename/replace/remove/preview interactions; you do not hand-roll the file `<input>`.
-Wire it into a tab alongside the main form.
+Wire it into a tab alongside the main form. An extra field on the link (a featured flag, a caption) goes in its
+`extra` slot, rendered beside each row with `{ row, readonly, change }`: bind the field on `row` and call `change()`
+after an edit, so the host's form sees it.
 
 Replacing a file keeps the row's place in the list. The new file is staged like an added one and goes out on the
 host's save: a stored row `PUT`s it to `{api}/{id}/files/{linkId}`, then the host's own `PUT` applies the row's

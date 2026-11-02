@@ -11,7 +11,7 @@ Look the name up here, then fetch its heading, e.g.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Plugins`                    | `feedbackPlugin`, `iconPlugin`, `loadingPlugin`, `pagingPlugin`, `modalPlugin`, `screenPlugin`                                                                                                                           |
 | `Feedback`                   | `useFeedback`, `useAppFeedback`, `toFeedbackError`, `fieldMessages`, `fieldLabel`, `setErrorTranslator`, `Feedback`, `ErrorSummary`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                    |
-| `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`                                                                                                                                                                     |
+| `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`, `LoadMore`                                                                                                                                                         |
 | `Loading`                    | `Loading`, `LoadingButton`, `LoadingContainer`, `injectLoading`                                                                                                                                                          |
 | `Modal`                      | `DefaultModal`, `ModalType`, `injectModal`                                                                                                                                                                               |
 | `Tabs`                       | `TabContainer`, `TabNavigation`, `Tab`, `ITab`                                                                                                                                                                           |
@@ -180,6 +180,22 @@ export function usePaging(input: { pagingInfo: Ref<IPagingInfo>; count: Ref<numb
 import { ResultSummary, type ResultSummaryProps, type ResultSummarySlots } from "@regira/modules/vue/ui"
 export type ResultSummaryProps = { visibleCount?: number; totalCount?: number } // renders "visible / total"
 export type ResultSummarySlots = { default?(props: { visibleCount?: number; totalCount?: number }): any }
+```
+
+```ts
+import { LoadMore, loadMoreDefaults, type LoadMoreProps, type LoadMoreSlots } from "@regira/modules/vue/ui"
+// An append list's "Show more" button that is also its infinite-scroll sentinel: scrolled within rootMargin of the
+// viewport, it loads the next page; clicked, the same. Renders nothing while hasMore is false. Awaits load and ignores
+// both triggers until it settles; a page that leaves it in view is followed by the next one. Without
+// IntersectionObserver (server rendering) the button alone loads. The observer disconnects on unmount.
+export type LoadMoreProps = {
+    hasMore: boolean // useSearchView({ append: true }).hasMore
+    load: () => unknown // useSearchView({ append: true }).loadMore
+    label?: string // the button's text, default "Show more"
+    rootMargin?: string // IntersectionObserver rootMargin, default "200px"
+}
+export type LoadMoreSlots = { default?(): any } // the button's content
+export const loadMoreDefaults: { label: string; rootMargin: string }
 ```
 
 ## Loading

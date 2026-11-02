@@ -145,6 +145,13 @@
         "note": "import your copy instead of the library ResultSummary"
     },
     {
+        "name": "LoadMore",
+        "files": [
+            "LoadMore.vue"
+        ],
+        "note": "import your copy instead of the library LoadMore"
+    },
+    {
         "name": "Icon",
         "files": [
             "Icon.vue"

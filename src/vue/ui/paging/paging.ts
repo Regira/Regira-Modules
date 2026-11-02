@@ -28,6 +28,25 @@ export const pagingDefaults = {
     buttonType: ButtonType.anchor,
 }
 
+export type LoadMoreProps = {
+    /** `hasMore` of `useSearchView({ append: true })`: nothing renders without more rows */
+    hasMore: boolean
+    /** `loadMore` of `useSearchView({ append: true })`; awaited, and the button shows its spinner meanwhile */
+    load: () => unknown
+    /** the fallback button's text */
+    label?: string
+    /** how far below the viewport the sentinel starts the next page (the IntersectionObserver `rootMargin`) */
+    rootMargin?: string
+}
+export type LoadMoreSlots = {
+    /** the button's content, `label` by default */
+    default?(): any
+}
+export const loadMoreDefaults = {
+    label: "Show more",
+    rootMargin: "200px",
+}
+
 /** any component implementing the paging contract (props checked at the registration site) */
 export type PagingComponent = new (...args: any[]) => {
     $props: PagingProps & AllowedComponentProps & VNodeProps

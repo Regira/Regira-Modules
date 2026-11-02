@@ -59,7 +59,7 @@ export type SearchView<T extends IEntity, SO extends ISearchObject = ISearchObje
     F
 > & {
     searchHandler(resetPaging?: boolean): Promise<void>
-    debouncedSearchHandler(): Promise<void>
+    debouncedSearchHandler(resetPaging?: boolean): Promise<void>
     loadMore(): Promise<void>
     /** `append` only: the server has rows past the pages fetched so far */
     hasMore(): boolean

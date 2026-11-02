@@ -65,7 +65,7 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 | Area         | Key components                                                                                                                                                        | Programmatic                                                                                                                                |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                                                                                 |
+| paging       | `Paging`, `ResultSummary`, `LoadMore`                                                                                                                                 | `usePaging`, `pagingDefaults`, `loadMoreDefaults`, `ButtonType`, `pagingPlugin`                                                             |
 | loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                                                                             |
 | feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `fieldMessages`, `setErrorTranslator`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut`, `FeedbackError` |
 | modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                                                                                   |
@@ -81,6 +81,10 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 - **`Paging`** — `v-model="pagingInfo"` (`IPagingInfo`) + `:count="itemsCount"`; emits `change`. Pair with
   the overview composables (see entities).
+- **`LoadMore`** — under a list that grows (`useSearchView({ append: true })`):
+  `<LoadMore :has-more="hasMore" :load="loadMore" />`, in place of `Paging`. It loads the next page as the reader
+  scrolls near it, and stays a "Show more" button (`label`) for a reader who gets there first or a browser without
+  `IntersectionObserver`.
 - **`LoadingContainer`** — wraps content; `:is-loading="isLoading"`.
 - **`Feedback`** — `:feedback="feedback"` (the `FeedbackOut` returned by the overview/form composables);
   or use the global `$feedback` / `useFeedback()` for app-wide messages.

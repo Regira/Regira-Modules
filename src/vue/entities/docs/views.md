@@ -39,9 +39,10 @@ contradict each other until the next fetch.
 and `hasMore`. `loadMore()` adds the server's next page below the rows on screen; it fetches the last page again
 first, so rows that moved up because a row left the server's result (up to a page of them) are not skipped, and it
 drops the rows already shown. A `searchHandler()` refresh fetches every page on screen again, one request per
-page, so the list keeps its length; `searchHandler(true)` starts it over. With `useRouteOverview`, pass
-`handler: () => searchHandler(true)`, or a filter change fetches every page on screen again. Show a "Show more"
-button under the rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize`
+page, so the list keeps its length; `searchHandler(true)` starts it over (`debouncedSearchHandler(true)` behind a
+keyword box). With `useRouteOverview`, pass `handler: () => searchHandler(true)`, or a filter change fetches every
+page on screen again. Put `<LoadMore :has-more="hasMore" :load="loadMore" />` from `@regira/modules/vue/ui` under the
+rows instead of `Paging`: it loads the next page as the reader scrolls near it and is a "Show more" button too. Keep `pageSize` within the API's `MaxPageSize`
 (100 by default).
 
 **`items` is a new array after each change** — `handleSave`, `handleRemove` and `loadMore()` assign a new array,

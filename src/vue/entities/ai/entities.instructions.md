@@ -399,8 +399,10 @@ gain.
 A list that grows instead of turning pages ("Show more", a screen where nothing shifts while more loads) is
 `useSearchView({ …, append: true })`: `loadMore()` adds the server's next page below the rows on screen and
 `hasMore` says whether there is one, while a `searchHandler()` refresh fetches every page on screen again, so the
-list keeps its length and the reader's place. Put a "Show more" button under the rows (`v-if="hasMore"`) instead
-of `Paging`, and start the list over with `searchHandler(true)` when a filter changes: with `useRouteOverview`, pass
+list keeps its length and the reader's place. Put `<LoadMore :has-more="hasMore" :load="loadMore" />`
+(`@regira/modules/vue/ui`) under the rows instead of `Paging`: it loads the next page as the reader scrolls near it,
+and is a "Show more" button for one who gets there first. Start the list over with `searchHandler(true)`
+(`debouncedSearchHandler(true)` behind a keyword box) when a filter changes: with `useRouteOverview`, pass
 `handler: () => searchHandler(true)`, or a filter change fetches every page on screen again. A row the screen keeps
 after it left the server's result (an article marked as added) is fine: up to a page of such rows between two clicks
 are caught up; past that, a `searchHandler()` refresh realigns the list. Keep `pageSize` within the API's

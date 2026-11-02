@@ -86,7 +86,7 @@ export interface ISearchViewOut<T extends IEntity, SO extends ISearchObject = IS
      * app) it is `onMounted(() => searchHandler(true))`.
      */
     searchHandler(resetPaging?: boolean): Promise<void>
-    debouncedSearchHandler(): Promise<void>
+    debouncedSearchHandler(resetPaging?: boolean): Promise<void>
     /**
      * `append` only: adds the server's next page below the rows on screen. It fetches the last page again first, so
      * rows that moved up because a row left the server's result (up to a page of them) are not skipped, and drops

@@ -103,10 +103,9 @@ export function createSearchView<T extends IEntity, SO extends ISearchObject = I
             if (isLatest()) isLoading.value = false
         }
     }
-    const debouncedSearchHandler = debounceToPromise(
-        searchHandler as (...args: unknown[]) => Promise<void>,
-        debounceDelay
-    ) as unknown as () => Promise<void>
+    const debouncedSearchHandler = debounceToPromise(searchHandler as (...args: unknown[]) => Promise<void>, debounceDelay) as unknown as (
+        resetPaging?: boolean
+    ) => Promise<void>
 
     const hasMore = () => appending() && lastPage.value > 0 && lastPage.value * pageSizeOf() < serverCount.value
 

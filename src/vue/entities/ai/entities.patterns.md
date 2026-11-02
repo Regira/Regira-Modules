@@ -237,8 +237,10 @@ const { updateOverviewRoute } = useRouteOverview({ searchObject, pagingInfo, han
 ```
 
 A list that grows as the reader scrolls instead of turning pages ("Show more", infinite scroll) is
-`useSearchView({ …, append: true })` with `loadMore()` and `hasMore`, and no `Paging`; with `useRouteOverview`, pass
-`handler: () => searchHandler(true)` (`entities.instructions` → _Overview: `useListView` vs `useSearchView`_).
+`useSearchView({ …, append: true })` with `loadMore()` and `hasMore`, and `LoadMore` from `@regira/modules/vue/ui` under
+the rows in place of `Paging`: `<LoadMore :has-more="hasMore" :load="loadMore" />` loads the next page as the reader
+scrolls near it and is a "Show more" button too. With `useRouteOverview`, pass `handler: () => searchHandler(true)`
+(`entities.instructions` → _Overview: `useListView` vs `useSearchView`_).
 
 ## Overview list layout (avoiding horizontal scroll)
 
@@ -1096,7 +1098,8 @@ attachments?: Array<EntityAttachment>
 ```
 
 ```ts
-// data/EntityService.ts — flush on save; drop marked rows (deleted by omission) in the scaffolded prepareItem
+// data/EntityService.ts — flush on save; drop marked rows (deleted by omission) in the scaffolded prepareItem; lift the rows
+import EntityAttachment from "../../entity-attachments/data/Entity"
 import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"
 override async insert(item: Owner): Promise<Owner | undefined> {
     // the follow-up update sends the attachments in display order — the server assigns SortOrder from array position
@@ -1108,6 +1111,12 @@ override async update(item: Owner): Promise<Owner | undefined> {
 protected override prepareItem(item: Owner): Owner {
     item.attachments = item.attachments?.filter((x) => !x._deleted)
     return super.prepareItem(item)
+}
+override toEntity(item: object): Owner {
+    // a row's fileName is a getter: rows from the API need the lift (guarded, as every toEntity conversion)
+    const e = item instanceof Owner ? item : Object.assign(this.createInstance(Owner as new () => Owner), item || {})
+    if (e.attachments?.some((r) => !(r instanceof EntityAttachment))) e.attachments = e.attachments.map((r) => EntityAttachment.create(r))
+    return e
 }
 ```
 

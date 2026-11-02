@@ -53,6 +53,23 @@ heading.
   `authStore.refresh()` type-checks; `IDefineAuthStore` and `IAuthStore` declared it required.
 - Guides — the *Paging* pattern and the entities card name `useSearchView({ append: true })` with `loadMore()` and
   `hasMore` for a list that grows as the reader scrolls.
+- `vue/ui`: New: `LoadMore`, the "Show more" button under an `append` list that is also its infinite-scroll sentinel:
+  `<LoadMore :has-more="hasMore" :load="loadMore" />` loads the next page as the reader scrolls near it or clicks it,
+  waits for the page before it loads again, follows a page that leaves it in view with the next one, and falls back to
+  the button without `IntersectionObserver`. `label` and `rootMargin` props, `loadMoreDefaults`; ejectable with
+  `scaffold.mjs --ui LoadMore`.
+- `vue/entities`: Fix: `debouncedSearchHandler` takes `resetPaging?: boolean`, as `searchHandler` does and as the
+  implementation already forwarded, so a debounced keyword box on an `append` list can start the list over
+  (`debouncedSearchHandler(true)`) instead of fetching every page on screen again.
+- Scaffold: Fix: `--attachments` lifts the owner's `attachments` into `EntityAttachment` in its `toEntity`, so a row
+  read from the API has its `fileName` (a getter); the model typed the rows as `EntityAttachment` while they stayed
+  plain objects. The manual wiring steps it prints name the lift too.
+- Scaffold: New: the shared `entity-attachments` overview has an `extra` slot beside each row (`{ row, readonly,
+  change }`), for an extra field on the link (a featured flag, a caption) without editing the slice.
+- Guides — the front-end URL contract adds the API prefix with `UseCentralRoutePrefix(new RouteAttribute("api"))`,
+  where its `RoutePrefixConvention("api")` line did not compile; the entities card says to set a code-side filter in a
+  handler of your own, passed to `useRouteOverview({ handler })` and called from the scaffold's `onAuthenticated` line,
+  which calls `searchHandler(false)` directly; the attachments wiring lists four edits, the `toEntity` lift included.
 
 ## 6.6.1 — 2026-10-28
 
