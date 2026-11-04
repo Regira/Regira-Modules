@@ -33,8 +33,9 @@ export type PoolCacheOptions = {
     maxItems?: number
 }
 
-// each cache's box factory, kept off the class so it adds no member a layer's subclass would inherit
-const boxFactories = new WeakMap<PoolCache, BoxFactory>()
+// each cache's box factory, under a symbol so it adds no member a layer's subclass would inherit. Not a WeakMap keyed
+// on the instance: a framework store (pinia) hands out the cache as a proxy, and a proxy is not the key
+const boxFactory = Symbol("boxFactory")
 
 /** One box per entity, shared by every view that shows it; a framework layer passes its own box factory. */
 export class PoolCache implements IPoolCache {
@@ -49,7 +50,7 @@ export class PoolCache implements IPoolCache {
         expires = DEFAULTS.EXPIRES,
         maxItems = DEFAULTS.MAX_ITEMS,
     }: PoolCacheOptions & { box: BoxFactory }) {
-        boxFactories.set(this, box)
+        Object.defineProperty(this, boxFactory, { value: box })
         if (interval > 0) {
             setInterval(() => this.cleanup(), interval * 1000)
         }
@@ -61,7 +62,7 @@ export class PoolCache implements IPoolCache {
         const map = this.getEntityMap(item.constructor.name)
         let itemBox = this.get(item.constructor.name, item.$id) as Box<T>
         if (itemBox == null) {
-            itemBox = boxFactories.get(this)!<T>(item)
+            itemBox = (this as unknown as Record<symbol, BoxFactory>)[boxFactory]<T>(item)
         } else {
             itemBox.value = item
         }

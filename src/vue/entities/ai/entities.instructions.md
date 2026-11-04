@@ -586,7 +586,7 @@ The plugin install order is fixed (verified identical across the reference apps)
 
 ```
 createPinia → appPlugin (vue/app) → servicesPlugin (vue/ioc; adds axios + PoolCache, creates $configs)
-  → iconPlugin → screenPlugin → isOnlinePlugin → loadingPlugin → feedbackPlugin
+  → iconPlugin → screenPlugin → (isOnlinePlugin, when the app shows the connection) → loadingPlugin → feedbackPlugin
   → langPlugin → directives (focus/grow/clickOutside)
   → entityPlugins (collect routes) → routerFactory([...entityRoutes]) → preloaderPlugin
   → debugPlugin (needs the router) → authPlugin

@@ -173,7 +173,8 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
       (`get_type(id: "regira_modules.vue.entities", typeName: "SaveResult")`).
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
-      `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"`; give it a locale tag instead and it
+      `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"` (tokens `d M yy yyyy H h m n` only, no weekday
+      or month names: use `formatDate` with a culture, or `Intl`); give it a locale tag instead and it
       token-substitutes it into nonsense (`"en-GB"` → `"e7-GB"`, the `n` being milliseconds). Most masks given
       to `formatDate` are reported on the console and fall back to the browser's default date, since they
       would otherwise throw mid-render and blank the subtree — but a short one (`"dd-MM"`, `"yy"`) _is_ a

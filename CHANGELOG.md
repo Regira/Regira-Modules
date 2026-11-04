@@ -7,6 +7,12 @@ heading.
 
 ## Unreleased
 
+- `core`, `vue/entities`: Fix: a pooled store returned from a Pinia setup store, as the scaffold generates it, no longer
+  throws `… is not a function` on its first pooled read or write. The pool looked up its box factory by the instance
+  it constructed, and Pinia hands out the cache as a reactive proxy.
+- Guides — the startup order marks `isOnlinePlugin` as optional, as the shell template leaves it out, and the entities
+  card lists the `formatDateTime` tokens: no weekday or month names.
+
 - Scaffold: New: the generated `InputSelector` takes a `multiple` attribute. `v-model` then holds an array and
   `v-model:idsValue` replaces `v-model:idValue`; the selected rows show as chips, and `@select` fires on every change
   (the added row, or `undefined` when a chip is removed). Without the attribute the control behaves as before. A
