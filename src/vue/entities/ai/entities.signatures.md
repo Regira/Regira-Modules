@@ -703,7 +703,8 @@ import { InputSelector } from "../../<slice>"
 
 // InputSelector — relation picker.
 //   props: { modelValue?: Entity | Array<Entity> (v-model — the displayed entity; an array with `multiple`);
-//            idValue?: number | string (v-model:idValue — the FK actually saved; bind BOTH, idValue alone renders blank);
+//            idValue?: number | string | null (v-model:idValue — the FK actually saved, null for a nullable FK the API
+//              sends empty; bind BOTH, idValue alone renders blank);
 //            multiple?: boolean (chips for the selected rows, the control beside them picks the next one);
 //            idsValue?: Array<number | string> | number | string (v-model:idsValue — the ids with `multiple`, in place
 //              of idValue; bind BOTH; a scalar counts as a list of one, as a query string carries a single id);

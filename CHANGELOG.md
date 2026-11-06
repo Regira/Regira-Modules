@@ -18,6 +18,9 @@ heading.
   (the added row, or `undefined` when a chip is removed). Without the attribute the control behaves as before. A
   slice scaffolded earlier keeps its own copy: copy `selecting/InputSelector.vue` and `selecting/Autocomplete.vue`
   from the template to use it.
+- Scaffold: Fix: the generated `InputSelector` takes `null` on `v-model:idValue`, as the API sends a nullable FK, so a
+  model can type it `number | null`; vue-tsc refused that before. A slice scaffolded earlier changes `idValue?: number
+  | string` to `idValue?: number | string | null` in its own `selecting/InputSelector.vue`.
 - `vue/ui`: New: `Autocomplete` takes `confirmSelection`: the arrow keys only highlight a result, and Enter or a click
   selects it. Once the results are in, Enter or a click outside the control also selects a result whose exact text is
   typed, and Enter with nothing to select leaves the panel open. The generated `InputSelector` passes it on, and its

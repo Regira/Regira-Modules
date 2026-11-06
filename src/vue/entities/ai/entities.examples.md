@@ -1169,7 +1169,8 @@ const props = withDefaults(
         // multiple: `modelValue` is an array and `idsValue` replaces `idValue`
         multiple?: boolean
         modelValue?: Entity | Array<Entity>
-        idValue?: number | string
+        // null: a nullable FK as the API sends it
+        idValue?: number | string | null
         // one value is a list of one: a query string with a single id comes back as a scalar
         idsValue?: Array<number | string> | number | string
         readonly?: boolean
