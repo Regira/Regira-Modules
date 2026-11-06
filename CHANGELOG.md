@@ -7,11 +7,10 @@ heading.
 
 ## Unreleased
 
-- `core`, `vue/entities`: Fix: a pooled store returned from a Pinia setup store, as the scaffold generates it, no longer
-  throws `… is not a function` on its first pooled read or write. The pool looked up its box factory by the instance
-  it constructed, and Pinia hands out the cache as a reactive proxy.
-- Guides — the startup order marks `isOnlinePlugin` as optional, as the shell template leaves it out, and the entities
-  card lists the `formatDateTime` tokens: no weekday or month names.
+- Guides — the startup order marks `isOnlinePlugin` as optional, as the shell template leaves it out, and the setup's
+  plugin table lists it: without it `useOnlineChecker()` reads `navigator.onLine` once. The entities card lists the
+  `formatDateTime` tokens: no weekday or month names. A `--rel` to a string-keyed slice still gets `number` keys from
+  the scaffold, and the gotcha says which fields to type `string`.
 
 - Scaffold: New: the generated `InputSelector` takes a `multiple` attribute. `v-model` then holds an array and
   `v-model:idsValue` replaces `v-model:idValue`; the selected rows show as chips, and `@select` fires on every change
