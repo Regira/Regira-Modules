@@ -4,7 +4,7 @@ export class EntitySearchObject extends SearchObjectBase {
     // `q` (free-text) is inherited from SearchObjectBase. Add your filters:
     title?: string // TODO: your filter fields — placeholder; rename/remove it here AND in FilterAdv.vue
     // barId?: number                     // an FK filter bound to an <InputSelector> must be a SCALAR — the
-    //                                    // control speaks one id (`idValue?: number | string`), so widening it
+    //                                    // control speaks one id (`idValue?: number | string | null`), so widening it
     //                                    // to an array is 9 TS2322s in FilterAdv.vue
     // tagId?: number | Array<number>     // arrays serialize as repeated query keys — for filters you populate
     //                                    // from code or bind to an <InputSelector multiple> (`idsValue`). The API

@@ -82,6 +82,8 @@ import {
     // auth service and token managers — auth.signatures.md
     AuthService,
     registerCredentialUrls,
+    type IAuthService,
+    type IAuthData,
     type IAuthOptions,
     type IAuthenticateInput,
     type IChangePasswordInput,

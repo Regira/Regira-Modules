@@ -33,7 +33,7 @@ export interface IAuthData {
 // A JWT segment is base64url (`-` and `_` where base64 has `+` and `/`, no padding) over UTF-8 JSON: a bare `atob`
 // throws on `-`/`_`, which a claim's bytes produce at some offsets, and reads a non-ASCII claim ("Zoë") as Latin-1.
 function decodeJwtPayload(token: string): Record<string, any> {
-    const binary = window.atob(token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))
+    const binary = atob(token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0))))
 }
 

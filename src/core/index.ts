@@ -17,8 +17,10 @@ export { default as defaultServiceProvider, ServiceProvider, get, type IServiceP
 export * from "./formatters"
 
 // auth: the service, the token stores, and the app's credential endpoints for the masking of failed requests
+export { type IAuthData } from "./auth/AuthData"
 export {
     AuthService,
+    type IAuthService,
     type IAuthOptions,
     type IAuthenticateInput,
     type IChangePasswordInput,

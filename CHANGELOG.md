@@ -46,14 +46,14 @@ heading.
   `vue/ui/feedback`, `vue/entities`, `vue/lang` and `vue/auth` are unchanged.
 - `core`: New: `@regira/modules/core`, the part of the Vue modules that needs no framework, for an app without Vue —
   the entity model and `EntityServiceBase`, navigation, the shared axios instance, the service container
-  (`defaultServiceProvider`), the formatters, `AuthService` and the token managers, `translate`/`formatText`, and
+  (`defaultServiceProvider`), the formatters, `AuthService` (with `IAuthService` and `IAuthData`) and the token managers, `translate`/`formatText`, and
   `toFeedbackError` with `fieldMessages`, `fieldLabel` and `setErrorTranslator`. The `vue/*` entries export the same
   modules and instances as before, so a Vue app changes nothing. Without a framework layer, `toFeedbackError` shows
   a validation message as the server sent it until the app sets a translator.
 - Package: `vue`, `vue-router` and `pinia` are optional peer dependencies, so npm no longer installs them into an app
-  that does not use the Vue modules. ⚠️ Upgrade: an app that uses `vue/auth`, `vue/app` or the entity stores and
-  never listed `pinia` (or `vue-router`) in its own `dependencies` adds it there; the known-good dependency set in
-  the entities setup guide already lists all three.
+  that does not use the Vue modules. ⚠️ Upgrade: an app that never listed them in its own `dependencies` adds them
+  there: `vue-router` when it imports `vue/ui`, `vue/entities` or `vue/auth`, and `pinia` when it uses `vue/auth`,
+  `vue/app` or the entity stores. The known-good dependency set in the entities setup guide already lists all three.
 - `vue/auth`: Fix: `AuthData` decodes the token's payload as base64url over UTF-8, as a JWT carries it. A bare `atob`
   threw on the `-` or `_` a claim's bytes produce at some offsets, so signing in failed although `POST auth` answered
   200, and it read a non-ASCII claim (a display name such as "Zoë") as Latin-1.

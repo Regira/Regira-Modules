@@ -186,7 +186,8 @@ export type ResultSummarySlots = { default?(props: { visibleCount?: number; tota
 import { LoadMore, loadMoreDefaults, type LoadMoreProps, type LoadMoreSlots } from "@regira/modules/vue/ui"
 // An append list's "Show more" button that is also its infinite-scroll sentinel: scrolled within rootMargin of the
 // viewport, it loads the next page; clicked, the same. Renders nothing while hasMore is false. Awaits load and ignores
-// both triggers until it settles; a page that leaves it in view is followed by the next one. Without
+// both triggers until it settles; a page that leaves it in view is followed by the next one. A load that adds
+// nothing (a failure, or a search still in flight) leaves it waiting for a scroll or a click. Without
 // IntersectionObserver (server rendering) the button alone loads. The observer disconnects on unmount.
 export type LoadMoreProps = {
     hasMore: boolean // useSearchView({ append: true }).hasMore
