@@ -92,8 +92,10 @@ export type FeedbackError = string | Record<string, string | Array<string>>
 // translation, {name} filled from the args in the body's errorDetails ([{ key, message, args? }]); any other message
 // shows as sent.
 export function toFeedbackError(ex: unknown): FeedbackError | undefined
-// One field's messages in a field map (feedback.error, or a client-side map): [] when it has none, or when error is text
-// or unset. Own keys only — a field named "constructor" never reads the inherited member; an empty message counts as none.
+// One field's messages in a field map (feedback.error, or a client-side map), by the model's field name ("categoryId":
+// toFeedbackError starts each segment of the server's keys lower-case, "CategoryId" → "categoryId", and only its first
+// letter: "VATNumber" → "vATNumber"): [] when it has none, or when error is text or unset. Own keys only — a field
+// named "constructor" never reads the inherited member; an empty message counts as none.
 export function fieldMessages(error: FeedbackError | null | undefined, name: string): Array<string>
 // The heading <Feedback> shows over a field's messages: the key translated as the messages are (the translator
 // setErrorTranslator set, else useLang), else the key in words — "dueDate" → "Due date", "categoryId" → "Category";

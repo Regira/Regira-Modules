@@ -7,6 +7,9 @@ heading.
 
 ## Unreleased
 
+- Guides — the signature line and doc comment of `fieldMessages` say it takes the model's field name, as `toFeedbackError`
+  starts each segment of the server's keys lower-case (`CategoryId` → `categoryId`), and only its first letter
+  (`VATNumber` → `vATNumber`).
 - Guides — the startup order marks `isOnlinePlugin` as optional, as the shell template leaves it out, and the setup's
   plugin table lists it: without it `useOnlineChecker()` reads `navigator.onLine` once. The entities card lists the
   `formatDateTime` tokens: no weekday or month names. A `--rel` to a string-keyed slice still gets `number` keys from

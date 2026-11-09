@@ -89,7 +89,9 @@ export function toFeedbackError(ex: unknown): FeedbackError | undefined {
 /**
  * The messages of one field in a field-error map — `feedback.error`, or a client-side map — as an array: empty when the
  * field has none, or when `error` is text or unset. Only the map's own keys count, so a field named like a member every
- * object has (`constructor`, `toString`) never reads the inherited one; an empty message counts as none.
+ * object has (`constructor`, `toString`) never reads the inherited one; an empty message counts as none. `name` is the
+ * model's field name, as `toFeedbackError` starts each segment of the server's keys lower-case (`CategoryId` →
+ * `categoryId`), and only its first letter (`VATNumber` → `vATNumber`).
  */
 export function fieldMessages(error: FeedbackError | null | undefined, name: string): Array<string> {
     if (error == null || typeof error !== "object") {
