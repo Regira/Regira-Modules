@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.6.2 — 2026-11-11
 
 - Guides — the signature line and doc comment of `fieldMessages` say it takes the model's field name, as `toFeedbackError`
   starts each segment of the server's keys lower-case (`CategoryId` → `categoryId`), and only its first letter
