@@ -173,7 +173,8 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
       (`get_type(id: "regira_modules.vue.entities", typeName: "SaveResult")`).
     - `formatDate(date, culture)` vs `formatDateTime(date, mask)` — **different second arguments**, both
       signatures `(Date, string)`, so nothing type-checks the mix-up and neither function guesses.
-      `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"`; give it a locale tag instead and it
+      `formatDateTime` is the one that takes `"dd/MM/yyyy HH:mm"` (tokens `d M yy yyyy H h m n` only, no weekday
+      or month names: use `formatDate` with a culture, or `Intl`); give it a locale tag instead and it
       token-substitutes it into nonsense (`"en-GB"` → `"e7-GB"`, the `n` being milliseconds). Most masks given
       to `formatDate` are reported on the console and fall back to the browser's default date, since they
       would otherwise throw mid-render and blank the subtree — but a short one (`"dd-MM"`, `"yy"`) _is_ a
@@ -203,9 +204,12 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
   it (`onAuthenticated(() => searchHandler(true))`, and nothing on mount beside it). `useRouteOverview` re-parses the
   search object from the URL on every search: values come back as strings (`"true"`, `"5"`), a repeated key as
   `string[]` (one value: a plain string), so compare loosely or normalise (`entities.signatures` §5). A filter the
-  view sets in code (a "mine" view's `userId`) is replaced by the URL's copy as well: set it in the search handler,
-  or use `useSearchView` without `useRouteOverview`.
-  `pageSize: 0` returns all rows capped by the server's `MaxPageSize`. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
+  view sets in code (a "mine" view's `userId`) is replaced by the URL's copy as well: set it in a handler of your own,
+  pass it as `useRouteOverview({ handler })` and call that same handler from the scaffold's `onAuthenticated` line (it
+  calls `searchHandler(false)` directly), or use `useSearchView` without `useRouteOverview`.
+  `pageSize: 0` returns all rows capped by the server's `MaxPageSize`. A list that grows on scroll ("Show more", infinite
+  scroll) is `useSearchView({ append: true })` + `loadMore()`/`hasMore`, with `<LoadMore :has-more="hasMore" :load="loadMore" />`
+  (`vue/ui`) under the rows. In `IConfig`, set **only** `searchUrl` (`api + "/search"`) — every other
   `*Url` defaults off `api`, and `saveUrl` must stay the resource base or updates 404 while inserts pass.
 - **Forms show state through feedback.** `useForm` drives it, but only a rendered
   `<Feedback :feedback="feedback" />` shows it; any save you call yourself gets its own `useFeedback()`.
@@ -236,7 +240,8 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
   pooled `$title`. `scaffold.mjs <Entity> --rel <Related>` generates the column wired correctly.
 - **`InputSelector` has two v-models** — `v-model` (the entity it displays) and `v-model:idValue` (the FK
   it saves). Bind only `idValue` and a populated form renders the control blank: it resolves the entity from the id
-  (at setup, and whenever the id changes) and emits `update:modelValue` into nothing. Dev builds warn.
+  (at setup, and whenever the id changes) and emits `update:modelValue` into nothing. Dev builds warn. With
+  `multiple`, `v-model` is an array and `v-model:idsValue` replaces `v-model:idValue`; its rows show as chips.
 
 ## The URL & includes contract
 

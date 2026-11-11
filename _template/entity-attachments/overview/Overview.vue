@@ -27,6 +27,8 @@
                 @change="sync"
                 @replace="triggerReplace(row)"
             />
+            <!-- an extra field on the link (a featured flag, a caption): edit row.x, then call change() -->
+            <slot name="extra" :row="row" :readonly="readonly" :change="sync" />
         </div>
         <FileDropZone v-if="!readonly" @drop-files="handleBrowse" @click="triggerBrowse()">
             <template #default="{ isDropping }">
@@ -48,6 +50,7 @@ import ListItem from "./ListItem.vue"
 
 const emit = defineEmits<{ (e: "update:modelValue", v: Array<Entity>): void }>()
 const props = withDefaults(defineProps<{ modelValue?: Array<Entity>; readonly?: boolean }>(), { modelValue: () => [] })
+defineSlots<{ extra?(props: { row: Entity; readonly?: boolean; change: () => void }): any }>()
 
 const { items, sync, triggerBrowse, handleBrowse, triggerReplace, handleDragStart, handleDragEnd, handleDrop } = useEntityAttachments({ props, emit })
 </script>

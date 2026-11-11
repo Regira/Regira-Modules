@@ -39,10 +39,14 @@ contradict each other until the next fetch.
 and `hasMore`. `loadMore()` adds the server's next page below the rows on screen; it fetches the last page again
 first, so rows that moved up because a row left the server's result (up to a page of them) are not skipped, and it
 drops the rows already shown. A `searchHandler()` refresh fetches every page on screen again, one request per
-page, so the list keeps its length; `searchHandler(true)` starts it over. With `useRouteOverview`, pass
-`handler: () => searchHandler(true)`, or a filter change fetches every page on screen again. Show a "Show more"
-button under the rows (`v-if="hasMore"`) instead of `Paging`, and keep `pageSize` within the API's `MaxPageSize`
+page, so the list keeps its length; `searchHandler(true)` starts it over (`debouncedSearchHandler(true)` behind a
+keyword box). With `useRouteOverview`, pass `handler: () => searchHandler(true)`, or a filter change fetches every
+page on screen again. Put `<LoadMore :has-more="hasMore" :load="loadMore" />` from `@regira/modules/vue/ui` under the
+rows instead of `Paging`: it loads the next page as the reader scrolls near it and is a "Show more" button too. Keep `pageSize` within the API's `MaxPageSize`
 (100 by default).
+
+**`items` is a new array after each change** — `handleSave`, `handleRemove` and `loadMore()` assign a new array,
+so a shallow `watch(items)` fires on each. Read `items.value` each time; a variable that holds the array goes stale.
 
 **`useSearchView` vs `useListView`** — a fetch-shape choice (every controller exposes `/search`): use
 `useSearchView` when you want counted paging + filters (`service.search()` → `{ items, count }`), and
@@ -122,7 +126,7 @@ supplies it via `defineModel<SearchObject>`) and
 returns `handleUpdate`, `handleFilter`, `handleReset`, `handleToggle`, and `filterIsActive`. Pass the
 slice's search-object class as `Constructor` — the scaffold's filter components call
 `useFilter({ searchObject, emit, Constructor: SearchObject })` — because `filterIsActive` compares the
-model's non-null keys against a `new Constructor()`'s own keys; without it the fallback
+model's keys that hold a value (neither null nor an empty array) against a `new Constructor()`'s own keys; without it the fallback
 `DefaultSearchObject` has no own runtime keys, so `filterIsActive` is always `false`. Emit
 `filter` to trigger a search; the overview calls `updateOverviewRoute(true)` in response.
 
@@ -130,6 +134,21 @@ model's non-null keys against a `new Constructor()`'s own keys; without it the f
 
 `Selector.vue` (generated per slice under `selecting/`) is a reusable entity picker for choosing
 related entities in forms.
+
+`InputSelector.vue`, generated next to it, picks one row and binds both the entity (`v-model`) and its id
+(`v-model:idValue`). With the `multiple` attribute it picks several: `v-model` holds an array, `v-model:idsValue`
+replaces `v-model:idValue`, and the selected rows show as chips beside the control. There the arrow keys only
+highlight a result, and Enter or a click adds it. Once the results are in, a row's exact title, typed, is added by
+Enter or by a click outside the control, not by Tab, and Enter with nothing to add leaves the panel open. Removing a
+chip takes the row out of the array at once, so a collection that needs the marked-delete UX uses
+`InputSelectorInline`.
+
+```vue
+<BrandSelector multiple v-model="brands" v-model:idsValue="searchObject.brandId" @select="handleUpdate" />
+```
+
+`confirmSelection` gives a single control the same keyboard behaviour, for a filter that should not search on every
+arrow key.
 
 ## Overview
 

@@ -11,7 +11,7 @@ Look the name up here, then fetch its heading, e.g.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Plugins`                    | `feedbackPlugin`, `iconPlugin`, `loadingPlugin`, `pagingPlugin`, `modalPlugin`, `screenPlugin`                                                                                                                           |
 | `Feedback`                   | `useFeedback`, `useAppFeedback`, `toFeedbackError`, `fieldMessages`, `fieldLabel`, `setErrorTranslator`, `Feedback`, `ErrorSummary`, `FeedbackStatus`, `FeedbackError`, `FeedbackOut`                                    |
-| `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`                                                                                                                                                                     |
+| `Paging`                     | `Paging`, `usePaging`, `ButtonType`, `ResultSummary`, `LoadMore`                                                                                                                                                         |
 | `Loading`                    | `Loading`, `LoadingButton`, `LoadingContainer`, `injectLoading`                                                                                                                                                          |
 | `Modal`                      | `DefaultModal`, `ModalType`, `injectModal`                                                                                                                                                                               |
 | `Tabs`                       | `TabContainer`, `TabNavigation`, `Tab`, `ITab`                                                                                                                                                                           |
@@ -92,8 +92,10 @@ export type FeedbackError = string | Record<string, string | Array<string>>
 // translation, {name} filled from the args in the body's errorDetails ([{ key, message, args? }]); any other message
 // shows as sent.
 export function toFeedbackError(ex: unknown): FeedbackError | undefined
-// One field's messages in a field map (feedback.error, or a client-side map): [] when it has none, or when error is text
-// or unset. Own keys only — a field named "constructor" never reads the inherited member; an empty message counts as none.
+// One field's messages in a field map (feedback.error, or a client-side map), by the model's field name ("categoryId":
+// toFeedbackError starts each segment of the server's keys lower-case, "CategoryId" → "categoryId", and only its first
+// letter: "VATNumber" → "vATNumber"): [] when it has none, or when error is text or unset. Own keys only — a field
+// named "constructor" never reads the inherited member; an empty message counts as none.
 export function fieldMessages(error: FeedbackError | null | undefined, name: string): Array<string>
 // The heading <Feedback> shows over a field's messages: the key translated as the messages are (the translator
 // setErrorTranslator set, else useLang), else the key in words — "dueDate" → "Due date", "categoryId" → "Category";
@@ -116,7 +118,7 @@ export interface FeedbackOut {
     fail(msg: string, errors?: FeedbackError): void // second arg is the FIELD-ERROR MAP above, never an Error
     reset(): void
 }
-export function useFeedback({ autoHideDelay }?: FeedbackIn): FeedbackOut
+export function useFeedback(input?: FeedbackIn): FeedbackOut
 // the app-wide panel the feedback plugin installs, for a handler that owns no panel of its own. Call it during
 // setup (in a component, or a composable a component calls) and keep the result: outside setup, and without the
 // plugin, it throws
@@ -180,6 +182,23 @@ export function usePaging(input: { pagingInfo: Ref<IPagingInfo>; count: Ref<numb
 import { ResultSummary, type ResultSummaryProps, type ResultSummarySlots } from "@regira/modules/vue/ui"
 export type ResultSummaryProps = { visibleCount?: number; totalCount?: number } // renders "visible / total"
 export type ResultSummarySlots = { default?(props: { visibleCount?: number; totalCount?: number }): any }
+```
+
+```ts
+import { LoadMore, loadMoreDefaults, type LoadMoreProps, type LoadMoreSlots } from "@regira/modules/vue/ui"
+// An append list's "Show more" button that is also its infinite-scroll sentinel: scrolled within rootMargin of the
+// viewport, it loads the next page; clicked, the same. Renders nothing while hasMore is false. Awaits load and ignores
+// both triggers until it settles; a page that leaves it in view is followed by the next one. A load that adds
+// nothing (a failure, or a search still in flight) leaves it waiting for a scroll or a click. Without
+// IntersectionObserver (server rendering) the button alone loads. The observer disconnects on unmount.
+export type LoadMoreProps = {
+    hasMore: boolean // useSearchView({ append: true }).hasMore
+    load: () => unknown // useSearchView({ append: true }).loadMore
+    label?: string // the button's text, default "Show more"
+    rootMargin?: string // IntersectionObserver rootMargin, default "200px"
+}
+export type LoadMoreSlots = { default?(): any } // the button's content
+export const loadMoreDefaults: { label: string; rootMargin: string }
 ```
 
 ## Loading
@@ -361,9 +380,14 @@ picks from.
 import { useAutocomplete, autocompleteDefaults, Autocomplete } from "@regira/modules/vue/ui"
 import { type AutocompleteProps, type AutocompleteEmits, type AutocompleteSlots, type AutocompleteOut } from "@regira/modules/vue/ui"
 // AutocompleteProps<T>: { idValue?, modelValue?, data?, maxResults?, debounceTime?, enableDblClick?, autoSelect?, allowFreeInput?,
-//                         resultClass?, itemsClass?, itemClass?,
+//                         confirmSelection?, resultClass?, itemsClass?, itemClass?,
 //                         search?(term?): Promise<Array<T>>, idSelector?(item?): TKey|undefined,
 //                         displayItemFormatter?(item?): string }
+//   confirmSelection: the arrow keys only highlight a result, and Enter or a click selects it; Down or Up on a closed
+//   panel searches and opens it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
+//   click outside the control, not by Tab, and Enter with nothing to select leaves the panel open. On a closed panel
+//   handleSelect keeps the current selection: select in code through modelValue. Without confirmSelection the arrow
+//   keys select as they move; on a closed panel with nothing selected they search and open it instead.
 // AutocompleteEmits<T>: "update:modelValue" | "update:idValue" | "select" | "qInput"
 // AutocompleteSlots<T>: { default?({ item: T; q: string }): any }
 //   the scoped default slot is THE result-item rendering seam; the fallback renders
@@ -377,6 +401,9 @@ export function useAutocomplete<T = any, TKey = number | string | T>(props, { em
 // selectedItem, search(term?), reset(), resetQ() }
 // AutocompleteOut.listboxId: string — the results listbox's id, unique on the page across every skin (the
 // input's aria-controls); AutocompleteOut.optionId(index): string — that result's id (aria-activedescendant)
+// AutocompleteOut.handleEscape(e: KeyboardEvent): void — bind to @keydown.esc: closes an open panel, clears text
+// that selected nothing, drops a pending closeGently, and stops the key and its default action there, so a modal
+// around the control stays open until the next Escape
 // AutocompleteOut.resultOffset is @deprecated — always { top: 0, left: 0 }; read the placement from resultStyle
 ```
 

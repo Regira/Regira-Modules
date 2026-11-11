@@ -282,6 +282,15 @@ describe("scaffold.mjs --rel", () => {
         }
     })
 
+    // the row's fileName is a getter, so a plain row from the API reads undefined until toEntity lifts it
+    test("--attachments lifts the owner's attachment rows in toEntity", () => {
+        run("Binder", "--attachments", "--no-auth")
+        const service = readFileSync(app("src", "entities", "binders", "data", "EntityService.ts"), "utf8")
+
+        expect(service).toContain('import EntityAttachment from "../../entity-attachments/data/Entity"')
+        expect(service).toContain("e.attachments = e.attachments.map((r) => EntityAttachment.create(r))")
+    })
+
     test("--dir is honoured by the lookup as well as by the output", () => {
         run("Country", "--plural", "countries", "--no-auth", "--dir", "src/modules")
         run("City", "--rel", "Country", "--no-auth", "--dir", "src/modules")
@@ -1035,6 +1044,23 @@ describe("scaffold.mjs output type-checks", () => {
                     'export const row = liftDates({ dueOn: undefined as Date | undefined, day: "2026-10-21" }, "dueOn")\n' +
                     '// @ts-expect-error "day" is a string field\n' +
                     'liftDates(row, "day")\n'
+            )
+            // InputSelector's two shapes: a handler typed for one row, and an array with `multiple`
+            writeFileSync(
+                join(root, "src", "input-selector-check.vue"),
+                "<template>\n" +
+                    '    <NoteSelector :model-value="one" @update:model-value="onOne" @select="onOne" />\n' +
+                    '    <NoteSelector multiple v-model="several" v-model:idsValue="ids" @select="onOne" />\n' +
+                    "</template>\n" +
+                    '<script setup lang="ts">\n' +
+                    'import { ref } from "vue"\n' +
+                    'import type Note from "./entities/notes/data/Entity"\n' +
+                    'import NoteSelector from "./entities/notes/selecting/InputSelector.vue"\n' +
+                    "const one = ref<Note>()\n" +
+                    "const several = ref<Array<Note>>([])\n" +
+                    "const ids = ref<Array<number | string>>([])\n" +
+                    "const onOne = (e?: Note) => (one.value = e)\n" +
+                    "</script>\n"
             )
 
             // the repository's packages, and @regira/modules itself, linked in as an install would place them

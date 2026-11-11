@@ -415,7 +415,7 @@ src/entities/<name>/             # one entity slice — copy this folder set for
         Overview.vue             # useSearchView + useRouteOverview (useListView only for a count-less lookup)
     selecting/
         Autocomplete.vue         # type-ahead search input
-        InputSelector.vue        # single-item picker
+        InputSelector.vue        # single-item picker; several items with `multiple`
         Selector.vue             # multi-item picker (chips) — relation picker for this entity
         SelectorDropdown.vue     # simple <select>, loads every row
         SelectorList.vue (c)     # selectable results list
@@ -573,8 +573,8 @@ Resolution: `products.search()` → axios base `/api` + `IConfig.api` `/products
 
 - `IConfig.api` repeats the base (`/api/products` → requests go to `/api/api/products`) — keep it relative.
 - The proxy forwards `/api/*` but the API serves controllers at root — add the prefix **once** on the
-  back-end: `builder.Services.AddControllers(o => o.Conventions.Add(new RoutePrefixConvention("api")));`
-  (controllers stay resource-relative; full convention in `Regira.Entities` → `entities.setup` → _API route
+  back-end: `builder.Services.AddControllers(o => o.UseCentralRoutePrefix(new RouteAttribute("api")));`
+  (`using Regira.Web.Routing;`; controllers stay resource-relative; full convention in `Regira.Entities` → `entities.setup` → _API route
   prefix_). An API that maps its entities as minimal-API endpoints instead takes the prefix where it maps them:
   `app.MapEntityEndpoints(o => o.Prefix = "api")`. Or skip the proxy and point `config.json → api` straight at the
   API origin (then configure CORS).
@@ -978,6 +978,7 @@ still matters where dependencies exist (see [Bootstrap — main.ts](#bootstrap--
 | `langPlugin` (`vue/lang`)                    | `$t` i18n                                         | Optional — only if you render translated labels                                                                                                                               |
 | directives (`focus`, `grow`, `clickOutside`) | template directives                               | Optional — only where used                                                                                                                                                    |
 | `preloaderPlugin` (`vue/entities`)           | route preloading                                  | Optional                                                                                                                                                                      |
+| `isOnlinePlugin` (`vue/online`)              | `$isOnline` / `inject("isOnline")`                | Optional — for a live connection indicator: without it, or outside a component's setup, `useOnlineChecker()` returns `{ isOnline }`, a ref read once from `navigator.onLine`  |
 | `authPlugin` (`vue/auth`)                    | bearer auth + `$auth`                             | **Optional** — see [Running without authentication](#running-without-authentication)                                                                                          |
 
 > **`debugPlugin` (`vue/debug`) — install it.** The scaffolded `Overview.vue`, `Filter.vue` and

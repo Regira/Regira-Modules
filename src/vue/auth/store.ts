@@ -1,10 +1,11 @@
-import { ref, computed, customRef, type Ref, type ComputedRef } from "vue"
+import { computed, customRef, type Ref, type ComputedRef } from "vue"
 import { useRouter } from "vue-router"
 import { defineStore, type Store } from "pinia"
-import { emptyAuthData } from "./auth-service"
-import type { IAuthData } from "./AuthData"
+import { createAuthState } from "../../core/auth/auth-state"
+import type { IAuthData } from "../../core/auth/AuthData"
+import type { LoginInput } from "../../core/auth/forms"
+import { vueBox } from "../box"
 import { useAuth } from "./auth"
-import type { LoginInput } from "./useLoginForm"
 
 const storeName: string = "Auth"
 export interface IDefineAuthStore {
@@ -27,7 +28,7 @@ export interface IDefineAuthStore {
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
     /** Re-issues the token: `o` is sent as the query string of `POST auth/refresh/` (e.g. `{ tenantId }`). */
-    refresh(o: Record<string, unknown>): Promise<boolean>
+    refresh(o?: Record<string, unknown>): Promise<boolean>
     logout(): void
 }
 export interface IAuthStore extends Store {
@@ -50,82 +51,52 @@ export interface IAuthStore extends Store {
     login({ username, password }: LoginInput): Promise<boolean>
     validateToken(): Promise<boolean>
     /** Re-issues the token: `o` is sent as the query string of `POST auth/refresh/` (e.g. `{ tenantId }`). */
-    refresh(o: Record<string, unknown>): Promise<boolean>
+    refresh(o?: Record<string, unknown>): Promise<boolean>
     logout(): void
 }
 
 export function createStore(): IDefineAuthStore {
-    const enabled = ref(true)
+    const router = useRouter()
+    const state = createAuthState({
+        box: vueBox,
+        service: () => useAuth()?.service,
+        isAnonymousRoute: () => !!router.currentRoute.value?.meta?.allowAnonymous,
+    })
     // The audience is owned by the (framework-free) auth service options; this is only its reactive view for
     // Vue — it re-reads the owner on every evaluation and triggers on write, so no copy exists to go stale.
     const clientApp = customRef<string | undefined>((track, trigger) => ({
         get() {
             track()
-            return useAuth()?.service?.options?.clientApp
+            return state.clientApp()
         },
         set(value) {
-            const auth = useAuth()
-            if (auth?.service?.options) auth.service.options.clientApp = value
+            state.setClientApp(value)
             trigger()
         },
     }))
-    const authData = ref(emptyAuthData())
-    const authRequired = ref(false)
-
-    const router = useRouter()
-
-    const isRequired = computed(() => enabled.value && !router.currentRoute.value?.meta?.allowAnonymous)
-    const isAuthenticated = computed(() => !!authData.value.isAuthenticated)
-    const displayName = computed(() => authData.value?.displayName)
-    const getClaimValue = computed(() => (type: string) => authData.value.get(type))
-    const hasClaim = computed(() => (type: string, value?: string) => authData.value?.hasClaim(type, value) ?? false)
-    const hasPermission = computed(() => (permission: string) => authData.value?.hasPermission(permission) ?? false)
-    const hasRole = computed(() => (role: string) => authData.value?.hasRole(role) ?? false)
-
-    function setClientApp(value?: string) {
-        // one write path into the owner — `clientApp` above and `$auth` reflect it because they read through
-        clientApp.value = value
-    }
-    async function login({ username, password }: LoginInput) {
-        const { service } = useAuth()
-        authData.value = await service.login(username, password)
-        return authData.value.isAuthenticated
-    }
-    async function refresh(o?: Record<string, unknown>) {
-        const { service } = useAuth()
-        authData.value = await service.refresh(o)
-        return authData.value.isAuthenticated
-    }
-    async function validateToken() {
-        const { service } = useAuth()
-        authData.value = await service.validateToken()
-        return authData.value.isAuthenticated
-    }
-    function logout() {
-        authData.value = emptyAuthData()
-        const { service } = useAuth()
-        service.logout()
-    }
 
     return {
-        enabled,
+        enabled: state.enabled as Ref<boolean>,
         clientApp,
-        authData,
-        authRequired,
+        authData: state.authData as Ref<IAuthData>,
+        authRequired: state.authRequired as Ref<boolean>,
 
-        isRequired,
-        isAuthenticated,
-        hasPermission,
-        hasRole,
-        displayName,
-        hasClaim,
-        getClaimValue,
+        isRequired: computed(state.isRequired),
+        isAuthenticated: computed(state.isAuthenticated),
+        hasPermission: computed(() => state.hasPermission),
+        hasRole: computed(() => state.hasRole),
+        displayName: computed(state.displayName),
+        hasClaim: computed(() => state.hasClaim),
+        getClaimValue: computed(() => state.getClaimValue),
 
-        setClientApp,
-        login,
-        refresh,
-        validateToken,
-        logout,
+        setClientApp(value?: string) {
+            // one write path into the owner — `clientApp` above and `$auth` reflect it because they read through
+            clientApp.value = value
+        },
+        login: state.login,
+        refresh: state.refresh,
+        validateToken: state.validateToken,
+        logout: state.logout,
     }
 }
 createStore.storeName = storeName

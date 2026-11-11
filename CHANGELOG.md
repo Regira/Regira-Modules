@@ -5,6 +5,83 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## 6.6.2 — 2026-11-11
+
+- Guides — the signature line and doc comment of `fieldMessages` say it takes the model's field name, as `toFeedbackError`
+  starts each segment of the server's keys lower-case (`CategoryId` → `categoryId`), and only its first letter
+  (`VATNumber` → `vATNumber`).
+- Guides — the startup order marks `isOnlinePlugin` as optional, as the shell template leaves it out, and the setup's
+  plugin table lists it: without it `useOnlineChecker()` reads `navigator.onLine` once. The entities card lists the
+  `formatDateTime` tokens: no weekday or month names. A `--rel` to a string-keyed slice still gets `number` keys from
+  the scaffold, and the gotcha says which fields to type `string`.
+
+- Scaffold: New: the generated `InputSelector` takes a `multiple` attribute. `v-model` then holds an array and
+  `v-model:idsValue` replaces `v-model:idValue`; the selected rows show as chips, and `@select` fires on every change
+  (the added row, or `undefined` when a chip is removed). Without the attribute the control behaves as before. A
+  slice scaffolded earlier keeps its own copy: copy `selecting/InputSelector.vue` and `selecting/Autocomplete.vue`
+  from the template to use it.
+- Scaffold: Fix: the generated `InputSelector` takes `null` on `v-model:idValue`, as the API sends a nullable FK, so a
+  model can type it `number | null`; vue-tsc refused that before. A slice scaffolded earlier changes `idValue?: number
+  | string` to `idValue?: number | string | null` in its own `selecting/InputSelector.vue`.
+- `vue/ui`: New: `Autocomplete` takes `confirmSelection`: the arrow keys only highlight a result, and Enter or a click
+  selects it. Once the results are in, Enter or a click outside the control also selects a result whose exact text is
+  typed, and Enter with nothing to select leaves the panel open. The generated `InputSelector` passes it on, and its
+  `multiple` picker always sets it.
+- `vue/ui`: New: Escape closes `Autocomplete`'s result panel and clears text that selected nothing, without selecting; a
+  modal around the control stays open until the next Escape. `useAutocomplete` returns `handleEscape` for skins.
+- `vue/ui`: Fix: with nothing selected, an arrow key on `Autocomplete`'s closed panel searches and opens it instead of
+  selecting a row nobody can see.
+- `vue/ui`: Fix: `Autocomplete` decides whether to open above its control from the height the panel wants. It measured
+  the panel at the limit it had already been given, so a long list could stay below as a sliver cut off by the screen,
+  a panel that had flipped dropped back below when the page scrolled, and the `Loading...` row made a short list flip
+  while it fitted below or bounced a panel on every keystroke.
+- `vue/ui`: Fix: the arrow keys scroll `Autocomplete`'s result panel to the row they reach, and no longer throw while
+  results are loading.
+- `vue/entities`: Fix: `filterIsActive` no longer counts an empty array as an active filter.
+- `vue/entities`: `useSearchView`, `useListView` and `useOverviewCore` hand `items` a new array after a save, a delete or
+  a loaded page (`handleSave`, `handleRemove`, `loadMore`) instead of editing the array on screen. A shallow
+  `watch(items)` now fires on each, and code that kept the old array keeps a stale copy: read `items.value` again.
+  An array of rows assigned to `items` is kept with each row's raw object in place of its reactive proxy, as Vue's
+  own array writes keep it, so code that holds that array finds the raw rows in it.
+  The logic of the feedback, the overview and the route overview, the pool, the details page, the form, the
+  owned-collection editors, the language state and auth (the store's state, `onAuthenticated`, `routeAllows`, the
+  axios interceptors, the login and password forms) now runs in the framework-free core; the exports and types of
+  `vue/ui/feedback`, `vue/entities`, `vue/lang` and `vue/auth` are unchanged.
+- `core`: New: `@regira/modules/core`, the part of the Vue modules that needs no framework, for an app without Vue —
+  the entity model and `EntityServiceBase`, navigation, the shared axios instance, the service container
+  (`defaultServiceProvider`), the formatters, `AuthService` (with `IAuthService` and `IAuthData`) and the token managers, `translate`/`formatText`, and
+  `toFeedbackError` with `fieldMessages`, `fieldLabel` and `setErrorTranslator`. The `vue/*` entries export the same
+  modules and instances as before, so a Vue app changes nothing. Without a framework layer, `toFeedbackError` shows
+  a validation message as the server sent it until the app sets a translator.
+- Package: `vue`, `vue-router` and `pinia` are optional peer dependencies, so npm no longer installs them into an app
+  that does not use the Vue modules. ⚠️ Upgrade: an app that never listed them in its own `dependencies` adds them
+  there: `vue-router` when it imports `vue/ui`, `vue/entities` or `vue/auth`, and `pinia` when it uses `vue/auth`,
+  `vue/app` or the entity stores. The known-good dependency set in the entities setup guide already lists all three.
+- `vue/auth`: Fix: `AuthData` decodes the token's payload as base64url over UTF-8, as a JWT carries it. A bare `atob`
+  threw on the `-` or `_` a claim's bytes produce at some offsets, so signing in failed although `POST auth` answered
+  200, and it read a non-ASCII claim (a display name such as "Zoë") as Latin-1.
+- `vue/auth`: Fix: the store's `refresh(o?)` takes its query object as optional, as the auth service does, so
+  `authStore.refresh()` type-checks; `IDefineAuthStore` and `IAuthStore` declared it required.
+- Guides — the *Paging* pattern and the entities card name `useSearchView({ append: true })` with `loadMore()` and
+  `hasMore` for a list that grows as the reader scrolls.
+- `vue/ui`: New: `LoadMore`, the "Show more" button under an `append` list that is also its infinite-scroll sentinel:
+  `<LoadMore :has-more="hasMore" :load="loadMore" />` loads the next page as the reader scrolls near it or clicks it,
+  waits for the page before it loads again, follows a page that leaves it in view with the next one, and falls back to
+  the button without `IntersectionObserver`. `label` and `rootMargin` props, `loadMoreDefaults`; ejectable with
+  `scaffold.mjs --ui LoadMore`.
+- `vue/entities`: Fix: `debouncedSearchHandler` takes `resetPaging?: boolean`, as `searchHandler` does and as the
+  implementation already forwarded, so a debounced keyword box on an `append` list can start the list over
+  (`debouncedSearchHandler(true)`) instead of fetching every page on screen again.
+- Scaffold: Fix: `--attachments` lifts the owner's `attachments` into `EntityAttachment` in its `toEntity`, so a row
+  read from the API has its `fileName` (a getter); the model typed the rows as `EntityAttachment` while they stayed
+  plain objects. The manual wiring steps it prints name the lift too.
+- Scaffold: New: the shared `entity-attachments` overview has an `extra` slot beside each row (`{ row, readonly,
+  change }`), for an extra field on the link (a featured flag, a caption) without editing the slice.
+- Guides — the front-end URL contract adds the API prefix with `UseCentralRoutePrefix(new RouteAttribute("api"))`,
+  where its `RoutePrefixConvention("api")` line did not compile; the entities card says to set a code-side filter in a
+  handler of your own, passed to `useRouteOverview({ handler })` and called from the scaffold's `onAuthenticated` line,
+  which calls `searchHandler(false)` directly; the attachments wiring lists four edits, the `toEntity` lift included.
+
 ## 6.6.1 — 2026-10-28
 
 - `vue/auth`: Fix: the plugin no longer re-validates the token in a tight loop. Its timer waits at most 2^31-1 ms

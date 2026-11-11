@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, type Ref, type ComputedRef } from "vue"
-import { DEFAULT_PAGESIZE } from "../abstractions"
-import type { IEntity, IEntityService } from "../abstractions"
+import { DEFAULT_PAGESIZE } from "../../../core/entities/abstractions"
+import type { IEntity, IEntityService } from "../../../core/entities/abstractions"
 
 export type LeanOverviewProps<T extends IEntity> = {
     service: IEntityService<T>

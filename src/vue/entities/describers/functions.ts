@@ -1,4 +1,5 @@
-import type { IConfig, IEntity } from "../abstractions"
+import type { IConfig, IEntity } from "../../../core/entities/abstractions"
+import { getEntityDescribers } from "../../../core/entities/describers/functions"
 import type { IPoolHandler } from "../pooling"
 
 type EntityDescriber = {
@@ -7,25 +8,12 @@ type EntityDescriber = {
     components: Record<string, unknown>
 }
 
-const entityDescribers = new Map<Symbol, Map<string, EntityDescriber>>()
-const defaultNs = Symbol()
-
-export function useEntityDescribers(ns: Symbol = defaultNs) {
-    const desc = entityDescribers.has(ns) ? entityDescribers.get(ns)! : entityDescribers.set(ns, new Map<string, EntityDescriber>()).get(ns)!
-
-    function addEntity<T extends IEntity = IEntity>(config: IConfig, store: () => IPoolHandler<T>, components: Record<string, unknown>) {
-        desc.set(config.key, { config, store, components })
-    }
-    function getDescriber(entityKey: string) {
-        return desc.get(entityKey)
-    }
-
-    return {
-        describers: desc,
-        get types() {
-            return [...desc.keys()]
-        },
-        addType: addEntity,
-        getDesc: getDescriber,
-    }
+/** The core's registry; its stores are this layer's pool handlers, whose boxes are refs. */
+export function useEntityDescribers(ns?: Symbol): {
+    describers: Map<string, EntityDescriber>
+    readonly types: string[]
+    addType: <T extends IEntity = IEntity>(config: IConfig, store: () => IPoolHandler<T>, components: Record<string, unknown>) => void
+    getDesc: (entityKey: string) => EntityDescriber | undefined
+} {
+    return getEntityDescribers(ns) as unknown as ReturnType<typeof useEntityDescribers>
 }

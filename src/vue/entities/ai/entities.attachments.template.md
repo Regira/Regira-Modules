@@ -9,8 +9,8 @@ node .../scaffold.mjs <Entity> --attachments   # the shared slice + the wiring, 
 node .../scaffold.mjs --attachments            # the shared slice only → src/entities/entity-attachments/
 ```
 
-Name an entity and the generator writes three of the four edits below into that slice — the `attachments`
-field, the `insert`/`update` overrides and the `prepareItem` filter — leaving you the form tab. It only does
+Name an entity and the generator writes the edits below into that slice — the `attachments` field, the
+`insert`/`update` overrides, the `prepareItem` filter and the `toEntity` lift — leaving you the form tab. It only does
 so for a slice it is generating: against one that already exists, it scaffolds the shared slice and prints
 the same edits for you to apply, because those files are yours.
 
@@ -38,8 +38,9 @@ the form does not restore it — the same holds for an added file, which is stor
 > **Shared slice — no per-entity tokens.** Unlike an entity slice, this is copied verbatim (one folder per
 > app). You do not customize its files; you customize which entities _use_ it (the 3-line host wiring below).
 > The one exception is an extra field on the link (a featured flag or a caption, on the API's derived link DTO): add
-> it to `data/Entity.ts` and edit it in the owner's own tab. For a featured image alone, prefer the first position,
-> which needs no change.
+> it to `data/Entity.ts` and edit it through the overview's `extra` slot, which renders beside each row with
+> `{ row, readonly, change }`; call `change()` after an edit so the owner's form sees it. For a featured image alone,
+> prefer the first position, which needs no change.
 
 ## `attachments/Entity.ts`
 
@@ -328,6 +329,8 @@ export async function download(item: Entity) {
                 @change="sync"
                 @replace="triggerReplace(row)"
             />
+            <!-- an extra field on the link (a featured flag, a caption): edit row.x, then call change() -->
+            <slot name="extra" :row="row" :readonly="readonly" :change="sync" />
         </div>
         <FileDropZone v-if="!readonly" @drop-files="handleBrowse" @click="triggerBrowse()">
             <template #default="{ isDropping }">
@@ -349,6 +352,7 @@ import ListItem from "./ListItem.vue"
 
 const emit = defineEmits<{ (e: "update:modelValue", v: Array<Entity>): void }>()
 const props = withDefaults(defineProps<{ modelValue?: Array<Entity>; readonly?: boolean }>(), { modelValue: () => [] })
+defineSlots<{ extra?(props: { row: Entity; readonly?: boolean; change: () => void }): any }>()
 
 const { items, sync, triggerBrowse, handleBrowse, triggerReplace, handleDragStart, handleDragEnd, handleDrop } = useEntityAttachments({ props, emit })
 </script>
@@ -420,7 +424,8 @@ export { default as Attachment } from "./attachments/Entity"
 
 ## Wire it into an owning entity
 
-Three edits in the owner's slice: the join field, the service overrides, and the form tab.
+Four edits in the owner's slice: the join field, the service overrides, the `toEntity` lift of `attachments` into
+`EntityAttachment` (the row's `fileName` is a getter, so a plain row from the API reads `undefined`), and the form tab.
 
 ⚠️ **`setup.ts` needs nothing.** The helpers upload through `useAxios()`, so the service keeps its plain
 `AxiosInstance` constructor and the default registration stands. A method of your own that moves the bytes
@@ -455,7 +460,8 @@ attachments?: Array<EntityAttachment>
 ```
 
 ```ts
-// data/EntityService.ts — flush files on save; drop marked rows (deleted by omission)
+// data/EntityService.ts — flush files on save; drop marked rows (deleted by omission); lift the rows
+import EntityAttachment from "../../entity-attachments/data/Entity"
 import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"
 override async insert(item: Owner): Promise<Owner | undefined> {
     return await insertWithAttachments(this.config.api, item, () => super.insert(item), (saved) => super.update(saved))
@@ -467,12 +473,30 @@ protected override prepareItem(item: Owner): Owner {
     item.attachments = item.attachments?.filter((x) => !x._deleted)
     return super.prepareItem(item)
 }
+override toEntity(item: object): Owner {
+    const e = item instanceof Owner ? item : Object.assign(this.createInstance(Owner as new () => Owner), item || {})
+    if (e.attachments?.some((r) => !(r instanceof EntityAttachment))) e.attachments = e.attachments.map((r) => EntityAttachment.create(r))
+    return e
+}
 ```
 
 ```vue
 <!-- details/Form.vue — attachments get their own tab -->
 <template #files><EntityAttachments v-model="item.attachments" :readonly="readonly" /></template>
 <!-- import { Overview as EntityAttachments } from "../../entity-attachments" -->
+```
+
+An extra field on the link goes in the `extra` slot, beside each row:
+
+```vue
+<EntityAttachments v-model="item.attachments" :readonly="readonly">
+    <template #extra="{ row, readonly, change }">
+        <label class="form-check mb-0 text-nowrap">
+            <input v-model="row.isFeatured" type="checkbox" class="form-check-input" :disabled="readonly" @change="change()" />
+            {{ $t("featured") }}
+        </label>
+    </template>
+</EntityAttachments>
 ```
 
 > **Back-end:** register the owner's attachments (`WithAttachments` + `HasAttachments<>`), and give the owner's input

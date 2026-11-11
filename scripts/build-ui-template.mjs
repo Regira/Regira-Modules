@@ -149,6 +149,12 @@ const MANIFEST = [
         note: "import your copy instead of the library ResultSummary",
     },
     {
+        name: "LoadMore",
+        dir: "vue/ui/paging",
+        files: ["LoadMore.vue"],
+        note: "import your copy instead of the library LoadMore",
+    },
+    {
         name: "Icon",
         dir: "vue/ui/icons",
         files: ["Icon.vue"],
@@ -217,6 +223,7 @@ const MODULE_MAP = {
     "vue/ui/feedback/Pending.vue": { spec: "@regira/modules/vue/ui", named: "Pending" },
     "vue/ui/feedback/Success.vue": { spec: "@regira/modules/vue/ui", named: "Success" },
     "vue/ui/feedback/ErrorSummary.vue": { spec: "@regira/modules/vue/ui", named: "ErrorSummary" },
+    "vue/ui/loading/LoadingButton.vue": { spec: "@regira/modules/vue/ui", named: "LoadingButton" },
     "vue/ui/modal": { spec: "@regira/modules/vue/ui" },
     "vue/ui/modal/modal": { spec: "@regira/modules/vue/ui" },
     "vue/ui/paging/paging": { spec: "@regira/modules/vue/ui", defaultAs: "usePaging" },
@@ -229,7 +236,7 @@ const MODULE_MAP = {
     "vue/ui/input/formButtonsRow": { spec: "@regira/modules/vue/ui" },
     "vue/ui/input/fileDropZone": { spec: "@regira/modules/vue/ui" },
     "vue/vue-helper": { spec: "@regira/modules/vue/vue-helper" },
-    "vue/entities/abstractions/PagingInfo": { spec: "@regira/modules/vue/entities" },
+    "core/entities/abstractions/PagingInfo": { spec: "@regira/modules/vue/entities" },
     "vue/entities/form/inputSelectorInline": { spec: "@regira/modules/vue/entities" },
     "vue/auth/useLoginForm": { spec: "@regira/modules/vue/auth" },
     "vue/auth/useChangePasswordForm": { spec: "@regira/modules/vue/auth" },
@@ -246,7 +253,7 @@ const MODULE_MAP = {
     "vue/lang/useLang": { spec: "@regira/modules/vue/lang" },
     "vue/lang/langSelector": { spec: "@regira/modules/vue/lang" },
     "vue/entities/details/detailsSummary": { spec: "@regira/modules/vue/entities" },
-    "vue/formatters": { spec: "@regira/modules/vue/formatters" },
+    "core/formatters": { spec: "@regira/modules/vue/formatters" },
     "utilities/string-utility": { spec: "@regira/modules/utilities" },
 }
 

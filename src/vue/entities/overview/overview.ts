@@ -1,8 +1,8 @@
-import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../abstractions"
+import type { IPagingInfo, IEntity, IConfig, ISearchObject, IEntityService, SaveResult } from "../../../core/entities/abstractions"
 import type { FeedbackOut } from "../../ui/feedback"
 import type { ComputedRef, Ref } from "vue"
 
-export const DEFAULT_DEBOUNCE = 250
+export { DEFAULT_DEBOUNCE } from "../../../core/entities/overview/types"
 
 export interface OverviewEmits<T extends IEntity, SO extends ISearchObject = ISearchObject> {
     "update:modelValue": [Array<T>]
@@ -86,7 +86,7 @@ export interface ISearchViewOut<T extends IEntity, SO extends ISearchObject = IS
      * app) it is `onMounted(() => searchHandler(true))`.
      */
     searchHandler(resetPaging?: boolean): Promise<void>
-    debouncedSearchHandler(): Promise<void>
+    debouncedSearchHandler(resetPaging?: boolean): Promise<void>
     /**
      * `append` only: adds the server's next page below the rows on screen. It fetches the last page again first, so
      * rows that moved up because a row left the server's result (up to a page of them) are not skipped, and drops

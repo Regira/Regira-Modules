@@ -62,8 +62,9 @@
 //                       imports only public @regira/modules/... API, so behavior keeps flowing from the library
 //   --attachments       this entity owns files: scaffold the shared entity-attachments slice (offline
 //                       add/rename/replace/remove + drop zone, committed on the parent's save) and wire it into the
-//                       slice — the attachments field, the insert/update overrides, and the prepareItem
-//                       filter that drops rows marked for deletion. Only the form tab is left to place.
+//                       slice — the attachments field, the insert/update overrides, the prepareItem filter
+//                       that drops rows marked for deletion, and the toEntity lift of the rows into
+//                       EntityAttachment. Only the form tab is left to place.
 //                       Passed alone (no entity), it scaffolds the shared slice and stops.
 //   --no-auth           strip the auth wiring (slice: reload hooks; shell: auth plugins/UI, the auth-only files, config.json keys + auth translations)
 //   --force             overwrite files that already exist (--shell / --ui / --attachments only — never an
@@ -564,7 +565,7 @@ const relationBlocks = {
         .join("\n"),
     // filter/SearchObject.ts — a filter per relation. SCALAR by design: an InputSelector speaks one id
     // (`idValue?: number | string`), so widening this to an array is 9 TS2322s in FilterAdv.vue. The API's
-    // ICollection<TKey> binds one value or many, so widening later — behind a multi-select — is UI-only.
+    // ICollection<TKey> binds one value or many, so widening later — with `multiple` and `idsValue` — is UI-only.
     searchFields: filteredRelations.map((r) => `    ${r.field}Id?: number // filter on ${r.name}`).join("\n"),
     // filter/FilterAdv.vue — the control, its entity ref, and the reset that clears it
     filterImports: filteredEntities
@@ -692,6 +693,7 @@ const ATTACHMENT_ANCHORS = {
     // the overrides go ABOVE this comment block, which documents prepareItem and has to stay against it
     prepareDoc: "    // Owned child collections use the `_deleted` mark (never splice): removed rows are filtered out here so",
     superPrepare: "        return super.prepareItem(item)",
+    toEntity: "        return item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})",
 }
 function applyAttachments(relPath, text) {
     if (!attachmentsOwner) return text
@@ -714,10 +716,22 @@ function applyAttachments(relPath, text) {
         case "data/EntityService.ts":
             need(ATTACHMENT_ANCHORS.prepareDoc, "data/EntityService.ts")
             need(ATTACHMENT_ANCHORS.superPrepare, "data/EntityService.ts")
+            need(ATTACHMENT_ANCHORS.toEntity, "data/EntityService.ts")
             text = insertAfter(
                 text,
                 `import Entity from "./Entity"`,
-                `import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"`
+                `import EntityAttachment from "../../entity-attachments/data/Entity"
+` +
+                    `import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"`
+            )
+            // rows from the API are plain objects, and the row's fileName is a getter: lift them, guarded like any lift here
+            text = text.replace(
+                ATTACHMENT_ANCHORS.toEntity,
+                `        const e = item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
+` +
+                    `        if (e.attachments?.some((r) => !(r instanceof EntityAttachment))) e.attachments = e.attachments.map((r) => EntityAttachment.create(r))
+` +
+                    `        return e`
             )
             // insert stages the pending files against the id the FIRST save returns, hence the update callback
             text = text.replace(
@@ -956,7 +970,7 @@ if (sliceGenerated) {
     )
     if (!dataOnly) missingChromeKeys()
     if (attachmentsOwner) {
-        console.log(`  Files: the attachments field, the insert/update overrides and the prepareItem filter are written in.`)
+        console.log(`  Files: the attachments field, the insert/update overrides, the prepareItem filter and the toEntity lift are written in.`)
         attachmentsTodo()
     }
     for (const r of relations) {
@@ -1287,6 +1301,9 @@ function attachmentsManualSteps() {
     )
     console.log(
         `                              ⚠️ prepareItem must drop _deleted rows — without it a file the user removed is submitted unchanged and comes back after the save, with no error`
+    )
+    console.log(
+        `                              toEntity lifts item.attachments with EntityAttachment.create, guarded — a row's fileName is a getter   // import EntityAttachment from "../../entity-attachments/data/Entity"`
     )
     console.log(`    3. setup.ts               nothing to change — the helpers upload through useAxios(), so the default axios registration stands`)
     console.log(`  A NEW slice gets edits 1 and 2 written for it: scaffold.mjs <Entity> --attachments`)

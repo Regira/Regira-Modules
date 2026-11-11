@@ -4,11 +4,13 @@
 components, composables, and plugins for paging, loading, feedback, modal, tabs, icons, autocomplete,
 form inputs, and responsive layout.
 
+An app without Vue imports `toFeedbackError`, `fieldMessages`, `fieldLabel` and `setErrorTranslator` from [`@regira/modules/core`](../../core/README.md); `useFeedback` and the components are Vue-only.
+
 ## Areas
 
 | Area         | Components                                                                                                                                                            | Programmatic                                                                                                                                                 |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                                                                                                  |
+| paging       | `Paging`, `ResultSummary`, `LoadMore`                                                                                                                                 | `usePaging`, `pagingDefaults`, `loadMoreDefaults`, `ButtonType`, `pagingPlugin`                                                                              |
 | loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                                                                                              |
 | feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `useAppFeedback`, `toFeedbackError`, `fieldMessages`, `fieldLabel`, `setErrorTranslator`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackError` |
 | modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                                                                                                    |
@@ -132,6 +134,13 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   `useModal` from the entities module. It renders in place, so put it inside `<Teleport to="#modals">`. It focuses
   its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's `handleSubmit` prop submits
   (`handleClose` there is a deprecated alias of it).
+- `Autocomplete`'s arrow keys select as they move, so each press fires `select`. Where a selection acts at once — a
+  search, a row added to a list — set `confirmSelection`: the arrow keys then only highlight a result, and Enter or
+  a click selects it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
+  click outside the control, not by Tab. Enter with nothing to select leaves the panel open.
+- Escape closes `Autocomplete`'s result panel and clears text that selected nothing, without selecting. A modal around
+  the control stays open until the next Escape. With nothing selected, an arrow key then searches and opens it
+  again.
 - `Autocomplete` renders its result panel on `<body>` (a `Teleport`) with `position: fixed`, so no
   ancestor's `overflow` — a scrollable modal body, an `overflow: hidden` card — clips it. It places the panel
   against the viewport itself: it opens below the control, flips **above** it when the results do not fit

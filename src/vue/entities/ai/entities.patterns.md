@@ -236,6 +236,12 @@ const { updateOverviewRoute } = useRouteOverview({ searchObject, pagingInfo, han
 // Paging @change → updateOverviewRoute()
 ```
 
+A list that grows as the reader scrolls instead of turning pages ("Show more", infinite scroll) is
+`useSearchView({ …, append: true })` with `loadMore()` and `hasMore`, and `LoadMore` from `@regira/modules/vue/ui` under
+the rows in place of `Paging`: `<LoadMore :has-more="hasMore" :load="loadMore" />` loads the next page as the reader
+scrolls near it and is a "Show more" button too. With `useRouteOverview`, pass `handler: () => searchHandler(true)`
+(`entities.instructions` → _Overview: `useListView` vs `useSearchView`_).
+
 ## Overview list layout (avoiding horizontal scroll)
 
 `overview/List.vue` (headers) and `overview/ListItem.vue` (rows) render one Bootstrap `.row` per line. A
@@ -409,7 +415,7 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 
 ## Entity selector (relation picker) — `selecting/`
 
-**Which one:** single FK on a form → `InputSelector`; free-text filter field → `Autocomplete`; join/owned rows edited in a form → **`InputSelectorInline`** (marked-delete — the default for m2m, [below](#owned-child-collections)); multi-value over a **fixed option set (enum, no service)** → a checkbox group rather than a native `<select multiple>` ([below](#multi-value-over-a-fixed-option-set-enum)); a plain entity array where instant removal is genuinely wanted → `Selector`.
+**Which one:** single FK on a form → `InputSelector`; a filter or field holding several ids → `InputSelector multiple`; free-text filter field → `Autocomplete`; join/owned rows edited in a form → **`InputSelectorInline`** (marked-delete — the default for m2m, [below](#owned-child-collections)); multi-value over a **fixed option set (enum, no service)** → a checkbox group rather than a native `<select multiple>` ([below](#multi-value-over-a-fixed-option-set-enum)); a plain entity array where instant removal is genuinely wanted → `Selector`.
 
 > **A single-FK `InputSelector` needs BOTH bindings to show a value:** `v-model` (the related **object**, which
 > the control displays via its `$title`) **and** `v-model:idValue` (the **FK** that is saved). Bind only
@@ -425,10 +431,26 @@ Render it with `<Feedback :feedback="feedback" />` (styling + the 400 field-map 
 > from `idValue` whenever the FK names another row (the relation was not included, or the FK was assigned later). A local `ref` fed by a `watch`, or a writable
 > computed wrapping `fromPool`, is redundant here — pool by hand only for relations you render yourself.
 
-> **⚠️ Delete semantics differ.** The multi-`Selector` **hard-removes** on its delete icon — the row leaves
-> the array immediately, so it cannot deliver the marked-deleted UX (visible, undoable until save). For any
-> join/owned collection edited in a form, marked-delete is the **default**: use `InputSelectorInline`
-> (`@regira/modules/vue/entities`), not `Selector`.
+> **`multiple` turns the control into a list.** `v-model` holds an **array** of entities and `v-model:idsValue`
+> takes the place of `v-model:idValue`; bind both, for the same reason as above. Each row shows as a chip, the
+> control beside the chips picks the next row, and rows already selected leave the picker through `exclude`. In that
+> control the arrow keys only highlight a result, and Enter or a click adds it. Once the results are in, a row's exact
+> title, typed, is added by Enter or by a click outside the control, not by Tab, and Enter with nothing to add leaves
+> the panel open. Rows are resolved from the ids whenever those change, so a
+> filter restored from the query string shows its chips, and an id without a row (still loading, or not readable by
+> this caller) stays in `idsValue` through later picks and removals. A chip's remove, like a pick, fires `@select`,
+> which makes the filter's `handleUpdate` run on either:
+>
+> ```vue
+> <BrandSelector multiple v-model="brands" v-model:idsValue="searchObject.brandId" @select="handleUpdate" />
+> ```
+>
+> The browse modal stays single-pick: it adds one row each time it is confirmed.
+
+> **⚠️ Delete semantics differ.** The multi-`Selector` and `InputSelector multiple` **hard-remove** on their delete
+> icon — the row leaves the array immediately, so they cannot deliver the marked-deleted UX (visible, undoable until
+> save). For any join/owned collection edited in a form, marked-delete is the **default**: use `InputSelectorInline`
+> (`@regira/modules/vue/entities`), not `Selector` or `InputSelector multiple`.
 
 > **Adding to a collection? Exclude what's already in it.** Pass the current ids as a filter default so
 > picked rows disappear from the picker — omitting this is the classic "duplicate add" UX bug:
@@ -1076,7 +1098,8 @@ attachments?: Array<EntityAttachment>
 ```
 
 ```ts
-// data/EntityService.ts — flush on save; drop marked rows (deleted by omission) in the scaffolded prepareItem
+// data/EntityService.ts — flush on save; drop marked rows (deleted by omission) in the scaffolded prepareItem; lift the rows
+import EntityAttachment from "../../entity-attachments/data/Entity"
 import { insertWithAttachments, updateWithAttachments } from "../../entity-attachments/data/functions"
 override async insert(item: Owner): Promise<Owner | undefined> {
     // the follow-up update sends the attachments in display order — the server assigns SortOrder from array position
@@ -1088,6 +1111,12 @@ override async update(item: Owner): Promise<Owner | undefined> {
 protected override prepareItem(item: Owner): Owner {
     item.attachments = item.attachments?.filter((x) => !x._deleted)
     return super.prepareItem(item)
+}
+override toEntity(item: object): Owner {
+    // a row's fileName is a getter: rows from the API need the lift (guarded, as every toEntity conversion)
+    const e = item instanceof Owner ? item : Object.assign(this.createInstance(Owner as new () => Owner), item || {})
+    if (e.attachments?.some((r) => !(r instanceof EntityAttachment))) e.attachments = e.attachments.map((r) => EntityAttachment.create(r))
+    return e
 }
 ```
 

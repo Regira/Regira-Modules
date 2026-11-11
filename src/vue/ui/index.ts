@@ -84,9 +84,11 @@ export {
 export {
     Paging,
     ResultSummary,
+    LoadMore,
     ButtonType,
     usePaging,
     pagingDefaults,
+    loadMoreDefaults,
     plugin as pagingPlugin,
     type PagingProps,
     type PagingEmits,
@@ -94,6 +96,8 @@ export {
     type PagingComponent,
     type ResultSummaryProps,
     type ResultSummarySlots,
+    type LoadMoreProps,
+    type LoadMoreSlots,
 } from "./paging"
 export { useScreen, plugin as screenPlugin } from "./screen"
 export * from "./tabs"

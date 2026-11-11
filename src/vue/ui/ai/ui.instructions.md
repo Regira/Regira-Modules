@@ -3,6 +3,7 @@
 The front-end UI toolkit (`@regira/modules/vue/ui`): the Vue components, composables, and plugins the
 [entity views](../../entities/ai/entities.instructions.md) render with — paging, loading, feedback,
 modal, tabs, icons, autocomplete, form inputs, and a reactive screen helper.
+An app without Vue imports `toFeedbackError`, `fieldMessages`, `fieldLabel` and `setErrorTranslator` from `@regira/modules/core` ([core guide](../../../core/ai/core.instructions.md)); `useFeedback` and the components are Vue-only.
 
 > **Never guess** a prop, emit, or signature — verify in [ui.signatures.md](ui.signatures.md) (programmatic
 > API + key component props) or via the MCP source map (`list_types`/`get_type` on `regira_modules.vue.ui`).
@@ -64,7 +65,7 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 | Area         | Key components                                                                                                                                                        | Programmatic                                                                                                                                |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| paging       | `Paging`, `ResultSummary`                                                                                                                                             | `usePaging`, `pagingDefaults`, `ButtonType`, `pagingPlugin`                                                                                 |
+| paging       | `Paging`, `ResultSummary`, `LoadMore`                                                                                                                                 | `usePaging`, `pagingDefaults`, `loadMoreDefaults`, `ButtonType`, `pagingPlugin`                                                             |
 | loading      | `Loading`, `LoadingContainer`, `LoadingButton`                                                                                                                        | `loadingPlugin`                                                                                                                             |
 | feedback     | `Feedback`, `Pending`, `Success`, `ErrorSummary`                                                                                                                      | `useFeedback`, `toFeedbackError`, `fieldMessages`, `setErrorTranslator`, `FeedbackStatus`, `feedbackPlugin`, `FeedbackOut`, `FeedbackError` |
 | modal        | `DefaultModal`                                                                                                                                                        | `ModalType`, `modalPlugin`, `injectModal`                                                                                                   |
@@ -80,6 +81,10 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
 
 - **`Paging`** — `v-model="pagingInfo"` (`IPagingInfo`) + `:count="itemsCount"`; emits `change`. Pair with
   the overview composables (see entities).
+- **`LoadMore`** — under a list that grows (`useSearchView({ append: true })`):
+  `<LoadMore :has-more="hasMore" :load="loadMore" />`, in place of `Paging`. It loads the next page as the reader
+  scrolls near it, and stays a "Show more" button (`label`) for a reader who gets there first or a browser without
+  `IntersectionObserver`.
 - **`LoadingContainer`** — wraps content; `:is-loading="isLoading"`.
 - **`Feedback`** — `:feedback="feedback"` (the `FeedbackOut` returned by the overview/form composables);
   or use the global `$feedback` / `useFeedback()` for app-wide messages.
@@ -222,7 +227,15 @@ it before writing a new component.
   `aria-activedescendant` (`optionId(selectedIndex)` while open), the list as `role="listbox"` with
   `:id="listboxId"`, each result as `role="option"` with `:id="optionId(i)"` — because the teleported panel
   is otherwise unrelated to the input in DOM order. Take both ids from `useAutocomplete`: they are unique
-  across every skin on the page, so an ejected copy and the library's own never share one.
+  across every skin on the page, so an ejected copy and the library's own never share one. `moveSelection` scrolls
+  the option with that id into view.
+- **`Autocomplete`'s arrow keys select as they move**, so each press fires `select`. Where a selection acts at
+  once — a search, a row added to a list — set `confirmSelection`: the arrow keys then only highlight a result, and
+  Enter or a click selects it. Once the results are in, a result's exact text, typed, is selected by Enter or by a
+  click outside the control, not by Tab. Enter with nothing to select leaves the panel open.
+- **Escape closes `Autocomplete`'s result panel** and clears text that selected nothing, without selecting. A modal
+  around the control stays open until the next Escape. With nothing selected, an arrow key then searches and opens it
+  again.
 - **`Autocomplete` needs the click-outside directive installed.** Its dropdown uses `v-click-outside`
   internally, so the app must install the plugin from `@regira/modules/vue/directives`
   (`import { clickOutside } from "@regira/modules/vue/directives"; app.use(clickOutside)`); without it Vue warns

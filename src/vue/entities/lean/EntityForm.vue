@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends IEntity">
-import type { IEntity } from "../abstractions"
+import type { IEntity } from "../../../core/entities/abstractions"
 import { useLeanForm, type LeanFormProps, type LeanFormEmits, type LeanFormSlots } from "./form"
 
 const props = defineProps<LeanFormProps<T>>()

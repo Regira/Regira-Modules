@@ -2,7 +2,8 @@
 
 `@regira/modules/vue/formatters` — a flat set of locale-aware display helpers for dates, times, numbers,
 currency and percentages, plus a few string utilities. All are named exports; use them to render
-[entity](../entities/README.md) values in Vue templates and computed props.
+[entity](../entities/README.md) values in Vue templates and computed props. An app without Vue imports the same
+exports from [`@regira/modules/core`](../../core/README.md).
 
 ## What it provides
 

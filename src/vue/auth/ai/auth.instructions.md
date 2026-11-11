@@ -3,6 +3,7 @@
 Front-end authentication (`@regira/modules/vue/auth`): JWT bearer auth layered onto the shared
 [axios instance](../../http/ai/http.instructions.md), with pluggable token storage, a Pinia auth store,
 a permission-aware route guard, and login UI. Install it **after** the IoC/http and router are set up.
+An app without Vue imports `AuthService`, the token managers and `registerCredentialUrls` from `@regira/modules/core` ([core guide](../../../core/ai/core.instructions.md)); the store, plugin, route guard and login UI are Vue-only.
 
 > **Never guess** a signature or endpoint — verify in [auth.signatures.md](auth.signatures.md). Worked
 > wiring: [auth.examples.md](auth.examples.md).
@@ -84,7 +85,7 @@ The Pinia store is the reactive source of truth for components:
 
 - **state/getters:** `isAuthenticated`, `isRequired`, `authData`, `displayName`, `hasPermission(p)`,
   `hasRole(r)`, `hasClaim(type, value?)`, `getClaimValue(type)`, `clientApp`, `enabled`.
-- **actions:** `login({ username, password })`, `validateToken()`, `refresh(o)`, `logout()`, `setClientApp(c)`.
+- **actions:** `login({ username, password })`, `validateToken()`, `refresh(o?)`, `logout()`, `setClientApp(c)`.
   The audience has one owner — the service's plain `options` — and `store.clientApp` / `$auth.clientApp` read
   through to it, so a switch is visible everywhere at once with no copy to go stale.
 

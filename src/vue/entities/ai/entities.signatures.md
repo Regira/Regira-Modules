@@ -291,7 +291,9 @@ export type OverviewCoreIn<T extends IEntity, SO extends ISearchObject = ISearch
 export type OverviewCoreOut<T extends IEntity, SO extends ISearchObject = ISearchObject> = {
     searchObject: Ref<SO> // the same object as a ref: what the view binds and mutates
     pagingInfo: Ref<IPagingInfo>
-    items: Ref<Array<T> | undefined> // undefined until the first fetch resolves
+    // undefined until the first fetch resolves. handleSave, handleRemove and loadMore assign a new array, so a shallow
+    // watch(items) fires on each: read items.value each time, a variable that holds the array goes stale.
+    items: Ref<Array<T> | undefined>
     itemsCount: Ref<number | undefined> // search: the server's total across pages; list: the rows' own length
     isLoading: Ref<boolean>
     feedback: FeedbackOut
@@ -323,7 +325,7 @@ export interface ISearchViewOut<T, SO> extends OverviewCoreOut<T, SO> {
     // re-search on a hard reload, a filter change, fast paging). The same gate covers applySave/applyRemove,
     // which write the same isLoading/feedback.
     searchHandler(resetPaging?: boolean): Promise<void>
-    debouncedSearchHandler(): Promise<void>
+    debouncedSearchHandler(resetPaging?: boolean): Promise<void>
     // append only: the server's next page below the rows on screen, in two requests: the last page fetched again, then
     // the next. Rows already on screen are dropped by $id, so no row shows twice, and rows that moved up because a row
     // left the server's result since (deleted, or edited out of the filter while the screen keeps it; up to a page of
@@ -693,21 +695,33 @@ import { InputSelectorInline } from "@regira/modules/vue/entities"
 ```
 
 `InputSelector` (scaffolded per-slice into `selecting/`, re-exported from the slice barrel) is the
-single-relation (FK) picker — Autocomplete + inline create/edit + selector-modal in one `input-group`:
+relation picker — Autocomplete + inline create/edit + selector-modal in one `input-group`. It picks one row, or
+several with `multiple`:
 
 ```ts
 import { InputSelector } from "../../<slice>"
 
-// InputSelector — single-relation FK picker.
-//   props: { modelValue?: Entity (v-model — the displayed entity);
-//            idValue?: number | string (v-model:idValue — the FK actually saved; bind BOTH, idValue alone renders blank);
+// InputSelector — relation picker.
+//   props: { modelValue?: Entity | Array<Entity> (v-model — the displayed entity; an array with `multiple`);
+//            idValue?: number | string | null (v-model:idValue — the FK actually saved, null for a nullable FK the API
+//              sends empty; bind BOTH, idValue alone renders blank);
+//            multiple?: boolean (chips for the selected rows, the control beside them picks the next one);
+//            idsValue?: Array<number | string> | number | string (v-model:idsValue — the ids with `multiple`, in place
+//              of idValue; bind BOTH; a scalar counts as a list of one, as a query string carries a single id);
 //            readonly?: boolean; canEdit?: boolean (default true — shows the inline FormModalButton);
 //            itemDefaults?: Ref<Record<string, any>> | Record<string, any>; filterDefaults?: Record<string, any>;
-//            closeOnSave?: boolean; placeholder?: string }
-//   slots: default (the Autocomplete) | prepend (create/edit button) | append (clear + selector-modal button)
-//   emits: "update:modelValue" (args?: Entity) | "update:idValue" (args?: number | string) | "select" (args?: Entity)
+//            closeOnSave?: boolean; placeholder?: string;
+//            confirmSelection?: boolean (the arrow keys only highlight a result, and Enter or a click selects it;
+//              once the results are in, a result's exact text, typed, is selected by Enter or by a click outside
+//              the control, not by Tab; Enter with nothing to select leaves the panel open;
+//              always on for the picker of `multiple`) }
+//   slots: default (the Autocomplete) | prepend (create/edit button) | append (clear + selector-modal button);
+//          with `multiple` they go to the picker
+//   emits: "update:modelValue" (args?: any — an Entity, an array with `multiple`) | "update:idValue" (args?: number | string)
+//        | "update:idsValue" (args: Array<number | string>) | "select" (args?: Entity)
 //   NOTE: the "select" payload is NULLABLE (Entity | undefined) — the clear button emits undefined — so a
 //         @select handler must accept undefined: @select="(e?: Entity) => …", not (e: Entity).
+//         With `multiple` it fires on every change: with the added row, or undefined when a chip is removed.
 ```
 
 ---
@@ -748,10 +762,12 @@ export interface IPoolCache {
     getAll<T extends IEntity>(type: string): Array<Ref<T>>
     getEntityMap(type: string): Map<number | string, any>
 }
-export class PoolCache implements IPoolCache {
-    constructor({ interval, expires, maxItems }?: ICacheOptions) /* + IPoolCache members */
+type ICacheOptions = { interval?: number; expires?: number; maxItems?: number }
+// CorePoolCache and CorePoolService are the framework-free classes these extend; no entry exports them
+export class PoolCache extends CorePoolCache implements IPoolCache {
+    constructor(options?: ICacheOptions) /* + IPoolCache members */
 }
-export class PoolService<T extends IEntity> implements IPoolService<T> {
+export class PoolService<T extends IEntity> extends CorePoolService<T> implements IPoolService<T> {
     constructor(service: IEntityService<T>, cache: IPoolCache, type: string) /* + IEntityService + get/getMany/set/setMany */
 }
 ```

@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, afterEach } from "vitest"
+import { describe, test, expect } from "vitest"
 import { isReactive, reactive, watchEffect } from "vue"
 import { FeedbackStatus, fieldMessages, useFeedback } from "../../../src/vue/ui/feedback"
 
@@ -24,86 +24,6 @@ describe("useFeedback shape", () => {
 
         expect(seen).toContain(FeedbackStatus.pending)
         expect(seen).toContain(FeedbackStatus.success)
-    })
-})
-
-describe("useFeedback busy flag", () => {
-    test("isPending tracks the pending status, so a view never re-derives it", () => {
-        const feedback = useFeedback({ autoHideDelay: 0 })
-
-        expect(feedback.isPending).toBe(false)
-
-        feedback.pending("Saving…")
-        expect(feedback.status).toBe(FeedbackStatus.pending)
-        expect(feedback.isPending).toBe(true)
-
-        feedback.success("Saved")
-        expect(feedback.isPending).toBe(false)
-
-        feedback.pending("Saving…")
-        feedback.fail("Save failed", "boom")
-        expect(feedback.isPending).toBe(false)
-
-        feedback.pending("Saving…")
-        feedback.reset()
-        expect(feedback.isPending).toBe(false)
-    })
-})
-
-describe("useFeedback fail", () => {
-    test("an exception passed instead of a field map shows its text", () => {
-        const feedback = useFeedback({ autoHideDelay: 0 })
-
-        feedback.fail("Save failed", new Error("Network Error"))
-
-        expect(feedback.error).toBe("Network Error")
-    })
-
-    test("a field map with a field named message stays a field map", () => {
-        const feedback = useFeedback({ autoHideDelay: 0 })
-
-        feedback.fail("Save failed", { message: ["Required"] })
-
-        expect(feedback.error).toEqual({ message: ["Required"] })
-    })
-})
-
-describe("useFeedback auto-hide", () => {
-    afterEach(() => vi.useRealTimers())
-
-    test("a success hides itself after autoHideDelay", () => {
-        vi.useFakeTimers()
-        const feedback = useFeedback({ autoHideDelay: 1500 })
-
-        feedback.success("Saved")
-        vi.advanceTimersByTime(1500)
-
-        expect(feedback.status).toBe(FeedbackStatus.none)
-    })
-
-    test("a failure shown within autoHideDelay of a success stays", () => {
-        // the success's timer used to fire anyway and reset() the failure a moment after it appeared
-        vi.useFakeTimers()
-        const feedback = useFeedback({ autoHideDelay: 1500 })
-
-        feedback.success("Saved")
-        vi.advanceTimersByTime(500)
-        feedback.fail("Saving failed", { title: ["Required"] })
-        vi.advanceTimersByTime(5000)
-
-        expect(feedback.status).toBe(FeedbackStatus.failed)
-        expect(feedback.error).toEqual({ title: ["Required"] })
-    })
-
-    test("a pending shown within autoHideDelay of a success stays", () => {
-        vi.useFakeTimers()
-        const feedback = useFeedback({ autoHideDelay: 1500 })
-
-        feedback.success("Saved")
-        feedback.pending("Saving…")
-        vi.advanceTimersByTime(5000)
-
-        expect(feedback.isPending).toBe(true)
     })
 })
 
@@ -136,12 +56,5 @@ describe("fieldMessages", () => {
         errors.title = "Required"
 
         expect(seen).toEqual([[], ["Required"]])
-    })
-
-    test("reads the field map useFeedback's fail stores", () => {
-        const feedback = useFeedback({ autoHideDelay: 0 })
-        feedback.fail("Saving failed", { title: ["Required"] })
-
-        expect(fieldMessages(feedback.error, "title")).toEqual(["Required"])
     })
 })

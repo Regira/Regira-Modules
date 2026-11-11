@@ -226,7 +226,10 @@ export class EntityService extends EntityServiceBase<Entity> {
     }
 
     override toEntity(item: object): Entity {
-        return item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
+        const e = item instanceof Entity ? item : Object.assign(this.createInstance(Entity as new () => Entity), item || {})
+        // guarded lift: a row from the API is a plain object, and a row's fileName is a getter
+        if (e.attachments?.some((r) => !(r instanceof EntityAttachment))) e.attachments = e.attachments.map((r) => EntityAttachment.create(r))
+        return e
     }
 }
 

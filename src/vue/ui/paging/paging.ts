@@ -1,4 +1,4 @@
-import type { IPagingInfo } from "../../entities/abstractions/PagingInfo"
+import type { IPagingInfo } from "../../../core/entities/abstractions/PagingInfo"
 import { computed, type AllowedComponentProps, type ComputedRef, type Ref, type VNodeProps } from "vue"
 import { useRouter, type RouteLocationRaw } from "vue-router"
 import { PAGING_DEFAULTS } from "./defaults"
@@ -26,6 +26,25 @@ export type PagingSlots = {
 export const pagingDefaults = {
     maxPages: 9,
     buttonType: ButtonType.anchor,
+}
+
+export type LoadMoreProps = {
+    /** `hasMore` of `useSearchView({ append: true })`: nothing renders without more rows */
+    hasMore: boolean
+    /** `loadMore` of `useSearchView({ append: true })`; awaited, and the button shows its spinner meanwhile */
+    load: () => unknown
+    /** the fallback button's text */
+    label?: string
+    /** how far below the viewport the sentinel starts the next page (the IntersectionObserver `rootMargin`) */
+    rootMargin?: string
+}
+export type LoadMoreSlots = {
+    /** the button's content, `label` by default */
+    default?(): any
+}
+export const loadMoreDefaults = {
+    label: "Show more",
+    rootMargin: "200px",
 }
 
 /** any component implementing the paging contract (props checked at the registration site) */
