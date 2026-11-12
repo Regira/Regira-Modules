@@ -18,10 +18,10 @@ const { items, newItem, handleSave } = useOwnedCollection<__Child__>({ props, em
     <div class="__childrenSlug__-editor">
         <div v-for="row in items" :key="row.id" class="row g-2 mb-1 align-items-center" :class="{ 'is-deleted': row._deleted }">
             <!-- TODO: one input per scalar field of __Child__ -->
-            <div class="col"><input v-model="row.description" :readonly="readonly || row._deleted" class="form-control" placeholder="description" /></div>
-            <div class="col-3"><input type="number" v-model.number="row.quantity" :readonly="readonly || row._deleted" class="form-control" placeholder="qty" /></div>
+            <div class="col"><input v-model="row.description" :readonly="readonly || row._deleted" class="form-control" :placeholder="$t('description')" /></div>
+            <div class="col-3"><input type="number" v-model.number="row.quantity" :readonly="readonly || row._deleted" class="form-control" :placeholder="$t('quantity')" /></div>
             <div v-if="!readonly" class="col-auto">
-                <button type="button" class="btn btn-outline-danger" :title="row._deleted ? 'Restore' : 'Remove'" @click="row._deleted = !row._deleted">
+                <button type="button" class="btn btn-outline-danger" :title="$t(row._deleted ? 'restore' : 'remove')" :aria-label="$t(row._deleted ? 'restore' : 'remove')" @click="row._deleted = !row._deleted">
                     {{ row._deleted ? "↺" : "×" }}
                 </button>
             </div>
@@ -29,9 +29,9 @@ const { items, newItem, handleSave } = useOwnedCollection<__Child__>({ props, em
         <!-- add-row: Enter adds the row. It sits inside the parent's <form>, which the browser submits on the Enter
              keydown, so the handler is a keydown with .prevent: on keyup the parent would already be saving. -->
         <div v-if="newItem && !readonly" class="row g-2 mb-1 align-items-center">
-            <div class="col"><input v-model="newItem.description" class="form-control" placeholder="description" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" /></div>
-            <div class="col-3"><input type="number" v-model.number="newItem.quantity" class="form-control" placeholder="qty" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" /></div>
-            <div class="col-auto"><button type="button" class="btn btn-success" @click="handleSave({ saved: newItem, isNew: true })">+</button></div>
+            <div class="col"><input v-model="newItem.description" class="form-control" :placeholder="$t('description')" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" /></div>
+            <div class="col-3"><input type="number" v-model.number="newItem.quantity" class="form-control" :placeholder="$t('quantity')" @keydown.enter.prevent="handleSave({ saved: newItem, isNew: true })" /></div>
+            <div class="col-auto"><button type="button" class="btn btn-success" :title="$t('new')" :aria-label="$t('new')" @click="handleSave({ saved: newItem, isNew: true })">+</button></div>
         </div>
     </div>
 </template>

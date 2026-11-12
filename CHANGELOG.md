@@ -5,6 +5,14 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
+## Unreleased
+
+- Scaffold: Fix: the `--owns` slice's `Overview.vue` translates its button titles and placeholders, and its ↺, × and +
+  buttons carry an `aria-label`, like the other templates.
+- Guides — `onAuthenticationChange` says when it fires: on each change of `isAuthenticated` (sign-in, restored token,
+  sign-out, expiry), not on a first load without a token, and once at startup when `enabled: false`.
+- Guides — `--rel` says it writes no form picker: the run prints the `<…InputSelector>` line to add to `details/Form.vue`.
+
 ## 6.6.2 — 2026-11-11
 
 - Guides — the signature line and doc comment of `fieldMessages` say it takes the model's field name, as `toFeedbackError`
