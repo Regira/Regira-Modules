@@ -1,7 +1,8 @@
 import type { Box, BoxFactory } from "../../box"
 import { deepCopy } from "../../../utilities/object-utility"
 import { createFeedback, type FeedbackSink, type FeedbackState } from "../../feedback/feedback"
-import { toFeedbackError } from "../../feedback/errors"
+import { feedbackText, toFeedbackError } from "../../feedback/errors"
+import { feedbackTexts } from "../feedback-texts"
 import type { IEntity } from "../abstractions/IEntity"
 import type { IEntityService, SaveResult } from "../abstractions/IEntityService"
 
@@ -90,7 +91,7 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
     // `await` is still a rejected promise, never a synchronous throw.
     function checkReadonly(): boolean {
         if (readonly()) {
-            feedback.fail("Readonly")
+            feedback.fail(feedbackText(feedbackTexts.readonly))
             return false
         }
         return true
@@ -112,7 +113,7 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
         let result: Awaited<ReturnType<typeof service.save>>
         try {
             failure.value = undefined
-            feedback.pending("Saving...")
+            feedback.pending(feedbackText(feedbackTexts.saving))
             result = await service.save(item.value)
         } catch (ex) {
             console.error("Saving failed", { ex })
@@ -121,14 +122,14 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
             // a rejection may carry no reason at all
             const status = error?.response?.status
             if (status == 400) {
-                feedback.fail("Saving failed", toFeedbackError(error))
+                feedback.fail(feedbackText(feedbackTexts.savingFailed), toFeedbackError(error))
             } else if (status == 404) {
-                feedback.fail("Item not found", serverMessage(error))
+                feedback.fail(feedbackText(feedbackTexts.itemNotFound), serverMessage(error))
             } else if (status < 500) {
                 // the server refused the write (409 conflict, 403): no fault of its own
-                feedback.fail("Saving failed", serverMessage(error))
+                feedback.fail(feedbackText(feedbackTexts.savingFailed), serverMessage(error))
             } else {
-                feedback.fail("Server error", serverMessage(error))
+                feedback.fail(feedbackText(feedbackTexts.serverError), serverMessage(error))
             }
             emit("changeState", FormStates.error)
             // no re-throw: feedback surfaces the error, and `save` only emits on success (below), so a
@@ -142,7 +143,7 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
         const { saved, isNew } = result
         try {
             // first: a listener that throws — re-thrown from emit in a dev build — must not leave the form pending
-            feedback.success("Saved")
+            feedback.success(feedbackText(feedbackTexts.saved))
             emit("save", { saved, isNew })
             item.value = service.toEntity(deepCopy(saved))
             original.value = service.toEntity(deepCopy(saved))
@@ -165,9 +166,9 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
         emit("changeState", FormStates.pending)
         try {
             failure.value = undefined
-            feedback.pending("Deleting...")
+            feedback.pending(feedbackText(feedbackTexts.deleting))
             await service.remove(item.value as T)
-            feedback.success("Deleted")
+            feedback.success(feedbackText(feedbackTexts.deleted))
             emit("remove", item.value as T)
             emit("changeState", FormStates.removed)
         } catch (ex) {
@@ -176,12 +177,12 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
             failure.value = toFailure(error)
             const status = error?.response?.status
             if (status == 400) {
-                feedback.fail("Deleting failed", toFeedbackError(error))
+                feedback.fail(feedbackText(feedbackTexts.deletingFailed), toFeedbackError(error))
             } else if (status == 404) {
-                feedback.fail("Item not found", serverMessage(error))
+                feedback.fail(feedbackText(feedbackTexts.itemNotFound), serverMessage(error))
             } else {
                 // 409/500 etc. — surface the server's message (e.g. an FK-constraint "still referenced" reason)
-                feedback.fail("Deleting failed", serverMessage(error))
+                feedback.fail(feedbackText(feedbackTexts.deletingFailed), serverMessage(error))
             }
             emit("changeState", FormStates.error)
             // no re-throw: feedback surfaces the error, and `remove` only emits on success (above), so a
@@ -203,13 +204,13 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
         let result: Awaited<ReturnType<typeof service.save>>
         try {
             failure.value = undefined
-            feedback.pending("Restoring...")
+            feedback.pending(feedbackText(feedbackTexts.restoring))
             result = await service.save(restoringItem)
         } catch (ex) {
             console.error("Restoring failed", { item, ex })
             const error = ex as any
             failure.value = toFailure(error)
-            feedback.fail("Restoring failed", toFeedbackError(error))
+            feedback.fail(feedbackText(feedbackTexts.restoringFailed), toFeedbackError(error))
             emit("changeState", FormStates.error)
             // no re-throw — same reasoning as handleSubmit/handleRemove above
             return
@@ -218,7 +219,7 @@ export function createForm<T extends IEntity, F extends FeedbackSink = FeedbackS
         // the server took the write, as in handleSubmit
         const { saved, isNew } = result
         try {
-            feedback.success("Restored")
+            feedback.success(feedbackText(feedbackTexts.restored))
             emit("restore", saved)
             emit("save", { saved, isNew })
             item.value = service.toEntity(deepCopy(saved))

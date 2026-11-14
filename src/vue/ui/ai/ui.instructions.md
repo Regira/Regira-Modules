@@ -135,7 +135,9 @@ sites keep the library `Icon` (re-map glyphs via `icons`/`source`, restyle via `
   Call it once at startup and `toFeedbackError` — so every entity form — translates through it instead of `useLang`:
   the translator receives each message and its args as the server sent them, and answers the translation, or
   `undefined` to show the message as is. A translator that throws is logged, and the message shown. `undefined`
-  restores the `useLang` default.
+  restores the `useLang` default. The entity views' own feedback texts ("Saved", "Saving {title} failed", …) reach
+  it too, the English text as the key and `{ title }` / `{ id }` as args — the key list is in
+  [entities.patterns.md](../../entities/ai/entities.patterns.md) → _Translating the views' own feedback texts_.
 
     ```ts
     import { setErrorTranslator } from "@regira/modules/vue/ui"
@@ -203,7 +205,11 @@ it before writing a new component.
   (its backdrop/overlay CSS ships in `@regira/modules/style.css`). For entity edit-in-modal, use `useModal` from
   the [entities](../../entities/ai/entities.signatures.md) module. It renders in place, so put it inside
   `<Teleport to="#modals">`. It focuses its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's
-  `handleSubmit` prop submits (`handleClose` there is a deprecated alias of it).
+  `handleSubmit` prop submits (`handleClose` there is a deprecated alias of it). The dialog is a `role="dialog"` with
+  `aria-modal="true"`, named by its title (`aria-labelledby`; without a header, `aria-label` from `title`) — a `title`
+  slot gets the id as `titleId`: `<template #title="{ titleId }"><h3 :id="titleId">…</h3></template>`. Tab and
+  Shift+Tab stay inside the dialog, and the page behind does not scroll while any modal is open; nested modals give
+  the scroll back once, when the last one closes.
 - **`FileDropZone` takes drops only.** It renders no `<input>` or browse button: pair it with `browse()` from
   `@regira/modules/utilities/file-utility` for click and keyboard users.
 - **`Feedback` needs a `FeedbackOut`** — pass the one from a composable (`useFeedback()` or an

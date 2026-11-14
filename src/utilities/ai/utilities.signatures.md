@@ -205,7 +205,7 @@ export declare const addImageToCanvas: (
 ) => HTMLCanvasElement // file only
 export declare const urlToImage: (url: string) => Promise<HTMLImageElement>
 export declare const blobToImage: (blob: Blob) => Promise<HTMLImageElement>
-export declare const imageToBlob: (img: HTMLImageElement, filename?: string, _type?: string) => Promise<Blob & { name: string }>
+export declare const imageToBlob: (img: HTMLImageElement, filename?: string, type?: string) => Promise<Blob & { name: string }>
 export declare const canvasToImage: (canvas: HTMLCanvasElement, type?: string, quality?: number) => Promise<HTMLImageElement>
 export declare const imageToCanvas: (img: HTMLImageElement, width?: number, height?: number) => HTMLCanvasElement
 export declare const canvasToBlob: (canvas: HTMLCanvasElement, type?: string, quality?: number) => Promise<unknown>

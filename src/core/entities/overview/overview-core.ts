@@ -1,5 +1,6 @@
 import { createFeedback, type FeedbackSink, type FeedbackState } from "../../feedback/feedback"
-import { toFeedbackError } from "../../feedback/errors"
+import { feedbackText, toFeedbackError } from "../../feedback/errors"
+import { feedbackTexts } from "../feedback-texts"
 import { DEFAULT_PAGESIZE, PagingInfo, type IEntity, type IPagingInfo, type ISearchObject, type SaveResult } from "../abstractions"
 import type { OverviewCore, OverviewCoreInput, OverviewCoreInternals } from "./types"
 
@@ -35,13 +36,16 @@ export function createOverviewCore<T extends IEntity, SO extends ISearchObject =
         try {
             feedback.reset()
             const { saved, isNew } = await service.save(item)
-            if (isLatest()) feedback.success(`Saved ${item.$title}`)
+            if (isLatest()) feedback.success(feedbackText(feedbackTexts.savedTitle, { title: item.$title }))
             return { saved, isNew }
         } catch (ex: unknown) {
             console.error("saving failed", { ex, item })
             // a superseded save still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                feedback.fail(`Saving ${item.$title} failed`, toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
+                feedback.fail(
+                    feedbackText(feedbackTexts.savingTitleFailed, { title: item.$title }),
+                    toFeedbackError(ex) ?? (ex as Error | undefined)?.message
+                )
             }
         } finally {
             // a superseded save leaves the spinner to the call that replaced it
@@ -63,7 +67,10 @@ export function createOverviewCore<T extends IEntity, SO extends ISearchObject =
             console.error("removing failed", { ex, item })
             // a superseded delete still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                feedback.fail(`Removing ${item.$title} failed`, toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
+                feedback.fail(
+                    feedbackText(feedbackTexts.removingTitleFailed, { title: item.$title }),
+                    toFeedbackError(ex) ?? (ex as Error | undefined)?.message
+                )
             }
         } finally {
             // a superseded delete leaves the spinner to the call that replaced it

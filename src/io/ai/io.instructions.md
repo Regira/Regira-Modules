@@ -47,7 +47,10 @@ accepts a `File`, a `Blob`, an http(s) URL string (fetched via `fetch`, filename
 resolve to a new `HTMLImageElement`:
 
 - **`resize(input, max, options?)`** — scales so the longest side is at most `max` (never upscales);
-  `options.quality` / `options.type` tune the output.
+  `options.quality` / `options.type` tune the output. The browser scales, from a first canvas of at most 4096 px
+  per side, so a full-size phone photo resizes like any other; transparency is kept for a type that has it (`options.type`; the default output is JPEG), and a
+  JPEG gets a white background. Keep `max` at 4096 or below: the result's canvas is `max` wide, and iOS Safari leaves a
+  larger one blank.
 - **`rotate(input, direction)`** — `input` is a `Blob`; `direction` is degrees.
 - **`flipHorizontally(input)`** / **`flipVertically(input)`** / **`flipFlop(input, flip?, flop?, type?)`** —
   mirror on one or both axes.
@@ -67,6 +70,13 @@ resolve to a new `HTMLImageElement`:
 - **Default upload field name.** `send` only forwards `filesParameterName` when you set it; the
   underlying `toFormData` then defaults the field to `"files"` (note: `vue/http`'s `upload` defaults to
   `"file"`).
+- **An image made from a `Blob` has no live `src`.** `getImage(blob)`, and every transform given a `Blob` or
+  `File`, releases the object URL once the image has loaded: the image draws and converts as usual, but binding its
+  `src` to an `<img>` shows nothing. Show the `Blob` through a URL of your own (`URL.createObjectURL`, revoked when
+  done).
+- **`getBlob(image)` makes no request** for an image that holds its own bytes — a transform's `data:` result, or an
+  image made from a `Blob`, which answers that `Blob` itself (bytes, type and EXIF untouched) — so a CSP `connect-src` without
+  `data:`/`blob:` does not stop it. An image loaded from any other URL is fetched.
 - **Browser-only.** Every method touches `document`, `FileReader`, `Blob`, `fetch`, or `<canvas>`; there
   is no SSR/Node fallback.
 

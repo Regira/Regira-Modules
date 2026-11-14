@@ -1,22 +1,24 @@
 # Regira Online (front-end)
 
-`@regira/modules/vue/online` — online/offline detection for the app: the `useOnlineChecker` composable
-plus a Vue plugin that keeps one reactive `isOnline` ref in sync with the browser and exposes it
-app-wide as `$isOnline`. Use it to gate calls to the [HTTP layer](../http/README.md) and
+`@regira/modules/vue/online` — online/offline detection for the app: one reactive `isOnline` ref, kept in
+sync with the browser, which the `useOnlineChecker` composable returns and a Vue plugin exposes app-wide as
+`$isOnline`. Use it to gate calls to the [HTTP layer](../http/README.md) and
 [entities client](../entities/README.md) when the network is down.
 
 ## What it provides
 
-| Export                             | Purpose                                                                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin` (also the default export) | Vue plugin: creates one `isOnline` ref, wires `online`/`offline` listeners, registers `$isOnline` and `provide("isOnline", …)`. |
-| `useOnlineChecker()`               | Composable returning `{ isOnline }`: the plugin's live ref inside `setup`, else a ref seeded from `navigator.onLine`.           |
-| `IsOnline`                         | The `{ isOnline: Ref<boolean> }` return type of `useOnlineChecker`, exported from the barrel.                                   |
-| `$isOnline`                        | `Ref<boolean>` on `ComponentCustomProperties` — available in templates and the Options API after the plugin is installed.       |
+| Export                             | Purpose                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `plugin` (also the default export) | Vue plugin: registers the shared `isOnline` ref as `$isOnline` and `provide("isOnline", …)`.                              |
+| `useOnlineChecker()`               | Composable returning `{ isOnline }`: the one shared, live ref — in `setup` or outside it, with or without the plugin.     |
+| `IsOnline`                         | The `{ isOnline: Ref<boolean> }` return type of `useOnlineChecker`, exported from the barrel.                             |
+| `$isOnline`                        | `Ref<boolean>` on `ComponentCustomProperties` — available in templates and the Options API after the plugin is installed. |
 
-> Note: inside a component's `setup` with the plugin installed, `useOnlineChecker()` returns the
-> plugin's live ref. Elsewhere, or without the plugin, each call returns a **fresh, one-time snapshot**
-> ref that never updates: the `online`/`offline` listeners are wired only to the plugin's own instance.
+The ref is made on first use, seeded from `navigator.onLine` (`true` on the server), and follows the window's
+`online`/`offline` events from then on; importing the module does nothing. Every `useOnlineChecker()` — in a
+component, a store, a service — returns that same ref, and the plugin provides it. It is writable: an app that
+knows better than the browser (a request that got no answer, the next one that did) sets `isOnline.value` itself,
+and every reader sees it.
 
 ## Writes made while offline
 

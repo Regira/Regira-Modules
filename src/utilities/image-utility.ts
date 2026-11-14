@@ -98,9 +98,73 @@ export const urlToImage = async (url: string): Promise<HTMLImageElement> => {
         img.src = url
     })
 }
-export const blobToImage = async (blob: Blob) => urlToImage(fileUtility.createUrl(blob))
-export const imageToBlob = async (img: HTMLImageElement, filename?: string, _type?: string) => {
-    return fileUtility.urlToBlob(img.src, filename)
+// the Blob each image of blobToImage was made from, while its src is still that Blob's URL: imageToBlob answers it
+const sourceBlobs = new WeakMap<HTMLImageElement, { blob: Blob; url: string }>()
+/**
+ * The Blob as an image. Its object URL is released as soon as the image has loaded or failed to: a loaded image keeps
+ * its pixels, so it draws and converts as before, but its `src` no longer loads anything — show the Blob through a URL
+ * of your own (`URL.createObjectURL`), not through the image's `src`. {@link imageToBlob} answers the Blob itself.
+ */
+export const blobToImage = async (blob: Blob): Promise<HTMLImageElement> => {
+    const url = fileUtility.createUrl(blob)
+    try {
+        const img = await urlToImage(url)
+        sourceBlobs.set(img, { blob, url })
+        return img
+    } finally {
+        fileUtility.revokeUrl(url)
+    }
+}
+// a data URL's bytes, base64 or URL-encoded, without a request: a Content-Security-Policy's connect-src may refuse one
+const dataUrlToBlob = (url: string, filename?: string): Blob & { name: string } => {
+    const comma = url.indexOf(",")
+    const meta = url.slice("data:".length, comma)
+    const blob = (
+        meta.endsWith(";base64")
+            ? fileUtility.base64ToBlob(url, filename ?? "")
+            : new Blob([decodeURIComponent(url.slice(comma + 1))], { type: meta.split(";")[0] })
+    ) as Blob & { name: string }
+    if (filename) {
+        blob.name = filename
+    }
+    return blob
+}
+/**
+ * The image's bytes as a Blob, without a request where the page holds them: an image of {@link blobToImage} answers the
+ * Blob it was made from (unless another `type` is asked), and a `data:` source is decoded. Any other `blob:` source,
+ * whose URL may be released, is drawn to a canvas and encoded as `type` (default `image/png`, which keeps transparency).
+ * Any other URL is fetched.
+ */
+export const imageToBlob = async (img: HTMLImageElement, filename?: string, type?: string): Promise<Blob & { name: string }> => {
+    const src = img.src
+    const source = sourceBlobs.get(img)
+    if (source != null && source.url === src && (!type || parseContentType(type) === source.blob.type)) {
+        // a new Blob over the same bytes, so naming it leaves the caller's Blob (or File) alone
+        const blob = new Blob([source.blob], { type: source.blob.type }) as Blob & { name: string }
+        blob.name = filename ?? (source.blob as Blob & { name?: string }).name ?? ""
+        return blob
+    }
+    if (src.startsWith("data:")) {
+        return dataUrlToBlob(src, filename)
+    }
+    if (src.startsWith("blob:")) {
+        const contentType = type ? parseContentType(type) : contentTypes.png
+        const canvas = createCanvas(
+            img.naturalWidth || img.width,
+            img.naturalHeight || img.height,
+            contentType === contentTypes.jpg ? { backgroundColor: "#ffffff" } : null
+        )
+        get2dContext(canvas).drawImage(img, 0, 0, canvas.width, canvas.height)
+        const blob = (await canvasToBlob(canvas, contentType)) as (Blob & { name: string }) | null
+        if (blob == null) {
+            throw Error("Cannot convert image to Blob")
+        }
+        if (filename) {
+            blob.name = filename
+        }
+        return blob
+    }
+    return fileUtility.urlToBlob(src, filename)
 }
 export const canvasToImage = async (canvas: HTMLCanvasElement, type = DEFAULT_CONTENTTYPE, quality = 1) => urlToImage(canvas.toDataURL(type, quality))
 export const imageToCanvas = (img: HTMLImageElement, width?: number, height?: number) => {
@@ -118,171 +182,50 @@ export const imageToBase64 = (img: HTMLImageElement, type = DEFAULT_CONTENTTYPE,
     return canvas.toDataURL(type, quality)
 }
 
+// the largest canvas side every browser draws: iOS Safari leaves a larger canvas blank
+const MAX_CANVAS_SIDE = 4096
+
+/**
+ * The image scaled by `scale`, encoded as `type`. The browser does the scaling: a first draw takes the source straight to
+ * a canvas no larger than 4096 px per side, and each further draw halves it, until the last one lands on the target
+ * size, so a photo of any size scales smoothly. Transparency is kept for a type that has it; a JPEG gets a white
+ * background.
+ */
 export const resizeByScale = async (
     img: HTMLImageElement,
     scale: number,
     { quality = 1, type = DEFAULT_CONTENTTYPE }: { quality?: number; type?: string } = {}
 ) => {
-    // https://stackoverflow.com/questions/18922880/html5-canvas-resize-downscale-image-high-quality#answer-19144434
-    // scales the canvas by (float) scale < 1
-    // returns a new canvas containing the scaled image.
-    function downScaleCanvas(sourceCanvas: HTMLCanvasElement, scale: number, type: string) {
-        //if (!(scale < 1) || !(scale > 0)) throw ("scale must be a positive number <1 ");
-        var sqScale = scale * scale // square scale = area of source pixel within target
-        var sw = sourceCanvas.width // source image width
-        var sh = sourceCanvas.height // source image height
-        var tw = Math.floor(sw * scale) // target image width
-        var th = Math.floor(sh * scale) // target image height
-        var sx = 0,
-            sy = 0,
-            sIndex = 0 // source x,y, index within source array
-        var tx = 0,
-            ty = 0,
-            yIndex = 0,
-            tIndex = 0 // target x,y, x,y index within target array
-        var tX = 0,
-            tY = 0 // rounded tx, ty
-        var w = 0,
-            nw = 0,
-            wx = 0,
-            nwx = 0,
-            wy = 0,
-            nwy = 0 // weight / next weight x / y
-        // weight is weight of current source point within target.
-        // next weight is weight of current source point within next target's point.
-        var crossX = false // does scaled px cross its current px right border ?
-        var crossY = false // does scaled px cross its current px bottom border ?
-        var sBuffer = get2dContext(sourceCanvas).getImageData(0, 0, sw, sh).data // source buffer 8 bit rgba
-        var tBuffer = new Float32Array(3 * tw * th) // target buffer Float32 rgb
-        var sR = 0,
-            sG = 0,
-            sB = 0 // source's current point r,g,b
-        /* untested !
-var sA = 0;  //source alpha  */
-
-        for (sy = 0; sy < sh; sy++) {
-            ty = sy * scale // y src position within target
-            tY = 0 | ty // rounded : target pixel's y
-            yIndex = 3 * tY * tw // line index within target array
-            crossY = tY !== (0 | (ty + scale))
-            if (crossY) {
-                // if pixel is crossing botton target pixel
-                wy = tY + 1 - ty // weight of point within target pixel
-                nwy = ty + scale - tY - 1 // ... within y+1 target pixel
-            }
-            for (sx = 0; sx < sw; sx++, sIndex += 4) {
-                tx = sx * scale // x src position within target
-                tX = 0 | tx // rounded : target pixel's x
-                tIndex = yIndex + tX * 3 // target pixel index within target array
-                crossX = tX !== (0 | (tx + scale))
-                if (crossX) {
-                    // if pixel is crossing target pixel's right
-                    wx = tX + 1 - tx // weight of point within target pixel
-                    nwx = tx + scale - tX - 1 // ... within x+1 target pixel
-                }
-                sR = sBuffer[sIndex] // retrieving r,g,b for curr src px.
-                sG = sBuffer[sIndex + 1]
-                sB = sBuffer[sIndex + 2]
-
-                /* !! untested : handling alpha !!
-           sA = sBuffer[sIndex + 3];
-           if (!sA) continue;
-           if (sA != 0xFF) {
-               sR = (sR * sA) >> 8;  // or use /256 instead ??
-               sG = (sG * sA) >> 8;
-               sB = (sB * sA) >> 8;
-           }
-        */
-                if (!crossX && !crossY) {
-                    // pixel does not cross
-                    // just add components weighted by squared scale.
-                    tBuffer[tIndex] += sR * sqScale
-                    tBuffer[tIndex + 1] += sG * sqScale
-                    tBuffer[tIndex + 2] += sB * sqScale
-                } else if (crossX && !crossY) {
-                    // cross on X only
-                    w = wx * scale
-                    // add weighted component for current px
-                    tBuffer[tIndex] += sR * w
-                    tBuffer[tIndex + 1] += sG * w
-                    tBuffer[tIndex + 2] += sB * w
-                    // add weighted component for next (tX+1) px
-                    nw = nwx * scale
-                    tBuffer[tIndex + 3] += sR * nw
-                    tBuffer[tIndex + 4] += sG * nw
-                    tBuffer[tIndex + 5] += sB * nw
-                } else if (crossY && !crossX) {
-                    // cross on Y only
-                    w = wy * scale
-                    // add weighted component for current px
-                    tBuffer[tIndex] += sR * w
-                    tBuffer[tIndex + 1] += sG * w
-                    tBuffer[tIndex + 2] += sB * w
-                    // add weighted component for next (tY+1) px
-                    nw = nwy * scale
-                    tBuffer[tIndex + 3 * tw] += sR * nw
-                    tBuffer[tIndex + 3 * tw + 1] += sG * nw
-                    tBuffer[tIndex + 3 * tw + 2] += sB * nw
-                } else {
-                    // crosses both x and y : four target points involved
-                    // add weighted component for current px
-                    w = wx * wy
-                    tBuffer[tIndex] += sR * w
-                    tBuffer[tIndex + 1] += sG * w
-                    tBuffer[tIndex + 2] += sB * w
-                    // for tX + 1; tY px
-                    nw = nwx * wy
-                    tBuffer[tIndex + 3] += sR * nw
-                    tBuffer[tIndex + 4] += sG * nw
-                    tBuffer[tIndex + 5] += sB * nw
-                    // for tX ; tY + 1 px
-                    nw = wx * nwy
-                    tBuffer[tIndex + 3 * tw] += sR * nw
-                    tBuffer[tIndex + 3 * tw + 1] += sG * nw
-                    tBuffer[tIndex + 3 * tw + 2] += sB * nw
-                    // for tX + 1 ; tY +1 px
-                    nw = nwx * nwy
-                    tBuffer[tIndex + 3 * tw + 3] += sR * nw
-                    tBuffer[tIndex + 3 * tw + 4] += sG * nw
-                    tBuffer[tIndex + 3 * tw + 5] += sB * nw
-                }
-            } // end for sx
-        } // end for sy
-
-        // create result canvas
-        var resultCanvas = createCanvas(tw, th)
-        var resultContext = get2dContext(resultCanvas, {
-            "background-color": type === contentTypes.jpg ? "#FFF" : undefined,
-        })
-        var imgRes = resultContext.getImageData(0, 0, tw, th)
-        var tByteBuffer = imgRes.data
-        // convert float32 array into a UInt8Clamped Array
-        var pxIndex = 0 //
-        for (sIndex = 0, tIndex = 0; pxIndex < tw * th; sIndex += 3, tIndex += 4, pxIndex++) {
-            tByteBuffer[tIndex] = Math.ceil(tBuffer[sIndex])
-            tByteBuffer[tIndex + 1] = Math.ceil(tBuffer[sIndex + 1])
-            tByteBuffer[tIndex + 2] = Math.ceil(tBuffer[sIndex + 2])
-            tByteBuffer[tIndex + 3] = 255
-        }
-        // writing result to canvas.
-        resultContext.putImageData(imgRes, 0, 0)
-        return resultCanvas
-    }
-    // scales the image by (float) scale < 1
-    // returns a canvas containing the scaled image.
-    function downScaleImage(img: HTMLImageElement, scale: number, type: string) {
-        const canvas = createCanvas(img.width, img.height)
-        const context = get2dContext(canvas, {
-            "background-color": type === contentTypes.png ? "transparent" : type === contentTypes.jpg ? "#FFF" : undefined,
-        })
-        context.drawImage(img, 0, 0)
-        return downScaleCanvas(canvas, scale, type)
-    }
-
     const contentType = parseContentType(type || (await getImageContentType(img)))
 
-    const downScaledCanvas = downScaleImage(img, scale, contentType)
-    return canvasToImage(downScaledCanvas, contentType, quality)
+    const targetWidth = Math.max(1, Math.floor(img.width * scale))
+    const targetHeight = Math.max(1, Math.floor(img.height * scale))
+    // the first step: the target doubled while it stays smaller than the source and within the canvas limit
+    let width = targetWidth
+    let height = targetHeight
+    while (width * 2 < img.width && height * 2 < img.height && Math.max(width, height) * 2 <= MAX_CANVAS_SIDE) {
+        width *= 2
+        height *= 2
+    }
+
+    const draw = (source: CanvasImageSource, w: number, h: number, backgroundColor?: string) => {
+        const canvas = createCanvas(w, h, null)
+        const ctx = get2dContext(canvas, { backgroundColor, imageSmoothingEnabled: true, imageSmoothingQuality: "high" })
+        ctx.drawImage(source, 0, 0, w, h)
+        return canvas
+    }
+    // only the last canvas gets a JPEG's white background: the steps before it keep what is transparent
+    const background = contentType === contentTypes.jpg ? "#ffffff" : undefined
+    let canvas = draw(img, width, height, width === targetWidth ? background : undefined)
+    while (width > targetWidth) {
+        width /= 2
+        height /= 2
+        const next = draw(canvas, width, height, width === targetWidth ? background : undefined)
+        // release the larger canvas now: a browser caps the memory of all its canvases together
+        canvas.width = canvas.height = 0
+        canvas = next
+    }
+    return canvasToImage(canvas, contentType, quality)
 }
 export const resize = async (
     img: HTMLImageElement,
@@ -315,7 +258,7 @@ export const resize = async (
         imageSmoothingEnabled: false,
     })
     // step 2
-    helperCtx.drawImage(helperCanvas, 0, 0, sourceWidth * factor, sourceHeight * factor)
+    helperCtx.drawImage(img, 0, 0, sourceWidth * factor, sourceHeight * factor)
     // step 3, resize to final size
     targetCtx.drawImage(helperCanvas, 0, 0, sourceWidth * factor, sourceHeight * factor, 0, 0, targetWidth, targetHeight)
 

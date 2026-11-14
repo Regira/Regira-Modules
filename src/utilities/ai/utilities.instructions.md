@@ -88,6 +88,16 @@ also exports `isHttps`, `tryCreateValidURL`, and `toAbsoluteUrl`. For the app's 
 - **`imageUtility`** — `HTMLImageElement`/canvas/blob/base64 conversions, plus `resize`, `resizeByScale`,
   `rotate`, `flipFlop`, `convertType`, `getLightness`, `white2transparent`. The granular source also
   exposes lower-level canvas helpers (`createCanvas`, `get2dContext`, `addImageToCanvas`, `flip`/`flop`, …).
+    - `resizeByScale` lets the browser scale: a first draw to a canvas no larger than 4096 px per side (the largest
+      one iOS Safari still draws), then halving draws down to the target size, so a full-size phone photo scales like
+      any other. Transparency is kept for a type that has it (`type`; the default is JPEG); a JPEG gets a white
+      background. The target canvas is not capped: a target above 4096 px per side is blank on iOS Safari.
+    - `imageToBlob(img, filename?, type?)` makes no request for an image of `blobToImage` (the Blob it was made from,
+      unless another `type` is asked), a `data:` source (decoded: base64, or URL-encoded text such as SVG) or another
+      `blob:` source (drawn to a canvas and encoded as `type`, default `image/png`); any other URL is fetched. A CSP `connect-src` without
+      `data:`/`blob:` does not stop it.
+    - `blobToImage` releases its object URL once the image has loaded or failed: the image draws and converts as
+      usual, but its `src` loads nothing more — show the Blob through a URL of your own.
 - **`numberUtility`** — `getRandom(min?, max?)`, `naturalCompare`.
 - **`objectUtility`** — `isPlainObject`, `flattenObject`, `crawlObject`, `mixin`, `filterObject`; the
   source file also exports `removeEmpty` and `deepCopy`.

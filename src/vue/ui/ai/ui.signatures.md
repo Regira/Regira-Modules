@@ -104,7 +104,8 @@ export function fieldLabel(name: string): string
 // One validation message and its args as the server sent them → the translation, or undefined to show the message.
 export type ErrorTranslator = (message: string, args: Record<string, unknown>) => string | undefined
 // Replaces the useLang default for every toFeedbackError call (vue-i18n: (key, args) => (te(key) ? t(key, args) : undefined));
-// undefined restores it. A translator that throws is logged and the message shown.
+// undefined restores it. A translator that throws is logged and the message shown. It also translates the entity
+// views' own feedback texts: the English text as the key ("Saving {title} failed"), { title } / { id } as args.
 export function setErrorTranslator(translator: ErrorTranslator | undefined): void
 // reactive(), not a bag of refs: read the fields directly in script and template — :disabled="f.isPending".
 // Destructuring it snapshots the values, as with any reactive object — pass the object, or toRefs() it.
@@ -254,7 +255,7 @@ export type ModalProps = {
 }
 export type ModalEmits = { (e: "submit"): void; (e: "cancel"): void; (e: "close"): void }
 export type ModalSlots = {
-    title?(): any
+    title?(props: { titleId: string }): any // titleId: the id that names the dialog (aria-labelledby) — put it on the slot's heading
     "header-close-button"?(props: { handleClose: () => void }): any
     default?(): any
     buttons?(): any
@@ -266,7 +267,9 @@ export const modalDefaults: { showHeader: true; showFooter: true; type: ModalTyp
 // DefaultModal renders in place (no Teleport): FormModalButton, ConfirmButton and the slice's other dialogs wrap it
 // in <Teleport to="#modals">, and a modal of your own does the same. Its body renders only while isVisible (v-if).
 // On open it focuses its dialog (unless an element inside already has focus), so Esc closes it without a click first;
-// on close it gives focus back to the element that had it.
+// on close it gives focus back to the element that had it. The dialog is role="dialog" aria-modal="true", named by its
+// title (aria-labelledby; with showHeader false, aria-label from title). Tab and Shift+Tab stay inside it, and the
+// page's scroll is held while any modal is open (counted on <body>, so nested modals release it once).
 export type ModalComponent // any component implementing ModalProps — modalPlugin's option type (compile-checked)
 
 // resolves the app-wide modal (the modalPlugin swap-in, DefaultModal otherwise); call in setup:

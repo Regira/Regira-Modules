@@ -1234,6 +1234,20 @@ fixed, for a save and for a delete alike; a restore reports any status as `"Rest
 | other `4xx`        | `"Saving failed: …"` / `"Deleting failed: …"` (409: the ProblemDetails `detail`)                  | —                                                                       |
 | `5xx` or no answer | `"Server error: …"` / `"Deleting failed: …"`                                                      | —                                                                       |
 
+### Translating the views' own feedback texts
+
+The texts the entity views put in `feedback.message` — the ones above, and the overview's, details page's and
+`useModal`'s — pass through the same translator as the validation messages: the app's `useLang` messages, or the
+translator it set with `setErrorTranslator`. The English text is the key and the fallback, and a `{title}` or `{id}`
+in it is passed as an arg, so without a translation nothing changes. Add the keys to the app's messages:
+`"Saving {title} failed": { en: "Saving {title} failed", nl: "{title} opslaan mislukt" }`.
+
+| Where                    | Keys (`{title}`: the row's `$title`; `{id}`: its id)                                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| form (`useForm`)         | `Readonly`, `Saving...`, `Saved`, `Saving failed`, `Item not found`, `Server error`, `Deleting...`, `Deleted`, `Deleting failed`, `Restoring...`, `Restored`, `Restoring failed` |
+| overview                 | `fetching data failed`, `Saved {title}`, `Saving {title} failed`, `Removing {title} failed`                                                                                      |
+| details page, `useModal` | `Fetching item #{id} failed`, `Fetching {title} failed`, `Not allowed`, `Not found`                                                                                              |
+
 A delete answers `400` when a validator refuses it; a rule on the whole entity arrives under the `""` key. So only a
 `400` puts a per-field map on the form's `feedback.error`. The overview's `applyRemove` maps no status: it reports any
 failure under `Removing <title> failed`, with the field map `toFeedbackError(ex)` reads, else the server's text or the

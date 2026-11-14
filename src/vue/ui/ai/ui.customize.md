@@ -171,7 +171,7 @@ To keep a tab's title, omit its `icon` in `Tab.create`. Otherwise override `.rg-
 
 Slots are typed (`XxxSlots`, visible via `get_type`) — the main seams:
 
-- `DefaultModal`: `title`, `header-close-button{handleClose}`, default, `buttons`,
+- `DefaultModal`: `title{titleId}`, `header-close-button{handleClose}`, default, `buttons`,
   `footer-close-button{handleCancel}`, `footer-submit-button{handleSubmit}` (`handleClose`: deprecated alias)
 - `Paging`: `firstPage{page}`, default `{page, route, handleChange}`, `lastPage{page}`
 - `Autocomplete`: scoped default `{item, q}` — **the** result-item rendering seam
@@ -264,7 +264,9 @@ slots. Every replacement/ejected skin MUST:
     - **Modal**: render the default slot when `isVisible`; focus the dialog when it opens, give focus back when it closes, and emit `close` on Esc
       and the header close; emit `cancel`/`submit` from the footer actions; hear Esc on `keydown` in the bubble
       phase, so an open `Autocomplete` panel inside the modal takes the key first; honor
-      `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`.
+      `showHeader`/`showFooter`/`size`/`fullWidth`/`type`/`labels`. Keep the dialog semantics the reference skin
+      renders: `role="dialog"`, `aria-modal="true"` and a name (`aria-labelledby` on the title), Tab and Shift+Tab
+      kept inside, and the page's scroll held while it is open — the ejected copy keeps all of it.
     - **Paging**: `v-model` (`update:modelValue`) + `change` with the new `IPagingInfo`; mark the
       active page; keep both anchor (`pagedRoute`) and button modes working.
     - **Autocomplete**: keyboard selection (up/down/enter/escape), debounced search, and the scoped default

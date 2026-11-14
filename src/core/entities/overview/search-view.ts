@@ -1,6 +1,7 @@
 import { debounceToPromise } from "../../../utilities/promise-utility"
 import type { FeedbackSink, FeedbackState } from "../../feedback/feedback"
-import { toFeedbackError } from "../../feedback/errors"
+import { feedbackText, toFeedbackError } from "../../feedback/errors"
+import { feedbackTexts } from "../feedback-texts"
 import { DEFAULT_PAGESIZE, type IEntity, type ISearchObject } from "../abstractions"
 import { createOverviewCore } from "./overview-core"
 import { DEFAULT_DEBOUNCE, type SearchView, type SearchViewInput } from "./types"
@@ -95,7 +96,7 @@ export function createSearchView<T extends IEntity, SO extends ISearchObject = I
             console.error("fetching failed", { ex })
             // a superseded search still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                feedback.fail("fetching data failed", toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
+                feedback.fail(feedbackText(feedbackTexts.fetchingDataFailed), toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
             }
         } finally {
             if (generation === searchGeneration) searching = false
@@ -146,7 +147,7 @@ export function createSearchView<T extends IEntity, SO extends ISearchObject = I
         } catch (ex) {
             console.error("fetching failed", { ex })
             if (isLatest()) {
-                feedback.fail("fetching data failed", toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
+                feedback.fail(feedbackText(feedbackTexts.fetchingDataFailed), toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
             }
         } finally {
             if (isLatest()) isLoading.value = false

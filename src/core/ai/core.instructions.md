@@ -52,7 +52,10 @@ Every export behaves exactly as its module's guide describes; read that guide fo
 until the app calls `setErrorTranslator` once at startup. Fill a message's args with
 `formatText(text, args, { ignoreCase: true })`, as the Vue default does: the server may name an arg `maxLength` for
 a `{MaxLength}` placeholder. An app's translator wins over the default whichever
-is set first; `setErrorTranslator(undefined)` restores the default.
+is set first; `setErrorTranslator(undefined)` restores the default. The same translator translates the entity
+controllers' own feedback texts ("Saved", "Saving {title} failed", …), the English text as the key and `{ title }` /
+`{ id }` as args; the keys: [entities.patterns.md](../../vue/entities/ai/entities.patterns.md) → _Translating the
+views' own feedback texts_.
 
 ## Gotchas
 

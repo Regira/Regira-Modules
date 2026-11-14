@@ -12,6 +12,35 @@ heading.
 - Guides — `onAuthenticationChange` says when it fires: on each change of `isAuthenticated` (sign-in, restored token,
   sign-out, expiry), not on a first load without a token, and once at startup when `enabled: false`.
 - Guides — `--rel` says it writes no form picker: the run prints the `<…InputSelector>` line to add to `details/Form.vue`.
+- `utilities` / `io`: Fix: `resizeByScale`, and so `ImageHelper.resize`, lets the browser scale: a first draw to a canvas of
+  at most 4096 px per side, then halving draws to the target size. A photo larger than the browser's canvas limit
+  (iOS Safari: 4096 × 4096) no longer comes out blank, and a transparent PNG or WebP keeps its transparency when it is
+  resized to a type that has one (`options.type`; the default output is JPEG).
+- `utilities` / `io`: Fix: `imageToBlob`, and so `ImageHelper.getBlob(image)`, answers an image of `blobToImage` with
+  the Blob it was made from and decodes a `data:` source instead of fetching it (another `blob:` source is drawn to a
+  canvas), so a `Content-Security-Policy` whose `connect-src` leaves out
+  `data:` and `blob:` no longer stops it. `blobToImage` releases its object URL once the image has loaded or failed,
+  so an image no longer stays in memory until the page unloads; the image still draws and converts, but its `src`
+  loads nothing more.
+- `utilities`: Fix: `resize` draws the source image; it drew its empty helper canvas onto itself, so the result was blank.
+- `vue/ui`: Fix: `DefaultModal` is a `role="dialog"` with `aria-modal="true"`, named by its title (`aria-labelledby`; a
+  `title` slot gets the id as `titleId`). Tab and Shift+Tab stay inside it, and the page behind it no longer scrolls
+  while a modal is open; nested modals give the scroll back once, when the last one closes. The ejectable copy in
+  `_template/ui` carries the same.
+- `vue/lang`: Fix: `LangSelector` renders a `<button type="button">` per language, with `aria-pressed` on the current
+  one, so a keyboard reaches it. The `rg-lang-selector` hook and the `select` event stay.
+- `vue/online`: Fix: `useOnlineChecker()` returns one shared ref everywhere, outside a component's setup and without the
+  plugin too; it follows the browser's `online`/`offline` events and is made on first use, so an import has no side
+  effect. The plugin provides that same ref. It is writable, so an app can set it from its request results.
+- `core` / `vue/entities`: New: the entity views' own feedback texts ("Saved", "Saving {title} failed", "Not allowed",
+  …) pass through the translator `toFeedbackError` uses — the app's `useLang` messages, or its `setErrorTranslator` —
+  with the English text as the key and the fallback, and `{title}` / `{id}` as args. Without a translation nothing
+  changes. A translation an app already keeps under one of these keys (`Saved`, `Deleted`, `Not found`, …) for
+  another purpose now shows in the views' feedback too.
+- `vue/entities`: Fix: `useModal` reports a row it could not open when the request got no response (a network error);
+  it threw while building the message instead.
+- Guides — `--rel` says the relation filters land after the placeholder `searchObject.title` input in `FilterAdv.vue`,
+  which stays to be rebound or removed like every placeholder.
 
 ## 6.6.2 — 2026-11-11
 

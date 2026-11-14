@@ -1,14 +1,15 @@
 <template>
     <ul class="rg-lang-selector list-inline d-inline mb-0">
-        <li
-            v-for="code in langs"
-            :key="code"
-            class="list-inline-item"
-            :class="{ 'fw-bold': langCode == code }"
-            role="button"
-            @click="handleSelect(code)"
-        >
-            {{ code.toUpperCase() }}
+        <li v-for="code in langs" :key="code" class="list-inline-item">
+            <button
+                type="button"
+                class="btn btn-link p-0 text-reset text-decoration-none"
+                :class="{ 'fw-bold': langCode == code }"
+                :aria-pressed="langCode == code"
+                @click="handleSelect(code)"
+            >
+                {{ code.toUpperCase() }}
+            </button>
         </li>
     </ul>
 </template>

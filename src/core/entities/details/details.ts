@@ -1,5 +1,7 @@
 import type { Box, BoxFactory } from "../../box"
 import { createFeedback, type FeedbackSink, type FeedbackState } from "../../feedback/feedback"
+import { feedbackText } from "../../feedback/errors"
+import { feedbackTexts } from "../feedback-texts"
 import type { IEntity } from "../abstractions/IEntity"
 import type { IEntityService } from "../abstractions/IEntityService"
 import { ArchivedFilter } from "../abstractions/ISearchObject"
@@ -78,9 +80,14 @@ export function createDetails<T extends IEntity, F extends FeedbackSink = Feedba
             if (loadId === latestLoadId) {
                 // Optional chaining: a network/CORS failure carries no response, and reading through it here
                 // throws out of the catch block — replacing the message with an unhandled rejection.
+                const status = ex.response?.status
                 feedback.fail(
-                    `Fetching item #${routeId()} failed`,
-                    ex.response?.status == 403 ? "Not allowed" : ex.response?.status == 404 ? "Not found" : ex.response?.data || ex.message
+                    feedbackText(feedbackTexts.fetchingItemFailed, { id: routeId() }),
+                    status == 403
+                        ? feedbackText(feedbackTexts.notAllowed)
+                        : status == 404
+                          ? feedbackText(feedbackTexts.notFound)
+                          : ex.response?.data || ex.message
                 )
             }
         } finally {
