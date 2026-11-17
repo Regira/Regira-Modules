@@ -568,8 +568,10 @@ resolved `authStore.isAuthenticated` — it needs no guard.
   `AccountControllerBase` takes it `[FromQuery]`). So **set `clientApp` and leave `loginUrl` alone**; `loginUrl`
   is only for a login endpoint that isn't `auth`. Spelling `clientApp=` out in `loginUrl` yourself still wins and
   is never doubled. Never emit a `{clientApp}`/`<clientApp>` placeholder into the URL — nothing substitutes it at
-  runtime, and the API would mint a token with that literal audience, 401-ing every later call. `refresh` needs
-  no `clientApp`: the server re-reads `aud` from the current token.
+  runtime, so the API receives that literal as the audience. An API that configures its audience refuses the
+  sign-in with `400`, as it does any `clientApp` other than its own, and the login form shows a failed sign-in; one
+  that configures none mints a token with the literal. `refresh` needs no `clientApp`: the server re-reads `aud`
+  from the current token.
 - **Password-reset link:** the recover email links to `siteUrl` with its query string set to `?token=…`, the Base64
   token percent-encoded (`/reset-password?token=…`). Read it from vue-router's `route.query.token`, which decodes the
   query as `URLSearchParams` does, so either returns the token intact; treat anything but a single string as no

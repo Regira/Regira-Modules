@@ -12,6 +12,9 @@ heading.
 - Guides — `onAuthenticationChange` says when it fires: on each change of `isAuthenticated` (sign-in, restored token,
   sign-out, expiry), not on a first load without a token, and once at startup when `enabled: false`.
 - Guides — `--rel` says it writes no form picker: the run prints the `<…InputSelector>` line to add to `details/Form.vue`.
+- Guides — a `clientApp` that is not the API's JWT audience fails at sign-in: the API answers `400`
+  (`Regira.Security.Authentication.Web` 6.6.3), which the login form shows as a failed sign-in, where the guides said
+  every later call answers `401`.
 - `utilities` / `io`: Fix: `resizeByScale`, and so `ImageHelper.resize`, lets the browser scale: a first draw to a canvas of
   at most 4096 px per side, then halving draws to the target size. A photo larger than the browser's canvas limit
   (iOS Safari: 4096 × 4096) no longer comes out blank, and a transparent PNG or WebP keeps its transparency when it is

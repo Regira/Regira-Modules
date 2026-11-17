@@ -9,8 +9,9 @@
   after `initAxios` — pass that **same axios instance** plus a token manager
   (`LocalStorageTokenManager` is the usual choice). `install` is async and validates any saved token.
 - **`clientApp` = the JWT audience.** Set it in the plugin options; `login()` appends `?clientApp=` itself.
-  It must equal the API's `Authentication:Jwt:Audience` or every authenticated call 401s. Leave `loginUrl`
-  alone unless the login endpoint isn't `auth`; never write a `{clientApp}` placeholder into a URL.
+  It must equal the API's `Authentication:Jwt:Audience`, or sign-in answers `400` and the login form shows a
+  failed sign-in. Leave `loginUrl` alone unless the login endpoint isn't `auth`; never write a `{clientApp}`
+  placeholder into a URL.
 - **Store surface** (`useAuthStore`): `isAuthenticated`, `authData`, `displayName`, `hasRole(r)`,
   `hasPermission(p)`, `hasClaim(type, value?)`, `getClaimValue(type)`; actions `login`, `validateToken`,
   `refresh`, `logout` (client-side only), `setClientApp`.
