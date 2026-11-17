@@ -8,7 +8,8 @@ export type IsOnline = { isOnline: Ref<boolean> }
 let shared: Ref<boolean> | undefined
 export function sharedIsOnline(): Ref<boolean> {
     if (shared == null) {
-        const isOnline = ref(typeof navigator === "undefined" ? true : navigator.onLine)
+        // a server may have a navigator without onLine (Node does): online there
+        const isOnline = ref(typeof navigator === "undefined" ? true : (navigator.onLine ?? true))
         if (typeof window !== "undefined") {
             const checkOnline = () => (isOnline.value = navigator.onLine)
             window.addEventListener("offline", checkOnline)

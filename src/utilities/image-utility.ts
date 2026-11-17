@@ -131,9 +131,10 @@ const dataUrlToBlob = (url: string, filename?: string): Blob & { name: string } 
 }
 /**
  * The image's bytes as a Blob, without a request where the page holds them: an image of {@link blobToImage} answers the
- * Blob it was made from (unless another `type` is asked), and a `data:` source is decoded. Any other `blob:` source,
- * whose URL may be released, is drawn to a canvas and encoded as `type` (default `image/png`, which keeps transparency).
- * Any other URL is fetched.
+ * Blob it was made from (unless another `type` is asked), and a `data:` source is decoded. Any other URL is fetched,
+ * another `blob:` URL included. An image on such a `blob:` URL is drawn to a canvas and encoded instead (as `type`, or
+ * as `image/png`, which keeps transparency) when a `type` is asked, or when that fetch fails: the URL is released, or
+ * a Content-Security-Policy's `connect-src` refuses `blob:`, which the browser logs.
  */
 export const imageToBlob = async (img: HTMLImageElement, filename?: string, type?: string): Promise<Blob & { name: string }> => {
     const src = img.src
@@ -148,6 +149,13 @@ export const imageToBlob = async (img: HTMLImageElement, filename?: string, type
         return dataUrlToBlob(src, filename)
     }
     if (src.startsWith("blob:")) {
+        if (!type) {
+            try {
+                return await fileUtility.urlToBlob(src, filename) // the bytes as they are
+            } catch {
+                // released, or refused by connect-src: draw what the image still holds
+            }
+        }
         const contentType = type ? parseContentType(type) : contentTypes.png
         const canvas = createCanvas(
             img.naturalWidth || img.width,

@@ -33,6 +33,12 @@ test("outside setup every call returns the same ref, which follows the browser",
     expect(isOnline.value).toBe(false)
 })
 
+test("a navigator without onLine, as on a server, counts as online", () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(undefined)
+
+    expect(online.useOnlineChecker().isOnline.value).toBe(true)
+})
+
 test("the plugin provides that same ref, and an app may set it", () => {
     let inSetup
     const app = createApp(

@@ -36,8 +36,11 @@ internal: they are not reachable from the published package.
   not capped, so a target above 4096 px per side is blank on iOS Safari. `ImageHelper.resize` uses it.
 - **`imageToBlob(img, filename?, type?)`** makes no request when the page holds the image's bytes: an image of
   `blobToImage` answers the Blob it was made from (unless another `type` is asked), and a `data:` source is decoded —
-  base64, or URL-encoded text such as SVG; binary bytes must be base64. Any other `blob:` source is drawn to a canvas
-  and encoded as `type` (default `image/png`). Any other URL is fetched. So a `Content-Security-Policy` whose `connect-src` leaves out `data:` and `blob:` does not stop it.
+  base64, or URL-encoded text such as SVG; binary bytes must be base64. Any other URL is fetched, another `blob:` URL included: an image
+  the app shows through a `URL.createObjectURL` of its own answers its bytes as they are. Such an image is drawn to
+  a canvas and encoded (as `type`, or as `image/png`) only when a `type` is asked or when that fetch fails — the URL
+  is released, or a `Content-Security-Policy` whose `connect-src` leaves out `blob:` refuses it, which the browser
+  logs before the fallback. So a `connect-src` without `data:` and `blob:` does not stop it.
 - **`blobToImage(blob)`** releases its object URL once the image has loaded or failed to. The image keeps its
   pixels, so it draws and converts like any other, but its `src` loads nothing more: to show the Blob, give it a
   URL of your own (`URL.createObjectURL`, revoked when done).

@@ -93,9 +93,12 @@ also exports `isHttps`, `tryCreateValidURL`, and `toAbsoluteUrl`. For the app's 
       any other. Transparency is kept for a type that has it (`type`; the default is JPEG); a JPEG gets a white
       background. The target canvas is not capped: a target above 4096 px per side is blank on iOS Safari.
     - `imageToBlob(img, filename?, type?)` makes no request for an image of `blobToImage` (the Blob it was made from,
-      unless another `type` is asked), a `data:` source (decoded: base64, or URL-encoded text such as SVG) or another
-      `blob:` source (drawn to a canvas and encoded as `type`, default `image/png`); any other URL is fetched. A CSP `connect-src` without
-      `data:`/`blob:` does not stop it.
+      unless another `type` is asked) or a `data:` source (decoded: base64, or URL-encoded text such as SVG); any
+      other URL is fetched, another `blob:` URL included (an image the app shows through its own
+      `URL.createObjectURL` answers its bytes as they are). An image on such a `blob:` URL is drawn to a canvas and
+      encoded (as `type`, or as `image/png`) only when a `type` is asked or that fetch fails: the URL is released, or
+      a CSP `connect-src` without `blob:` refuses it, which the browser logs before the fallback. A CSP `connect-src`
+      without `data:`/`blob:` does not stop it.
     - `blobToImage` releases its object URL once the image has loaded or failed: the image draws and converts as
       usual, but its `src` loads nothing more — show the Blob through a URL of your own.
 - **`numberUtility`** — `getRandom(min?, max?)`, `naturalCompare`.

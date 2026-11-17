@@ -17,8 +17,9 @@ heading.
   (iOS Safari: 4096 × 4096) no longer comes out blank, and a transparent PNG or WebP keeps its transparency when it is
   resized to a type that has one (`options.type`; the default output is JPEG).
 - `utilities` / `io`: Fix: `imageToBlob`, and so `ImageHelper.getBlob(image)`, answers an image of `blobToImage` with
-  the Blob it was made from and decodes a `data:` source instead of fetching it (another `blob:` source is drawn to a
-  canvas), so a `Content-Security-Policy` whose `connect-src` leaves out
+  the Blob it was made from and decodes a `data:` source instead of fetching it (an image on another `blob:` URL is
+  still fetched, and is drawn to a canvas and encoded, as PNG unless a `type` is asked, when that fetch fails or a
+  `type` is asked), so a `Content-Security-Policy` whose `connect-src` leaves out
   `data:` and `blob:` no longer stops it. `blobToImage` releases its object URL once the image has loaded or failed,
   so an image no longer stays in memory until the page unloads; the image still draws and converts, but its `src`
   loads nothing more.

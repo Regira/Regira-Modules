@@ -76,7 +76,10 @@ resolve to a new `HTMLImageElement`:
   done).
 - **`getBlob(image)` makes no request** for an image that holds its own bytes — a transform's `data:` result, or an
   image made from a `Blob`, which answers that `Blob` itself (bytes, type and EXIF untouched) — so a CSP `connect-src` without
-  `data:`/`blob:` does not stop it. An image loaded from any other URL is fetched.
+  `data:`/`blob:` does not stop it. An image loaded from any other URL is fetched, a `blob:` URL of the app's own
+  (`URL.createObjectURL`) included, and answers its bytes as they are. Such a `blob:` image is drawn and encoded (PNG
+  unless a `type` is asked) only when that fetch fails (a released URL, or a `connect-src` that refuses `blob:`) or a
+  `type` is asked; with a CSP that refuses `blob:`, the browser logs the refused fetch before that fallback.
 - **Browser-only.** Every method touches `document`, `FileReader`, `Blob`, `fetch`, or `<canvas>`; there
   is no SSR/Node fallback.
 

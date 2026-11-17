@@ -24,6 +24,9 @@ any other; transparency is kept for a type that has it (`options.type`; the defa
 
 `getBlob(image)` makes no request for an image that holds its own bytes — the `data:` URL a transform returns, or an
 image made from a `Blob`, which answers that `Blob` itself, its bytes untouched — so a `Content-Security-Policy` whose `connect-src` leaves out `data:` and `blob:` does not
-stop it. An image made from a `Blob` (`getImage(blob)`, and every transform given a `Blob` or `File`) has already
+stop it. An image on any other URL is fetched, a `blob:` URL of the app's own (`URL.createObjectURL`) included, and
+answers its bytes as they are. Such a `blob:` image is drawn and encoded (PNG unless a `type` is asked) only when
+that fetch fails or a `type` is asked; where the policy refuses `blob:`, the browser logs the refused fetch before
+that fallback. An image made from a `Blob` (`getImage(blob)`, and every transform given a `Blob` or `File`) has already
 released its object URL: it draws and converts as usual, but its `src` loads nothing more, so show the `Blob` through
 a URL of your own.

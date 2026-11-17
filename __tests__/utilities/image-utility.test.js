@@ -79,21 +79,40 @@ describe("imageToBlob", () => {
         expect(await blob.text()).toBe("<svg/>")
     })
 
-    test("draws a blob: source to a canvas without a request, as PNG unless a type is asked", async () => {
+    test("fetches a blob: source and answers its bytes and type, without a canvas", async () => {
+        fetch.mockResolvedValueOnce(new Response("jpeg-bytes", { headers: { "content-type": "image/jpeg" } }))
         const img = imageWithSrc("blob:http://localhost/1234", 40, 30)
 
-        const png = await imageUtility.imageToBlob(img, "photo.png")
-        const jpeg = await imageUtility.imageToBlob(img, undefined, "image/jpg")
+        const blob = await imageUtility.imageToBlob(img, "photo.jpg")
+
+        expect(fetch).toHaveBeenCalledWith("blob:http://localhost/1234")
+        expect(await blob.text()).toBe("jpeg-bytes")
+        expect(blob.type).toBe("image/jpeg")
+        expect(blob.name).toBe("photo.jpg")
+        expect(draws).toEqual([])
+    })
+
+    test("draws a blob: source to a canvas, as PNG, when its fetch fails", async () => {
+        fetch.mockRejectedValueOnce(new TypeError("Failed to fetch")) // a released URL, or a connect-src without blob:
+        const img = imageWithSrc("blob:http://localhost/1234", 40, 30)
+
+        const blob = await imageUtility.imageToBlob(img, "photo.png")
+
+        expect(await blob.text()).toBe("drawn")
+        expect(blob.type).toBe("image/png")
+        expect(blob.name).toBe("photo.png")
+        expect(draws.map((d) => [d.source, d.size])).toEqual([[img, [40, 30]]])
+    })
+
+    test("draws a blob: source to a canvas without a request when a type is asked", async () => {
+        const img = imageWithSrc("blob:http://localhost/1234", 40, 30)
+
+        const blob = await imageUtility.imageToBlob(img, undefined, "image/jpg")
 
         expect(fetch).not.toHaveBeenCalled()
-        expect(png.type).toBe("image/png")
-        expect(png.name).toBe("photo.png")
-        expect(jpeg.type).toBe("image/jpeg")
-        expect(draws.map((d) => d.size)).toEqual([
-            [40, 30],
-            [40, 30],
-        ])
-        expect(draws.every((d) => d.source === img)).toBe(true)
+        expect(await blob.text()).toBe("drawn")
+        expect(blob.type).toBe("image/jpeg")
+        expect(draws.map((d) => [d.source, d.size])).toEqual([[img, [40, 30]]])
     })
 
     test("fetches any other URL", async () => {
