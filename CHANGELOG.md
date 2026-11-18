@@ -45,6 +45,10 @@ heading.
   it threw while building the message instead.
 - Guides — `--rel` says the relation filters land after the placeholder `searchObject.title` input in `FilterAdv.vue`,
   which stays to be rebound or removed like every placeholder.
+- Guides — *Owned rows with a relation and scalars* wires Enter on the add-row picker: a `@keydown.enter` on its column
+  adds the row once a product is picked, as the prose said, where only the scalars carried one.
+- Guides — `utilities.signatures` says `imageUtility.resize(img, n)` makes an n × n image without keeping the aspect
+  ratio, that `[w, 0]` or `[0, h]` keeps it, and that `ImageHelper.resize` bounds the longest side.
 
 ## 6.6.2 — 2026-11-11
 

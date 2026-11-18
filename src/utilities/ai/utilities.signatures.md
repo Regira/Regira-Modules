@@ -218,7 +218,7 @@ export declare const resizeByScale: (
 ) => Promise<HTMLImageElement>
 export declare const resize: (
     img: HTMLImageElement,
-    maxSize: number | [number, number],
+    maxSize: number | [number, number], // a number gives a maxSize × maxSize image (aspect not kept); [w, 0] or [0, h] keeps it. To bound the longest side: ImageHelper.resize
     { quality, type }?: { quality?: number; type?: string }
 ) => Promise<HTMLImageElement>
 export declare const rotate: (img: HTMLImageElement, direction?: number, type?: string) => Promise<HTMLImageElement>

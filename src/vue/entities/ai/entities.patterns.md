@@ -992,8 +992,9 @@ slot receives the row); a scalar to edit per row needs the table. Scaffold
 it with `--owns <Child>` (no `--picker`) and give the relation column the related slice's `InputSelector`, both
 v-models bound. On the add-row, `@select` also fills the defaults the picked row brings; `handleSave` then mints a
 fresh `newItem`. That clears the picker's model, but not its text while the picker has focus, and Enter in the picker
-is the usual way to add: key the add-row picker and bump the key when a row is added, so it remounts empty. Enter in
-the add-row's scalars adds the row too, once one is picked, with the `@keydown.enter.prevent` of the add-row above:
+is the usual way to add: key the add-row picker and bump the key when a row is added, so it remounts empty. The
+picker's own Enter selects, and keeps the form from submitting; a `@keydown.enter` on its column then adds the row
+once one is picked, as the `@keydown.enter.prevent` on the add-row's scalars does:
 
 ```vue
 <script setup lang="ts">
@@ -1027,7 +1028,7 @@ function add() {
         <button type="button" class="btn btn-outline-danger" @click="row._deleted = !row._deleted">×</button>
     </div>
     <div v-if="newItem" class="row">
-        <div class="col">
+        <div class="col" @keydown.enter="newItem.productId && add()">
             <ProductSelector
                 :key="addRowKey"
                 v-model="newItem.product"
