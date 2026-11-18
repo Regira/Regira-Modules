@@ -84,7 +84,8 @@ $tm: (message: ITranslationMessage, formatArgs?: IFormatInput) => string
 import { LangSelector, type LangSelectorProps, type LangSelectorEmits } from "@regira/modules/vue/lang"
 export type LangSelectorProps = { langs: Array<string> } // e.g. ["en", "fr", "nl"]
 export type LangSelectorEmits = { (e: "select", langCode: string): void }
-// inline list of language codes (active one bold); calls useLang().setLangCode on click.
+// inline list, a <button type="button"> per language code (active one bold, aria-pressed="true");
+// a click, Enter or Space calls useLang().setLangCode and emits select.
 // root class hook: rg-lang-selector — show it in the header whenever the app is multilanguage.
 ```
 

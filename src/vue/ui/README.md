@@ -107,6 +107,9 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   `getWindowSize` are not, and there is no `@regira/modules/vue/ui/screen` sub-path, so they cannot be
   imported from the published package. `feedback`, `icons`, and `modal` also have dedicated sub-paths;
   the modal `style.scss` is the one export only a sub-path (`/modal`) carries.
+- The translator `setErrorTranslator` sets — else the `useLang` messages — also translates the entity views' own
+  feedback texts ("Saved", "Saving {title} failed", …), the English text as the key and `{ title }` / `{ id }` as
+  args; the keys are listed in the [entities views guide](../entities/docs/views.md).
 - `Feedback` lists a failure's field errors under its message, each field headed by its label — the field's key
   translated as the messages are (`fieldLabel`), else the key in words, `dueDate` as "Due date". Errors that belong
   to no one field show without a heading. A form that shows each field's errors at its input sets
@@ -133,7 +136,10 @@ inside it. `entity-list--scroll-x` is the per-list opt-in for the rare row that 
   `@close`/`@cancel`/`@submit`), not an `openModal()` composable; for entity edit-in-modal use
   `useModal` from the entities module. It renders in place, so put it inside `<Teleport to="#modals">`. It focuses
   its dialog when it opens, so Esc closes it, and gives focus back to the element that had it when it closes; the `footer-submit-button` slot's `handleSubmit` prop submits
-  (`handleClose` there is a deprecated alias of it).
+  (`handleClose` there is a deprecated alias of it). The dialog is a `role="dialog"` with `aria-modal="true"`,
+  named by its title (`aria-labelledby`; without a header, `aria-label` from `title`); a `title` slot gets the id as
+  `titleId` to put on its own heading. Tab and Shift+Tab stay inside the dialog, and the page behind it does not
+  scroll while any modal is open — nested modals give the scroll back once, when the last one closes.
 - `Autocomplete`'s arrow keys select as they move, so each press fires `select`. Where a selection acts at once — a
   search, a row added to a list — set `confirmSelection`: the arrow keys then only highlight a result, and Enter or
   a click selects it. Once the results are in, a result's exact text, typed, is selected by Enter or by a

@@ -102,6 +102,17 @@ on it. `failure` keeps the last refused write's HTTP status and ProblemDetails `
 `"Concurrency conflict"` (a stale concurrency token) can offer a reload where one titled `"Conflict"` (a database
 constraint) cannot; the next write and a new `modelValue` clear it.
 
+The views' own feedback texts — `Saved`, `Saving failed`, `Saving {title} failed`, … — are translation keys too: the
+English text is the key and the fallback, a `{title}` or `{id}` in it is filled from the row, and they go through the
+same translator as the validation messages (the app's `useLang` messages, or its `setErrorTranslator`). Without a
+translation they show in English.
+
+| Where                    | Keys (`{title}`: the row's `$title`; `{id}`: its id)                                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| form (`useForm`)         | `Readonly`, `Saving...`, `Saved`, `Saving failed`, `Item not found`, `Server error`, `Deleting...`, `Deleted`, `Deleting failed`, `Restoring...`, `Restored`, `Restoring failed` |
+| overview                 | `fetching data failed`, `Saved {title}`, `Saving {title} failed`, `Removing {title} failed`                                                                                      |
+| details page, `useModal` | `Fetching item #{id} failed`, `Fetching {title} failed`, `Not allowed`, `Not found`                                                                                              |
+
 `readonly` is the form's write gate, read each time a handler runs: on a `readonly` form, `handleSubmit`,
 `handleRemove` and `handleRestore` return without calling the service, and `FormButtonsRow` renders no buttons.
 When the API gates writes by role or row ownership, derive `readonly` from the signed-in user and pass it down

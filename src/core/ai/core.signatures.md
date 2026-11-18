@@ -135,5 +135,7 @@ export declare function get<T>(key: any): T | undefined
 export type ErrorTranslator = (message: string, args: Record<string, unknown>) => string | undefined
 // An app's translator wins over the framework layer's default, whichever is set first; `undefined` restores the
 // default — in a Vue app the useLang messages, with no framework layer none (messages show as sent).
+// It also translates the entity controllers' own feedback texts: the English text as the key ("Saving {title} failed"),
+// { title } / { id } as args.
 export declare function setErrorTranslator(translator: ErrorTranslator | undefined): void
 ```

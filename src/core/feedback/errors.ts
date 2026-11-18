@@ -163,6 +163,24 @@ export function setErrorTranslator(translator: ErrorTranslator | undefined): voi
     customTranslator = translator
 }
 
+/**
+ * A text the library shows in a feedback message of its own — "Saved", "Saving {title} failed" — in the app's language:
+ * the translation the error translator ({@link setErrorTranslator}, else in a Vue app the `useLang` messages) has for
+ * the English text as its key, with `args` filled in; without one, the English text with `args` filled in.
+ */
+export function feedbackText(text: string, args: Record<string, unknown> = {}): string {
+    try {
+        const translated = errorTranslator(text, args)
+        if (translated) {
+            return translated
+        }
+    } catch (error) {
+        // a failing translator must not cost the user the message itself
+        console.error("Translating a feedback text failed", { text, error })
+    }
+    return fillArgs(args)(text)
+}
+
 function errorText({ message, args }: ErrorDetail): string {
     try {
         return errorTranslator(message, args ?? {}) || message

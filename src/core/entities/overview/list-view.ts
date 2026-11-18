@@ -1,6 +1,7 @@
 import { debounceToPromise } from "../../../utilities/promise-utility"
 import type { FeedbackSink, FeedbackState } from "../../feedback/feedback"
-import { toFeedbackError } from "../../feedback/errors"
+import { feedbackText, toFeedbackError } from "../../feedback/errors"
+import { feedbackTexts } from "../feedback-texts"
 import { DEFAULT_PAGESIZE, type IEntity, type ISearchObject } from "../abstractions"
 import { createOverviewCore } from "./overview-core"
 import { DEFAULT_DEBOUNCE, type ListView, type ListViewInput } from "./types"
@@ -54,7 +55,7 @@ export function createListView<T extends IEntity, SO extends ISearchObject = ISe
             console.error("fetching failed", { ex })
             // a superseded list still reports to the console, but its banner would sit over a newer result
             if (isLatest()) {
-                feedback.fail("fetching data failed", toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
+                feedback.fail(feedbackText(feedbackTexts.fetchingDataFailed), toFeedbackError(ex) ?? (ex as Error | undefined)?.message)
             }
         } finally {
             // a superseded list leaves the spinner to the one that replaced it

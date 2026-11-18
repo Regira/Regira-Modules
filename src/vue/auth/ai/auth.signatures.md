@@ -232,7 +232,7 @@ type Input<TStore extends IAuthStore, TTokenManager extends ITokenManager> = IAu
     axios: AxiosInstance
     enableRouteGuard?: boolean // default true
     enabled?: boolean // default true
-    onAuthenticationChange?(auth: IAuthData): void // receives the live IAuthData; its `token` is non-enumerable, so forwarding this object to telemetry does not leak the JWT
+    onAuthenticationChange?(auth: IAuthData): void // fires on each change of isAuthenticated (sign-in, restored token, sign-out, expiry), not on a first load without a token; once at startup when enabled: false. Receives the live IAuthData; its `token` is non-enumerable, so forwarding this object to telemetry does not leak the JWT
 }
 export const plugin: {
     install<TStore extends IAuthStore = IAuthStore, TTokenManager extends ITokenManager = ITokenManager>(

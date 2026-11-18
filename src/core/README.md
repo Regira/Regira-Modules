@@ -49,7 +49,9 @@ setErrorTranslator((key, args) =>
 
 The server may name an arg `maxLength` for a `{MaxLength}` placeholder, so match names with `ignoreCase`, as the Vue
 default does. An app's translator wins over the default whichever of the two is set first;
-`setErrorTranslator(undefined)` restores the default.
+`setErrorTranslator(undefined)` restores the default. It also translates the entity controllers' own feedback texts
+("Saved", "Saving {title} failed", …), the English text as the key and `{ title }` / `{ id }` as args; the
+[entities views guide](../vue/entities/docs/views.md) lists them.
 
 ## What only the Vue modules have
 

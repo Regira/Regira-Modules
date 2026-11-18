@@ -24,7 +24,8 @@ export type ModalEmits = {
     (e: "close"): void
 }
 export type ModalSlots = {
-    title?(): any
+    /** `titleId`: the id that names the dialog (`aria-labelledby`) — put it on the slot's heading */
+    title?(props: { titleId: string }): any
     "header-close-button"?(props: { handleClose: () => void }): any
     default?(): any
     buttons?(): any

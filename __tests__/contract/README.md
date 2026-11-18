@@ -12,6 +12,7 @@ written once and runs on every layer that wraps a controller, so the layers cann
 | `mount.js`                   | the Vue driver's mounting: each view under a memory router, as an app mounts it                                                       |
 | `services.js`                | fake entity services: `deferredService`, `pagedService`, `heldService`                                                                |
 | `feedback.test.js`           | `createFeedback` / `useFeedback`                                                                                                      |
+| `feedback-texts.test.js`     | the entity views' own feedback texts: the keys an app translates, and that they pass through the translator                           |
 | `overview.test.js`           | `createOverviewCore`, `createSearchView`, `createListView` / their `use…` composables                                                 |
 | `search-view-append.test.js` | the search view's append mode                                                                                                         |
 | `route-overview.test.js`     | `createRouteOverview` / `useRouteOverview`: the search in the URL                                                                     |

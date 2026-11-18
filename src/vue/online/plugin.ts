@@ -1,13 +1,10 @@
 import type { App } from "vue"
-import { useOnlineChecker } from "./online-checker"
+import { sharedIsOnline } from "./online-checker"
 
 export default {
     install(app: App<Element>) {
-        const { isOnline } = useOnlineChecker()
-
-        const checkOnline = () => (isOnline.value = navigator.onLine)
-        window.addEventListener("offline", checkOnline)
-        window.addEventListener("online", checkOnline)
+        // the shared ref every useOnlineChecker() returns, in setup or outside it
+        const isOnline = sharedIsOnline()
 
         app.config.globalProperties.$isOnline = isOnline
         app.provide("isOnline", isOnline)

@@ -43,12 +43,13 @@ setLangCode("nl") // ignores empty values
 document.title = translateMessage(configTitle)
 ```
 
-A language selector binds straight to `langCode` / `setLangCode`:
+A language selector binds straight to `langCode` / `setLangCode`, with a real button per language so a keyboard
+reaches it:
 
 ```vue
 <template>
-    <li :class="{ 'fw-bold': langCode == 'en' }" @click="setLangCode('en')">EN</li>
-    <li :class="{ 'fw-bold': langCode == 'nl' }" @click="setLangCode('nl')">NL</li>
+    <button type="button" :class="{ 'fw-bold': langCode == 'en' }" :aria-pressed="langCode == 'en'" @click="setLangCode('en')">EN</button>
+    <button type="button" :class="{ 'fw-bold': langCode == 'nl' }" :aria-pressed="langCode == 'nl'" @click="setLangCode('nl')">NL</button>
 </template>
 <script setup lang="ts">
 import { useLang } from "@regira/modules/vue/lang"

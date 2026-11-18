@@ -66,9 +66,10 @@ Use the provided `LangSelector` (props: `{ langs: string[] }`, emits `select`; r
 <LangSelector :langs="['en', 'fr', 'nl']" />
 ```
 
-It renders an inline list of language codes (active one bold) and calls `setLangCode` on click; restyle
-it via the `rg-lang-selector` hook or replace it — it's a 15-line reference skin over
-`useLang().langCode/setLangCode`.
+It renders an inline list with a `<button type="button">` per language code (the active one bold and
+`aria-pressed="true"`), so a keyboard reaches each with Tab and picks it with Enter or Space; a pick calls
+`setLangCode` and emits `select`. Restyle it via the `rg-lang-selector` hook or replace it — it's a short reference
+skin over `useLang().langCode/setLangCode`; a replacement keeps real buttons.
 
 ## Translating and interpolating
 
@@ -94,6 +95,10 @@ these messages, placeholders filled from the args, and the message as sent other
 (`ValueTooLarge`) where the app should translate, and the app adds them here:
 `"ValueTooLarge": { en: "At most {max}", nl: "Maximaal {max}" }`. An app on another i18n library (vue-i18n) points
 `toFeedbackError` at it with `setErrorTranslator` instead. Details: [ui](../../ui/ai/ui.instructions.md) → feedback.
+
+The entity views' own feedback texts are keys here too, the English text as the key and the fallback:
+`"Saved": { en: "Saved", nl: "Opgeslagen" }`, `"Saving {title} failed": { en: "…", nl: "{title} opslaan mislukt" }`.
+The list: [entities.patterns.md](../../entities/ai/entities.patterns.md) → _Translating the views' own feedback texts_.
 
 ## Gotchas
 

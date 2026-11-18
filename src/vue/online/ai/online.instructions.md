@@ -1,8 +1,8 @@
 # Regira Online — AI Agent Instructions
 
-The front-end online/offline layer (`@regira/modules/vue/online`): a tiny `useOnlineChecker` composable
-plus a Vue plugin that keeps a single reactive `isOnline` ref in sync with the browser and exposes it
-app-wide as `$isOnline`. Use it to gate calls to the [entities client](../../entities/ai/entities.instructions.md)
+The front-end online/offline layer (`@regira/modules/vue/online`): one reactive `isOnline` ref, kept in
+sync with the browser, which the `useOnlineChecker` composable returns and a Vue plugin exposes app-wide as
+`$isOnline`. Use it to gate calls to the [entities client](../../entities/ai/entities.instructions.md)
 or [HTTP layer](../../http/ai/http.instructions.md) when the network is down.
 
 > **Never guess** a signature — verify in [online.signatures.md](online.signatures.md).
@@ -28,8 +28,7 @@ There are no granular subpaths — everything is re-exported from the package ro
 
 ## The plugin and `$isOnline`
 
-Install the plugin once at startup. It creates one `isOnline` ref (seeded from `navigator.onLine`),
-listens to the window `online`/`offline` events to keep it current, and registers it two ways:
+Install the plugin once at startup. It registers the shared `isOnline` ref (below) two ways:
 
 ```ts
 app.use(onlinePlugin)
@@ -42,8 +41,9 @@ and the Options API. The same ref is also `provide`d under the injection key `"i
 
 ## The composable
 
-`useOnlineChecker()` returns `{ isOnline }`: inside a component's `setup` with the plugin installed, the
-plugin's live ref; elsewhere, a `Ref<boolean>` initialised from `navigator.onLine`.
+`useOnlineChecker()` returns `{ isOnline }`: one ref for the whole app, the same in a component's `setup`, a
+store, a service or a module, with or without the plugin. It is made on first use, seeded from `navigator.onLine`,
+and follows the window's `online`/`offline` events from then on.
 
 ```ts
 const { isOnline } = useOnlineChecker()
@@ -54,11 +54,14 @@ if (!isOnline.value) {
 
 ## Gotchas
 
-- **Live only inside `setup`, with the plugin.** There `useOnlineChecker()` returns the plugin's
-  `inject("isOnline")` ref, which the plugin's `online`/`offline` listeners keep current, so the component
-  re-renders when the connection changes. Outside `setup` (an event handler, a service, a module), or without
-  the plugin, it returns a new ref seeded from `navigator.onLine` once: right at that moment, never updated.
-- **Browser-only.** It reads `navigator.onLine` and `window`, so it must run client-side.
+- **Writable, on purpose.** `navigator.onLine` only knows whether there is a network, not whether the API
+  answers. An app that knows better sets the shared ref from its requests — `false` on a request that got no
+  response, `true` on the next answer — and every reader, `$isOnline` included, sees it. The browser's next
+  `online`/`offline` event sets it again.
+- **Inside `setup`, an app's own `provide("isOnline", …)` wins.** The composable injects `"isOnline"` first; the
+  plugin provides the shared ref there, so with the plugin both are the same.
+- **No side effect at import.** The ref and its listeners are made on the first `useOnlineChecker()` (or the
+  plugin's install); on the server, without a `window`, it is `true` and wires nothing.
 
 ## See also
 

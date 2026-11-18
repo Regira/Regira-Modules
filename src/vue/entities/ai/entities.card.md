@@ -247,7 +247,7 @@ page?)` (from `@regira/modules/vue/entities`) is positional, and is for the over
 
 - **The URL contract has four owners** — `config.json → api` (axios base), `IConfig.api` (relative
   resource), the Vite dev proxy, the server route prefix. Align them once or every call 404s; and
-  `config.json → clientApp` must equal the API's JWT audience or every call 401s.
+  `config.json → clientApp` must equal the API's JWT audience or sign-in answers `400`.
 - **`baseQueryParams.includes` is for flag-gated _collections_ on a complex API entity** — complex meaning
   `For<…, TSortBy, TIncludes>` on the server, not the front-end `isComplex` page/modal flag. A **simple**
   entity ignores `?includes=` entirely, and a detail form's children come from the back-end's Details

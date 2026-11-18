@@ -1,6 +1,8 @@
 import { deepCopy } from "../../../utilities/object-utility"
 import { ref, unref, type Ref, getCurrentInstance } from "vue"
 import { type FeedbackOut } from "../../ui"
+import { feedbackText } from "../../../core/feedback/errors"
+import { feedbackTexts } from "../../../core/entities/feedback-texts"
 import { ArchivedFilter, type IEntity, type IEntityService, type SaveResult, isNewEntity } from "../../../core/entities/abstractions"
 import type { FormEmits, FormProps } from "./form"
 
@@ -87,8 +89,11 @@ export function useModalForm<T extends IEntity>({
             console.error("Fetching details failed", { id: itemValue?.$id, ex, app })
             feedback ||= app?.appContext.config.globalProperties.$feedback as FeedbackOut
             feedback.fail(
-                `Fetching ${itemValue?.$title || "item #" + itemValue?.$id} failed`,
-                ex.response.status == 403 ? "Not allowed" : ex.response?.data
+                itemValue?.$title
+                    ? feedbackText(feedbackTexts.fetchingTitleFailed, { title: itemValue.$title })
+                    : feedbackText(feedbackTexts.fetchingItemFailed, { id: itemValue?.$id }),
+                // optional chaining: a network failure carries no response
+                ex.response?.status == 403 ? feedbackText(feedbackTexts.notAllowed) : ex.response?.data
             )
         }
     }

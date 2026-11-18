@@ -4,8 +4,8 @@ Verify signatures in [online.signatures.md](online.signatures.md).
 
 ## Install the plugin (startup)
 
-Add it to `app` once in `main.ts`. The plugin seeds one reactive `isOnline` ref from
-`navigator.onLine` and keeps it live via the window `online`/`offline` events:
+Add it to `app` once in `main.ts`. The plugin registers the shared `isOnline` ref, seeded from
+`navigator.onLine` and kept live by the window `online`/`offline` events, as `$isOnline` and `inject("isOnline")`:
 
 ```ts
 import { plugin as isOnlinePlugin } from "@regira/modules/vue/online"
@@ -56,8 +56,7 @@ After the plugin is installed, `$isOnline` is a `Ref<boolean>` on every componen
 
 ## Gate work on the online state
 
-Inside a component's `setup` the composable returns the plugin's live ref; elsewhere it reads
-`navigator.onLine` once and does not stay in sync (see the gotchas in the instructions):
+The composable returns the same live ref everywhere — a component's `setup`, a store, a service:
 
 ```ts
 import { useOnlineChecker } from "@regira/modules/vue/online"
@@ -66,6 +65,25 @@ const { isOnline } = useOnlineChecker()
 if (!isOnline.value) {
     /* skip the request, show offline UI */
 }
+```
+
+## Set it from request results
+
+`navigator.onLine` knows the network, not the API. The ref is writable, so an interceptor can feed it:
+
+```ts
+import axios from "axios"
+import { useOnlineChecker } from "@regira/modules/vue/online"
+
+const { isOnline } = useOnlineChecker()
+axios.interceptors.response.use(
+    (response) => ((isOnline.value = true), response),
+    (error) => {
+        // no response: the API is out of reach; a request the app cancelled says nothing about the network
+        if (!axios.isCancel(error)) isOnline.value = error.response != null
+        return Promise.reject(error)
+    }
+)
 ```
 
 ## See also

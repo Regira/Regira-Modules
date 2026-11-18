@@ -464,7 +464,7 @@ Most entities follow the same 12 steps below — one file per step. **Scaffold a
 The folder, client route and `api` path derive as the kebab-case plural of the class name, matching the
 conventional `[Route(...)]`; pass `--api <path>` when the server exposes the resource under a different name,
 and `--rel <Related>` per to-one relation shown in the overview — it generates the pooled column, the model
-fields and the advanced filter, and leaves `baseQueryParams` empty because a to-one on every row should be eager-loaded server-side
+fields and the advanced filter (not the form's picker: the run prints the `<…InputSelector>` line to add to `details/Form.vue`), and leaves `baseQueryParams` empty because a to-one on every row should be eager-loaded server-side
 (`e.Includes(...)`), not requested per call. A differently-named FK takes a trailing `--as <field>`
 (`--rel Employee --as assignedToEmployee` binds `assignedToEmployeeId`/`assignedToEmployee`, still the Employee slice),
 and a trailing `--no-filter` leaves out the advanced filter of a relation the API's `SearchObject` cannot filter on.
