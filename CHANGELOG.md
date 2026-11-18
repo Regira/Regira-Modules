@@ -5,7 +5,7 @@ bullet under **Unreleased** in the same change, and leaves `version` in `package
 the last published release. On publish, the Unreleased block becomes a `## x.y.z — YYYY-MM-DD`
 heading.
 
-## Unreleased
+## 6.6.3 — 2026-11-18
 
 - Scaffold: Fix: the `--owns` slice's `Overview.vue` translates its button titles and placeholders, and its ↺, × and +
   buttons carry an `aria-label`, like the other templates.
